@@ -186,11 +186,12 @@ Section with_cpp.
 
   (* how to wrap this up into an invariant abstraction *)
   Parameter rmutex_namespace : namespace.
-  Context `{HasOwn mpredI (excl_authR natO)}.
+  Canonical Structure thread_idTO := leibnizO thread_idT.
+  Context `{HasOwn mpredI (excl_authR (prodO natO thread_idTO))}.
   Definition inv_rmutex  (g : gname) (P : mpred) : mpred :=
     inv rmutex_namespace
-      (Exists n, own g (●E n) **
-        ([|n = 0|] ** P ** own g (◯E n) \\// [|n > 0|] ** Exists th, locked g th n)).
+      (Exists n th, own g (●E (n, th)) **
+        ([|n = 0|] ** P ** own g (◯E (n, th)) \\// [|n > 0|] ** locked g th n)).
 
   (** [acquire_state] tracks the acquisition state of a recursive_mutex.
    *)
@@ -215,9 +216,10 @@ Section with_cpp.
     end.
 
   Definition acquireable (g : gname) (th : thread_idT) {TT: tele} (t : acquire_state TT) (P : TT -t> mpred) : mpred :=
+    current_thread th **
     match t with
     | NotHeld => locked g th 0
-    | Held n args => own g (◯E (S n)) ** tele_app P args
+    | Held n args => own g (◯E (S n, th)) ** tele_app P args
     end.
 
   #[global] Instance acquireable_learn γ th TT : LearnEq2 (@acquireable γ th TT).
@@ -242,7 +244,7 @@ Section with_cpp.
     \consuming acquireable g th t' P
     \deduce{n args} tele_app P args
     \deduce [| t' = Held n args /\ t = release t' |]
-    \deduce own g (◯E (S n))
+    \deduce own g (◯E (S n, th))
     \end.
   Next Obligation.
     (* TODO use is_held *)
@@ -256,8 +258,9 @@ Section with_cpp.
   Definition own_P_is_acquireable_C {TT : tele} g n P args :=
     \cancelx
     \consuming tele_app P args
-    \consuming own g (◯E (S n))
-    \proving{th} acquireable(TT:=TT) g th (Held n args) P
+    \consuming{th} own g (◯E (S n, th))
+    \preserving current_thread th
+    \proving acquireable(TT:=TT) g th (Held n args) P
     \end.
   Next Obligation. rewrite /acquireable; work. Qed.
 
@@ -294,7 +297,7 @@ Section with_cpp.
      \prepost{q} this |-> R g q
      \pre{th n} acquireable g th n P
      \pre{q'} token g q'
-     \post given_token g q' ** Exists n', [| acquire n n' |] ** acquireable g th n' P).
+     \post given_token g q' ** Exists n', [| acquire n n' |] ** ▷ acquireable g th n' P).
   (* to prove: this is derivable from lock_spec *)
 
   cpp.spec "std::recursive_mutex::unlock()" as unlock_spec' with
@@ -314,15 +317,56 @@ Section with_cpp.
     iExists q'.
     work.
     iExists (∃ t : acquire_state tt, [| acquire n t |] ∗
-              acquireable g th t P)%I.
+              ▷ acquireable g th t P)%I.
     work.
     wname [bi_wand] "W".
+    (* TODO: agreement. *)
+    assert (thr = th) as -> by admit.
     iSplitR "W".
     - iAcIntro; rewrite /commit_acc/=.
       wname [inv_rmutex] "I".
-      iInv "I" as (?) "?" "Hclose"; [admit|].
-      iApply fupd_mask_intro; [set_solver|].
-      work.
+      iInv "I" as (??) "Hcases" "Hclose"; [admit|].
+      iDestruct "Hcases" as "(>Hn & Hcases)".
+      rewrite /acquireable.
+      destruct n; simpl.
+      + iApply fupd_mask_intro; first set_solver.
+        iIntros "Hclose'".
+        iExists 0; work.
+        iDestruct "Hcases" as "[(? & ? & >Hcase) | Hcase]".
+        * work.
+          iMod (own_update_2 with "Hn Hcase") as "(Hg & Hcase)"; first apply (excl_auth_update _ _ (1, th)).
+          iMod "Hclose'" as "_".
+          wname [locked] "Hlocked".
+          iMod ("Hclose" with "[$Hg Hlocked]").
+          { iRight; ework $usenamed=true; done. }
+          wname [(▷_)%I] "HP".
+          rewrite bi.later_exist_except_0.
+          iMod "HP" as (args) "HP".
+          iModIntro.
+          iExists (Held 0 args); work.
+          iSplit. iPureIntro. eauto.
+          work $usenamed=true.
+        * iDestruct "Hcase" as "(? & >Hcase)".
+          iDestruct (locked_excl_different_thread with "[$]") as (?) "?".
+          work. lia.
+      + work.
+        iDestruct (own_valid_2 with "Hn [$]") as %[=]%excl_auth_agree_L; subst.
+        iDestruct "Hcases" as "[(? & Hcase) | (_ & >?)]".
+        { work. done. }
+        iApply fupd_mask_intro; first set_solver.
+        iIntros "Hclose'".
+        iExists (S n); work.
+        iMod (own_update_2 with "Hn [$]") as "(Hg & Hcase)"; first apply (excl_auth_update _ _ (S (S n), th)).
+        iMod "Hclose'" as "_".
+        wname [locked] "Hlocked".
+        iMod ("Hclose" with "[$Hg Hlocked]").
+        { iRight; ework $usenamed=true; done. }
+        iModIntro.
+        iExists (Held (S n) xs); work.
+        done.
+    - work.
+      iApply "W".
+      iModIntro. ework.
   Admitted.
 
   Opaque release.
