@@ -183,7 +183,10 @@ Section with_cpp.
 
   (* how to wrap this up into an invariant abstraction *)
   Definition rmutex_namespace := nroot .@@ "std" .@@ "recursive_mutex_inv".
-  Context `{HasOwn mpredI (excl_authR (prodO natO thread_idTO))}.
+
+  Canonical Structure cmraR := (excl_authR (prodO natO thread_idTO)).
+  Context `{!HasOwn mpredI cmraR}.
+
   Definition inv_rmutex  (g : gname) (P : mpred) : mpred :=
     inv rmutex_namespace
       (Exists n th, own g (●E (n, th)) **
@@ -304,45 +307,56 @@ Section with_cpp.
      \pre{q'} given_token g q'
      \post token g q' ** acquireable g th (release $ Held n args) P).
 
+  #[global] Instance acquireable_current_thread :
+    `{Observe (current_thread th) (acquireable g th (TT := TT) t P)} := _.
+  Definition acquireable_current_thread_F :=
+    ltac:(mk_obs_fwd acquireable_current_thread).
+  #[local] Hint Resolve acquireable_current_thread_F : br_hints.
+
+  (* TODO AUTO *)
+  #[global] Instance later_acquireable_learn γ th TT :
+    LearnEq2 (fun a b => bi_later (@acquireable γ th TT a b)).
+  Proof. solve_learnable. Qed.
+
+  Context `{HOV : !HasOwnValid mpredI cmraR, HOU : !HasOwnUpd mpredI cmraR}.
+
   Lemma lock_spec_impl_lock_spec' :
     lock_spec |-- lock_spec'.
-  Proof.
-    apply specify_mono_fupd; work.
+  Proof using MOD HOV HOU.
+    apply specify_mono; work.
+
     iExists q.
-    iModIntro; work.
-    iExists q'.
+    (* iModIntro. *)
     work.
-    iExists (∃ t : acquire_state tt, [| acquire n t |] ∗
+
+    iExists q'.
+    iExists (∃ t : acquire_state TT, [| acquire n t |] ∗
               ▷ acquireable g th t P)%I.
     work.
     wname [bi_wand] "W".
-    (* TODO: agreement. *)
-    assert (thr = th) as -> by admit.
-    iSplitR "W".
+    iSplitR "W"; first last.
+    - work $usenamed=true.
     - iAcIntro; rewrite /commit_acc/=.
       iInv rmutex_namespace as (??) "(>Hn & Hcases)" "Hclose".
       rewrite /acquireable.
       destruct n; simpl.
-      + iApply fupd_mask_intro; first set_solver.
-        iIntros "Hclose'".
+      + iApply fupd_mask_intro; first set_solver; iIntros "Hclose'".
         iExists 0; work.
-        iDestruct "Hcases" as "[(? & ? & >Hcase) | Hcase]".
+        iDestruct "Hcases" as "[(> -> & ? & >Hcase) | (>% & >Hcase)]".
         * work.
           iMod (own_update_2 with "Hn Hcase") as "(Hg & Hcase)"; first apply (excl_auth_update _ _ (1, th)).
           iMod "Hclose'" as "_".
           wname [locked] "Hlocked".
-          iMod ("Hclose" with "[$Hg Hlocked]").
-          { iRight; ework $usenamed=true; done. }
-          wname [(▷_)%I] "HP".
+          iMod ("Hclose" with "[$Hg Hlocked]") as "_".
+          { iRight; work $usenamed=true. }
           rewrite bi.later_exist_except_0.
-          iMod "HP" as (args) "HP".
+          wname [bi_except_0] ">(%args & HP)".
           iModIntro.
           iExists (Held 0 args); work.
-          iSplit. iPureIntro. eauto.
+          cut_pure _; first by eauto.
           work $usenamed=true.
-        * iDestruct "Hcase" as "(? & >Hcase)".
-          iDestruct (locked_excl_different_thread with "[$]") as (?) "?".
-          work. lia.
+        * iDestruct (locked_excl_different_thread with "[$]") as (?) "?".
+          exfalso. lia.
       + work.
         iDestruct (own_valid_2 with "Hn [$]") as %[=]%excl_auth_agree_L; subst.
         iDestruct "Hcases" as "[(? & Hcase) | (_ & >?)]".
@@ -353,15 +367,11 @@ Section with_cpp.
         iMod (own_update_2 with "Hn [$]") as "(Hg & Hcase)"; first apply (excl_auth_update _ _ (S (S n), th)).
         iMod "Hclose'" as "_".
         wname [locked] "Hlocked".
-        iMod ("Hclose" with "[$Hg Hlocked]").
-        { iRight; ework $usenamed=true; done. }
+        iMod ("Hclose" with "[$Hg Hlocked]") as "_".
+        { iRight; work $usenamed=true. }
         iModIntro.
-        iExists (Held (S n) xs); work.
-        done.
-    - work.
-      iApply "W".
-      iModIntro. ework.
-  Admitted.
+        iExists (Held (S n) xs). work $usenamed=true.
+  Qed.
 
   Opaque release.
   Opaque acquireable.
@@ -370,5 +380,6 @@ End with_cpp.
 
 #[global] Hint Resolve acquireable_is_acquired_C : br_hints.
 #[global] Hint Resolve own_P_is_acquireable_C : br_hints.
+#[global] Hint Resolve acquireable_current_thread_F : br_hints.
 
 End recursive_mutex.
