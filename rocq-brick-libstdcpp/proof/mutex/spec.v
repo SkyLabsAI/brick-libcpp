@@ -137,9 +137,6 @@ Section with_cpp.
   Axiom locked_excl_different_thread : forall g th th' n m,
     locked g th n ** locked g th' m |-- [| n = 0 \/ m = 0 |] ** True.
 
-  #[global] Declare Instance threadT_eq_decision : EqDecision thread_idT.
-  #[global] Declare Instance threadT_countable : Countable thread_idT.
-
   Parameter used_threads : gname -> gset thread_idT -> mpred.
   Axiom use_thread : forall th g m,
     th ∉ m ->
@@ -186,7 +183,6 @@ Section with_cpp.
 
   (* how to wrap this up into an invariant abstraction *)
   Parameter rmutex_namespace : namespace.
-  Canonical Structure thread_idTO := leibnizO thread_idT.
   Context `{HasOwn mpredI (excl_authR (prodO natO thread_idTO))}.
   Definition inv_rmutex  (g : gname) (P : mpred) : mpred :=
     inv rmutex_namespace
