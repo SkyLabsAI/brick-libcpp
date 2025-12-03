@@ -335,42 +335,45 @@ Section with_cpp.
     work.
     wname [bi_wand] "W".
     iSplitR "W"; first last.
-    - work $usenamed=true.
-    - iAcIntro; rewrite /commit_acc/=.
-      iInv rmutex_namespace as (??) "(>Hn & Hcases)" "Hclose".
-      rewrite /acquireable.
-      destruct n; simpl.
-      + iApply fupd_mask_intro; first set_solver; iIntros "Hclose'".
-        iExists 0; work.
-        iDestruct "Hcases" as "[(> -> & ? & >Hcase) | (>% & >Hcase)]".
-        * work.
-          iMod (own_update_2 with "Hn Hcase") as "(Hg & Hcase)"; first apply (excl_auth_update _ _ (1, th)).
-          iMod "Hclose'" as "_".
-          wname [locked] "Hlocked".
-          iMod ("Hclose" with "[$Hg Hlocked]") as "_".
-          { iRight; work $usenamed=true. }
-          rewrite bi.later_exist_except_0.
-          wname [bi_except_0] ">(%args & HP)".
-          iModIntro.
-          iExists (Held 0 args); work.
-          cut_pure _; first by eauto.
-          work $usenamed=true.
-        * iDestruct (locked_excl_different_thread with "[$]") as (?) "?".
-          exfalso. lia.
-      + work.
-        iDestruct (own_valid_2 with "Hn [$]") as %[=]%excl_auth_agree_L; subst.
-        iDestruct "Hcases" as "[(? & Hcase) | (_ & >?)]".
-        { work. done. }
-        iApply fupd_mask_intro; first set_solver.
-        iIntros "Hclose'".
-        iExists (S n); work.
-        iMod (own_update_2 with "Hn [$]") as "(Hg & Hcase)"; first apply (excl_auth_update _ _ (S (S n), th)).
-        iMod "Hclose'" as "_".
-        wname [locked] "Hlocked".
-        iMod ("Hclose" with "[$Hg Hlocked]") as "_".
-        { iRight; work $usenamed=true. }
-        iModIntro.
-        iExists (Held (S n) xs). work $usenamed=true.
+    { work $usenamed=true. }
+    iAcIntro; rewrite /commit_acc/=.
+    iInv rmutex_namespace as (??) "(>Hn & Hcases)" "Hclose".
+    rewrite /acquireable.
+    destruct n; simpl.
+    - iApply fupd_mask_intro; first set_solver; iIntros "Hclose'".
+      iExists 0; work.
+      iDestruct "Hcases" as "[(> -> & ? & >Hcase) | (>% & >Hcase)]"; first last.
+      { iDestruct (locked_excl_different_thread with "[$]") as (?) "?".
+        exfalso. lia. }
+      work.
+      iMod (own_update_2 with "Hn Hcase") as "(Hg & Hcase)";
+        first apply (excl_auth_update _ _ (1, th)).
+      iMod "Hclose'" as "_".
+      wname [locked] "Hlocked".
+      iMod ("Hclose" with "[$Hg Hlocked]") as "_".
+      { iRight; work $usenamed=true. }
+      rewrite bi.later_exist_except_0.
+      wname [bi_except_0] ">(%args & HP)".
+      iModIntro.
+      iExists (Held 0 args); work.
+      cut_pure _; first by eauto.
+      work $usenamed=true.
+    - work.
+      iDestruct (own_valid_2 with "Hn [$]") as %[=]%excl_auth_agree_L; subst.
+      Import linearity.
+      iDestruct "Hcases" as "[(> % & ?) | (_ & >?)]".
+      { by exfalso. }
+      iApply fupd_mask_intro; first set_solver.
+      iIntros "Hclose'".
+      iExists (S n); work.
+      iMod (own_update_2 with "Hn [$]") as "(Hg & Hcase)";
+        first apply (excl_auth_update _ _ (S (S n), th)).
+      iMod "Hclose'" as "_".
+      wname [locked] "Hlocked".
+      iMod ("Hclose" with "[$Hg Hlocked]") as "_".
+      { iRight; work $usenamed=true. }
+      iModIntro.
+      iExists (Held (S n) xs). work $usenamed=true.
   Qed.
 
   Opaque release.
