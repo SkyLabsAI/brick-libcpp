@@ -222,7 +222,7 @@ Section with_cpp.
   Proof. solve_learnable. Qed.
 
   (* TODO make this into a hint *)
-  Lemma is_held {TT : tele} {t1 t2: acquire_state TT} :
+  Lemma is_held {TT : tele} {t1 t2 : acquire_state TT} :
     acquire t1 t2 ->
     ∃ n xs, t2 = Held n xs /\
       t1 = release t2.
@@ -289,7 +289,7 @@ Section with_cpp.
 
   cpp.spec "std::recursive_mutex::lock()" as lock_spec' with
     (\this this
-     \persist{g tt P} inv_rmutex g (∃ xs : tele_arg tt, tele_app P xs)
+     \persist{g TT P} inv_rmutex g (∃ xs : tele_arg TT, tele_app P xs)
      \prepost{q} this |-> R g q
      \pre{th n} acquireable g th n P
      \pre{q'} token g q'
