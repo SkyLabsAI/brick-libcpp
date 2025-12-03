@@ -55,8 +55,6 @@ Section with_cpp.
     (* Instance token_learn γ : LearnEq1 (recursive_mutex.token γ) := ltac:(solve_learnable). *)
     destruct args as [a [b []]]; simpl; go.
     iSplitR. { admit. (* TODO make the addition modulo arithmetic in the spec *) }
-    Instance given_token_learn γ : LearnEq1 (recursive_mutex.given_token γ) :=
-      ltac:(solve_learnable).
     go.
     iExists TT; iExists (P this).
     iExists th.

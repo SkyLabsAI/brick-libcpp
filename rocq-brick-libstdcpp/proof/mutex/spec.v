@@ -124,6 +124,11 @@ Section with_cpp.
   #[only(cfracsplittable,timeless)] derive token.
   Parameter given_token : gname -> cQp.t -> mpred.
   #[only(timeless)] derive given_token.
+
+  #[global]
+  Instance given_token_learn γ : LearnEq1 (given_token γ) :=
+    ltac:(solve_learnable).
+
   (* #[only(cfracsplittable,timeless)] derive given_token. *)
 
   (* the mask of recursive_mutex *)
