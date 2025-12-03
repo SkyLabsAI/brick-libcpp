@@ -8,26 +8,32 @@ Require Import bluerock.brick.libstdcpp.mutex.demo_cpp.
   Learnable (own γ (◯E a)) (own γ (◯E b)) [a = b].
 Proof. solve_learnable. Qed.
 
+Definition TT : tele := [tele (_ : Z) (_ : Z)].
+Definition mk (a b : Z) : TT :=
+  {| tele_arg_head := a; tele_arg_tail := {| tele_arg_head := b; tele_arg_tail := () |} |}.
+
+br.lock
+Definition P `{Σ : cpp_logic, σ : genv} (this : ptr) : TT -t> mpred :=
+  fun (a b : Z) =>
+    this ,, _field "C::balance_a" |-> intR 1$m a **
+    this ,, _field "C::balance_b" |-> intR 1$m b.
+
+br.lock
+Definition CR
+    `{Σ : cpp_logic, σ : genv, HasOwn mpredI recursive_mutex.cmraR}
+    (γ : gname) (q : cQp.t) : Rep :=
+  structR "C" q **
+  _field "C::mut" |-> recursive_mutex.R γ q **
+  as_Rep (fun this : ptr =>
+    recursive_mutex.inv_rmutex γ (∃ a_b : tele_arg _, tele_app (P this) a_b)).
+
+#[only(type_ptr, lazy_unfold)] derive CR.
+
 Section with_cpp.
   Context `{Σ : cpp_logic}.
   Context `{MOD : source ⊧ σ}. (* σ is the whole program *)
   Context {HAS_THREADS : HasStdThreads Σ}.
   Context {has_rmutex : HasOwn mpredI recursive_mutex.cmraR}.
-
-  Definition TT : tele := [tele (_ : Z) (_ : Z)].
-  Definition mk (a b : Z) : TT :=
-    {| tele_arg_head := a; tele_arg_tail := {| tele_arg_head := b; tele_arg_tail := () |} |}.
-
-  Definition P (this : ptr) : TT -t> mpred :=
-    fun (a b : Z) =>
-       this ,, _field "C::balance_a" |-> intR 1$m a **
-       this ,, _field "C::balance_b" |-> intR 1$m b.
-
-  Definition CR (γ : gname) (q : cQp.t) : Rep :=
-    structR "C" q **
-    _field "C::mut" |-> recursive_mutex.R γ q **
-    as_Rep (fun this : ptr =>
-      recursive_mutex.inv_rmutex γ (∃ a_b : tele_arg _, tele_app (P this) a_b)).
 
   cpp.spec "C::update_a(int)" with
     (\this this
@@ -48,10 +54,11 @@ Section with_cpp.
   Lemma update_a_ok : verify[source] "C::update_a(int)".
   Proof.
     verify_spec; go.
-    rewrite /CR.
-    iExists TT; iExists (P this); iExists q; iExists th.
+    work.
+
+    iExists TT; iExists (P this). iExists th.
     go.
-    rewrite /P/=.
+    rewrite P.unlock /=.
     (* Instance token_learn γ : LearnEq1 (recursive_mutex.token γ) := ltac:(solve_learnable). *)
     destruct args as [a [b []]]; simpl; go.
     iSplitR. { admit. (* TODO make the addition modulo arithmetic in the spec *) }
@@ -59,13 +66,13 @@ Section with_cpp.
     iExists TT; iExists (P this).
     iExists th.
     iExists n, (mk (a + x) b).
-    rewrite /P; go.
+    rewrite P.unlock. go.
     (* Clients shouldn't unfold abstractions like [recursive_mutex.acquireable] *)
     rewrite /recursive_mutex.acquireable.
     work.
     erewrite recursive_mutex.update_eq; last done.
     go.
-    rewrite /P; go.
+    rewrite P.unlock. go.
     (* Clients shouldn't do case distinctions! *)
     destruct n; rewrite /recursive_mutex.acquireable; go.
     all: fail.
