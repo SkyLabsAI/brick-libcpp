@@ -127,7 +127,7 @@ Section with_cpp.
   (* #[only(cfracsplittable,timeless)] derive given_token. *)
 
   (* the mask of recursive_mutex *)
-  Definition mask := nroot .@ "std" .@ "recursive_mutex".
+  Definition mask := nroot .@@ "std" .@@ "recursive_mutex".
 
   (** <<locked γ th n>> <<th>> owns the mutex <<γ>> <<n>> times. *)
   Parameter locked : gname -> thread_idT -> nat -> mpred.
@@ -182,7 +182,7 @@ Section with_cpp.
    *)
 
   (* how to wrap this up into an invariant abstraction *)
-  Parameter rmutex_namespace : namespace.
+  Definition rmutex_namespace := nroot .@@ "std" .@@ "recursive_mutex_inv".
   Context `{HasOwn mpredI (excl_authR (prodO natO thread_idTO))}.
   Definition inv_rmutex  (g : gname) (P : mpred) : mpred :=
     inv rmutex_namespace
@@ -320,9 +320,7 @@ Section with_cpp.
     assert (thr = th) as -> by admit.
     iSplitR "W".
     - iAcIntro; rewrite /commit_acc/=.
-      wname [inv_rmutex] "I".
-      iInv "I" as (??) "Hcases" "Hclose"; [admit|].
-      iDestruct "Hcases" as "(>Hn & Hcases)".
+      iInv rmutex_namespace as (??) "(>Hn & Hcases)" "Hclose".
       rewrite /acquireable.
       destruct n; simpl.
       + iApply fupd_mask_intro; first set_solver.
