@@ -381,6 +381,12 @@ Section with_cpp.
       iExists (Held (S n) xs). work $usenamed=true.
   Qed.
 
+  Lemma unlock_spec_impl_ulock_spec' :
+    unlock_spec |-- unlock_spec'.
+  Proof using MOD HOV HOU.
+    apply specify_mono; work.
+  Abort.
+
   Opaque release.
   Opaque acquireable.
 
