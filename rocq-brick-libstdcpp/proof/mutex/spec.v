@@ -234,7 +234,7 @@ Section with_cpp.
 
   Lemma use_thread_acquirable : forall {TT} th g m P,
     th ∉ m ->
-    current_thread th ** used_threads g.(lock_gname) m |-- 
+    current_thread th ** used_threads g.(lock_gname) m |--
     |==> used_threads g.(lock_gname) (m ∪ {[ th ]}) ** acquireable (TT := TT) g th NotHeld P.
   Proof.
     rewrite /acquireable /=.
@@ -243,7 +243,7 @@ Section with_cpp.
     iApply use_thread; first done.
     by iFrame.
   Qed.
-    
+
   (* TODO make this into a hint *)
   Lemma is_held {TT : tele} {t1 t2 : acquire_state TT} :
     acquire t1 t2 ->
