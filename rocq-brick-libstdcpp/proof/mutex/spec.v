@@ -43,7 +43,7 @@ Section with_cpp.
   TODO: maybe a bigger test demonstrating the enforcement?
   minimal version: this fails (fill in the obvious stuff)
 
-    \persist{i} >={ L_TI } i
+    \persist{th} >={ L_TI } th
     \pre{j} mutex_locked g j
     test_unlock(std::mutex & m) {
       m.unlock();
@@ -51,8 +51,8 @@ Section with_cpp.
 
     this succeeds:
 
-    \persist{i} >={ L_TI } i
-    \pre mutex_locked g i
+    \persist{th} >={ L_TI } th
+    \pre mutex_locked g th
     same test_unlock
    *)
   Parameter mutex_locked : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv}, gname -> thread_idT -> mpred.
@@ -80,9 +80,9 @@ Section with_cpp.
   cpp.spec "std::mutex::try_lock()" as try_lock_spec with
       (\this this
       \prepost{q P g} this |-> R g q P (* part of both pre and post *)
-      \prepost{i} current_thread i
+      \prepost{th} current_thread th
       \pre mutex_token g q
-      \post{b}[Vbool b] if b then P ** mutex_locked g i else mutex_token g q).
+      \post{b}[Vbool b] if b then P ** mutex_locked g th else mutex_token g q).
 
   cpp.spec "std::mutex::unlock()" as unlock_spec with
       (\this this
@@ -161,19 +161,19 @@ Section with_cpp.
   cpp.spec "std::recursive_mutex::lock()" as lock_spec with
     (\this this
       \prepost{q g} this |-> R g q (* part of both pre and post *)
-      \persist{i} current_thread i
+      \persist{th} current_thread th
       \pre{q'} token g q'
-      \pre{Q} AC << ∀ n , locked g i n >> @ top \ ↑ mask , empty
-                  << locked g i (S n) , COMM Q >>
+      \pre{Q} AC << ∀ n , locked g th n >> @ top \ ↑ mask , empty
+                  << locked g th (S n) , COMM Q >>
       \post Q ** given_token g q').
 
   cpp.spec "std::recursive_mutex::unlock()" as unlock_spec with
     (\this this
       \prepost{q g} this |-> R g q (* part of both pre and post *)
-      \persist{i} current_thread i
+      \persist{th} current_thread th
       \pre{q'} given_token g q'
-      \pre{Q} AC << ∀ n , locked g i (S n) >> @ top \ ↑ mask , empty
-                  << locked g i n , COMM Q >>
+      \pre{Q} AC << ∀ n , locked g th (S n) >> @ top \ ↑ mask , empty
+                  << locked g th n , COMM Q >>
       \post token g q' ** Q).
 
 
