@@ -323,6 +323,12 @@ Section with_cpp.
     LearnEq2 (fun a b => bi_later (@acquireable γ th TT a b)).
   Proof. solve_learnable. Qed.
 
+  #[global] Instance token_learn γ :
+    LearnEq1 (token γ).
+  Proof. solve_learnable. Qed.
+
+  Import linearity.
+
   Context `{HOV : !HasOwnValid mpredI cmraR, HOU : !HasOwnUpd mpredI cmraR}.
 
   Lemma lock_spec_impl_lock_spec' :
@@ -330,14 +336,10 @@ Section with_cpp.
   Proof using MOD HOV HOU.
     apply specify_mono; work.
 
-    iExists q.
-    (* iModIntro. *)
-    work.
-
-    iExists q'.
-    iExists (∃ t : acquire_state TT, [| acquire n t |] ∗
+    iExists _, (∃ t : acquire_state TT, [| acquire n t |] ∗
               ▷ acquireable g th t P)%I.
     work.
+
     wname [bi_wand] "W".
     iSplitR "W"; first last.
     { work $usenamed=true. }
@@ -365,11 +367,9 @@ Section with_cpp.
       work $usenamed=true.
     - work.
       iDestruct (own_valid_2 with "Hn [$]") as %[=]%excl_auth_agree_L; subst.
-      Import linearity.
       iDestruct "Hcases" as "[(> % & ?) | (_ & >?)]".
       { by exfalso. }
-      iApply fupd_mask_intro; first set_solver.
-      iIntros "Hclose'".
+      iApply fupd_mask_intro; first set_solver; iIntros "Hclose'".
       iExists (S n); work.
       iMod (own_update_2 with "Hn [$]") as "(Hg & Hcase)";
         first apply (excl_auth_update _ _ (S (S n), th)).
