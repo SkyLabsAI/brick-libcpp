@@ -306,9 +306,9 @@ Section with_cpp.
   #[program]
   Definition own_P_is_acquireable_C {TT} g n P args :=
     \cancelx
-    \consuming tele_app P args
     \preserving{th} current_thread th
     \consuming own g.(level_gname) (◯E (S n, th))
+    \through tele_app P args
     \proving acquireable (TT := TT) g th (Held n args) P
     \end.
   Next Obligation. rewrite acquireable.unlock; work. Qed.
