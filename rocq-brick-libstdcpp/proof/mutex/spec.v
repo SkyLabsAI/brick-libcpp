@@ -337,9 +337,9 @@ Section with_cpp.
     LearnEq2 (fun a b => bi_later (@acquireable γ th TT a b)).
   Proof. solve_learnable. Qed.
 
-  #[global] Instance token_learn γ :
+  (* #[global] Instance token_learn γ :
     LearnEq1 (token γ).
-  Proof. solve_learnable. Qed.
+  Proof. solve_learnable. Qed. *)
 
   Import linearity.
 
