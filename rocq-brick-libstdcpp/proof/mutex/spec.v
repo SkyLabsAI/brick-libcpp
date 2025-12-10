@@ -357,7 +357,7 @@ Section with_cpp.
      \prepost{q} this |-> R g.(lock_gname) q
      \pre{th n args} acquireable g th (Held n args) P
      \pre{q'} given_token g.(lock_gname) q'
-     \post token g.(lock_gname) q' ** acquireable g th (release $ Held n args) P).
+     \post token g.(lock_gname) q' ** ▷ acquireable g th (release $ Held n args) P).
 
   Definition acquireable_current_thread_F :=
     ltac:(mk_obs_fwd acquireable_current_thread).
@@ -390,6 +390,7 @@ Section with_cpp.
     { admit. }
     ework with br_erefl.
     iLeft. by iFrame.
+    all: fail.
   Admitted.
 
   Lemma lock_spec_impl_lock_spec' :
@@ -444,7 +445,39 @@ Section with_cpp.
     unlock_spec |-- unlock_spec'.
   Proof using MOD HOV HOU.
     apply specify_mono; work.
-  Abort.
+    iExists _, (▷ acquireable g th (release $ Held n args) P)%I.
+    work.
+    iAcIntro; rewrite /commit_acc/=.
+    rewrite inv_rmutex.unlock acquireable.unlock.
+    iInv rmutex_namespace as (??) "(>Hn & Hcases)" "Hclose".
+    work.
+    iDestruct (own_valid_2 with "Hn [$]") as %[=]%excl_auth_agree_L; subst.
+    iDestruct "Hcases" as "[?|?]"; work; first by exfalso.
+    iApply fupd_mask_intro; first set_solver; iIntros "Hclose'".
+    ework with br_erefl.
+    iMod "Hclose'" as "_".
+    iMod (own_update_2 with "Hn [$]") as "(Hg & Hcase)";
+      first apply (excl_auth_update _ _ (n, th)).
+    rewrite release.unlock.
+    destruct n. {
+      Fail wname [tele_app P] "P".
+      wname [inv] "I".
+      wname [P] "P".
+      iMod ("Hclose" with "[$Hg P Hcase]") as "_". {
+        iLeft.
+        ework $usenamed=true with br_erefl.
+      }
+      iModIntro.
+      work.
+    }
+    wname [locked _ th _] "Hlocked".
+    iMod ("Hclose" with "[$Hg Hlocked]") as "_". {
+      iRight.
+      ework $usenamed=true with br_erefl.
+    }
+    iModIntro.
+    work $usenamed=true.
+  Qed.
 
 End with_cpp.
 
