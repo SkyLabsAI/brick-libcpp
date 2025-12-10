@@ -16,8 +16,8 @@ Succeed Definition b := recursive_mutex.Held 0 (mk 0 0).
 
 br.lock
 Definition CR' `{Σ : cpp_logic, σ : genv} (a b : Z) : Rep :=
-    _field "C::balance_a" |-> uintR 1$m a **
-    _field "C::balance_b" |-> uintR 1$m b.
+    _field "C::balance_a" |-> ulongR 1$m a **
+    _field "C::balance_b" |-> ulongR 1$m b.
 #[only(lazy_unfold)] derive CR'.
 #[only(timeless)] derive CR'.
 
@@ -45,21 +45,21 @@ Section with_cpp.
   #[global] Instance: LearnEq2 CR'.
   Proof. solve_learnable. Qed.
 
-  cpp.spec "C::update_a(int)" as C_update_a from demo_cpp.source with
+  cpp.spec "C::update_a(long)" as C_update_a from demo_cpp.source with
     (\this this
      \arg{x} "x" (Vint x)
      \prepost{γ q} this |-> CR γ q
      \prepost{q'} recursive_mutex.token γ.(recursive_mutex.lock_gname) q'
      \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (P this)
-     \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (trim 32 (a+x)) b) args) (P this)).
+     \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (trim 64 (a+x)) b) args) (P this)).
 
-  cpp.spec "C::update_b(int)" as C_update_b from demo_cpp.source with
+  cpp.spec "C::update_b(long)" as C_update_b from demo_cpp.source with
     (\this this
      \arg{x} "x" (Vint x)
      \prepost{γ q} this |-> CR γ q
      \prepost{q'} recursive_mutex.token γ.(recursive_mutex.lock_gname) q'
      \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (P this)
-     \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk a (trim 32 (b + x))) args) (P this)).
+     \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk a (trim 64 (b + x))) args) (P this)).
 
   #[global] Instance CR_learn : Cbn (Learn (learn_eq ==> any ==> learn_hints.fin) CR).
   Proof. solve_learnable. Qed.
@@ -101,7 +101,7 @@ Section with_cpp.
   Proof. solve_learnable. Qed.
 
 
-  Lemma update_a_ok : verify[source] "C::update_a(int)".
+  Lemma update_a_ok : verify[source] "C::update_a(long)".
   Proof.
     verify_spec; go.
     iExists TT.
@@ -110,7 +110,7 @@ Section with_cpp.
     rewrite P.unlock /=.
     destruct args as [a [b []]]; simpl; go.
     go.
-    iExists TT, _, n, (mk (trim 32 (a + x)) b).
+    iExists TT, _, n, (mk (trim 64 (a + x)) b).
     go.
     rewrite P.unlock.
     erewrite recursive_mutex.update_eq; last done.
@@ -123,7 +123,7 @@ Section with_cpp.
       \prepost{γ q} this |-> CR γ q
       \prepost{q'} recursive_mutex.token γ.(recursive_mutex.lock_gname) q'
       \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (P this)
-      \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (trim 32 (a+x)) (trim 32 (b-x))) args) (P this)).
+      \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (trim 64 (a+x)) (trim 64 (b-x))) args) (P this)).
 
   (* XXX this hint isn't robust because [a] and [b] become evars bound. *)
   #[program]
@@ -154,11 +154,6 @@ Section with_cpp.
     go using own_P_is_acquireable_C'.
     Set Warnings "br-hint-leading-to-dangling-evars".
     go.
-
-    wfocus [| valid<_> _|] "". {
-      admit. (* TODO make the addition modulo arithmetic in the spec *)
-    }
-
     rewrite !P.unlock /=.
     go.
     iExists TT.
@@ -166,8 +161,7 @@ Section with_cpp.
     erewrite recursive_mutex.update_eq; last done.
     rewrite !P.unlock /=.
     work.
-    all: fail.
-  Admitted.
+  Qed.
 
 End with_cpp.
 

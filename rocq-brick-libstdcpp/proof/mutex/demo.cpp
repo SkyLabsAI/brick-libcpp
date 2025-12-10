@@ -7,18 +7,18 @@
 using namespace std;
 
 class C {
-  unsigned balance_a;
-  unsigned balance_b;
+  unsigned long balance_a;
+  unsigned long balance_b;
   std::recursive_mutex mut; // protects `balance_a` and `balance_b`
 
 public:
-  void update_a(int x) {
+  void update_a(long x) {
     mut.lock();
     balance_a += x;
     mut.unlock();
   }
 
-  void update_b(int x) {
+  void update_b(long x) {
     mut.lock();
     balance_b += x;
     mut.unlock();
@@ -27,7 +27,7 @@ public:
   void transfer(int x) {
     mut.lock();
     update_a(x);
-    update_b(-x);
+    update_b(-(long)x);
     mut.unlock();
   }
 };
