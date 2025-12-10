@@ -171,7 +171,7 @@ Module recursive_mutex.
   Section with_cpp.
     Context `{Σ : cpp_logic}.
 
-    #[global] Declare Instance mutex_locked_timeless : Timeless3 locked.
+    #[global] Declare Instance locked_timeless : Timeless3 locked.
     Axiom locked_excl_same_thread : forall g th n m,
       locked g th n ** locked g th m |-- False.
     Axiom locked_excl_different_thread : forall g th th' n m,
