@@ -15,10 +15,15 @@ Polymorphic Definition mk (a b : Z) : TT :=
 Succeed Definition b := recursive_mutex.Held 0 (mk 0 0).
 
 br.lock
+Definition CR' `{Σ : cpp_logic, σ : genv} (a b : Z) : Rep :=
+    _field "C::balance_a" |-> intR 1$m a **
+    _field "C::balance_b" |-> intR 1$m b.
+#[only(lazy_unfold)] derive CR'.
+#[only(timeless)] derive CR'.
+
+br.lock
 Definition P `{Σ : cpp_logic, σ : genv} (this : ptr) : TT -t> mpred :=
-  fun (a b : Z) =>
-    this ,, _field "C::balance_a" |-> intR 1$m a **
-    this ,, _field "C::balance_b" |-> intR 1$m b.
+  fun (a b : Z) => this |-> CR' a b.
 
 br.lock
 Definition CR
@@ -37,6 +42,9 @@ Section with_cpp.
   Context `{MOD : source ⊧ σ}. (* σ is the whole program *)
   Context {HAS_THREADS : HasStdThreads Σ}.
   Context {has_rmutex : HasOwn mpredI recursive_mutex.cmraR}.
+
+  #[global] Instance: LearnEq2 CR'.
+  Proof. solve_learnable. Qed.
 
   cpp.spec "C::update_a(int)" as C_update_a with
     (\this this
@@ -138,6 +146,7 @@ Section with_cpp.
     Set Warnings "-br-hint-leading-to-dangling-evars".
     go using own_P_is_acquireable_C'.
     Set Warnings "br-hint-leading-to-dangling-evars".
+    go.
 
     wfocus [| valid<_> _|] "". {
       admit. (* TODO make the addition modulo arithmetic in the spec *)
