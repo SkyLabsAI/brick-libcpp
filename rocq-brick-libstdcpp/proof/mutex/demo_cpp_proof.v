@@ -38,15 +38,14 @@ Definition CR
 #[only(lazy_unfold)] derive CR.
 
 Section with_cpp.
-  Context `{Σ : cpp_logic}.
-  Context `{MOD : source ⊧ σ}. (* σ is the whole program *)
+  Context `{Σ : cpp_logic, σ : genv}.
   Context {HAS_THREADS : HasStdThreads Σ}.
   Context {has_rmutex : HasOwn mpredI recursive_mutex.cmraR}.
 
   #[global] Instance: LearnEq2 CR'.
   Proof. solve_learnable. Qed.
 
-  cpp.spec "C::update_a(int)" as C_update_a with
+  cpp.spec "C::update_a(int)" as C_update_a from demo_cpp.source with
     (\this this
      \arg{x} "x" (Vint x)
      \prepost{γ q} this |-> CR γ q
@@ -54,7 +53,7 @@ Section with_cpp.
      \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (P this)
      \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (a+x) b) args) (P this)).
 
-  cpp.spec "C::update_b(int)" as C_update_b with
+  cpp.spec "C::update_b(int)" as C_update_b from demo_cpp.source with
     (\this this
      \arg{x} "x" (Vint x)
      \prepost{γ q} this |-> CR γ q
@@ -124,7 +123,7 @@ Section with_cpp.
     all: fail.
   Admitted.
 
-  cpp.spec "C::transfer(int)" with
+  cpp.spec "C::transfer(int)" from demo_cpp.source with
     (\this this
       \arg{x} "x" (Vint x)
       \prepost{γ q} this |-> CR γ q
