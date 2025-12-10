@@ -119,7 +119,10 @@ Module recursive_mutex.
   Definition inv_rmutex `{Σ : cpp_logic} `{!HasOwn mpredI cmraR} (g : rmutex_gname) (P : mpred) : mpred :=
     inv rmutex_namespace
       (Exists n th, own g.(level_gname) (●E (n, th)) **
-        ([|n = 0|] ** P ** own g.(level_gname) (◯E (n, th)) \\// [|n > 0|] ** locked g.(lock_gname) th n)).
+        match n with
+        | 0 => P ** own g.(level_gname) (◯E (n, th))
+        | S n => locked g.(lock_gname) th (S n)
+        end).
   #[only(knowledge)] derive inv_rmutex.
 
   (** [acquire_state] tracks the acquisition state of a recursive_mutex.
@@ -389,7 +392,6 @@ Section with_cpp.
     iMod (inv_alloc with "[-]") as "$"; last done.
     { admit. }
     ework with br_erefl.
-    iLeft. by iFrame.
     all: fail.
   Admitted.
 
@@ -408,35 +410,35 @@ Section with_cpp.
     iAcIntro; rewrite /commit_acc/=.
     rewrite inv_rmutex.unlock acquireable.unlock.
     iInv rmutex_namespace as (??) "(>Hn & Hcases)" "Hclose".
+    work.
     destruct n; simpl.
     - iApply fupd_mask_intro; first set_solver; iIntros "Hclose'".
-      iExists 0; work.
-      iDestruct "Hcases" as "[(> -> & ? & >Hcase) | (>% & >Hcase)]"; first last.
-      { iDestruct (locked_excl_different_thread with "[$]") as (?) "?".
-        exfalso. lia. }
       work.
+      iExists 0; work.
+      destruct n0; first last. {
+        iMod "Hcases".
+        iDestruct (locked_excl_different_thread with "[$]") as (?) "?".
+        exfalso. lia.
+      }
+      iDestruct "Hcases" as "(HP & >Hcase)".
       iMod (own_update_2 with "Hn Hcase") as "(Hg & Hcase)";
         first apply (excl_auth_update _ _ (1, th)).
       iMod "Hclose'" as "_".
       wname [locked _ th _] "Hlocked".
-      iMod ("Hclose" with "[$Hg Hlocked]") as "_".
-      { iRight; work $usenamed=true. }
-      rewrite bi.later_exist_except_0.
-      wname [bi_except_0] ">(%args & HP)".
+      iMod ("Hclose" with "[$Hg $Hlocked //]") as "_".
+      iMod (bi.later_exist_except_0 with "HP") as "(%args & HP)".
       iModIntro.
       iExists (Held 0 args); work $usenamed=true.
     - work.
       iDestruct (own_valid_2 with "Hn [$]") as %[=]%excl_auth_agree_L; subst.
-      iDestruct "Hcases" as "[(> % & ?) | (_ & >?)]".
-      { by exfalso. }
+      iMod "Hcases".
       iApply fupd_mask_intro; first set_solver; iIntros "Hclose'".
-      iExists (S n); work.
+      iExists (S n). work $usenamed=true.
       iMod (own_update_2 with "Hn [$]") as "(Hg & Hcase)";
         first apply (excl_auth_update _ _ (S (S n), th)).
       iMod "Hclose'" as "_".
       wname [locked _ th _] "Hlocked".
-      iMod ("Hclose" with "[$Hg Hlocked]") as "_".
-      { iRight; work $usenamed=true. }
+      iMod ("Hclose" with "[$Hg $Hlocked //]") as "_".
       iModIntro.
       iExists (Held (S n) xs). work $usenamed=true.
   Qed.
@@ -452,31 +454,17 @@ Section with_cpp.
     iInv rmutex_namespace as (??) "(>Hn & Hcases)" "Hclose".
     work.
     iDestruct (own_valid_2 with "Hn [$]") as %[=]%excl_auth_agree_L; subst.
-    iDestruct "Hcases" as "[?|?]"; work; first by exfalso.
+    iMod "Hcases".
     iApply fupd_mask_intro; first set_solver; iIntros "Hclose'".
-    ework with br_erefl.
+    ework $usenamed=true with br_erefl.
     iMod "Hclose'" as "_".
     iMod (own_update_2 with "Hn [$]") as "(Hg & Hcase)";
       first apply (excl_auth_update _ _ (n, th)).
+    iFrame "#".
     rewrite release.unlock.
-    destruct n. {
-      Fail wname [tele_app P] "P".
-      wname [inv] "I".
-      wname [P] "P".
-      iMod ("Hclose" with "[$Hg P Hcase]") as "_". {
-        iLeft.
-        ework $usenamed=true with br_erefl.
-      }
-      iModIntro.
-      work.
-    }
-    wname [locked _ th _] "Hlocked".
-    iMod ("Hclose" with "[$Hg Hlocked]") as "_". {
-      iRight.
-      ework $usenamed=true with br_erefl.
-    }
-    iModIntro.
-    work $usenamed=true.
+    destruct n; iFrame.
+    all: iMod ("Hclose" with "[-]") as "_";
+      ework $usenamed=true with br_erefl; done.
   Qed.
 
 End with_cpp.
