@@ -7,8 +7,8 @@
 using namespace std;
 
 class C {
-  int balance_a;
-  int balance_b;
+  unsigned balance_a;
+  unsigned balance_b;
   std::recursive_mutex mut; // protects `balance_a` and `balance_b`
 
 public:

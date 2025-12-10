@@ -16,8 +16,8 @@ Succeed Definition b := recursive_mutex.Held 0 (mk 0 0).
 
 br.lock
 Definition CR' `{Σ : cpp_logic, σ : genv} (a b : Z) : Rep :=
-    _field "C::balance_a" |-> intR 1$m a **
-    _field "C::balance_b" |-> intR 1$m b.
+    _field "C::balance_a" |-> uintR 1$m a **
+    _field "C::balance_b" |-> uintR 1$m b.
 #[only(lazy_unfold)] derive CR'.
 #[only(timeless)] derive CR'.
 
@@ -51,7 +51,7 @@ Section with_cpp.
      \prepost{γ q} this |-> CR γ q
      \prepost{q'} recursive_mutex.token γ.(recursive_mutex.lock_gname) q'
      \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (P this)
-     \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (a+x) b) args) (P this)).
+     \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (trim 32 (a+x)) b) args) (P this)).
 
   cpp.spec "C::update_b(int)" as C_update_b from demo_cpp.source with
     (\this this
@@ -59,7 +59,7 @@ Section with_cpp.
      \prepost{γ q} this |-> CR γ q
      \prepost{q'} recursive_mutex.token γ.(recursive_mutex.lock_gname) q'
      \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (P this)
-     \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk a (b + x)) args) (P this)).
+     \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk a (trim 32 (b + x))) args) (P this)).
 
   #[global] Instance CR_learn : Cbn (Learn (learn_eq ==> any ==> learn_hints.fin) CR).
   Proof. solve_learnable. Qed.
@@ -108,20 +108,16 @@ Section with_cpp.
 
     rewrite P.unlock /=.
     destruct args as [a [b []]]; simpl; go.
-    wfocus [| valid<_> _|] "". {
-      admit. (* TODO make the addition modulo arithmetic in the spec *)
-    }
     go.
     iExists _, TT, (P this).
     rewrite P.unlock.
     iExists _, th.
-    iExists n, (mk (a + x) b).
+    iExists n, (mk (trim 32 (a + x)) b).
     go.
     rewrite P.unlock. go.
     erewrite recursive_mutex.update_eq; last done.
     work.
-    all: fail.
-  Admitted.
+  Qed.
 
   cpp.spec "C::transfer(int)" from demo_cpp.source with
     (\this this
@@ -129,7 +125,7 @@ Section with_cpp.
       \prepost{γ q} this |-> CR γ q
       \prepost{q'} recursive_mutex.token γ.(recursive_mutex.lock_gname) q'
       \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (P this)
-      \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (a+x) (b-x)) args) (P this)).
+      \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (trim 32 (a+x)) (trim 32 (b-x))) args) (P this)).
 
   Lemma transfer_ok : verify[source] "C::transfer(int)".
   Proof.
