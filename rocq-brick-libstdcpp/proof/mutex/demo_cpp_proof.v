@@ -109,12 +109,10 @@ Section with_cpp.
 
     rewrite P.unlock /=.
     destruct args as [a [b []]]; simpl; go.
+    iExists TT, _, _, (mk (trim 64 (a + x)) b).
     go.
-    iExists TT, _, n, (mk (trim 64 (a + x)) b).
-    go.
-    rewrite P.unlock.
-    erewrite recursive_mutex.update_eq; last done.
-    work.
+    erewrite recursive_mutex.update_eq; last done; cbn.
+    rewrite P.unlock; work.
   Qed.
 
   cpp.spec "C::transfer(int)" from demo_cpp.source with
@@ -126,7 +124,7 @@ Section with_cpp.
       \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (trim 64 (a+x)) (trim 64 (b-x))) args) (P this)).
 
   (* XXX this hint isn't robust because [a] and [b] become evars bound. *)
-  #[program]
+  (* #[program]
   Definition own_P_is_acquireable_C' γ n :=
     \cancelx
     \preserving{th} current_thread th
@@ -138,27 +136,34 @@ Section with_cpp.
     \instantiate st := Held n (mk a b)
     \through tele_app P (mk a b)
     \end.
+  Next Obligation. rewrite acquireable.unlock; work. Qed. *)
+
+  #[program]
+  Definition own_P_is_acquireable_C' γ n :=
+    \cancelx
+    \preserving{th} current_thread th
+    \consuming own γ.(level_gname) (◯E (S n, th))
+    \with (this : ptr)
+    \consuming{a b} this |-> CR' a b
+    \bound_existential st
+    \proving acquireable (TT := TT) γ th st (λ a b, this |-> CR' a b)
+    \instantiate st := Held n (mk a b)
+    \end.
   Next Obligation. rewrite acquireable.unlock; work. Qed.
+  #[local] Hint Resolve own_P_is_acquireable_C' : br_hints.
 
   Lemma transfer_ok : verify[source] "C::transfer(int)".
   Proof.
     verify_spec; go.
     iExists TT.
     go.
-    rewrite !P.unlock /=.
-    work.
-    destruct args as [a[b []]]; simpl.
-    work.
-
-    Set Warnings "-br-hint-leading-to-dangling-evars".
-    go using own_P_is_acquireable_C'.
-    Set Warnings "br-hint-leading-to-dangling-evars".
+    destruct args as [a[b []]]; rewrite !P.unlock /=.
     go.
     rewrite !P.unlock /=.
     go.
     iExists TT.
     work.
-    erewrite recursive_mutex.update_eq; last done.
+    erewrite recursive_mutex.update_eq; last done; cbn.
     rewrite !P.unlock /=.
     work.
   Qed.
