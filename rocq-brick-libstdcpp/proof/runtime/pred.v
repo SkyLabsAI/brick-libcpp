@@ -9,6 +9,7 @@ Require Import bluerock.auto.cpp.prelude.proof.
 Require Import bluerock.auto.core.hints.cancelx_notation.
 Require Import iris.proofmode.tactics.
 
+#[export] Set Warnings "+br-transparent-constants".
 Parameter thread_idT : Type.
 #[global] Declare Instance thread_idT_inh : Inhabited thread_idT.
 #[global] Declare Instance thread_idT_eq_dec : EqDecision thread_idT.
