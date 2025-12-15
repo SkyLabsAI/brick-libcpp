@@ -13,4 +13,5 @@
    (flags
     (:standard
       %{read-lines:flags/coqc}
+      -w +br-transparent-constants
 )))))
