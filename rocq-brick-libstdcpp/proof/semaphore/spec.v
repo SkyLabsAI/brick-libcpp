@@ -1,10 +1,13 @@
 Require Import bluerock.auto.cpp.prelude.proof.
 Require Import bluerock.brick.libstdcpp.semaphore.test_cpp. (* TODO: necessary in order to get the specializations *)
 
-Import auto_frac auto_pick_frac.
-
 (* TODO: upstream *)
-#[global] Declare Instance inst v n : Refine1 true true (Vint v = Vnat n) [n = Z.to_nat v].
+#[global] Instance inst v n : Refine1 true false (Vint v = Vnat n) [n = Z.to_nat v].
+Proof.
+  rewrite /Vnat.
+  tac_refine; simplify_eq. lia.
+Qed.
+
 Section with_cpp.
   #[local] Open Scope nat_scope.
 
