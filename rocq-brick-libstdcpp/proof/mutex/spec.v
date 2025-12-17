@@ -100,10 +100,18 @@ Section with_cpp.
 End with_cpp.
 End mutex.
 
+(* TODO upstream *)
+#[global] Declare Instance
+  own_WeaklyObjective `{Σ : cpp_logic} {A : cmra} `{!HasOwn mpredI A} γ (a : A)  :
+  WeaklyObjective (PROP := iPropI _) (own γ a).
+
 Module recursive_mutex.
 
   (** <<locked γ th n>> <<th>> owns the mutex <<γ>> <<n>> times. *)
   Parameter locked : ∀ `{Σ : cpp_logic}, gname -> thread_idT -> nat -> mpred.
+  #[global] Declare Instance
+    locked_WeaklyObjective `{Σ : cpp_logic} γ thr n :
+    WeaklyObjective (PROP := iPropI _) (locked γ thr n).
 
   (* the mask of recursive_mutex *)
   Definition mask := nroot .@@ "std" .@@ "recursive_mutex".
@@ -338,6 +346,7 @@ Section with_cpp.
     (\this this
      \persist{th} current_thread th
      \pre{TT P xs} tele_app (TT := TT) P xs
+     \require ∀ xs, WeaklyObjective (tele_app P xs)
      \post
       Exists g,
         this |-> R g.(lock_gname) 1 **
@@ -390,10 +399,8 @@ Section with_cpp.
     iExists {| lock_gname := t; level_gname := g |}; iFrame.
     rewrite inv_rmutex.unlock.
     iMod (inv_alloc with "[-]") as "$"; last done.
-    { admit. }
     ework with br_erefl.
-    all: fail.
-  Admitted.
+  Qed.
 
   Lemma lock_spec_impl_lock_spec' :
     lock_spec |-- lock_spec'.
