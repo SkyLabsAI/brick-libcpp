@@ -78,6 +78,20 @@ Section with_cpp.
     rewrite P.unlock; work.
   Qed.
 
+  Lemma update_b_ok : verify[source] "C::update_b(long)".
+  Proof.
+    verify_spec; go.
+    iExists TT.
+    go.
+
+    rewrite P.unlock /=.
+    destruct args as [a [b []]]; simpl; go.
+    iExists TT, _, _, (mk a (trim 64 (b + x))).
+    go.
+    erewrite recursive_mutex.update_eq; last done; cbn.
+    rewrite P.unlock; work.
+  Qed.
+
   cpp.spec "C::transfer(int)" from demo_cpp.source with
     (\this this
       \arg{x} "x" (Vint x)
