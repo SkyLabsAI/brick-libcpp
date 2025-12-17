@@ -92,7 +92,7 @@ Section with_cpp.
     rewrite P.unlock; work.
   Qed.
 
-  cpp.spec "C::transfer(int)" from demo_cpp.source with
+  cpp.spec "C::transfer(int)" as C_transfer_int from demo_cpp.source with
     (\this this
       \arg{x} "x" (Vint x)
       \prepost{γ q} this |-> CR γ q
@@ -109,6 +109,18 @@ Section with_cpp.
     go.
     erewrite recursive_mutex.update_eq; last done; cbn.
     destruct args as [a[b []]]; simpl.
+    work.
+  Qed.
+
+  Lemma partial_transfer_link :
+    denoteModule source ∗
+      recursive_mutex.lock_spec' ∗ recursive_mutex.unlock_spec'
+      ⊢ C_transfer_int.
+  Proof.
+    work.
+    wapply transfer_ok.
+    wapply update_a_ok.
+    wapply update_b_ok.
     work.
   Qed.
 
