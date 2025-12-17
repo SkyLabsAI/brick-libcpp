@@ -1,10 +1,13 @@
 Require Import bluerock.auto.cpp.prelude.proof.
 Require Import bluerock.brick.libstdcpp.semaphore.test_cpp. (* TODO: necessary in order to get the specializations *)
 
-Import auto_frac auto_pick_frac.
-
 (* TODO: upstream *)
-#[global] Declare Instance inst v n : Refine1 true true (Vint v = Vnat n) [n = Z.to_nat v].
+#[global] Instance inst v n : Refine1 true false (Vint v = Vnat n) [n = Z.to_nat v].
+Proof.
+  rewrite /Vnat.
+  tac_refine; simplify_eq. lia.
+Qed.
+
 Section with_cpp.
   #[local] Open Scope nat_scope.
 
@@ -27,7 +30,7 @@ Section with_cpp.
     AC << ∀ n : nat, semaphore_Val t n >> @ ⊤, ∅
        << ∃ n' : nat, [| n = S n' |] ∗ semaphore_Val t n',
         COMM Q >>.
-  Hint Opaque acquire_ac : br_opacity.
+  #[global] Hint Opaque acquire_ac : br_opacity.
 
   (* write this as a logically atomic triple *)
   cpp.spec "std::counting_semaphore<1l>::counting_semaphore(long)" as ctor_spec with
@@ -45,7 +48,7 @@ Section with_cpp.
   Definition try_acquire_ac g Q : mpred :=
     AU <{ ∃∃ n, semaphore_Val g n }> @ top, empty
        <{ semaphore_Val g (if bool_decide (n = 0) then n else n-1), COMM Q $ bool_decide (n = 0) }>.
-  Hint Opaque try_acquire_ac : br_opacity.
+  #[global] Hint Opaque try_acquire_ac : br_opacity.
 
   cpp.spec "std::counting_semaphore<1l>::try_acquire()" as try_lock_spec with
       (\this this
@@ -58,7 +61,7 @@ Section with_cpp.
   Definition release_ac g Q update : mpred :=
     AC << ∀ n, semaphore_Val g n ∗ [| n+update <= 1 |] >> @ top, empty
        << semaphore_Val g (n+update), COMM Q  >>.
-  Hint Opaque release_ac : br_opacity.
+  #[global] Hint Opaque release_ac : br_opacity.
 
   cpp.spec "std::counting_semaphore<1l>::release(long)" as release_spec with
       (\this this
