@@ -163,8 +163,7 @@ Section with_cpp.
     go.
     erewrite recursive_mutex.update_eq; last done; cbn.
     work.
-  Fail Qed.
-  Admitted.
+  Qed.
 
   cpp.spec "C::transfer(int)" from demo_cpp.source with
     (\this this
@@ -214,8 +213,7 @@ Section with_cpp.
     work.
     erewrite recursive_mutex.update_eq; last done; cbn.
     work.
-  Fail Qed.
-  Admitted.
+  Qed.
 
 End with_cpp.
 
