@@ -11,32 +11,47 @@ Require Import iris.proofmode.tactics.
 
 Parameter thread_idT : Type.
 #[global] Declare Instance thread_idT_inh : Inhabited thread_idT.
+#[global] Declare Instance thread_idT_eq_dec : EqDecision thread_idT.
+#[global] Declare Instance thread_idT_countable : Countable thread_idT.
+
+Canonical Structure thread_idTO := leibnizO thread_idT.
+
+Canonical Structure thread_idT_bi_index : biIndex := BiIndex thread_idT _ eq _.
 
 Parameter HasStdThreads : forall `{Σ : cpp_logic}, Type.
 #[global] Arguments HasStdThreads {_ _} Σ.
 Existing Class HasStdThreads.
 
+(** The projection of the thread from the thread information.
+
+  NOTE: This is effectively a field of `HasStdThreads`, but since that
+  is registered as an Axiom, we use another Parameter for this.
+  *)
+Parameter threadTI : forall `{HasStdThreads}, thread_info -ml> thread_idT_bi_index.
+
+(** [current_thread thr] means that the current thread is [thr].
+
+    For more information on monalities, consult tls_modalities.
+  *)
+#[global] Notation current_thread := (monPred_atleast (PROP := iPropI _) threadTI)%I.
+
 Section with_cpp.
   Context `{Σ : @cpp_logic thread_info _Σ}.
-
-  Canonical Structure thread_idT_bi_index : biIndex := BiIndex thread_idT _ eq _.
-  (** The projection of the thread from the thread information.
-
-    NOTE: This is effectively a field of `HasStdThreads`, but since that
-    is registered as an Axiom, we use another Parameter for this.
-   *)
-  Parameter threadTI : forall {_ : HasStdThreads Σ}, thread_info -ml> thread_idT_bi_index.
-
-  (** [current_thread thr] means that the current thread is [thr].
-
-      For more information on monalities, consult tls_modalities.
-   *)
-  Notation current_thread thr := (@monPred_atleast thread_info thread_idT_bi_index (uPredI (iResUR _Σ)) threadTI thr)%I.
-
   Context {HAS_THREADS : HasStdThreads Σ}.
 
-  #[global] Declare Instance thread_id_learnable
-    : LearnEq1 (monPred_atleast (PROP:=mpred) threadTI).
+  #[global] Instance current_thread_agree : Agree1 current_thread.
+  Proof.
+    intros th1 th2. constructor => th.
+
+    (* TODO AUTO *)
+    (* #[local] Existing Instance mlens_get_mono. *)
+    (* by iIntros (-> ? -> ->) "!> !%". *)
+    iIntros (H1 ? HE H2) "!> !%".
+    rewrite /sqsubseteq /bi_index_rel /= in H1, H2; subst.
+    exact: (mlens_get_mono threadTI _ _ HE).
+  Qed.
+
+  #[global] Instance thread_id_learnable : LearnEq1 current_thread := ltac:(solve_learnable).
 
   Lemma current_thread_always_exists :
     ⊢ ∃ thr, current_thread thr.
@@ -82,4 +97,3 @@ End with_cpp.
 
 #[global] Hint Resolve learn_current_thread_from_context_C | 999 : br_opacity.
 #[global] Hint Resolve learn_current_thread_C | 1000 : br_opacity.
-#[global] Notation current_thread thr := (>={ threadTI } thr)%I.

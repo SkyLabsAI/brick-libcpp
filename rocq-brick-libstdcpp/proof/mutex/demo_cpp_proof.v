@@ -1,88 +1,219 @@
-Require Import bluerock.auto.cpp.proof.
+Require Import bluerock.auto.cpp.prelude.proof.
 Require Import bluerock.brick.libstdcpp.mutex.spec.
 Require Import bluerock.brick.libstdcpp.mutex.demo_cpp.
 
 
 (* TODO: generalizable *)
-#[global] Instance own_learn {PROP:bi} `{_ : HasOwn PROP (excl_authR natO)} γ (a b : nat) : Learnable (own γ (◯E a)) (own γ (◯E b)) [a=b].
+#[global] Instance own_learn {PROP : bi} {A : ofe} `{!HasOwn PROP (excl_authR A)} γ (a b : A) :
+  Learnable (own γ (◯E a)) (own γ (◯E b)) [a = b].
 Proof. solve_learnable. Qed.
 
-Import auto_frac auto_pick_frac.
+Definition TT : tele := [tele (_ : Z) (_ : Z)].
+
+Polymorphic Definition mk (a b : Z) : TT :=
+  {| tele_arg_head := a; tele_arg_tail := {| tele_arg_head := b; tele_arg_tail := () |} |}.
+Succeed Definition b := recursive_mutex.Held 0 (mk 0 0).
+
+br.lock
+Definition CR' `{Σ : cpp_logic, σ : genv} (a b : Z) : Rep :=
+    _field "C::balance_a" |-> ulongR 1$m a **
+    _field "C::balance_b" |-> ulongR 1$m b.
+#[only(lazy_unfold)] derive CR'.
+#[only(timeless)] derive CR'.
+
+br.lock
+Definition P `{Σ : cpp_logic, σ : genv} (this : ptr) : TT -t> mpred :=
+  fun (a b : Z) => this |-> CR' a b.
+
+br.lock
+Definition CR
+    `{Σ : cpp_logic, σ : genv, HasOwn mpredI recursive_mutex.cmraR}
+    (γ : recursive_mutex.rmutex_gname) (q : cQp.t) : Rep :=
+  structR "C" q **
+  _field "C::mut" |-> recursive_mutex.R γ.(recursive_mutex.lock_gname) q **
+  as_Rep (fun this : ptr =>
+    recursive_mutex.inv_rmutex γ (∃ a b, this |-> CR' a b)).
+
+#[only(cfractional,ascfractional,type_ptr)] derive CR.
+#[only(lazy_unfold)] derive CR.
 
 Section with_cpp.
-  Context `{Σ : cpp_logic}.
-  Context `{MOD : source ⊧ σ}. (* σ is the whole program *)
-  Context {has_rmutex : HasOwn mpredI (excl_authR natO)}.
+  Context `{Σ : cpp_logic, σ : genv}.
+  Context {HAS_THREADS : HasStdThreads Σ}.
+  Context {has_rmutex : HasOwn mpredI recursive_mutex.cmraR}.
 
-  Definition TT : tele := [tele (_ : Z) (_ : Z)].
-  Definition mk (a b : Z) : TT :=
-    {| tele_arg_head := a; tele_arg_tail := {| tele_arg_head := b; tele_arg_tail := () |} |}.
+  #[global] Instance: LearnEq2 CR'.
+  Proof. solve_learnable. Qed.
 
-  Definition P (this : ptr) : TT -t> mpred :=
-    fun (a b : Z) =>
-       this ,, _field "C::balance_a" |-> intR 1$m a **
-       this ,, _field "C::balance_b" |-> intR 1$m b.
-
-  Definition CR (γ : gname) (q : cQp.t) : Rep :=
-    structR "C" q **
-    _field "C::mut" |-> recursive_mutex.R γ q **
-    as_Rep (fun this : ptr =>
-      recursive_mutex.inv_rmutex γ (∃ a_b : tele_arg _, tele_app (P this) a_b)).
-
-  cpp.spec "C::update_a(int)" with
+  cpp.spec "C::update_a(long)" as C_update_a from demo_cpp.source with
     (\this this
      \arg{x} "x" (Vint x)
      \prepost{γ q} this |-> CR γ q
-     \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (P this)
-     \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (a+x) b) args) (P this)).
+     \prepost{q'} recursive_mutex.token γ.(recursive_mutex.lock_gname) q'
+     \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (fun a b => this |-> CR' a b)
+     \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (trim 64 (a+x)) b) args) (fun a b => this |-> CR' a b)).
 
-  cpp.spec "C::update_b(int)" with
+  cpp.spec "C::update_b(long)" as C_update_b from demo_cpp.source with
     (\this this
      \arg{x} "x" (Vint x)
      \prepost{γ q} this |-> CR γ q
-     \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (P this)
-     \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk a (b + x)) args) (P this)).
+     \prepost{q'} recursive_mutex.token γ.(recursive_mutex.lock_gname) q'
+     \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (fun a b => this |-> CR' a b)
+     \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk a (trim 64 (b + x))) args) (fun a b => this |-> CR' a b)).
 
-  Lemma update_a_ok : verify[source] "C::update_a(int)".
+  #[global] Instance CR_learn : Cbn (Learn (learn_eq ==> any ==> learn_hints.fin) CR).
+  Proof. solve_learnable. Qed.
+
+  Import recursive_mutex.
+
+  #[program]
+  Definition acquireable_acquireable_C γ :=
+    \cancelx
+    \consuming{th n args P} acquireable (TT := TT) γ th (Held n args) P
+    \bound P'
+    \bound_existential th' args'
+    \proving acquireable γ th' args' P'
+    \instantiate th' := th
+    \instantiate args' := Held n args
+    \deduce tele_app P args
+    \through tele_app P' args
+    \end.
+  Next Obligation. rewrite acquireable.unlock; work. Qed.
+
+  Hint Resolve acquireable_acquireable_C : br_hints.
+
+  #[global] Instance : `{Learnable
+    (current_thread th)
+    (acquireable (TT := TT0) γ th0 args P0)
+    [th0 = th] }.
+  Proof. solve_learnable. Qed.
+
+  #[global] Instance : `{Learnable
+    (inv_rmutex γ1 P1)
+    (inv_rmutex γ2 P2)
+    [γ2 = γ1] }.
+  Proof. solve_learnable. Qed.
+
+  #[global] Instance : `{Learnable
+    (inv_rmutex γ1 (∃ xs : tele_arg TT, tele_app P1 xs))
+    (inv_rmutex γ2 (∃ xs : tele_arg TT, tele_app P2 xs))
+    [P2 = P1] }.
+  Proof. solve_learnable. Qed.
+
+  #[program]
+  Definition inv_rmutex_iff_C γ :=
+    \cancelx
+    \preserving{P1} inv_rmutex γ P1
+    \proving{P2} inv_rmutex γ P2
+    \through [| P1 ⊣⊢@{mpredI} P2 |]
+    \end.
+  Next Obligation.
+    rewrite inv_rmutex.unlock.
+    iIntros "%% A %P2 %W".
+    iApply (inv_iff with "A").
+    iIntros "!> !>".
+    setoid_rewrite W.
+    iApply bi.wand_iff_refl.
+  Qed.
+
+  #[program]
+  Definition inv_rmutex_wand_C γ :=
+    \cancelx
+    \preserving{P1} inv_rmutex γ P1
+    \proving{P2} inv_rmutex γ P2
+    \through □ (P1 ∗-∗ P2)
+    \end.
+  Next Obligation.
+    rewrite inv_rmutex.unlock.
+    iIntros "%% A %P2 #[? ?]".
+    iApply (inv_iff with "A").
+    iIntros "!> !>"; iSplit; ework with br_erefl.
+    all: wname [bi_or] "[?|?]"; [iLeft|iRight]; work.
+  Qed.
+  (* #[local] Hint Resolve inv_rmutex_wand_C : br_hints. *)
+  #[local] Hint Resolve inv_rmutex_iff_C : br_hints.
+
+  Lemma CR'_tele_equiv (this : ptr) :
+    (∃ a b : Z, this |-> CR' a b) ⊣⊢
+    ∃ xs : TT, tele_app (TT := TT) (λ a b : Z, this |-> CR' a b) xs.
+  Proof.
+    iSplit.
+    { iDestruct 1 as (a b) "?"; iExists (mk a b); work. }
+    iDestruct 1 as (args) "?";
+    destruct args as [a [b []]];
+    iExists a, b; work.
+  Qed.
+  Hint Resolve CR'_tele_equiv : br_hints.
+
+  Lemma CR'_self_eq (this : ptr) :
+    (∃ a b : Z, this |-> CR' a b) ⊣⊢
+    (∃ a b : Z, this |-> CR' a b).
+  Proof. done. Qed.
+  Hint Resolve CR'_self_eq : br_hints.
+
+  Lemma update_a_ok : verify[source] "C::update_a(long)".
   Proof.
     verify_spec; go.
-    rewrite /CR.
-    iExists TT; iExists (P this); iExists q; iExists th.
+    iExists TT.
     go.
-    rewrite /P/=.
-    destruct args as [a [b []]]; simpl.
+    destruct args as [a [b []]]; simpl; go.
+    iExists TT, (P this), _, (mk (trim 64 (a + x)) b).
     go.
-    iSplitR. { admit. (* TODO make the addition modulo arithmetic in the spec *) }
+    rewrite P.unlock.
     go.
-    iExists TT; iExists (P this); iExists th; iExists (mk (_ + x) _).
-    rewrite /P; go.
-    erewrite recursive_mutex.update_eq; last done.
-    go.
-  Admitted.
+    erewrite recursive_mutex.update_eq; last done; cbn.
+    work.
+  Qed.
 
-  cpp.spec "C::transfer(int)" with
+  cpp.spec "C::transfer(int)" from demo_cpp.source with
     (\this this
       \arg{x} "x" (Vint x)
       \prepost{γ q} this |-> CR γ q
-      \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (P this)
-      \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (a+x) (b-x)) args) (P this)).
+      \prepost{q'} recursive_mutex.token γ.(recursive_mutex.lock_gname) q'
+      \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (fun a b => this |-> CR' a b)
+      \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (trim 64 (a+x)) (trim 64 (b-x))) args) (fun a b => this |-> CR' a b)).
+
+  (* XXX this hint isn't robust because [a] and [b] become evars bound. *)
+  (* #[program]
+  Definition own_P_is_acquireable_C' γ n :=
+    \cancelx
+    \preserving{th} current_thread th
+    \consuming own γ.(level_gname) (◯E (S n, th))
+    \bound (P : TT -t> mpred)
+    \bound_existential st
+    \proving acquireable (TT := TT) γ th st P
+    \bound a b
+    \instantiate st := Held n (mk a b)
+    \through tele_app P (mk a b)
+    \end.
+  Next Obligation. rewrite acquireable.unlock; work. Qed. *)
+
+  #[program]
+  Definition own_P_is_acquireable_C' γ n :=
+    \cancelx
+    \preserving{th} current_thread th
+    \consuming own γ.(level_gname) (◯E (S n, th))
+    \with (this : ptr)
+    \consuming{a b} this |-> CR' a b
+    \bound_existential st
+    \proving acquireable (TT := TT) γ th st (λ a b, this |-> CR' a b)
+    \instantiate st := Held n (mk a b)
+    \end.
+  Next Obligation. rewrite acquireable.unlock; work. Qed.
+  #[local] Hint Resolve own_P_is_acquireable_C' : br_hints.
 
   Lemma transfer_ok : verify[source] "C::transfer(int)".
   Proof.
     verify_spec; go.
-    rewrite /CR. go.
-    iExists TT; iExists (P this); iExists th; iExists _. go.
-    iExists _; iExists th. go.
-    iExists _; iExists th. go.
-    iSplitL. 2:{ admit. (* TODO make the addition modulo arithmetic in the spec *) }
+    iExists TT.
     go.
-    iExists TT; iExists (P this); iExists th; iExists _.
+    destruct args as [a[b []]]; simpl.
+    go.
+    iExists TT.
     work.
-    iFrame.
-    rewrite /CR. work.
-    destruct n; subst; simpl; work.
-    destruct args as [a[b?]]; simpl.
-    have->: (b + (0 - x) = b - x)%Z by lia. done.
-  Admitted.
+    erewrite recursive_mutex.update_eq; last done; cbn.
+    work.
+  Qed.
 
 End with_cpp.
+
