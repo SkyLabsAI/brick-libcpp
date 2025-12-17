@@ -315,6 +315,20 @@ Section with_cpp.
   Qed.
 
   #[program]
+  Definition acquireable_acquireable_C γ :=
+    \cancelx
+    \consuming{th n TT args P} acquireable (TT := TT) γ th (Held n args) P
+    \bound P'
+    \bound_existential th' args'
+    \proving acquireable γ th' args' P'
+    \instantiate th' := th
+    \instantiate args' := Held n args
+    \deduce tele_app P args
+    \through tele_app P' args
+    \end.
+  Next Obligation. rewrite acquireable.unlock; work. Qed.
+
+  #[program]
   Definition own_P_is_acquireable_C {TT} g n P args :=
     \cancelx
     \preserving{th} current_thread th
@@ -323,6 +337,32 @@ Section with_cpp.
     \proving acquireable (TT := TT) g th (Held n args) P
     \end.
   Next Obligation. rewrite acquireable.unlock; work. Qed.
+
+  #[global] Instance : `{Learnable
+    (current_thread th)
+    (acquireable (TT := TT0) γ th0 args P0)
+    [th0 = th] }.
+  Proof. solve_learnable. Qed.
+
+  #[global] Instance : `{Learnable
+    (inv_rmutex γ1 P1)
+    (inv_rmutex γ2 P2)
+    [γ2 = γ1] }.
+  Proof. solve_learnable. Qed.
+
+  #[global] Instance learn_inv_rmutex_P TT : `{Learnable
+    (inv_rmutex γ1 (∃ xs : tele_arg TT, tele_app P1 xs))
+    (inv_rmutex γ2 (∃ xs : tele_arg TT, tele_app P2 xs))
+    [P2 = P1] }.
+  Proof. solve_learnable. Qed.
+
+  #[global] Instance learn_args
+    {TT: tele} (t : acquire_state TT) (P : TT -t> mpred) :
+    `{Learnable
+    (tele_app P args ** own (level_gname γ) (◯E (S n, th)))
+    (acquireable γ th t P)
+    [t = Held n args] }.
+  Proof. solve_learnable. Qed.
 
   Definition update {TT : tele} (f : TT -t> TT)
     (x : acquire_state TT) : acquire_state TT :=
@@ -476,6 +516,7 @@ Section with_cpp.
 
 End with_cpp.
 
+#[global] Hint Resolve acquireable_acquireable_C : br_hints.
 #[global] Hint Resolve acquireable_is_acquired_C : br_hints.
 #[global] Hint Resolve own_P_is_acquireable_C : br_hints.
 #[global] Hint Resolve acquireable_current_thread_F : br_hints.

@@ -64,43 +64,6 @@ Section with_cpp.
   #[global] Instance CR_learn : Cbn (Learn (learn_eq ==> any ==> learn_hints.fin) CR).
   Proof. solve_learnable. Qed.
 
-  Import recursive_mutex.
-
-  #[program]
-  Definition acquireable_acquireable_C γ :=
-    \cancelx
-    \consuming{th n args P} acquireable (TT := TT) γ th (Held n args) P
-    \bound P'
-    \bound_existential th' args'
-    \proving acquireable γ th' args' P'
-    \instantiate th' := th
-    \instantiate args' := Held n args
-    \deduce tele_app P args
-    \through tele_app P' args
-    \end.
-  Next Obligation. rewrite acquireable.unlock; work. Qed.
-
-  Hint Resolve acquireable_acquireable_C : br_hints.
-
-  #[global] Instance : `{Learnable
-    (current_thread th)
-    (acquireable (TT := TT0) γ th0 args P0)
-    [th0 = th] }.
-  Proof. solve_learnable. Qed.
-
-  #[global] Instance : `{Learnable
-    (inv_rmutex γ1 P1)
-    (inv_rmutex γ2 P2)
-    [γ2 = γ1] }.
-  Proof. solve_learnable. Qed.
-
-  #[global] Instance : `{Learnable
-    (inv_rmutex γ1 (∃ xs : tele_arg TT, tele_app P1 xs))
-    (inv_rmutex γ2 (∃ xs : tele_arg TT, tele_app P2 xs))
-    [P2 = P1] }.
-  Proof. solve_learnable. Qed.
-
-
   Lemma update_a_ok : verify[source] "C::update_a(long)".
   Proof.
     verify_spec; go.
@@ -123,48 +86,15 @@ Section with_cpp.
       \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (P this)
       \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (trim 64 (a+x)) (trim 64 (b-x))) args) (P this)).
 
-  (* XXX this hint isn't robust because [a] and [b] become evars bound. *)
-  (* #[program]
-  Definition own_P_is_acquireable_C' γ n :=
-    \cancelx
-    \preserving{th} current_thread th
-    \consuming own γ.(level_gname) (◯E (S n, th))
-    \bound (P : TT -t> mpred)
-    \bound_existential st
-    \proving acquireable (TT := TT) γ th st P
-    \bound a b
-    \instantiate st := Held n (mk a b)
-    \through tele_app P (mk a b)
-    \end.
-  Next Obligation. rewrite acquireable.unlock; work. Qed. *)
-
-  #[program]
-  Definition own_P_is_acquireable_C' γ n :=
-    \cancelx
-    \preserving{th} current_thread th
-    \consuming own γ.(level_gname) (◯E (S n, th))
-    \with (this : ptr)
-    \consuming{a b} this |-> CR' a b
-    \bound_existential st
-    \proving acquireable (TT := TT) γ th st (λ a b, this |-> CR' a b)
-    \instantiate st := Held n (mk a b)
-    \end.
-  Next Obligation. rewrite acquireable.unlock; work. Qed.
-  #[local] Hint Resolve own_P_is_acquireable_C' : br_hints.
-
   Lemma transfer_ok : verify[source] "C::transfer(int)".
   Proof.
     verify_spec; go.
     iExists TT.
     go.
-    destruct args as [a[b []]]; rewrite !P.unlock /=.
-    go.
-    rewrite !P.unlock /=.
-    go.
     iExists TT.
-    work.
+    go.
     erewrite recursive_mutex.update_eq; last done; cbn.
-    rewrite !P.unlock /=.
+    destruct args as [a[b []]]; simpl.
     work.
   Qed.
 
