@@ -126,8 +126,7 @@ Section with_cpp.
     rewrite P.unlock.
     erewrite recursive_mutex.update_eq; last done.
     work.
-  Fail Qed.
-  Admitted.
+  Qed.
 
   cpp.spec "C::transfer(int)" from demo_cpp.source with
     (\this this
@@ -169,8 +168,7 @@ Section with_cpp.
     erewrite recursive_mutex.update_eq; last done.
     rewrite !P.unlock /=.
     work.
-  Fail Qed.
-  Admitted.
+  Qed.
 
 End with_cpp.
 
