@@ -14,13 +14,13 @@
 -arg -w -arg +deprecated-tacopt-without-locality
 -arg -w -arg +future-coercion-class-field
 -arg -w -arg +unknown-option
--arg -w -arg +br-transparent-constants
+-arg -w -arg +sl-transparent-constants
 
 # Plugin directory.
 -I _build/install/default/lib
 
 # Specified logical paths for directories (for .v and .vo files).
--Q _build/default/rocq-brick-libstdcpp/proof/ bluerock.brick.libstdcpp
--Q rocq-brick-libstdcpp/proof/ bluerock.brick.libstdcpp
--Q _build/default/rocq-brick-libstdcpp/test/ bluerock.brick.libstdcpp.test
--Q rocq-brick-libstdcpp/test/ bluerock.brick.libstdcpp.test
+-Q _build/default/rocq-brick-libstdcpp/proof/ skylabs.brick.libstdcpp
+-Q rocq-brick-libstdcpp/proof/ skylabs.brick.libstdcpp
+-Q _build/default/rocq-brick-libstdcpp/test/ skylabs.brick.libstdcpp.test
+-Q rocq-brick-libstdcpp/test/ skylabs.brick.libstdcpp.test

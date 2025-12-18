@@ -1,11 +1,11 @@
-Require Import bluerock.bi.tls_modalities.
-Require Import bluerock.bi.tls_modalities_rep.
-Require Import bluerock.bi.weakly_objective.
-Require Import bluerock.auto.cpp.weakly_local_with.
+Require Import skylabs.bi.tls_modalities.
+Require Import skylabs.bi.tls_modalities_rep.
+Require Import skylabs.bi.weakly_objective.
+Require Import skylabs.auto.cpp.weakly_local_with.
 
-Require Import bluerock.auto.cpp.proof.
-Require Import bluerock.brick.libstdcpp.mutex.inc_hpp.
-Require Export bluerock.brick.libstdcpp.runtime.pred.
+Require Import skylabs.auto.cpp.proof.
+Require Import skylabs.brick.libstdcpp.mutex.inc_hpp.
+Require Export skylabs.brick.libstdcpp.runtime.pred.
 
 Module mutex.
 Section with_cpp.
@@ -123,7 +123,7 @@ Module recursive_mutex.
 
   Canonical Structure cmraR := (excl_authR (prodO natO thread_idTO)).
 
-  br.lock
+  sl.lock
   Definition inv_rmutex `{Σ : cpp_logic} `{!HasOwn mpredI cmraR} (g : rmutex_gname) (P : mpred) : mpred :=
     inv rmutex_namespace
       (Exists n th, own g.(level_gname) (●E (n, th)) **
@@ -142,7 +142,7 @@ Module recursive_mutex.
 
   Parameter used_threads : ∀ `{Σ : cpp_logic}, gname -> gset thread_idT -> mpred.
 
-  br.lock
+  sl.lock
   Definition acquire {TT} (a a' : acquire_state TT) : Prop :=
     match a with
     | NotHeld => exists xs, a' = Held 0 xs
@@ -160,7 +160,7 @@ Module recursive_mutex.
   #[global] Hint Resolve acquire_NotHeld_Held0 : br_hints.
   #[global] Hint Resolve acquire_Held_S : br_hints.
 
-  br.lock
+  sl.lock
   Definition release {TT} (a : acquire_state TT) : acquire_state TT :=
     match a with
     | NotHeld => NotHeld (* unreachable *)
@@ -171,7 +171,7 @@ Module recursive_mutex.
         end
     end.
 
-  br.lock
+  sl.lock
   Definition acquireable `{Σ : cpp_logic, !HasStdThreads Σ, !HasOwn mpredI cmraR} (g : rmutex_gname) (th : thread_idT) {TT: tele} (t : acquire_state TT) (P : TT -t> mpred) : mpred :=
     current_thread th **
     match t with

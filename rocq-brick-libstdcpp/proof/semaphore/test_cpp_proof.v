@@ -1,6 +1,6 @@
-Require Import bluerock.auto.cpp.prelude.proof.
-Require Import bluerock.brick.libstdcpp.semaphore.spec.
-Require Import bluerock.brick.libstdcpp.semaphore.test_cpp.
+Require Import skylabs.auto.cpp.prelude.proof.
+Require Import skylabs.brick.libstdcpp.semaphore.spec.
+Require Import skylabs.brick.libstdcpp.semaphore.test_cpp.
 
 Import auto_frac auto_pick_frac.
 

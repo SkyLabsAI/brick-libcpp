@@ -1,6 +1,6 @@
-Require Import bluerock.auto.cpp.prelude.proof.
-Require Import bluerock.brick.libstdcpp.mutex.spec.
-Require Import bluerock.brick.libstdcpp.mutex.demo_cpp.
+Require Import skylabs.auto.cpp.prelude.proof.
+Require Import skylabs.brick.libstdcpp.mutex.spec.
+Require Import skylabs.brick.libstdcpp.mutex.demo_cpp.
 
 
 (* TODO: generalizable *)
@@ -14,18 +14,18 @@ Polymorphic Definition mk (a b : Z) : TT :=
   {| tele_arg_head := a; tele_arg_tail := {| tele_arg_head := b; tele_arg_tail := () |} |}.
 Succeed Definition b := recursive_mutex.Held 0 (mk 0 0).
 
-br.lock
+sl.lock
 Definition CR' `{Σ : cpp_logic, σ : genv} (a b : Z) : Rep :=
     _field "C::balance_a" |-> ulongR 1$m a **
     _field "C::balance_b" |-> ulongR 1$m b.
 #[only(lazy_unfold)] derive CR'.
 #[only(timeless)] derive CR'.
 
-br.lock
+sl.lock
 Definition P `{Σ : cpp_logic, σ : genv} (this : ptr) : TT -t> mpred :=
   fun (a b : Z) => this |-> CR' a b.
 
-br.lock
+sl.lock
 Definition CR
     `{Σ : cpp_logic, σ : genv, HasOwn mpredI recursive_mutex.cmraR}
     (γ : recursive_mutex.rmutex_gname) (q : cQp.t) : Rep :=

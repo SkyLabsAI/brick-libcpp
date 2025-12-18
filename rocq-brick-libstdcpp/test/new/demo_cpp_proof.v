@@ -1,9 +1,9 @@
-Require Import bluerock.auto.cpp.prelude.proof.
-Require Import bluerock.brick.libstdcpp.new.pred.
+Require Import skylabs.auto.cpp.prelude.proof.
+Require Import skylabs.brick.libstdcpp.new.pred.
 
-Require Import bluerock.brick.libstdcpp.new.spec_exc.
-Require Import bluerock.brick.libstdcpp.new.hints.
-Require bluerock.brick.libstdcpp.test.new.demo_cpp.
+Require Import skylabs.brick.libstdcpp.new.spec_exc.
+Require Import skylabs.brick.libstdcpp.new.hints.
+Require skylabs.brick.libstdcpp.test.new.demo_cpp.
 
 Section with_cpp.
   Context `{Σ : cpp_logic} {σ : genv}.

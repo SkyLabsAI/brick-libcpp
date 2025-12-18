@@ -1,5 +1,5 @@
-Require Import bluerock.auto.cpp.proof.
-Require Export bluerock.brick.libstdcpp.new.spec.
+Require Import skylabs.auto.cpp.proof.
+Require Export skylabs.brick.libstdcpp.new.spec.
 
 #[only(lazy_unfold(global))] derive alloc.tokenR.
 
@@ -270,11 +270,11 @@ Section with_cpp.
 
 End with_cpp.
 
-#[global] Hint Resolve wp_delete_null_operator_delete_size_C wp_delete_null_operator_delete_C : db_bluerock_wp.
+#[global] Hint Resolve wp_delete_null_operator_delete_size_C wp_delete_null_operator_delete_C : db_skylabs_wp.
 #[global] Hint Resolve wp_delete_null_operator_delete_array_C wp_delete_null_operator_delete_array_size_C
- wp_delete_null_operator_delete_fixed_array_C : db_bluerock_wp.
+ wp_delete_null_operator_delete_fixed_array_C : db_skylabs_wp.
 
-#[global] Hint Resolve token_prove_C token_prove_0_C | 100 : br_opacity.
-#[global] Hint Resolve token_prove_using_C token_prove_using_0_C | 99 : br_opacity.
-#[global] Hint Resolve token_use_non_array_C | 99 : br_opacity.
-#[global] Hint Resolve token_use_array_C | 100 : br_opacity.
+#[global] Hint Resolve token_prove_C token_prove_0_C | 100 : sl_opacity.
+#[global] Hint Resolve token_prove_using_C token_prove_using_0_C | 99 : sl_opacity.
+#[global] Hint Resolve token_use_non_array_C | 99 : sl_opacity.
+#[global] Hint Resolve token_use_array_C | 100 : sl_opacity.

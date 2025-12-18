@@ -1,5 +1,5 @@
-Require Import bluerock.auto.cpp.prelude.proof.
-Require Import bluerock.brick.libstdcpp.semaphore.spec. (* TODO: necessary in order to get the specializations *)
+Require Import skylabs.auto.cpp.prelude.proof.
+Require Import skylabs.brick.libstdcpp.semaphore.spec. (* TODO: necessary in order to get the specializations *)
 
 Import auto_frac auto_pick_frac.
 

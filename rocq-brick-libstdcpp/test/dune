@@ -6,29 +6,29 @@
 
 (include_subdirs qualified)
 (coq.theory
- (name bluerock.brick.libstdcpp.test) ; logical path of this library
+ (name skylabs.brick.libstdcpp.test) ; logical path of this library
  (theories
-  ; bluerock.brick.libstdcpp deps
+  ; skylabs.brick.libstdcpp deps
   Stdlib
   stdpp
-  bluerock.upoly
+  skylabs.upoly
   elpi elpi_elpi elpi.apps.locker elpi.apps.NES
   Lens Lens.Elpi
-  Ltac2 bluerock.ltac2.extra
-  bluerock.prelude
+  Ltac2 skylabs.ltac2.extra
+  skylabs.prelude
   iris
-  bluerock.iris.extra
+  skylabs.iris.extra
   Equations Equations.Prop Equations.Type
-  bluerock.lang.cpp
-  bluerock.ltac2.logger
-  bluerock.auto.core
+  skylabs.lang.cpp
+  skylabs.ltac2.logger
+  skylabs.auto.core
   ;
   ExtLib
-  bluerock.elpi.extra
-  bluerock.elpi.cpp
-  bluerock
-  ; bluerock.brick.libstdcpp deps end
-  bluerock.brick.libstdcpp))
+  skylabs.elpi.extra
+  skylabs.elpi.cpp
+  skylabs
+  ; skylabs.brick.libstdcpp deps end
+  skylabs.brick.libstdcpp))
 (include dune.inc)
 
 (rule

@@ -1,7 +1,7 @@
-Require Import bluerock.auto.cpp.specs.
+Require Import skylabs.auto.cpp.specs.
 
-Require Import bluerock.brick.libstdcpp.new.inc_new_cpp.
-Require Export bluerock.brick.libstdcpp.new.spec.
+Require Import skylabs.brick.libstdcpp.new.inc_new_cpp.
+Require Export skylabs.brick.libstdcpp.new.spec.
 
 Import cpp_notation.
 

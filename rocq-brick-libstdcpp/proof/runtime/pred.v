@@ -1,12 +1,12 @@
-Require Import bluerock.bi.tls_modalities.
-Require Import bluerock.bi.tls_modalities_rep.
-Require Import bluerock.bi.weakly_objective.
-Require Import bluerock.auto.cpp.weakly_local_with.
+Require Import skylabs.bi.tls_modalities.
+Require Import skylabs.bi.tls_modalities_rep.
+Require Import skylabs.bi.weakly_objective.
+Require Import skylabs.auto.cpp.weakly_local_with.
 
-Require Import bluerock.auto.cpp.prelude.pred.
-Require Import bluerock.auto.cpp.prelude.proof.
+Require Import skylabs.auto.cpp.prelude.pred.
+Require Import skylabs.auto.cpp.prelude.proof.
 
-Require Import bluerock.auto.core.hints.cancelx_notation.
+Require Import skylabs.auto.core.hints.cancelx_notation.
 Require Import iris.proofmode.tactics.
 
 Parameter thread_idT : Type.
@@ -90,10 +90,9 @@ Section with_cpp.
   Qed.
 
   (* TODO: show how these modalities show up in Thread::create() and Thread::get_id(), so we can refine. *)
-  (* TODO: this should move to some prelude. And L_TI needs to depend on some typeclass assumption that constrains [ti], just like we do in
-  [fmdeps/cpp2v/coq-bluerock-nova-interface/theories/predicates/pred.v]. *)
+  (* TODO: this should move to some prelude. And L_TI needs to depend on some typeclass assumption that constrains [ti], just like in [NOVA/ver/spec/rocq-bluerock-nova-interface/theories/predicates/pred.v]. *)
 
 End with_cpp.
 
-#[global] Hint Resolve learn_current_thread_from_context_C | 999 : br_opacity.
-#[global] Hint Resolve learn_current_thread_C | 1000 : br_opacity.
+#[global] Hint Resolve learn_current_thread_from_context_C | 999 : sl_opacity.
+#[global] Hint Resolve learn_current_thread_C | 1000 : sl_opacity.

@@ -1,7 +1,7 @@
 Require Import iris.proofmode.tactics.
-Require Import bluerock.auto.cpp.prelude.pred.
-Require Import bluerock.auto.cpp.elpi.derive.bi.
-Require Import bluerock.brick.libstdcpp.new.inc_new_cpp.
+Require Import skylabs.auto.cpp.prelude.pred.
+Require Import skylabs.auto.cpp.elpi.derive.bi.
+Require Import skylabs.brick.libstdcpp.new.inc_new_cpp.
 #[local] Set Primitive Projections.
 
 cpp.enum "std::align_val_t" from source alias.
@@ -48,7 +48,7 @@ NES.Begin alloc.
   (** [token ty sz q] bundles the dynamic allocation tokens provided by
       the C++ abstract machine with the [allocatedR] fact from the allocation library.
    *)
-  br.lock
+  sl.lock
   Definition tokenR `{Σ : cpp_logic} {σ : genv} (ty : type) (q : Qp) : Rep :=
     Exists storage_p overhead sz,
       [| size_of _ ty = Some sz |] **
