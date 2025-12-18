@@ -30,3 +30,11 @@
   ; bluerock.brick.libstdcpp deps end
   bluerock.brick.libstdcpp))
 (include dune.inc)
+
+(rule
+ (action (with-stdout-to dune.inc.gen (run ./dune-gen.sh)))
+ (deps (glob_files_rec *.{h,c,hpp,cpp,sh})))
+
+(rule
+ (alias dune_inc)
+ (action (diff dune.inc dune.inc.gen)))
