@@ -26,7 +26,7 @@ Section specsproofs.
       end **
       match ty with
       | Tint  => [| overhead = 0%N |]
-      | _ =>  True (* TODO: this needs to be strengthened for many cases *)
+      | _ =>  emp (* TODO: this needs to be strengthened for many cases *)
       end
       **  (base |-> new_token.R 1
                 {| new_token.alloc_ty := ty;
@@ -139,9 +139,8 @@ Section specsproofs.
     normalize_ptrs.
     go.
     case_bool_decide; Forward.rwHyps; try go.
-    { rewrite <- allocatedNullForget;[| lia]. eagerUnifyU. go. iClear "#". iStopProof. auto. apply trueemp.
+    { rewrite <- allocatedNullForget;[| lia]. eagerUnifyU. go.
     }
-    { iClear "#". iStopProof. auto. apply trueemp. }
   Qed.
 
 End specsproofs.
