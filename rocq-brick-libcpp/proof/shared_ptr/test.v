@@ -58,7 +58,6 @@ Section proofs.
   Context `{Σ : cpp_logic, MOD:test_cpp.module ⊧ σ}
   {hf:fracG () _Σ}.
   
-  Definition observeSharedType r q t Rpiece op:= @observe_fwd _ _ _ (sharedR_typeptr_observe r q t Rpiece op).
 
   cpp.spec "testshared1()" as testshared1spec with (
     \pre emp
@@ -89,7 +88,8 @@ Section proofs.
   Qed.
   
   Opaque NullSharedPtrR.
-  Hint Resolve observeSharedType : br_opacity.
+  #[global] Instance lll: LearnEq4 SharedPtrR :=
+    ltac:(solve_learnable).
   
   Lemma prf2: verify[module] testshared1spec.
   Proof using MOD.
@@ -97,11 +97,11 @@ Section proofs.
     pose proof maxContentionLb.
     go.
     unfold dynAllocatedR.
-    set (Rpiece:=(fun ctid => if bool_decide (ctid=0%nat) then anyR "int" 1 else emp)).
+    let r := sharedPtrRpieceFromPost in
+      set (Rpiece := r).
     iExists Rpiece.
-    iExists _.
     go.
-    iExists _.
+    iExists _,_.
     simpl.
     eagerUnifyU.
     go.
@@ -110,7 +110,6 @@ Section proofs.
     go.
     rewrite <- _at_big_sepL.
     unfold allButFirstPieceId.
-    unfold Rpiece.
     rewrite allButFirstEmp. go.
     provePure.
     {
@@ -120,16 +119,9 @@ Section proofs.
       rewrite allButFirstEmp. go.
     }
     go.
-    go.
-    iExists _, _, Rpiece.
-    unfold upcast_offset.
-    normalize_ptrs.
-    eagerUnifyU.
-    go.
     normalize_ptrs.
     go.
-    iExists _, _, Rpiece.
-    eagerUnifyU.
+    normalize_ptrs.
     go.
     iExists true.
     iExists nullptr.
@@ -137,17 +129,70 @@ Section proofs.
     iExists Rpiece.
     ego.
   Qed.
+
+  (* dummy spec: needs fix *)
   cpp.spec "testsharedarr()" as testsharedarrspec with (
     \pre emp
     \post{p:ptr}[Vptr p] Exists payload sid,
-       p |-> SharedPtrR "int" sid (fun ctid => if bool_decide (ctid=0%nat) then anyR "int" 1 else emp) payload
-       ** payload |-> intR (cQp.m 1) 1
+       p |-> SharedPtrR "int[]" sid (fun ctid => if bool_decide (ctid=0%nat) then anyR "int[2]" 1 else emp) payload
+       ** payload |-> arrayR "int" (fun t => intR 1 t) [1;2]%Z
        ** ([∗ list] ctid ∈ allButFirstPieceId,
               pieceRight sid ctid)
       ).
-    
+
+  
   Lemma prf3: verify[module] testsharedarrspec.
   Proof using MOD.
     verify_spec.
-  Abort.
+    go.
+    unfold dynAllocatedR.
+    let r := sharedPtrRpieceFromPost in
+      set (Rpiece := r).
+    iExists Rpiece.
+    go.
+    iExists 2%N,_,_,_.
+    simpl.
+    eagerUnifyU.
+    go.
+    normalize_ptrs.
+    eagerUnifyU.
+    go.
+    rewrite <- _at_big_sepL.
+    unfold allButFirstPieceId.
+    rewrite allButFirstEmp. go.
+    provePure.
+    {
+      unfold Rpiece.
+      unfold allPieceIds.
+      rewrite -> seqprefix with (prelen:=1%nat) by lia.
+      simpl.
+      rewrite allButFirstEmp.
+      go.
+    }
+    go.
+    normalize_ptrs.
+    go.
+    normalize_ptrs.
+    go.
+    simpl.
+    unfold replicateN.
+    simpl.
+    repeat rewrite arrayR_cons.
+    go.
+    normalize_ptrs.
+    go.
+    normalize_ptrs.
+    go.
+    iExists true.
+    iExists nullptr.
+    iExists tt.
+    iExists Rpiece.
+    ego.
+    repeat rewrite arrayR_cons.
+    go.
+    normalize_ptrs.
+    go.
+    repeat rewrite arrayR_nil.
+    go.
+  Qed.
 End proofs.

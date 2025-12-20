@@ -219,6 +219,7 @@ Section specs.
   #[global] Instance sharedR_typeptr_observe id (p:ptr) op Rpiece
     : Observe (type_ptr (Tnamed ("std::shared_ptr".<<Atype ty>>)) p) (p|->SharedPtrR id Rpiece op):= _.
   
+  Definition observeSharedTypeF q t Rpiece op:= @observe_fwd _ _ _ (sharedR_typeptr_observe q t Rpiece op).
 
   Definition allPiecesAndObjs Rpiece id (ownedPtr: ptr) (pieceOut: nat->bool) : Rep :=
    ([∗ list] pieceid ∈ allPieceIds,
@@ -250,7 +251,7 @@ Section specs.
     (*           ^^ if anyR is not meaningful for non-scalar types,
                  replace this with wp of default destructor *)
     \post Exists (ctrlBlockId: CtrlBlockId),
-       this |-> SharedPtrR ty ctrlBlockId Rpiece p
+       this |-> SharedPtrR (Tincomplete_array ety) ctrlBlockId Rpiece p
          ** ([∗ list] pieceid ∈ allButFirstPieceId, pieceRight ctrlBlockId pieceid)
          (*  ^ the right to create [maxContention-1] more shared_ptr objects on this payload and claim the correponsing Rpiece ownerships at copy construction *)
       ).
@@ -262,10 +263,19 @@ Section specs.
     specify.template.op (SP_acc (Tincomplete_array ety) 1) OOSubscript function_qualifiers.Nc (Tref ety) ["long"%cpp_type] $
       \this this
       \arg{index} "index" (Vint index)
-      \prepost{id p Rpiece len} this |-> (upcast_offset (Tincomplete_array ety) 1) |-> SharedPtrR (Tarray ety len) id Rpiece p
+      \prepost{id p Rpiece} this |-> (upcast_offset (Tincomplete_array ety) 1) |-> SharedPtrR (Tincomplete_array ety ) id Rpiece p
       \post[Vref (p.[ety ! index])] emp.
 
   Definition SpecFor_subscript := RegisterSpec subscript.
   #[global] Existing Instance SpecFor_subscript.
 
 End specs.
+#[global]
+Hint Resolve observeSharedTypeF : br_opacity.
+Ltac sharedPtrRpieceFromPost :=
+  match goal with
+    H: context[@PostCondition ?a ?b ?c ?d] |- _
+    => match c with
+       | context[SharedPtrR _ _ ?rp _ ] => constr:(rp)
+       end                            
+  end.
