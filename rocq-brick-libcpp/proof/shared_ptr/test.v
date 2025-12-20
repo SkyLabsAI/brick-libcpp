@@ -137,4 +137,17 @@ Section proofs.
     iExists Rpiece.
     ego.
   Qed.
+  cpp.spec "testsharedarr()" as testsharedarrspec with (
+    \pre emp
+    \post{p:ptr}[Vptr p] Exists payload sid,
+       p |-> SharedPtrR "int" sid (fun ctid => if bool_decide (ctid=0%nat) then anyR "int" 1 else emp) payload
+       ** payload |-> intR (cQp.m 1) 1
+       ** ([∗ list] ctid ∈ allButFirstPieceId,
+              pieceRight sid ctid)
+      ).
+    
+  Lemma prf3: verify[module] testsharedarrspec.
+  Proof using MOD.
+    verify_spec.
+  Abort.
 End proofs.

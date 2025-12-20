@@ -114,7 +114,7 @@ Section specs.
     \pre match ty with
          | Tarray _ _ => False
          | Tincomplete_array _ => False
-         | _ => True
+         | _ => emp
         end
         
     \pre{Rpiece: nat -> Rep} [∗ list] pieceid ∈ allButFirstPieceId, p |-> Rpiece pieceid
@@ -193,10 +193,10 @@ Section specs.
           ** other |-> NullSharedPtrR.
                
 
-  Definition SP_acc  := ("std::__shared_ptr_access" .<< 
+  Definition SP_acc (mid: Z) := ("std::__shared_ptr_access" .<< 
                            Atype ty,
                            Avalue (Eint 2 "enum __gnu_cxx::_Lock_policy"),
-                           Avalue (Eint 0 "bool"),
+                           Avalue (Eint mid "bool"),
                            Avalue (Eint 0 "bool") >>)%cpp_name.
 
   Definition SP_impl := ("std::__shared_ptr" .<< 
@@ -204,13 +204,13 @@ Section specs.
                            Avalue (Eint 2 "enum __gnu_cxx::_Lock_policy") >>)%cpp_name.
 
   (** Reconstruct the most-derived object pointer from the base-subobject "this". *)
-  Definition upcast_offset : offset :=
-    (o_derived σ SP_acc SP_impl ,, o_derived σ SP_impl spty).
+  Definition upcast_offset (mid: Z) : offset :=
+    (o_derived σ (SP_acc mid) SP_impl ,, o_derived σ SP_impl spty).
 
   Definition deref :=
-    specify.template.op SP_acc OOStar function_qualifiers.Nc (Tref ty) [] $
+    specify.template.op (SP_acc 0) OOStar function_qualifiers.Nc (Tref ty) [] $
        \this this
-       \prepost{id p Rpiece} this |-> upcast_offset |-> SharedPtrR id Rpiece p
+       \prepost{id p Rpiece} this |-> (upcast_offset 0) |-> SharedPtrR id Rpiece p
        \post[Vref p] emp.
 
   Definition SpecFor_deref := RegisterSpec deref.
@@ -258,5 +258,14 @@ Section specs.
   Definition SpecFor_init_ctor_arr := RegisterSpec init_ctor_arr.
   #[global] Existing Instance SpecFor_init_ctor_arr.
 
+  Definition subscript ety:=
+    specify.template.op (SP_acc (Tincomplete_array ety) 1) OOSubscript function_qualifiers.Nc (Tref ety) ["long"%cpp_type] $
+      \this this
+      \arg{index} "index" (Vint index)
+      \prepost{id p Rpiece len} this |-> (upcast_offset (Tincomplete_array ety) 1) |-> SharedPtrR (Tarray ety len) id Rpiece p
+      \post[Vref (p.[ety ! index])] emp.
+
+  Definition SpecFor_subscript := RegisterSpec subscript.
+  #[global] Existing Instance SpecFor_subscript.
 
 End specs.
