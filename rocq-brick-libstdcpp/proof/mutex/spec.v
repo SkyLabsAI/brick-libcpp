@@ -83,10 +83,15 @@ Section with_cpp.
 End with_cpp.
 End mutex.
 
-(* TODO upstream *)
-#[global] Declare Instance
+(* TODO upstream, fix [monPred_own_weakly_objective] with correct assumption. *)
+#[global] Instance
   own_WeaklyObjective `{Σ : cpp_logic} {A : cmra} `{!HasOwn mpredI A} γ (a : A)  :
   WeaklyObjective (PROP := iPropI _) (own γ a).
+Proof.
+Set Printing All.
+epose proof (monPred_own_weakly_objective γ a).
+Unset Printing All.
+Admitted.
 
 Module recursive_mutex.
 
