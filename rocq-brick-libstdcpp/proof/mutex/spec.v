@@ -86,10 +86,42 @@ End mutex.
 Module recursive_mutex.
 
   (** <<locked γ th n>> <<th>> owns the mutex <<γ>> <<n>> times. *)
-  Parameter locked : ∀ `{Σ : cpp_logic}, gname -> thread_idT -> nat -> mpred.
-  #[global] Declare Instance
-    locked_WeaklyObjective `{Σ : cpp_logic} γ thr n :
-    WeaklyObjective (PROP := iPropI _) (locked γ thr n).
+  #[projections(primitive=no)]
+  Class lockedG `{Σ : cpp_logic} := {
+  }.
+  #[global] Arguments lockedG {_ _} Σ : assert.
+
+  Parameter locked :
+    ∀ `{Σ : cpp_logic, !lockedG Σ}
+    (γ : gname) (th : thread_idT) (n : nat), mpred.
+
+  Parameter used_threads :
+    ∀ `{Σ : cpp_logic, !lockedG Σ, !HasStdThreads Σ}
+    (γ : gname) (s : gset thread_idT), mpred.
+
+  #[only(timeless)] derive locked.
+  #[only(timeless)] derive used_threads.
+
+  Section locked_with_cpp.
+    Context `{Σ : cpp_logic}.
+    Context `{!lockedG Σ}.
+    Context `{!HasStdThreads Σ}.
+
+    Axiom use_thread : ∀ th g s,
+      th ∉ s ->
+      current_thread th ** used_threads g s |--
+      |==> used_threads g (s ∪ {[ th ]}) ** locked g th 0.
+
+    #[global] Declare Instance
+      locked_WeaklyObjective γ thr n :
+      WeaklyObjective (PROP := iPropI _) (locked γ thr n).
+
+    Axiom locked_excl_same_thread : forall g th n m,
+      locked g th n ** locked g th m |-- False.
+    Axiom locked_excl_different_thread : forall g th th' n m,
+      locked g th n ** locked g th' m |-- [| n = 0 \/ m = 0 |] ** True.
+
+  End locked_with_cpp.
 
   (* the mask of recursive_mutex *)
   Definition mask := nroot .@@ "std" .@@ "recursive_mutex".
@@ -102,7 +134,9 @@ Module recursive_mutex.
   Canonical Structure cmraR := (excl_authR (prodO natO thread_idTO)).
 
   sl.lock
-  Definition inv_rmutex `{Σ : cpp_logic} `{!HasOwn (iPropI _) cmraR} (g : rmutex_gname) (P : mpred) : mpred :=
+  Definition inv_rmutex
+      `{Σ : cpp_logic} `{!lockedG Σ} `{!HasOwn (iPropI _) cmraR}
+      (g : rmutex_gname) (P : mpred) : mpred :=
     inv rmutex_namespace
       (Exists n th, own g.(level_gname) (●E (n, th)) **
         match n with
@@ -117,8 +151,6 @@ Module recursive_mutex.
   | NotHeld                (* not held *)
   | Held (n : nat) (xs : TT) (* acquired [n + 1] times with quantifiers [xs] *).
   #[global] Arguments acquire_state _ : clear implicits.
-
-  Parameter used_threads : ∀ `{Σ : cpp_logic}, gname -> gset thread_idT -> mpred.
 
   sl.lock
   Definition acquire {TT} (a a' : acquire_state TT) : Prop :=
@@ -150,7 +182,9 @@ Module recursive_mutex.
     end.
 
   sl.lock
-  Definition acquireable `{Σ : cpp_logic, !HasStdThreads Σ, !HasOwn (iPropI _) cmraR} (g : rmutex_gname) (th : thread_idT) {TT: tele} (t : acquire_state TT) (P : TT -t> mpred) : mpred :=
+  Definition acquireable
+      `{Σ : cpp_logic, !lockedG Σ, !HasStdThreads Σ, !HasOwn (iPropI _) cmraR}
+      (g : rmutex_gname) (th : thread_idT) {TT: tele} (t : acquire_state TT) (P : TT -t> mpred) : mpred :=
     current_thread th **
     match t with
     | NotHeld => locked g.(lock_gname) th 0
@@ -160,13 +194,8 @@ Module recursive_mutex.
   Section with_cpp.
     Context `{Σ : cpp_logic}.
 
-    #[global] Declare Instance locked_timeless : Timeless3 locked.
-    Axiom locked_excl_same_thread : forall g th n m,
-      locked g th n ** locked g th m |-- False.
-    Axiom locked_excl_different_thread : forall g th th' n m,
-      locked g th n ** locked g th' m |-- [| n = 0 \/ m = 0 |] ** True.
-
     Context `{!HasOwn (iPropI _) cmraR, !HasStdThreads Σ}.
+    Context `{!lockedG Σ}.
 
     #[global] Instance acquireable_learn γ th TT : LearnEq2 (acquireable γ th (TT := TT)).
     Proof. solve_learnable. Qed.
@@ -174,10 +203,6 @@ Module recursive_mutex.
     #[global] Instance acquireable_current_thread :
       `{Observe (current_thread th) (acquireable g th (TT := TT) t P)}.
     Proof. rewrite acquireable.unlock; apply _. Qed.
-
-    Axiom use_thread : forall th g m,
-      th ∉ m ->
-      current_thread th ** used_threads g m |-- |==> used_threads g (m ∪ {[ th ]}) ** locked g th 0.
 
     Lemma use_thread_acquirable {TT} th g m P :
       th ∉ m ->
@@ -195,6 +220,7 @@ Module recursive_mutex.
 Section with_cpp.
   Context `{Σ : cpp_logic} `{MOD : source ⊧ σ}.
   Context {HAS_THREADS : HasStdThreads Σ}.
+  Context `{!lockedG Σ}.
 
   (* NOTE: Invariant used to protect resource [r]
     inv (r \\// exists th n, locked th (S n)) *)
