@@ -14,25 +14,12 @@ Section with_cpp.
   (** Fractional ownership of a <<std::mutex>> guarding the predicate <<P>>. *)
   Parameter R : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv}, gname -> cQp.t -> mpred -> Rep.
   #[only(cfractional,cfracvalid,ascfractional,timeless)] derive R.
-  (*
-  #[global] Declare Instance mutex_rep_typed : Typed3 "std::mutex" mutex_rep.
-  #[global] Declare Instance mutex_rep_cfrac : forall γ, CFractional1 (mutex_rep γ).
-  #[global] Declare Instance mutex_rep_ascfrac : forall γ, AsCFractional2 (mutex_rep γ).
-  #[global] Declare Instance mutex_rep_cfracvalid : forall γ, CFracValid2 (mutex_rep γ).
-  #[global] Declare Instance mutex_rep_timeless : Timeless3 mutex_rep.
-  *)
   #[global] Declare Instance mutex_rep_typed : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv}, Typed3 "std::mutex" R.
 
   (* TODO: index this by the specific mutex! Either via a mutex_gname or by making this a Rep *)
   (* TODO: why is this separate from [mutex_rep] *)
   Parameter mutex_token : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv}, gname -> cQp.t -> mpred.
   #[only(cfractional,cfracvalid,ascfractional,timeless)] derive mutex_token.
-  (*
-  #[global] Declare Instance mutex_token_cfrac : CFractional1 mutex_token.
-  #[global] Declare Instance mutex_token_ascfrac : AsCFractional1 mutex_token.
-  #[global] Declare Instance mutex_token_cfracvalid : CFracValid1 mutex_token.
-  #[global] Declare Instance mutex_token_timeless : Timeless2 mutex_token.
-  *)
   #[global] Declare Instance mutex_rep_learnable : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv},
       Cbn (Learn (learn_eq ==> any ==> learn_eq ==> learn_hints.fin) R).
 
@@ -57,10 +44,6 @@ Section with_cpp.
    *)
   Parameter mutex_locked : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv}, gname -> thread_idT -> mpred.
   #[only(timeless,exclusive)] derive mutex_locked.
-  (*
-  Declare Instance mutex_locked_timeless : Timeless2 mutex_locked.
-  Declare Instance mutex_locked_excl g : Exclusive1 (mutex_locked g).
-  *)
 
   Context `{MOD : inc_hpp.source ⊧ σ}.
   Context {HAS_THREADS : HasStdThreads Σ}.
