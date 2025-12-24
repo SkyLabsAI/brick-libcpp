@@ -92,9 +92,22 @@ Module recursive_mutex.
 
   (** <<locked γ th n>> <<th>> owns the mutex <<γ>> <<n>> times. *)
   Parameter locked : ∀ `{Σ : cpp_logic}, gname -> thread_idT -> nat -> mpred.
-  #[global] Declare Instance
-    locked_WeaklyObjective `{Σ : cpp_logic} γ thr n :
-    WeaklyObjective (PROP := iPropI _) (locked γ thr n).
+
+  Section locked_with_cpp.
+    Context `{Σ : cpp_logic}.
+
+    #[global] Declare Instance locked_timeless : Timeless3 locked.
+
+    #[global] Declare Instance
+      locked_WeaklyObjective γ thr n :
+      WeaklyObjective (PROP := iPropI _) (locked γ thr n).
+
+    Axiom locked_excl_same_thread : forall g th n m,
+      locked g th n ** locked g th m |-- False.
+    Axiom locked_excl_different_thread : forall g th th' n m,
+      locked g th n ** locked g th' m |-- [| n = 0 \/ m = 0 |] ** True.
+
+  End locked_with_cpp.
 
   (* the mask of recursive_mutex *)
   Definition mask := nroot .@@ "std" .@@ "recursive_mutex".
@@ -164,12 +177,6 @@ Module recursive_mutex.
 
   Section with_cpp.
     Context `{Σ : cpp_logic}.
-
-    #[global] Declare Instance locked_timeless : Timeless3 locked.
-    Axiom locked_excl_same_thread : forall g th n m,
-      locked g th n ** locked g th m |-- False.
-    Axiom locked_excl_different_thread : forall g th th' n m,
-      locked g th n ** locked g th' m |-- [| n = 0 \/ m = 0 |] ** True.
 
     Context `{!HasOwn mpredI cmraR, !HasStdThreads Σ}.
 
