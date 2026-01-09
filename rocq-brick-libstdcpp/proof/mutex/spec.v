@@ -524,18 +524,30 @@ Section with_cpp.
     ework with br_erefl.
   Qed.
 
+(* Require Import bluerock.auto.cpp.prelude.proof. *)
   Lemma lock_spec_impl_lock_spec' :
     lock_spec |-- lock_spec'.
   Proof using MOD HOV HOU.
     apply specify_mono; work.
+    Import auto_frac.
+    iExists q, q'.
 
-    iExists _, q', (∃ t : acquire_state TT, [| acquire n t |] ∗
-              ▷ acquireable g th t P)%I.
-    work.
+    iExists (∃ t,
+      [| acquire n t |] ∗
+      (* token (lock_gname g) (cQp.scale (1 / 2) q') ∗
+      a |-> R (lock_gname g) (cQp.scale (1 / 2) q) ∗ *)
+      ▷ acquireable g th t P)%I.
 
     wname [bi_wand] "W".
     wfocus (bi_wand _ _) "W".
     { work $usenamed=true. }
+    work.
+    (* wname [token] "T".
+    wname [R] "R".
+    wname [acquireable] "A".
+    (* About atomic_commit . *)
+    wfocus (atomic_commit _ _ _ _ _ _) "T R A". *)
+    (* iStopProof; work. *)
     iAcIntro; rewrite /commit_acc/=.
     rewrite inv_rmutex.unlock acquireable.unlock.
     iInv rmutex_namespace as (??) "(>Hn & Hcases)" "Hclose".
@@ -553,7 +565,7 @@ Section with_cpp.
       iMod (own_update_2 with "Hn Hcase") as "(Hg & Hcase)";
         first apply (excl_auth_update _ _ (1, th)).
       iMod "Hclose'" as "_".
-      wname [locked _ th _] "Hlocked".
+      wname [recursive_mutex.locked _ th _] "Hlocked".
       iMod ("Hclose" with "[$Hg $Hlocked //]") as "_".
       iMod (bi.later_exist_except_0 with "HP") as "(%args & HP)".
       iModIntro.
@@ -566,7 +578,7 @@ Section with_cpp.
       iMod (own_update_2 with "Hn [$]") as "(Hg & Hcase)";
         first apply (excl_auth_update _ _ (S (S n), th)).
       iMod "Hclose'" as "_".
-      wname [locked _ th _] "Hlocked".
+      wname [recursive_mutex.locked _ th _] "Hlocked".
       iMod ("Hclose" with "[$Hg $Hlocked //]") as "_".
       iModIntro.
       iExists (Held (S n) xs). work $usenamed=true.
