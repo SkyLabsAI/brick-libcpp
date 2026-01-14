@@ -8,18 +8,21 @@ Require Import skylabs.brick.libstdcpp.mutex.demo_cpp.
   Learnable (own γ (◯E a)) (own γ (◯E b)) [a = b].
 Proof. solve_learnable. Qed.
 
-Definition TT : tele := [tele (_ : Z) (_ : Z)].
-
-Polymorphic Definition mk (a b : Z) : TT :=
-  {| tele_arg_head := a; tele_arg_tail := {| tele_arg_head := b; tele_arg_tail := () |} |}.
-Succeed Definition b := recursive_mutex.Held 0 (mk 0 0).
-
+(** Data protected by our recursive mutex *)
 sl.lock
 Definition CR' `{Σ : cpp_logic, σ : genv} (a b : Z) : Rep :=
     _field "C::balance_a" |-> ulongR 1$m a **
     _field "C::balance_b" |-> ulongR 1$m b.
 #[only(lazy_unfold)] derive CR'.
 #[only(timeless)] derive CR'.
+
+(** The telescope to pass CR' to [inv_rmutex]. Isomorphic to [Z * Z]. *)
+Definition TT : tele := [tele (_ : Z) (_ : Z)].
+
+(** Canonical "constructor" for our telescope. *)
+Polymorphic Definition mk (a b : Z) : TT :=
+  {| tele_arg_head := a; tele_arg_tail := {| tele_arg_head := b; tele_arg_tail := () |} |}.
+Succeed Definition b := recursive_mutex.Held 0 (mk 0 0).
 
 sl.lock
 Definition P `{Σ : cpp_logic, σ : genv} (this : ptr) : TT -t> mpred :=
@@ -64,6 +67,12 @@ Section with_cpp.
   #[global] Instance CR_learn : Cbn (Learn (learn_eq ==> any ==> learn_hints.fin) CR).
   Proof. solve_learnable. Qed.
 
+  Lemma tele_app_mk_beta (P : Z -> Z -> mpred) (x y : Z) :
+    tele_app (TT := TT) (λ a b : Z, P a b) (mk x y) = P x y.
+  Proof. reflexivity. Qed.
+
+  (** "Eta-expand" [∃ xy : TT, ... tele_app P xy ... ] to [∃ (x y : Z), ... tele_app P (mk x y) ...].
+  This is useful because [tele_app (λ a b : Z, Q a b) (mk x y)] simplifies to [Q x y] ([tele_app_mk_beta]). *)
   #[program] Definition learn_args_C (P : TT -t> mpred) :=
     \cancelx
     \bound_existential args
@@ -88,7 +97,6 @@ Section with_cpp.
   Lemma update_b_ok : verify[source] "C::update_b(long)".
   Proof.
     verify_spec; go.
-
     rewrite P.unlock /=.
     destruct args as [a [b []]]; simpl; go.
     erewrite recursive_mutex.update_eq; last done; cbn.
@@ -107,7 +115,7 @@ Section with_cpp.
   Proof.
     verify_spec; go.
     erewrite recursive_mutex.update_eq; last done; cbn.
-    destruct args as [a[b []]]; simpl.
+    destruct args as [a [b []]]; simpl.
     work.
   Qed.
 
