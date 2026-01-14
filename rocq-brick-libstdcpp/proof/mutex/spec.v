@@ -350,6 +350,12 @@ Section with_cpp.
     [γ2 = γ1] }.
   Proof. solve_learnable. Qed.
 
+  #[global] Instance learn_inv_rmutex_TT : `{Learnable
+    (inv_rmutex γ (∃ xs : tele_arg TT1, tele_app P1 xs))
+    (inv_rmutex γ (∃ xs : tele_arg TT2, tele_app P2 xs))
+    [TT2 = TT1] }.
+  Proof. solve_learnable. Qed.
+
   #[global] Instance learn_inv_rmutex_P TT : `{Learnable
     (inv_rmutex γ1 (∃ xs : tele_arg TT, tele_app P1 xs))
     (inv_rmutex γ2 (∃ xs : tele_arg TT, tele_app P2 xs))

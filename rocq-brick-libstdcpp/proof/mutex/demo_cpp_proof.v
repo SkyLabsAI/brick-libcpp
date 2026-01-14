@@ -67,12 +67,10 @@ Section with_cpp.
   Lemma update_a_ok : verify[source] "C::update_a(long)".
   Proof.
     verify_spec; go.
-    iExists TT.
-    go.
 
     rewrite P.unlock /=.
     destruct args as [a [b []]]; simpl; go.
-    iExists TT, _, _, (mk (trim 64 (a + x)) b).
+    iExists _, (mk (trim 64 (a + x)) b).
     go.
     erewrite recursive_mutex.update_eq; last done; cbn.
     rewrite P.unlock; work.
@@ -81,12 +79,10 @@ Section with_cpp.
   Lemma update_b_ok : verify[source] "C::update_b(long)".
   Proof.
     verify_spec; go.
-    iExists TT.
-    go.
 
     rewrite P.unlock /=.
     destruct args as [a [b []]]; simpl; go.
-    iExists TT, _, _, (mk a (trim 64 (b + x))).
+    iExists _, (mk a (trim 64 (b + x))).
     go.
     erewrite recursive_mutex.update_eq; last done; cbn.
     rewrite P.unlock; work.
@@ -103,10 +99,6 @@ Section with_cpp.
   Lemma transfer_ok : verify[source] "C::transfer(int)".
   Proof.
     verify_spec; go.
-    iExists TT.
-    go.
-    iExists TT.
-    go.
     erewrite recursive_mutex.update_eq; last done; cbn.
     destruct args as [a[b []]]; simpl.
     work.
