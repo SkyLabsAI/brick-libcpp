@@ -329,12 +329,14 @@ Section with_cpp.
   Next Obligation. rewrite acquireable.unlock; work. Qed.
 
   #[program]
-  Definition own_P_is_acquireable_C {TT} g n P args :=
+  Definition own_P_is_acquireable_C {TT} g n P :=
     \cancelx
     \preserving{th} current_thread th
     \consuming own g.(level_gname) (◯E (S n, th))
+    \bound n' args
+    \proving acquireable (TT := TT) g th (Held n' args) P
     \through tele_app P args
-    \proving acquireable (TT := TT) g th (Held n args) P
+    \through [| n' = n |]
     \end.
   Next Obligation. rewrite acquireable.unlock; work. Qed.
 

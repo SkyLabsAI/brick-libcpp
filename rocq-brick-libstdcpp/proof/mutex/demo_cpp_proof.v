@@ -70,7 +70,7 @@ Section with_cpp.
 
     rewrite P.unlock /=.
     destruct args as [a [b []]]; simpl; go.
-    iExists _, (mk (trim 64 (a + x)) b).
+    iExists (mk (trim 64 (a + x)) b).
     go.
     erewrite recursive_mutex.update_eq; last done; cbn.
     rewrite P.unlock; work.
@@ -82,7 +82,7 @@ Section with_cpp.
 
     rewrite P.unlock /=.
     destruct args as [a [b []]]; simpl; go.
-    iExists _, (mk a (trim 64 (b + x))).
+    iExists (mk a (trim 64 (b + x))).
     go.
     erewrite recursive_mutex.update_eq; last done; cbn.
     rewrite P.unlock; work.
