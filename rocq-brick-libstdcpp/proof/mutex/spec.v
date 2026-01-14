@@ -344,7 +344,7 @@ Section with_cpp.
     [th0 = th] }.
   Proof. solve_learnable. Qed.
 
-  #[global] Instance : `{Learnable
+  #[global] Instance learn_inv_rmutex_γ : `{Learnable
     (inv_rmutex γ1 P1)
     (inv_rmutex γ2 P2)
     [γ2 = γ1] }.
