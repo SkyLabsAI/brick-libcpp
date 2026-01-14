@@ -64,14 +64,23 @@ Section with_cpp.
   #[global] Instance CR_learn : Cbn (Learn (learn_eq ==> any ==> learn_hints.fin) CR).
   Proof. solve_learnable. Qed.
 
+  #[program] Definition learn_args_C (P : TT -t> mpred) :=
+    \cancelx
+    \bound_existential args
+    \proving tele_app P args
+    \exist a b
+    \instantiate args := mk a b
+    \through tele_app P (mk a b)
+    \end.
+  Next Obligation. work. Qed.
+  #[local] Hint Resolve learn_args_C : br_hints.
+
   Lemma update_a_ok : verify[source] "C::update_a(long)".
   Proof.
     verify_spec; go.
 
     rewrite P.unlock /=.
     destruct args as [a [b []]]; simpl; go.
-    iExists (mk (trim 64 (a + x)) b).
-    go.
     erewrite recursive_mutex.update_eq; last done; cbn.
     rewrite P.unlock; work.
   Qed.
@@ -82,8 +91,6 @@ Section with_cpp.
 
     rewrite P.unlock /=.
     destruct args as [a [b []]]; simpl; go.
-    iExists (mk a (trim 64 (b + x))).
-    go.
     erewrite recursive_mutex.update_eq; last done; cbn.
     rewrite P.unlock; work.
   Qed.
