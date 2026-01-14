@@ -40,6 +40,24 @@ Definition CR
 #[only(cfractional,ascfractional,type_ptr)] derive CR.
 #[only(lazy_unfold)] derive CR.
 
+Section recursive_mutex.
+  Import recursive_mutex.
+  Context `{Σ : cpp_logic, σ : genv}.
+  Context {HAS_THREADS : HasStdThreads Σ}.
+  Context {has_rmutex : HasOwn mpredI recursive_mutex.cmraR}.
+
+  Lemma acquireable_update_equiv {TT : tele} γ th f t1 t2 P :
+    acquire t1 t2 ->
+    acquireable γ th (update f t1) P ⊣⊢ acquireable γ th (release (TT := TT) (update f t2)) P.
+  Proof.
+    intros.
+    by erewrite recursive_mutex.update_eq.
+  Qed.
+End recursive_mutex.
+
+#[only(fwd(l2r))] derive acquireable_update_equiv.
+#[only(bwd(l2r))] derive acquireable_update_equiv.
+
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
   Context {HAS_THREADS : HasStdThreads Σ}.
@@ -87,19 +105,16 @@ Section with_cpp.
   Lemma update_a_ok : verify[source] "C::update_a(long)".
   Proof.
     verify_spec; go.
-
-    rewrite P.unlock /=.
-    destruct args as [a [b []]]; simpl; go.
-    erewrite recursive_mutex.update_eq; last done; cbn.
+    rewrite P.unlock.
+    destruct args as [a [b []]]; go.
     rewrite P.unlock; work.
   Qed.
 
   Lemma update_b_ok : verify[source] "C::update_b(long)".
   Proof.
     verify_spec; go.
-    rewrite P.unlock /=.
-    destruct args as [a [b []]]; simpl; go.
-    erewrite recursive_mutex.update_eq; last done; cbn.
+    rewrite P.unlock.
+    destruct args as [a [b []]]; go.
     rewrite P.unlock; work.
   Qed.
 
@@ -114,9 +129,7 @@ Section with_cpp.
   Lemma transfer_ok : verify[source] "C::transfer(int)".
   Proof.
     verify_spec; go.
-    erewrite recursive_mutex.update_eq; last done; cbn.
-    destruct args as [a [b []]]; simpl.
-    work.
+    destruct args as [a [b []]]; work.
   Qed.
 
   Lemma partial_transfer_link :
