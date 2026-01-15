@@ -102,21 +102,38 @@ Section with_cpp.
   Next Obligation. work. Qed.
   #[local] Hint Resolve learn_args_C : br_hints.
 
-  Lemma update_a_ok : verify[source] "C::update_a(long)".
-  Proof.
-    verify_spec; go.
-    rewrite P.unlock.
-    destruct args as [a [b []]]; go.
-    rewrite P.unlock; work.
-  Qed.
+  #[program] Definition P_unfold_split_args_F this args :=
+    \cancelx
+    \consuming tele_app (P this) args
+    \intro a
+    \intro b
+    \deduce tele_app (TT := TT) (fun a b => this |-> CR' a b) (mk a b)
+    \deduce [| args = mk a b |]
+    \end.
+  Next Obligation. iIntros (this [a [b []]]) "/= ?". iExists a, b. rewrite P.unlock. work. Qed.
 
-  Lemma update_b_ok : verify[source] "C::update_b(long)".
-  Proof.
-    verify_spec; go.
-    rewrite P.unlock.
-    destruct args as [a [b []]]; go.
-    rewrite P.unlock; work.
-  Qed.
+  #[program] Definition P_unfold_B :=
+    \cancelx
+    \bound this a b
+    \proving P this a b
+    \through this |-> CR' a b
+    \end.
+  Next Obligation. rewrite P.unlock. work. Qed.
+
+  Section unfold_P.
+    #[local] Hint Resolve P_unfold_split_args_F : br_hints.
+    #[local] Hint Resolve P_unfold_B : br_hints.
+
+    Lemma update_a_ok : verify[source] "C::update_a(long)".
+    Proof.
+      verify_spec; go.
+    Qed.
+
+    Lemma update_b_ok : verify[source] "C::update_b(long)".
+    Proof.
+      verify_spec; go.
+    Qed.
+  End unfold_P.
 
   cpp.spec "C::transfer(int)" as C_transfer_int from demo_cpp.source with
     (\this this
