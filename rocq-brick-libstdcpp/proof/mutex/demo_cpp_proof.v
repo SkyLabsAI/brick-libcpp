@@ -24,6 +24,10 @@ Polymorphic Definition mk (a b : Z) : TT :=
   {| tele_arg_head := a; tele_arg_tail := {| tele_arg_head := b; tele_arg_tail := () |} |}.
 Succeed Definition b := recursive_mutex.Held 0 (mk 0 0).
 
+(** Proof that [mk] is injective. Doesn't appear to be necessary here. *)
+#[global] Instance mk_inj: Inj2 eq eq eq mk.
+Proof. rewrite /Inj2; naive_solver. Qed.
+
 sl.lock
 Definition P `{Σ : cpp_logic, σ : genv} (this : ptr) : TT -t> mpred :=
   fun (a b : Z) => this |-> CR' a b.
