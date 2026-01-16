@@ -329,12 +329,14 @@ Section with_cpp.
   Next Obligation. rewrite acquireable.unlock; work. Qed.
 
   #[program]
-  Definition own_P_is_acquireable_C {TT} g n P args :=
+  Definition own_P_is_acquireable_C {TT} g n P :=
     \cancelx
     \preserving{th} current_thread th
     \consuming own g.(level_gname) (◯E (S n, th))
+    \bound n' args
+    \proving acquireable (TT := TT) g th (Held n' args) P
     \through tele_app P args
-    \proving acquireable (TT := TT) g th (Held n args) P
+    \through [| n' = n |]
     \end.
   Next Obligation. rewrite acquireable.unlock; work. Qed.
 
@@ -348,6 +350,12 @@ Section with_cpp.
     (inv_rmutex γ1 P1)
     (inv_rmutex γ2 P2)
     [γ2 = γ1] }.
+  Proof. solve_learnable. Qed.
+
+  #[global] Instance learn_inv_rmutex_TT : `{Learnable
+    (inv_rmutex γ (∃ xs : tele_arg TT1, tele_app P1 xs))
+    (inv_rmutex γ (∃ xs : tele_arg TT2, tele_app P2 xs))
+    [TT2 = TT1] }.
   Proof. solve_learnable. Qed.
 
   #[global] Instance learn_inv_rmutex_P TT : `{Learnable
