@@ -39,7 +39,7 @@ Definition CR
   structR "C" q **
   _field "C::mut" |-> recursive_mutex.R γ.(recursive_mutex.lock_gname) q **
   as_Rep (fun this : ptr =>
-    recursive_mutex.inv_rmutex γ (∃ a_b : tele_arg _, tele_app (P this) a_b)).
+    recursive_mutex.inv_rmutex γ (∃ a b, this |-> CR' a b)).
 
 #[only(cfractional,ascfractional,type_ptr)] derive CR.
 #[only(lazy_unfold)] derive CR.
@@ -75,16 +75,16 @@ Section with_cpp.
      \arg{x} "x" (Vint x)
      \prepost{γ q} this |-> CR γ q
      \prepost{q'} recursive_mutex.token γ.(recursive_mutex.lock_gname) q'
-     \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (P this)
-     \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (trim 64 (a+x)) b) args) (P this)).
+     \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (fun a b => this |-> CR' a b)
+     \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (trim 64 (a+x)) b) args) (fun a b => this |-> CR' a b)).
 
   cpp.spec "C::update_b(long)" as C_update_b from demo_cpp.source with
     (\this this
      \arg{x} "x" (Vint x)
      \prepost{γ q} this |-> CR γ q
      \prepost{q'} recursive_mutex.token γ.(recursive_mutex.lock_gname) q'
-     \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (P this)
-     \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk a (trim 64 (b + x))) args) (P this)).
+     \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (fun a b => this |-> CR' a b)
+     \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk a (trim 64 (b + x))) args) (fun a b => this |-> CR' a b)).
 
   #[global] Instance CR_learn : Cbn (Learn (learn_eq ==> any ==> learn_hints.fin) CR).
   Proof. solve_learnable. Qed.
