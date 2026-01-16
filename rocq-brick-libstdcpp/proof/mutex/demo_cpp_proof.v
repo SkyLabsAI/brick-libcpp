@@ -102,7 +102,7 @@ Section with_cpp.
     \through [| P1 ⊣⊢@{mpredI} P2 |]
     \end.
   Next Obligation. work. by setoid_subst. Qed.
-  #[local] Hint Resolve inv_rmutex_iff_C : br_hints.
+  (* #[local] Hint Resolve inv_rmutex_iff_C : br_hints. *)
 
   #[program]
   Definition inv_rmutex_wand_C γ :=
@@ -148,6 +148,17 @@ Section with_cpp.
   Lemma update_a_ok : verify[source] "C::update_a(long)".
   Proof.
     verify_spec; go.
+
+  #[program]
+  Definition inv_rmutex_iff_C γ :=
+    \cancelx
+    \preserving{P1} inv_rmutex γ P1
+    \proving{P2} inv_rmutex γ P2
+    \through [| P1 ⊣⊢@{mpredI} P2 |]
+    \end.
+  Next Obligation. work. by setoid_subst. Qed.
+  #[local] Hint Resolve inv_rmutex_iff_C : br_hints.
+
     iExists TT.
     go.
     rewrite P.unlock.
