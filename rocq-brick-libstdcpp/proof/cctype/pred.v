@@ -4,4 +4,4 @@
  * See the LICENSE-BedRock file in the repository root for details.
  *)
 
-Require Export skylabs.cpp.stdlib.cctype.model.
+Require Export skylabs.brick.libstdcpp.cctype.model.

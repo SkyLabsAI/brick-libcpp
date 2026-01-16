@@ -5,10 +5,10 @@
  *)
 Require Import skylabs.auto.cpp.specs.
 Require Import skylabs.prelude.bytestring_core.
-Require Import skylabs.cpp.stdlib.cctype.spec.
+Require Import skylabs.brick.libstdcpp.cctype.spec.
 
-Require Export skylabs.cpp.stdlib.cstdlib.atoi_model.
-Require Import skylabs.cpp.stdlib.cstdlib.inc_cstdlib_cpp.
+Require Export skylabs.brick.libstdcpp.cstdlib.atoi_model.
+Require Import skylabs.brick.libstdcpp.cstdlib.inc_cstdlib_cpp.
 
 #[local] Set Primitive Projections.
 

@@ -7,7 +7,7 @@ Require Import Stdlib.Strings.Byte.
 Require Import skylabs.prelude.numbers.
 
 Require Import skylabs.prelude.bytestring.
-Require Import skylabs.cpp.stdlib.cctype.spec.
+Require Import skylabs.brick.libstdcpp.cctype.spec.
 
 #[local] Set Primitive Projections.
 #[local] Open Scope Z_scope.

@@ -6,8 +6,8 @@
 Require Import skylabs.auto.cpp.specs.
 Require Stdlib.Strings.Byte.
 
-Require Export skylabs.cpp.stdlib.cctype.model.
-Require Import skylabs.cpp.stdlib.cctype.inc_cctype_cpp.
+Require Export skylabs.brick.libstdcpp.cctype.model.
+Require Import skylabs.brick.libstdcpp.cctype.inc_cctype_cpp.
 
 #[local] Set Primitive Projections.
 #[local] Open Scope Z_scope.

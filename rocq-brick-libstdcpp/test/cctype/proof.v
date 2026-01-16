@@ -4,9 +4,9 @@
  * See the LICENSE-BedRock file in the repository root for details.
  *)
 Require Import skylabs.auto.cpp.proof.
-Require Import skylabs.cpp.stdlib.cassert.spec.
-Require Import skylabs.cpp.stdlib.cctype.spec.
-Require Import skylabs.cpp.stdlib.test.cctype.test_cpp.
+Require Import skylabs.brick.libstdcpp.cassert.spec.
+Require Import skylabs.brick.libstdcpp.cctype.spec.
+Require Import skylabs.brick.libstdcpp.test.cctype.test_cpp.
 
 Section with_cpp.
   Context `{Σ : cpp_logic} `{MOD : module ⊧ σ}.

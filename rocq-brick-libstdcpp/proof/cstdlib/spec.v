@@ -4,4 +4,4 @@
  * See the LICENSE-BedRock file in the repository root for details.
  *)
 Require Import skylabs.auto.cpp.specs.
-Require Export skylabs.cpp.stdlib.cstdlib.atoi.
+Require Export skylabs.brick.libstdcpp.cstdlib.atoi.

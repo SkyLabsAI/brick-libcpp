@@ -5,7 +5,7 @@
  *)
 Require Import skylabs.auto.cpp.specs.
 
-Require Import skylabs.cpp.stdlib.cassert.inc_cassert_cpp.
+Require Import skylabs.brick.libstdcpp.cassert.inc_cassert_cpp.
 
 #[local] Set Primitive Projections.
 
