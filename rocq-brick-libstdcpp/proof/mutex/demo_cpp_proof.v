@@ -39,7 +39,7 @@ Definition CR
   structR "C" q **
   _field "C::mut" |-> recursive_mutex.R γ.(recursive_mutex.lock_gname) q **
   as_Rep (fun this : ptr =>
-    recursive_mutex.inv_rmutex γ (∃ a b, this |-> CR' a b)).
+    recursive_mutex.inv_rmutex γ (∃ a_b : tele_arg _, tele_app (P this) a_b)).
 
 #[only(cfractional,ascfractional,type_ptr)] derive CR.
 #[only(lazy_unfold)] derive CR.
@@ -75,83 +75,142 @@ Section with_cpp.
      \arg{x} "x" (Vint x)
      \prepost{γ q} this |-> CR γ q
      \prepost{q'} recursive_mutex.token γ.(recursive_mutex.lock_gname) q'
-     \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (fun a b => this |-> CR' a b)
-     \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (trim 64 (a+x)) b) args) (fun a b => this |-> CR' a b)).
+     \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (P this)
+     \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (trim 64 (a+x)) b) args) (P this)).
 
   cpp.spec "C::update_b(long)" as C_update_b from demo_cpp.source with
     (\this this
      \arg{x} "x" (Vint x)
      \prepost{γ q} this |-> CR γ q
      \prepost{q'} recursive_mutex.token γ.(recursive_mutex.lock_gname) q'
-     \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (fun a b => this |-> CR' a b)
-     \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk a (trim 64 (b + x))) args) (fun a b => this |-> CR' a b)).
+     \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (P this)
+     \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk a (trim 64 (b + x))) args) (P this)).
 
   #[global] Instance CR_learn : Cbn (Learn (learn_eq ==> any ==> learn_hints.fin) CR).
   Proof. solve_learnable. Qed.
 
-  Lemma tele_app_mk_beta (P : Z -> Z -> mpred) (x y : Z) :
-    tele_app (TT := TT) (λ a b : Z, P a b) (mk x y) = P x y.
-  Proof. reflexivity. Qed.
+  Import recursive_mutex.
 
-  (** "Eta-expand" [∃ xy : TT, ... tele_app P xy ... ] to [∃ (x y : Z), ... tele_app P (mk x y) ...].
-  This is useful because [tele_app (λ a b : Z, Q a b) (mk x y)] simplifies to [Q x y] ([tele_app_mk_beta]). *)
-  #[program] Definition learn_args_C (P : TT -t> mpred) :=
+  #[global] Instance: `{Proper (equiv ==> equiv) (inv_rmutex γ)}.
+  Proof. rewrite inv_rmutex.unlock. solve_proper. Qed.
+
+  #[program]
+  Definition inv_rmutex_iff_C γ :=
     \cancelx
-    \bound_existential args
-    \proving tele_app P args
-    \exist a b
-    \instantiate args := mk a b
-    \through tele_app P (mk a b)
+    \preserving{P1} inv_rmutex γ P1
+    \proving{P2} inv_rmutex γ P2
+    \through [| P1 ⊣⊢@{mpredI} P2 |]
     \end.
-  Next Obligation. work. Qed.
-  #[local] Hint Resolve learn_args_C : br_hints.
+  Next Obligation. work. by setoid_subst. Qed.
+  #[local] Hint Resolve inv_rmutex_iff_C : br_hints.
 
-  #[program] Definition P_unfold_split_args_F this args :=
+  #[program]
+  Definition inv_rmutex_wand_C γ :=
     \cancelx
-    \consuming tele_app (P this) args
-    \intro a
-    \intro b
-    \deduce tele_app (TT := TT) (fun a b => this |-> CR' a b) (mk a b)
-    \deduce [| args = mk a b |]
+    \preserving{P1} inv_rmutex γ P1
+    \proving{P2} inv_rmutex γ P2
+    \through □ (P1 ∗-∗ P2)
     \end.
-  Next Obligation. iIntros (this [a [b []]]) "/= ?". iExists a, b. rewrite P.unlock. work. Qed.
+  Next Obligation.
+    rewrite inv_rmutex.unlock.
+    iIntros "%% A %P2 #[? ?]".
+    iApply (inv_iff with "A").
+    iIntros "!> !>"; iSplit; ework with br_erefl; case_match; work.
+  Qed.
+  (* #[local] Hint Resolve inv_rmutex_wand_C : br_hints. *)
 
-  #[program] Definition P_unfold_B :=
-    \cancelx
-    \bound this a b
-    \proving P this a b
-    \through this |-> CR' a b
-    \end.
-  Next Obligation. rewrite P.unlock. work. Qed.
+  Lemma CR'_tele_equiv (this : ptr) :
+    (∃ a b : Z, this |-> CR' a b) ⊣⊢
+    ∃ xs : TT, tele_app (TT := TT) (λ a b : Z, this |-> CR' a b) xs.
+  Proof.
+    iSplit.
+    { iDestruct 1 as (a b) "?"; iExists (mk a b); work. }
+    iDestruct 1 as ([a [b []]]) "?"; iExists a, b; work.
+  Qed.
+  #[local] Hint Resolve CR'_tele_equiv : br_hints.
 
-  Section unfold_P.
-    #[local] Hint Resolve P_unfold_split_args_F : br_hints.
-    #[local] Hint Resolve P_unfold_B : br_hints.
+  Lemma CR'_self_eq (this : ptr) :
+    (∃ a b : Z, this |-> CR' a b) ⊣⊢
+    (∃ a b : Z, this |-> CR' a b).
+  Proof. done. Qed.
+  #[local] Hint Resolve CR'_self_eq : br_hints.
 
-    Lemma update_a_ok : verify[source] "C::update_a(long)".
-    Proof.
-      verify_spec; go.
-    Qed.
+  Lemma refl_equiv (P : mpred) : P ⊣⊢ P.
+  Proof. done. Qed.
+  #[local] Hint Resolve refl_equiv : br_hints.
 
-    Lemma update_b_ok : verify[source] "C::update_b(long)".
-    Proof.
-      verify_spec; go.
-    Qed.
-  End unfold_P.
+  Lemma CR'_P_tele_equiv (this : ptr) :
+    (∃ a_b : TT, tele_app (TT := TT) (λ a b, this |-> CR' a b) a_b) ⊣⊢
+    (∃ a_b : TT, tele_app (P this) a_b).
+  Proof. by rewrite P.unlock. Qed.
+  #[local] Hint Resolve CR'_P_tele_equiv : br_hints.
+
+  Lemma update_a_ok : verify[source] "C::update_a(long)".
+  Proof.
+    verify_spec; go.
+    iExists TT.
+    go.
+    rewrite P.unlock.
+    destruct args as [a [b []]]; simpl; go.
+    iExists TT, (P this), _, (mk (trim 64 (a + x)) b).
+    go.
+    rewrite P.unlock.
+    go.
+    rewrite P.unlock.
+    go.
+    all: fail.
+  Fail Qed.
+  Admitted.
+
+  Lemma update_b_ok : verify[source] "C::update_b(long)".
+  Proof.
+    verify_spec; go.
+    iExists TT.
+    go.
+
+    rewrite P.unlock.
+    destruct args as [a [b []]]; simpl; go.
+    iExists TT, _, _, (mk a (trim 64 (b + x))).
+    go.
+    rewrite P.unlock.
+    go.
+    rewrite P.unlock.
+    go.
+    all: fail.
+  Fail Qed.
+  Admitted.
 
   cpp.spec "C::transfer(int)" as C_transfer_int from demo_cpp.source with
     (\this this
       \arg{x} "x" (Vint x)
       \prepost{γ q} this |-> CR γ q
       \prepost{q'} recursive_mutex.token γ.(recursive_mutex.lock_gname) q'
-      \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (P this)
-      \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (trim 64 (a+x)) (trim 64 (b-x))) args) (P this)).
+      \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (fun a b => this |-> CR' a b)
+      \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (trim 64 (a+x)) (trim 64 (b-x))) args) (fun a b => this |-> CR' a b)).
+
+  Lemma P_CR'_tele_equiv (this : ptr) :
+    (∃ a_b : TT, tele_app (P this) a_b) ⊣⊢
+    (∃ a_b : TT, tele_app (TT := TT) (λ a b, this |-> CR' a b) a_b).
+  Proof. by rewrite P.unlock. Qed.
+  #[local] Hint Resolve P_CR'_tele_equiv : br_hints.
 
   Lemma transfer_ok : verify[source] "C::transfer(int)".
   Proof.
     verify_spec; go.
-    destruct args as [a [b []]]; work.
-  Qed.
+    iExists TT.
+    go.
+    iExists (Held _ args).
+    destruct args as [a [b []]]; simpl.
+    go.
+    rewrite P.unlock.
+    go.
+    rewrite P.unlock.
+    go.
+    iExists TT.
+    go.
+    all: fail.
+  Fail Qed.
+  Admitted.
 
   Lemma partial_transfer_link :
     denoteModule source ∗
