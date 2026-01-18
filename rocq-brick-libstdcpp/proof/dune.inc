@@ -80,3 +80,21 @@
   	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
+(subdir shared_ptr
+ (rule
+  (targets inc_shared_ptr_cpp.v.stderr inc_shared_ptr_cpp.v)
+  (alias test_ast)
+  (deps (:input inc_shared_ptr.cpp) (glob_files_rec ../*.hpp) (universe))
+  (action
+  	 (with-stderr-to inc_shared_ptr_cpp.v.stderr (run cpp2v -v %{input} -o inc_shared_ptr_cpp.v  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps inc_shared_ptr.cpp))
+)
+(subdir shared_ptr
+ (rule
+  (targets test_cpp.v.stderr test_cpp.v)
+  (alias test_ast)
+  (deps (:input test.cpp) (glob_files_rec ../*.hpp) (universe))
+  (action
+  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps test.cpp))
+)

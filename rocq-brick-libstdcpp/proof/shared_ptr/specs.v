@@ -1,0 +1,296 @@
+(** Specs of shared_ptr.
+We do not cover interaction with weak_ptr.
+We cover the following usage:
+- after dynamically allocating a new object (using new or new[]), it is (typicall immediately) passed to the init constructor of shared_ptr (spec in [init_ctor] below). At this time, the caller's proof needs to come up with [Rpiece: nat->Rep], defining how the ownership of this newly allocated object will be split between various shared_ptr objects that refer to it. They pass in all pieces and get back the 0th piece: [Rpiece 0] and tokens [pieceRight ctrlid 1 ... pieceRight ctrlid (maxContention-1)] which the clients can use to later obtain ownership of those [Rpiece]s by calling the copy constructor. The last argument of [pieceRight] is the piece id. The first argument, [ctrlid], identifies a single protection unit (payload object pointer) that is reference counted. "ctrl" comes from the implementation using a dynamically allocated "control block" which has an atomic counter to track how many times the copy constructor has been called minus the number of such objects that have already been destructed.
+[maxContention], chosen by the implementation, would typically be 2^64, to prevent overflow of the reference counter.
+
+To ensure the destructor proof goes through, the init ctor requires [ [∗ list] ctid ∈ allPieceIds, Rpiece ctid) |-- anyR ty 1]. This becomes a part of [SharedPtrR].
+If anyR does not make sense for Tnamed, then it should be replaced with [wp (default_ctor of Tnamed) emp].
+
+The pieces may not always be fractional ownerships of an object (e.g. int). For example, when the shared_ptr protects an array, it is common to have every piece own an index of the array, so that different shared_ptr objects can be used to write to different indices concurrently, e.g. here: https://github.com/category-labs/monad/blob/90f8b796061aeaf78a2943c45eae5303f6ff7900/category/execution/ethereum/execute_block.cpp#L233
+
+- To gain confidence in the provability of these specs, we sketch a definition of [SharedPtrR]. The [inv] definition is the most tricky part of it: it stores all the [Rpiece] and [pieceRight] ownerships that need to be dished out later or to be used for deletion when the reference count goes to 0.
+Because BRiCk only supports SC atomics, the proof only works as if the stdlib implementation used SC atomics or had sufficient barriers (the actual defn of SharedPtrR will be different in that case due to limitations on invariants in weak memory reasoning).
+
+- When calling the copy constructor, the caller's proof has to come up with their pieceid (< maxContention) and give up
+[pieceRight ctrlid pieceid], which they only get back when the newly constructed object is deleted.
+They get [Rpiece pieceid] in return: their piece of the ownership of the payload object.
+The control block id (representing the location of the atomic reference counter) remains the same.
+The proof will atomically increment the counter to take out the Rpiece from the invariant.
+
+- There is another Rep predicate: [NullSharedPtrR]: for the case when the shared ptr represents a dummy null ptr, e.g. after a move constructor transfers away the ownerships to a new object.
+
+- These specs in this file allow you to change the ownership split protocol (between the various shared_ptr objects protecting the same payload object ptr) later on (see lemma [redistributePayloadOwnership]), as long as the caller can cough up all pieces and objects associated with the payload (see [allPiecesAndObjs]).
+A common pattern where this can be useful is when the thread that calls new needs to initialize the object after wrapping it in a shared_ptr but before sharing it with other concurrent threads. So until that event, it will have the exclusive ownership of the entire object (Rpiece n = emp for n>0, Rpiece 0= objR 1) and later, we redistribute with (Rpiece n => objR (1/N)).
+
+*)
+
+Require Import skylabs.auto.cpp.proof.
+Require Import skylabs.cpp.stdlib.allocator.spec.
+Require Import skylabs.cpp.stdlib.cassert.spec.
+Require Import skylabs.cpp.stdlib.vector.spec.
+Require Import skylabs.cpp.stdlib.atomic.spec.
+Require Import skylabs.cpp.stdlib.algorithms.spec.
+Require Import skylabs.brick.libstdcpp.new.pred.
+Require Import skylabs.brick.libstdcpp.new.hints.
+Require Import skylabs.cpp.spec.concepts.
+Require Import skylabs.cpp.spec.concepts.experimental.
+Require Import skylabs.brick.libstdcpp.shared_ptr.inc_shared_ptr_cpp.
+Require Import iris.algebra.excl.
+
+
+Record CtrlBlockId : Set :=
+  {
+    pieceRightLocs: list gname; (* each stores a unit. N -> gname may be tricky for constructor proof *)
+    dataLoc: ptr;
+  }.
+
+#[local] Open Scope N_scope.
+Definition maxContention : positive. Proof. Admitted.
+
+Definition ctrOffset: offset. Proof. Admitted.
+(** offset of the field storing ownedPtr in any shared_ptr object *)
+Definition ownedPtrOffset: offset. Proof. Admitted. 
+(** offset of the field storing ctrlBlock pointer in any shared_ptr object *)
+Definition ctrlBlockPtrOffset: offset. Proof. Admitted. 
+
+Lemma maxContentionLb : 2^32 <= Npos maxContention. Proof. Admitted.
+Definition maxContentionQp := pos_to_Qp maxContention.
+Definition allPieceIds : list nat := (seq 0 (Pos.to_nat maxContention)).
+Definition allButFirstPieceId := (seq 1 (Pos.to_nat maxContention -1 )).
+
+Definition countLN {A : Type} (f : A -> bool) (l : list A) : N :=
+  lengthN (filter f l).
+
+Section specs.
+  Context `{Σ : cpp_logic, MOD:inc_shared_ptr_cpp.module ⊧ σ}.
+  #[local] Existing Instance br.ghost.excl_inG.
+
+
+  Section tty. Context (ty:type).
+
+  Import linearity.
+
+
+  (* just an exclusive token for each pieceid. can be defined with a simpler CMRA as fractionality is not needed. fgptsoQ has good automation support  *)
+  Definition pieceRight ctrlid pieceid : mpred :=
+    match nth_error (pieceRightLocs ctrlid) pieceid with
+    | Some g => own (A := exclR unitO) g (Excl ())
+    | None => emp (* bad argument, pieceid > maxContention *)
+    end.
+      
+
+  Definition sptrInv (id: CtrlBlockId) (Rpiece : nat -> Rep) (ownedPtr:ptr) (pieceOut : nat ->bool) : mpred :=
+    let ctrVal := countLN pieceOut allPieceIds in
+    (dataLoc id),, ctrOffset |-> atomic.R "long" 1 (Z.of_N ctrVal)
+         ** (if (bool_decide (ctrVal = 0))
+              then emp
+              else ownedPtr |-> alloc.tokenR ty 1%Qp
+                    ** ([∗ list] pieceid ∈ allPieceIds,
+                      if pieceOut pieceid then pieceRight id pieceid else ownedPtr |-> Rpiece pieceid)).
+  
+  (** Currently, we assume the control block is just an atomic counter.
+      In reality, it is probably a struct. so move the atomicR to some defn ctrlBlockR *)
+  Definition SharedPtrR (id: CtrlBlockId) (Rpiece : nat -> Rep) (ownedPtr:ptr)  : Rep :=
+    structR ("std::shared_ptr".<<Atype ty>>) 1
+    ** [| ([∗ list] pieceid ∈ allPieceIds, Rpiece pieceid) |-- anyR ty 1 |]
+    ** ownedPtrOffset |-> primR (Tptr ty) 1 (Vptr ownedPtr)
+    ** ctrlBlockPtrOffset |-> primR (Tptr (Tnamed ("std::atomic".<<Atype "long">>))) 1 (Vptr (dataLoc id))
+    ** [| ownedPtr<>nullptr |] (* use NullSharedPtr otherwise *)
+    ** [| lengthN (pieceRightLocs id) = Npos maxContention |]
+    ** pureR (inv nroot (Exists (pieceOut : nat ->bool), sptrInv id Rpiece ownedPtr pieceOut)).
+
+  Definition NullSharedPtrR : Rep :=
+    structR ("std::shared_ptr".<<Atype ty>>) 1
+    ** ownedPtrOffset |-> primR (Tptr ty) 1 (Vptr nullptr)
+    ** ctrlBlockPtrOffset |->  primR (Tptr (Tnamed ("std::atomic".<<Atype "long">>))) 1 (Vptr nullptr).
+
+
+  Definition init_ctor :=
+    specify {| info_name := (Nscoped ("std::shared_ptr".<<Atype ty>>) (Nctor [Tptr ty])).<<Atype ty, Atype "void">>
+            ; info_type := tCtor ("std::shared_ptr".<<Atype ty>>) [Tptr ty] |} (fun (this:ptr) =>
+    \arg{p:ptr} "ownedPtr" (Vptr p)
+    \pre match ty with
+         | Tarray _ _ => False
+         | Tincomplete_array _ => False
+         | _ => emp
+        end
+        
+    \pre{Rpiece: nat -> Rep} [∗ list] pieceid ∈ allButFirstPieceId, p |-> Rpiece pieceid
+    (* ^ morally, the caller gives up all the pieces and gets back the 0th piece. The remaining pieces get stored in the invariant.
+       Should this object be destructed immediately, the destructor will need all the pieces to call delete. 
+       We frame away the 0th piece in this spec. A derived spec can be proven where that framing away is not done *)
+    \pre p |-> alloc.tokenR ty 1%Qp
+    (* ^ gets stored in the invariant. only gets taken out when the count becomes 0, to call delete. at that time the ownership of all other pieces are also taken out from the invariant *)
+    \pre [|([∗ list] pieceid ∈ allPieceIds, Rpiece pieceid)
+             |-- anyR ty 1  |]
+    (*           ^^ if anyR is not meaningful for non-scalar types,
+                 replace this with wp of default destructor *)
+    \post Exists (ctrlBlockId: CtrlBlockId),
+       this |-> SharedPtrR ctrlBlockId Rpiece p
+         ** ([∗ list] pieceid ∈ allButFirstPieceId, pieceRight ctrlBlockId pieceid)
+         (*  ^ the right to create [maxContention-1] more shared_ptr objects on this payload and claim the correponsing Rpiece ownerships at copy construction *)
+      ).
+
+  Definition SpecFor_init_ctor := RegisterSpec init_ctor.
+  #[global] Existing Instance SpecFor_init_ctor.
+
+  Notation spty := ("std::shared_ptr".<<Atype ty>>).
+  Definition move_ctor :=
+    specify.template.ctor spty [Trv_ref ((Tnamed spty))] $
+    \this this
+    \arg{other:ptr} "other" (Vptr other)
+    \pre{ctrlBlockId ownedPtr Rpiece} other |-> SharedPtrR ctrlBlockId Rpiece ownedPtr
+    \post other  |-> NullSharedPtrR
+          ** this |-> SharedPtrR ctrlBlockId Rpiece ownedPtr.
+
+  Definition SpecFor_move_ctor := RegisterSpec move_ctor.
+  #[global] Existing Instance SpecFor_move_ctor.
+
+  Definition dtor_spec :=
+    specify.template.dtor spty $
+    \this this
+    \pre{(null:bool) (p:ptr) (sid: if null then unit else prod CtrlBlockId nat) Rpiece}
+      this |-> (match null as b return (if b then unit else prod CtrlBlockId nat) -> Rep with
+                | false => fun sid=>
+                             SharedPtrR sid.1 Rpiece p
+                             ** Rpiece sid.2
+                | true => fun sid=> NullSharedPtrR
+                end) sid
+
+    \post (match null as b return (if b then unit else prod CtrlBlockId nat) -> mpred with
+                | false => fun sid=> pieceRight sid.1 sid.2
+                | true => fun sid=> emp
+                end) sid.
+  
+  Definition SpecFor_dtor := RegisterSpec dtor_spec.
+  #[global] Existing Instance SpecFor_dtor.
+
+
+  Definition copy_ctor :=
+    specify.template.ctor spty [Tref (Tconst (Tnamed spty))] $
+    \this this
+    \arg{other:ptr} "other" (Vptr other)
+    \pre{id pieceid p Rpiece} other |-> SharedPtrR id Rpiece p
+    \pre pieceRight id pieceid (* this will be returned by destructor *)
+    \pre [| N.of_nat pieceid < Npos maxContention|]%N
+    \post
+         p|->Rpiece pieceid ** this  |-> SharedPtrR id Rpiece p
+          ** other |-> SharedPtrR id Rpiece p.
+                          
+  Definition SpecFor_copy_ctor := RegisterSpec copy_ctor.
+  #[global] Existing Instance SpecFor_copy_ctor.
+
+  (** Copy-ctor from null: produces another null shared_ptr.
+      No token is required. TODO: unify this spec with the spec above, using dependent types, as done in the destructor spec *)
+  Definition copy_ctor_null :=
+    specify.template.ctor spty [Tref (Tconst (Tnamed spty))] $
+    \this this
+    \arg{other:ptr} "other" (Vptr other)
+    \pre other |-> NullSharedPtrR
+    \post this  |-> NullSharedPtrR
+          ** other |-> NullSharedPtrR.
+               
+
+  Definition SP_acc (mid: Z) := ("std::__shared_ptr_access" .<< 
+                           Atype ty,
+                           Avalue (Eint 2 "enum __gnu_cxx::_Lock_policy"),
+                           Avalue (Eint mid "bool"),
+                           Avalue (Eint 0 "bool") >>)%cpp_name.
+
+  Definition SP_impl := ("std::__shared_ptr" .<< 
+                           Atype ty,
+                           Avalue (Eint 2 "enum __gnu_cxx::_Lock_policy") >>)%cpp_name.
+
+  (** Reconstruct the most-derived object pointer from the base-subobject "this". *)
+  Definition upcast_offset (mid: Z) : offset :=
+    (o_derived σ (SP_acc mid) SP_impl ,, o_derived σ SP_impl spty).
+
+  Definition deref :=
+    specify.template.op (SP_acc 0) OOStar function_qualifiers.Nc (Tref ty) [] $
+       \this this
+       \prepost{id p Rpiece} this |-> (upcast_offset 0) |-> SharedPtrR id Rpiece p
+       \post[Vref p] emp.
+
+  Definition SpecFor_deref := RegisterSpec deref.
+  #[global] Existing Instance SpecFor_deref.
+  #[global] Hint Opaque deref : sl_opacity.
+
+  Definition arrow :=
+    specify.template.op (SP_acc 0) OOArrow function_qualifiers.Nc (Tptr ty) [] $
+       \this this
+       \prepost{id p Rpiece} this |-> (upcast_offset 0) |-> SharedPtrR id Rpiece p
+       \post[Vptr p] emp.
+
+  Definition SpecFor_arrow := RegisterSpec arrow.
+  #[global] Existing Instance SpecFor_arrow.
+  #[global] Hint Opaque arrow : sl_opacity.
+  
+  #[global] Instance sharedR_typeptr_observe id (p:ptr) op Rpiece
+    : Observe (type_ptr (Tnamed ("std::shared_ptr".<<Atype ty>>)) p) (p|->SharedPtrR id Rpiece op):= _.
+  
+  Definition observeSharedTypeF q t Rpiece op:= @observe_fwd _ _ _ (sharedR_typeptr_observe q t Rpiece op).
+
+  Definition allPiecesAndObjs Rpiece id (ownedPtr: ptr) (pieceOut: nat->bool) : Rep :=
+   ([∗ list] pieceid ∈ allPieceIds,
+     if pieceOut pieceid
+     then pureR (ownedPtr |-> Rpiece pieceid)
+          ** pureR (Exists (base:ptr), base |->SharedPtrR id Rpiece ownedPtr)
+     else pureR (pieceRight id pieceid)).
+
+  Lemma redistributePayloadOwnership {Rpieceold Rpiecenew: nat -> Rep} (pieceOut : nat -> bool) id ownedPtr:
+    allPiecesAndObjs Rpieceold id ownedPtr pieceOut
+      |-- |={⊤}=> allPiecesAndObjs Rpiecenew id ownedPtr pieceOut.
+  Proof. Admitted.
+
+  End tty.
+
+  Definition init_ctor_arr ety :=
+    specify {| info_name := (Nscoped ("std::shared_ptr".<<Atype (Tincomplete_array ety)>>) (Nctor [Tptr ety])).<<Atype ety, Atype "void">>
+            ; info_type := tCtor ("std::shared_ptr".<<Atype (Tincomplete_array ety)>>) [Tptr ety] |} (fun (this:ptr) =>
+    \arg{p:ptr} "ownedPtr" (Vptr p)
+    \pre{Rpiece: nat -> Rep} [∗ list] pieceid ∈ allButFirstPieceId, p |-> Rpiece pieceid
+    (* ^ morally, the caller gives up all the pieces and gets back the 0th piece. The remaining pieces get stored in the invariant.
+       Should this object be destructed immediately, the destructor will need all the pieces to call delete. 
+       We frame away the 0th piece in this spec. A derived spec can be proven where that framing away is not done *)
+    \let{len} ty := Tarray ety len
+    \pre p |-> alloc.tokenR ty 1%Qp
+    (* ^ gets stored in the invariant. only gets taken out when the count becomes 0, to call delete. at that time the ownership of all other pieces are also taken out from the invariant *)
+    \pre [|([∗ list] pieceid ∈ allPieceIds, Rpiece pieceid)
+             |-- anyR ty 1  |]
+    (*           ^^ if anyR is not meaningful for non-scalar types,
+                 replace this with wp of default destructor *)
+    \post Exists (ctrlBlockId: CtrlBlockId),
+       this |-> SharedPtrR (Tincomplete_array ety) ctrlBlockId Rpiece p
+         ** ([∗ list] pieceid ∈ allButFirstPieceId, pieceRight ctrlBlockId pieceid)
+         (*  ^ the right to create [maxContention-1] more shared_ptr objects on this payload and claim the correponsing Rpiece ownerships at copy construction *)
+      ).
+  
+  Definition SpecFor_init_ctor_arr := RegisterSpec init_ctor_arr.
+  #[global] Existing Instance SpecFor_init_ctor_arr.
+
+  Definition subscript ety:=
+    specify.template.op (SP_acc (Tincomplete_array ety) 1) OOSubscript function_qualifiers.Nc (Tref ety) ["long"%cpp_type] $
+      \this this
+      \arg{index} "index" (Vint index)
+      \prepost{id p Rpiece} this |-> (upcast_offset (Tincomplete_array ety) 1) |-> SharedPtrR (Tincomplete_array ety ) id Rpiece p
+      \post[Vref (p.[ety ! index])] emp.
+
+  Definition SpecFor_subscript := RegisterSpec subscript.
+  #[global] Existing Instance SpecFor_subscript.
+
+  #[global] Hint Opaque
+    init_ctor move_ctor dtor_spec copy_ctor copy_ctor_null
+    deref arrow init_ctor_arr subscript
+    : sl_opacity.
+
+End specs.
+#[global]
+  Hint Resolve observeSharedTypeF : sl_opacity.
+Ltac sharedPtrRpieceFromPost :=
+  match goal with
+    H: context[@PostCondition ?a ?b ?c ?d] |- _
+    => match c with
+       | context[SharedPtrR _ _ ?rp _ ] => constr:(rp)
+       end                            
+  end.
