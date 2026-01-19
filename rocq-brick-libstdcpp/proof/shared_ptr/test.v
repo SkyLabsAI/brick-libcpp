@@ -125,10 +125,11 @@ Set Default Goal Selector "!".
     go.
     iExists true.
     go.
-    repeat iExists _.
+    iExists nullptr.
+    iExists tt.
+    iExists (fun _ => emp).
     go.
-    
-  Admitted.
+  Qed.
 
   (* dummy spec: needs fix *)
   cpp.spec "testsharedarr()" as testsharedarrspec with (
@@ -141,10 +142,10 @@ Set Default Goal Selector "!".
       ).
 
   
-  Lemma prf3: verify[module] testsharedarrspec.
+  Lemma prf3: (SIZE_MAX = 2^64)%N -> verify[module] testsharedarrspec.
   Proof using MOD.
     verify_spec.
-    go. {admit. }
+    go;[lia|].
     let r := sharedPtrRpieceFromPost in
       set (Rpiece := r).
     iExists Rpiece.
@@ -154,6 +155,9 @@ Set Default Goal Selector "!".
     eagerUnifyU.
     go.
     normalize_ptrs.
+    ring_simplify_goal_Z.
+    normalize_ptrs.
+    go.
     eagerUnifyU.
     go.
     rewrite <- _at_big_sepL.
@@ -182,6 +186,12 @@ Set Default Goal Selector "!".
     go.
     normalize_ptrs.
     go.
+    iExists true.
+    go.
+    iExists nullptr.
+    iExists tt.
+    iExists (fun _ => emp).
+    go.
     (* TODO: proof needs rework after alloc.tokenR transition. *)
     repeat rewrite arrayR_cons.
     go.
@@ -189,6 +199,5 @@ Set Default Goal Selector "!".
     go.
     repeat rewrite arrayR_nil.
     go.
-      
-  Admitted.
+  Qed.
 End proofs.
