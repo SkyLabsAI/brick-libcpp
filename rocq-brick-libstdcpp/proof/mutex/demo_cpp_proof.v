@@ -145,19 +145,60 @@ Section with_cpp.
   Proof. by rewrite P.unlock. Qed.
   #[local] Hint Resolve CR'_P_tele_equiv : br_hints.
 
-  Lemma update_a_ok : verify[source] "C::update_a(long)".
-  Proof.
-    verify_spec; go.
-
+  (* #[local] Hint Resolve inv_rmutex_learn_C | 0 : br_hints. *)
+  (* #[local] Hint Resolve inv_rmutex_iff_C | 100 : br_hints. *)
+  #[local] Remove Hints learn_inv_rmutex_TT : typeclass_instances.
+(*
   #[program]
   Definition inv_rmutex_iff_C γ :=
     \cancelx
-    \preserving{P1} inv_rmutex γ P1
-    \proving{P2} inv_rmutex γ P2
+    \preserving{P1}
+(inv_rmutex γ (∃ xs : tele_arg TT1, tele_app P1 xs))
+    \bound TT2
+    \proving{P2}
+      (inv_rmutex γ (∃ xs : tele_arg TT2, tele_app P2 xs))
+    \through [| TT1 = TT2 |]
     \through [| P1 ⊣⊢@{mpredI} P2 |]
     \end.
   Next Obligation. work. by setoid_subst. Qed.
-  #[local] Hint Resolve inv_rmutex_iff_C : br_hints.
+  #[local] Hint Resolve inv_rmutex_iff_C : br_hints. *)
+
+  Lemma update_a_ok : verify[source] "C::update_a(long)".
+  Proof.
+    verify_spec; go.
+    Set SL Debug "@default=3".
+
+  #[program]
+  Definition inv_rmutex_learn_C :=
+    \cancelx
+    \preserving{γ TT1 P1} inv_rmutex γ (∃ xs : tele_arg TT1, tele_app P1 xs)
+    \bound_existential TT2
+    \bound P2
+    \proving inv_rmutex γ (∃ ys : tele_arg TT2, tele_app P2 ys)
+    \instantiate TT2 := TT1
+    (* \instantiate P2 := P1 *)
+    (* \through inv_rmutex γ (∃ xs : tele_arg TT2, tele_app P2 xs) *)
+    \end.
+  Next Obligation.
+  (* work. Qed. *)
+  Admitted.
+  Set Printing Coercions.
+  Set Printing Implicit.
+    Arguments TT : simpl never.
+
+    About learn_inv_rmutex_γ.
+    rewrite -/TT.
+    work using inv_rmutex_learn_C.
+    Print inv_rmutex_learn_C.
+    (* with_log! work. *)
+    with_log! sep with {1}sl_opacity* typeclass_instances using inv_rmutex_learn_C.
+    (* with_log! work. *)
+    with_log! sep with {1}sl_opacity* {1}br_hints #db_skylabs_syntactic pure typeclass_instances using inv_rmutex_learn_C.
+    (* Print inv_rmutex_learn_C.
+    cbn. *)
+    with_log! step using learn_inv_rmutex_TT.
+    Print inv_rmutex_learn_C.
+  (* #[local] Hint Resolve learn_inv_rmutex_TT : typeclass_instances. *)
 
     iExists TT.
     go.
