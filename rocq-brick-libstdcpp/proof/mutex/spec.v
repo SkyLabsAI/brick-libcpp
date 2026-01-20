@@ -340,7 +340,7 @@ Section with_cpp.
     \end.
   Next Obligation. rewrite acquireable.unlock; work. Qed.
 
-  #[global] Instance : `{Learnable
+  #[global] Instance learn_current_thread_acquireable : `{Learnable
     (current_thread th)
     (acquireable (TT := TT0) γ th0 args P0)
     [th0 = th] }.
