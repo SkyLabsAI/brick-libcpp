@@ -34,7 +34,7 @@ Definition P `{Σ : cpp_logic, σ : genv} (this : ptr) : TT -t> mpred :=
 
 sl.lock
 Definition CR
-    `{Σ : cpp_logic, σ : genv, HasOwn mpredI recursive_mutex.cmraR}
+    `{Σ : cpp_logic, σ : genv, HasOwn (iPropI _) recursive_mutex.cmraR}
     (γ : recursive_mutex.rmutex_gname) (q : cQp.t) : Rep :=
   structR "C" q **
   _field "C::mut" |-> recursive_mutex.R γ.(recursive_mutex.lock_gname) q **
@@ -48,7 +48,7 @@ Section recursive_mutex.
   Import recursive_mutex.
   Context `{Σ : cpp_logic, σ : genv}.
   Context {HAS_THREADS : HasStdThreads Σ}.
-  Context {has_rmutex : HasOwn mpredI recursive_mutex.cmraR}.
+  Context {has_rmutex : HasOwn (iPropI _) recursive_mutex.cmraR}.
 
   Lemma acquireable_update_equiv {TT : tele} γ th f t1 t2 P :
     acquire t1 t2 ->
@@ -65,7 +65,7 @@ End recursive_mutex.
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
   Context {HAS_THREADS : HasStdThreads Σ}.
-  Context {has_rmutex : HasOwn mpredI recursive_mutex.cmraR}.
+  Context {has_rmutex : HasOwn (iPropI _) recursive_mutex.cmraR}.
 
   #[global] Instance: LearnEq2 CR'.
   Proof. solve_learnable. Qed.
