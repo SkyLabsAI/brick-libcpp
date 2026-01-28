@@ -100,11 +100,6 @@ Section with_cpp.
 End with_cpp.
 End mutex.
 
-(* TODO upstream *)
-#[global] Declare Instance
-  own_WeaklyObjective `{Σ : cpp_logic} {A : cmra} `{!HasOwn mpredI A} γ (a : A)  :
-  WeaklyObjective (PROP := iPropI _) (own γ a).
-
 Module recursive_mutex.
 
   (** <<locked γ th n>> <<th>> owns the mutex <<γ>> <<n>> times. *)
@@ -124,7 +119,7 @@ Module recursive_mutex.
   Canonical Structure cmraR := (excl_authR (prodO natO thread_idTO)).
 
   sl.lock
-  Definition inv_rmutex `{Σ : cpp_logic} `{!HasOwn mpredI cmraR} (g : rmutex_gname) (P : mpred) : mpred :=
+  Definition inv_rmutex `{Σ : cpp_logic} `{!HasOwn (iPropI _) cmraR} (g : rmutex_gname) (P : mpred) : mpred :=
     inv rmutex_namespace
       (Exists n th, own g.(level_gname) (●E (n, th)) **
         match n with
@@ -172,7 +167,7 @@ Module recursive_mutex.
     end.
 
   sl.lock
-  Definition acquireable `{Σ : cpp_logic, !HasStdThreads Σ, !HasOwn mpredI cmraR} (g : rmutex_gname) (th : thread_idT) {TT: tele} (t : acquire_state TT) (P : TT -t> mpred) : mpred :=
+  Definition acquireable `{Σ : cpp_logic, !HasStdThreads Σ, !HasOwn (iPropI _) cmraR} (g : rmutex_gname) (th : thread_idT) {TT: tele} (t : acquire_state TT) (P : TT -t> mpred) : mpred :=
     current_thread th **
     match t with
     | NotHeld => locked g.(lock_gname) th 0
@@ -188,7 +183,7 @@ Module recursive_mutex.
     Axiom locked_excl_different_thread : forall g th th' n m,
       locked g th n ** locked g th' m |-- [| n = 0 \/ m = 0 |] ** True.
 
-    Context `{!HasOwn mpredI cmraR, !HasStdThreads Σ}.
+    Context `{!HasOwn (iPropI _) cmraR, !HasStdThreads Σ}.
 
     #[global] Instance acquireable_learn γ th TT : LearnEq2 (acquireable γ th (TT := TT)).
     Proof. solve_learnable. Qed.
@@ -297,7 +292,7 @@ Section with_cpp.
     - exists (S n). naive_solver.
   Qed.
 
-  Context `{!HasOwn mpredI cmraR}.
+  Context `{!HasOwn (iPropI _) cmraR}.
 
   #[program]
   Definition acquireable_is_acquired_C {TT} g th t t' P
