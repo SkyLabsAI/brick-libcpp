@@ -1,3 +1,4 @@
+Require Import iris.base_logic.lib.ghost_map.
 Require Import skylabs.bi.tls_modalities.
 Require Import skylabs.bi.tls_modalities_rep.
 Require Import skylabs.bi.weakly_objective.
@@ -83,44 +84,113 @@ Section with_cpp.
 End with_cpp.
 End mutex.
 
+
+#[export] Hint Opaque ghost_map_auth ghost_map_elem : sl_opacity.
+
 Module recursive_mutex.
 
   (** <<locked γ th n>> <<th>> owns the mutex <<γ>> <<n>> times. *)
-  #[projections(primitive=no)]
   Class lockedG `{Σ : cpp_logic} := {
+    #[local] has_locked :: ghost_mapG _Σ thread_idT nat
   }.
   #[global] Arguments lockedG {_ _} Σ : assert.
 
-  Parameter locked :
-    ∀ `{Σ : cpp_logic, !lockedG Σ}
-    (γ : gname) (th : thread_idT) (n : nat), mpred.
+  sl.lock
+  Definition locked `{Σ : cpp_logic, !lockedG Σ}
+      (γ : gname) (th : thread_idT) (n : nat) : mpred :=
+    ⎡ ghost_map_elem γ th (DfracOwn 1) n ⎤.
 
-  Parameter used_threads :
-    ∀ `{Σ : cpp_logic, !lockedG Σ, !HasStdThreads Σ}
-    (γ : gname) (s : gset thread_idT), mpred.
+  sl.lock
+  Definition used_threads
+    `{Σ : cpp_logic, !lockedG Σ, !HasStdThreads Σ}
+    (γ : gname) (s : gset thread_idT) : mpred :=
+    ∃ m : gmap thread_idT nat, [| dom m = s |] ∗ ⎡ ghost_map_auth γ 1 m ⎤.
 
   #[only(timeless)] derive locked.
   #[only(timeless)] derive used_threads.
+
+  (* XXX upstream *)
+  #[only(fwd,bwd(l2r))] derive monPred_at_sep.
+  #[only(fwd,bwd(l2r))] derive monPred_at_embed.
+  #[only(fwd,bwd(l2r))] derive monPred_at_pure.
+  #[only(fwd,bwd(l2r))] derive monPred_at_only_provable.
+  (* #[only(fwd,bwd(l2r))] derive monPred_at_exist. *)
+  (* #[only(fwd)] derive monPred_at_exist. *)
 
   Section locked_with_cpp.
     Context `{Σ : cpp_logic}.
     Context `{!lockedG Σ}.
     Context `{!HasStdThreads Σ}.
 
-    Axiom use_thread : ∀ th g s,
+    Lemma use_thread th g s :
       th ∉ s ->
       current_thread th ** used_threads g s |--
       |==> used_threads g (s ∪ {[ th ]}) ** locked g th 0.
+    Proof.
+      rewrite used_threads.unlock locked.unlock => Hni.
+      constructor => i.
+      rewrite !(monPred_at_sep, monPred_at_embed, monPred_at_only_provable, monPred_at_exist, monPred_at_bupd).
+      iIntros "[#CT (%m & %Hdom & A)]".
+      set m' := <[ th := 0 ]> m.
+      iMod (ghost_map_insert th 0 with "[$]") as "[? $]".
+      { apply /not_elem_of_dom. by rewrite Hdom. }
+      iExists m'; subst m'. iModIntro. iFrame.
+      iIntros "!%".
+      by rewrite dom_insert_L Hdom comm_L.
+    Qed.
 
-    #[global] Declare Instance
+    Section with_ghost_map_inG.
+      #[local] Existing Instance ghost_map_inG.
+
+      (* TODO: necessary? useful? *)
+      #[local]
+      Lemma locked_unseal γ th n :
+        locked γ th n ⊣⊢
+        own γ (gmap_view.gmap_view_frag (V:=agreeR $ natO) th (DfracOwn 1) (to_agree n)).
+      Import iprop_own.
+      Proof.
+        rewrite locked.unlock ghost_map.ghost_map_elem_unseal /ghost_map.ghost_map_elem_def.
+        rewrite /own /=.
+        by rewrite has_own_monpred_eq /has_own_monpred_def has_own_iprop_eq /has_own_iprop_def /=.
+      Qed.
+    End with_ghost_map_inG.
+
+    #[global] Instance
       locked_WeaklyObjective γ thr n :
       WeaklyObjective (PROP := iPropI _) (locked γ thr n).
+    Proof. rewrite locked.unlock. apply _. Qed.
 
-    Axiom locked_excl_same_thread : forall g th n m,
+    Lemma locked_excl_same_thread g th n m :
       locked g th n ** locked g th m |-- False.
-    Axiom locked_excl_different_thread : forall g th th' n m,
-      locked g th n ** locked g th' m |-- [| n = 0 \/ m = 0 |] ** True.
+    Proof.
+      rewrite locked.unlock.
+      (* constructor => i. work. iStopProof. *)
+      iIntros "[A B]". iCombine "A B" gives %[HQV _].
+      by exfalso.
+    Qed.
 
+      (* work.
+      cbv in HQV.
+      work.
+      constructor => i.
+      (* work.
+      Import monpred. *)
+      rewrite monPred_at_sep !monPred_at_embed monPred_at_pure.
+      by exfalso.
+    Qed. *)
+
+    Lemma locked_excl_different_thread g th th' n m :
+      locked g th n ** locked g th' m |-- [| n = 0 \/ m = 0 |] ** True.
+    Proof.
+      destruct (decide (th = th')) as [->|Hne]. {
+        rewrite locked_excl_same_thread. work.
+      }
+      rewrite locked.unlock.
+      constructor => i.
+      iIntros "[A B]".
+      work.
+      (* missing a restriction *)
+    Admitted.
   End locked_with_cpp.
 
   (* the mask of recursive_mutex *)
