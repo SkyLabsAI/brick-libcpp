@@ -85,63 +85,20 @@ End mutex.
 
 
 Require Import iris.algebra.gset.
-(* Alternative: prodO (gsetR thread_idT) (optionR (exclO (prodO thread_idTO natO)) *)
-Canonical Structure cmraAltR :=
-  prodR (gsetR thread_idTO) (optionR (exclR (prodO thread_idTO natO))).
-
-(*
-Inductive locked_ghost :=
-| Zero (threads : gset thread_idT) : locked_ghost
-| NonZero (threads : gset thread_idT) (owner : thread_idT) (count : nat) : locked_ghost
-| Bot.
-
-NonZero . Zero = NonZero
-
-*)
 
 Module recursive_mutex.
-  Section build_camera.
-    (* #[global] Instance : Equiv locked_ghost := (=).
-    Instance : LeibnizEquiv locked_ghost. *)
-    (* Equiv A, PCore A, Op A, Valid A} := { *)
-    Canonical Structure locked_ghostO := leibnizO locked_ghost.
-    #[local] Instance locked_ghost_pcore : PCore locked_ghostO := λ a,
-      match a with
-      | Bot => Some Bot
-      | _ => Some (Zero ∅)
-      end.
+  (*
+  Inductive locked_ghost :=
+  | Zero (threads : gset thread_idT) : locked_ghost
+  | NonZero (threads : gset thread_idT) (owner : thread_idT) (count : nat) : locked_ghost
+  | Bot.
 
-    #[local] Instance locked_ghost_op : Op locked_ghostO := λ a b,
-      match a, b with
-      | Bot, _ => Bot
-      | _, Bot => Bot
-      | Zero s1, Zero s2 => Zero (s1 ∪ s2)
-      | Zero s1, NonZero s2 o c => NonZero (s1 ∪ s2) o c
-      | NonZero s1 o c, Zero s2 => NonZero (s1 ∪ s2) o c
-      | NonZero s1 o1 c1, NonZero s2 o2 c2 =>
-        Bot
-      end.
+  NonZero . Zero = NonZero
 
-    #[local] Instance locked_ghost_valid : Valid locked_ghostO := λ a,
-      match a with
-      | Bot => False
-      | Zero _ => True
-      | NonZero s o c => o ∈ s /\ c > 0
-      (** TODO: is this right? *)
-      end.
+  *)
 
-    Lemma locked_ghost_mixin : RAMixin locked_ghostO.
-    Proof.
-      apply ra_total_mixin.
-    Admitted.
-    #[local] Instance locked_ghost_unit : Unit locked_ghostO := Zero ∅.
-    Lemma locked_ghost_ucmra_mixin : UcmraMixin locked_ghostO.
-    Admitted.
-  End build_camera.
-  (* Canonical Structure locked_ghostRA : ra := cmraR *)
-  Canonical Structure locked_ghostR : cmra := discreteR locked_ghost locked_ghost_mixin.
-  Canonical Structure locked_ghostUR : ucmra := Ucmra locked_ghost locked_ghost_ucmra_mixin.
-
+  Canonical Structure locked_ghostUR : ucmra :=
+    prodR (gsetR thread_idTO) (optionR (exclR (prodO thread_idTO natO))).
   (* Not prodO thread_idTO natO. *)
   (* A thread that has zero, locked γ th 0 does not even know which thread has non-0. *)
   Canonical Structure cmraR := authR locked_ghostUR.
@@ -156,16 +113,20 @@ Module recursive_mutex.
   Definition locked `{Σ : cpp_logic, !lockedG Σ}
       (γ : gname) (th : thread_idT) (n : nat) : mpred :=
     match n with
-    | 0 => own γ (◯ (Zero {[ th ]}))
-    | S n => own γ (◯ (NonZero {[ th ]} th n))
+    | 0 => own γ (◯ ({[ th ]}, None))
+    | S n => own γ (◯ ({[ th ]}, Excl' (th, n)))
     end.
-    (* ⎡ ghost_map_elem γ th (DfracOwn 1) n ⎤. *)
 
   sl.lock
   Definition used_threads
     `{Σ : cpp_logic, !lockedG Σ, !HasStdThreads Σ}
     (γ : gname) (s : gset thread_idT) : mpred :=
-    ∃ t n, own γ (● (NonZero s t n)).
+    ∃ n,
+    match n with
+    | 0 => own γ (● (s, None))
+    | S n => ∃ t, own γ (● (s, Excl' (t, n)))
+    end.
+    (* own γ (● (s, (NonZero s t n)). *)
 
   #[only(timeless)] derive locked.
   #[only(timeless)] derive used_threads.
