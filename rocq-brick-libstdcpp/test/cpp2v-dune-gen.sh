@@ -62,13 +62,14 @@ outRule() {
 
 	sed "s/^/${indent}/" <<-EOF
 		(rule
-		 (targets ${module}.stderr ${targ})
+		 (targets ${targ})
 		 (alias test_ast)
 		 (deps (:input ${name}.${ext}) (glob_files_rec ${prefix}*.hpp)${universe})
 		 (action
-		 	 (with-stderr-to ${module}.stderr ${action})))
+                        ${action}))
 		(alias (name srcs) (deps ${name}.${ext}))
 	EOF
+		 	#  (with-stderr-to ${module}.stderr ${action})))
 	# TODO: maybe drop @srcs alias, seems leftover from !2613
 }
 
