@@ -61,17 +61,70 @@ Section with_cpp.
 
   #[global] Declare Instance cppStringR_typed : Typed2 "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>" cppStringR.
 
+  (*
+  Jasper: maybe [verify] should give suggestions _earlier_, like Rustc.
+  Paolo: And maybe [verify?] should be the first suggestion.
+
+  You can use [verify?[ source ] main_spec] to start the verification anyways.
+  *)
   Lemma main_ok : verify?[source] main_spec.
   Proof.
 
     verify_spec; go.
+
+    Print translation_unit.
+    Print symbol_table.
+    (* Search NM.t. *)
+
+    Eval vm_compute in fst <$> NM.elements source.(symbols).
+    (* "std::operator>><char, std::char_traits<char>>(std::basic_istream<char, std::char_traits<char>>&, char&)"%cpp_name; *)
+    (* source !! symbols *)
     (* progress ework with br_erefl. *)
     set name := "std::operator>><char, std::char_traits<char>, std::allocator<char>>(std::basic_istream<char, std::char_traits<char>>&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&)"%cpp_name.
     exfalso.
     clear.
-Set Printing All.
+(* Set Printing All.
+Set Printing Depth 10000. *)
+Check "char".
+Check "char"%cpp_type.
+(* Check "char"%cpp_name. *)
+Check "std::char_traits<char>"%cpp_name.
+(* Check "std::allocator<char>"%cpp_name. *)
+(* Ninst (Nscoped (Nglobal (@Nid type "std")) (@Nid type "char_traits")) (@cons temp_arg (Atype (Tchar_ char_type.Cchar)) (@nil temp_arg)) *)
+
 Check "std::operator>><char, std::char_traits<char>, std::allocator<char>>(std::basic_istream<char, std::char_traits<char>>&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&)"%cpp_name.
-Eval cbv in ("std::operator>><char, std::char_traits<char>, std::allocator<char>>(std::basic_istream<char, std::char_traits<char>>&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&)"%cpp_name).
+
+(**
+Ninst
+(Nscoped (Nglobal (@Nid type "std"))
+(@Nop type function_qualifiers.N OOGreaterGreater
+(@cons type
+(Tref
+(Tnamed
+(Ninst (Nscoped ([...]) ([...]))
+(@cons temp_arg ([...])
+([...])))))
+(@cons type
+(Tref
+(Tnamed
+(Ninst ([...])
+([...]))))
+(@nil type)))))
+(@cons temp_arg (Atype (Tchar_ char_type.Cchar))
+(@cons temp_arg
+(Atype
+(Tnamed
+(Ninst (Nscoped (Nglobal ([...])) (@Nid type "char_traits"))
+(@cons temp_arg (Atype ([...])) (@nil temp_arg)))))
+(@cons temp_arg
+(Atype
+(Tnamed
+(Ninst (Nscoped ([...]) ([...]))
+(@cons temp_arg ([...]) ([...]))))) (@nil temp_arg))))
+     : name
+*)
+
+(* Eval vm_compute in ("std::operator>><char, std::char_traits<char>, std::allocator<char>>(std::basic_istream<char, std::char_traits<char>>&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&)"%cpp_name). *)
 (* Print "std::operator>><char, std::char_traits<char>, std::allocator<char>>(std::basic_istream<char, std::char_traits<char>>&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&)"%cpp_name. *)
 
   Qed.

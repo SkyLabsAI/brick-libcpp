@@ -32,7 +32,7 @@
   (alias test_ast)
   (deps (:input N2_input.cpp) (glob_files_rec ../*.hpp) (universe))
   (action
-                         (run cpp2v -v %{input} -o N2_input_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ )))
+                         (run cpp2v -v %{input} -o N2_input_cpp.v --no-sharing --no-elaborate  -- -std=c++20 -stdlib=libstdc++ )))
  (alias (name srcs) (deps N2_input.cpp))
 )
 (subdir geeks_for_geeks_examples
