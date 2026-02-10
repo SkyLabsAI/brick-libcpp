@@ -18,22 +18,8 @@ Section with_cpp.
     \arg{p} "" (Vptr p)
     \prepost{q s} p |-> cstring.R q s
     \post{n}[Vint n] emp). *)
-(*
-  #[ignore_missing]
-  cpp.spec
-  "std::operator>><char, std::char_traits<char>, std::allocator<char>>(std::basic_istream<char, std::char_traits<char>>&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&)"
-  from source as istream_take_char_spec with (
-  (* cpp.spec "std::operator>><char, std::char_traits<char>, std::allocator<char>>(std::basic_istream<char, std::char_traits<char>>&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&)" from source with ( *)
-    \arg{isP} "" (Vptr isP)
-    \pre{isM} isP |-> istreamR 1$m isM
-    \arg{strP} "" (Vptr strP)
-    \pre{strM} strP |-> cppStringR 1$m strM
-    \post[Vptr isP]
-      Exists isM' strM',
-      isP |-> istreamR 1$m isM' **
-      strP |-> cppStringR 1$m strM' (* TODO: this is not precise enough *)
-  ).
-  Print istream_take_char_spec . *)
+
+  Parameter cppStringR : cQp.t -> cstring.t -> Rep.
 
   cpp.spec "std::basic_istream<char, std::char_traits<char>>::operator>>(int&)" from source as istream_take_int_spec with (
     \this this
@@ -69,7 +55,6 @@ Section with_cpp.
         _global "std::cout" |-> ostream_contentR 1$m (str ++ Z_to_string n)
       ).
 
-  Parameter cppStringR : cQp.t -> cstring.t -> Rep.
   cpp.spec "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>::basic_string()" from source as string_ctor_spec with (
     \this this
     \post this |-> cppStringR 1$m "").
@@ -80,8 +65,34 @@ Section with_cpp.
   Proof.
 
     verify_spec; go.
-    ework with br_erefl.
+    (* progress ework with br_erefl. *)
+    set name := "std::operator>><char, std::char_traits<char>, std::allocator<char>>(std::basic_istream<char, std::char_traits<char>>&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&)"%cpp_name.
+    exfalso.
+    clear.
+Set Printing All.
+Check "std::operator>><char, std::char_traits<char>, std::allocator<char>>(std::basic_istream<char, std::char_traits<char>>&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&)"%cpp_name.
+Eval cbv in ("std::operator>><char, std::char_traits<char>, std::allocator<char>>(std::basic_istream<char, std::char_traits<char>>&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&)"%cpp_name).
+(* Print "std::operator>><char, std::char_traits<char>, std::allocator<char>>(std::basic_istream<char, std::char_traits<char>>&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&)"%cpp_name. *)
+
   Qed.
+(* Print "std::operator() <char, std::char_traits<char>, std::allocator<char>>(std::basic_istream<char, std::char_traits<char>>&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&)"%cpp_name. *)
+
+  (* #[ignore_missing] *)
+  cpp.spec
+  "std::operator>><char, std::char_traits<char>, std::allocator<char>>(std::basic_istream<char, std::char_traits<char>>&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&)"
+  from N2_input_cpp.source as istream_take_char_spec with (
+  (* cpp.spec "std::operator>><char, std::char_traits<char>, std::allocator<char>>(std::basic_istream<char, std::char_traits<char>>&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&)" from source with ( *)
+    \arg{isP} "" (Vptr isP)
+    \pre{isM} isP |-> istreamR 1$m isM
+    \arg{strP} "" (Vptr strP)
+    \pre{strM} strP |-> cppStringR 1$m strM
+    \post[Vptr isP]
+      Exists isM' strM',
+      isP |-> istreamR 1$m isM' **
+      strP |-> cppStringR 1$m strM' (* TODO: this is not precise enough *)
+  ).
+  Print istream_take_char_spec .
+
 
 (* The following dependencies are missing specifications:
 "std::cin"%cpp_name

@@ -3,7 +3,7 @@
 #include <iostream>
 using namespace std;
 
-// int main(){
+// int main() {
 //     int i;
 //     // Take input using cin
 //     cin >> i;
