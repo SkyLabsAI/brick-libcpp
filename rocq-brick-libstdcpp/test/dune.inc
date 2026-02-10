@@ -26,6 +26,15 @@
                          (run cpp2v -v %{input} -o N0_hello_world_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ )))
  (alias (name srcs) (deps N0_hello_world.cpp))
 )
+(subdir geeks_for_geeks_examples
+ (rule
+  (targets iostream_cpp.v)
+  (alias test_ast)
+  (deps (:input iostream.cpp) (glob_files_rec ../*.hpp) (universe))
+  (action
+                         (run cpp2v -v %{input} -o iostream_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ )))
+ (alias (name srcs) (deps iostream.cpp))
+)
 (subdir new
  (rule
   (targets demo_cpp.v)
