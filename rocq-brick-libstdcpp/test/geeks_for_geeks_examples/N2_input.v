@@ -19,13 +19,6 @@ Section with_cpp.
     \prepost{q s} p |-> cstring.R q s
     \post{n}[Vint n] emp). *)
 (*
-  Parameter cppStringR : cQp.t -> cstring.t -> Rep.
-  cpp.spec "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>::basic_string()" from source as string_ctor_spec with (
-    \this this
-    \post this |-> cppStringR 1$m "").
-
-  #[global] Declare Instance cppStringR_typed : Typed2 "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>" cppStringR. *)
-(*
   #[ignore_missing]
   cpp.spec
   "std::operator>><char, std::char_traits<char>, std::allocator<char>>(std::basic_istream<char, std::char_traits<char>>&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&)"
@@ -75,6 +68,13 @@ Section with_cpp.
         _global "std::cin" |-> istreamR 1$m isM' **
         _global "std::cout" |-> ostream_contentR 1$m (str ++ Z_to_string n)
       ).
+
+  Parameter cppStringR : cQp.t -> cstring.t -> Rep.
+  cpp.spec "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>::basic_string()" from source as string_ctor_spec with (
+    \this this
+    \post this |-> cppStringR 1$m "").
+
+  #[global] Declare Instance cppStringR_typed : Typed2 "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>" cppStringR.
 
   Lemma main_ok : verify?[source] main_spec.
   Proof.
