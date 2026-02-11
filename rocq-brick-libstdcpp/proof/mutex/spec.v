@@ -154,33 +154,31 @@ Module recursive_mutex.
       iIntros "[#CT (% & A)]".
       destruct n.
       {
-        iMod (own_update with "A") as "H".
+        iMod (own_update with "A") as "[● ◯]".
         { apply (auth_update_alloc _ (s ∪ {[th]}, None) (s ∪ {[th]}, None)).
           apply prod_local_update_1.
           apply (gset_local_update _ _ (s ∪ {[th]})). set_solver. }
-        iDestruct "H" as "[● ◯]".
         iEval (
           replace None with (None ⋅ None:(optionR (exclR (prodO thread_idTO natO))))
           ) in "◯".
         iEval (rewrite -gset_op pair_op auth_frag_op) in "◯".
-        iDestruct (own_op with "◯") as "[Hs $]".
-        iModIntro; iExists 0. iFrame. 
+        iDestruct "◯" as "[Hs $]".
+        iModIntro; iExists 0. iFrame.
       }
       {
-        iDestruct "A" as "(%t & A)". 
-        iMod (own_update with "A") as "H".
+        iDestruct "A" as "(%t & A)".
+        iMod (own_update with "A") as "[● ◯]".
         { apply (auth_update_alloc _ (s ∪ {[th]}, Excl' (t, n)) (s ∪ {[th]}, None)).
           apply prod_local_update_1.
           apply (gset_local_update _ _ (s ∪ {[th]})). set_solver.
-          }
-        iDestruct "H" as "[● ◯]".
+        }
         iEval (
           replace None with (None ⋅ None:(optionR (exclR (prodO thread_idTO natO))))
           ) in "◯".
         iEval (rewrite -gset_op pair_op auth_frag_op) in "◯".
-        iDestruct (own_op with "◯") as "[Hs $]".
+        iDestruct "◯" as "[Hs $]".
         iModIntro; iExists (S n).
-        iFrame. 
+        iFrame.
       }
     Qed.
 
