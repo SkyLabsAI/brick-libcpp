@@ -144,37 +144,46 @@ Module recursive_mutex.
     Context `{!lockedG Σ}.
     Context `{!HasStdThreads Σ}.
 
+    Instance HOU : HasOwnUpd mpredI cmraR.
+    Admitted.
+
     Lemma use_thread th g s :
       th ∉ s ->
       current_thread th ** used_threads g s |--
       |==> used_threads g (s ∪ {[ th ]}) ** locked g th 0.
     Proof.
       rewrite used_threads.unlock locked.unlock => Hni.
-      iIntros "[#CT (% & % & A)]".
-      iMod (own_update with "A") as "?".
-      About own_update.
+      iIntros "[#CT (% & A)]".
+      destruct n.
       {
-        apply (auth_update_alloc (NonZero (s ∪ {[ th ]}) th 0)).
-(* own_update :
-∀ {PROP : bi} {BiBUpd0 : BiBUpd PROP} {A : cmra} {HasOwn0 : HasOwn PROP A},
-HasOwnUpd PROP A → ∀ (γ : gname) (a a' : A), a ~~> a' → own γ a ⊢ |==> own γ a' *)
-
-        as "(? & ?)";
-        first (
-          apply auth_update;
-          destruct n0; simpl;
-          try (apply (auth_update_alloc (NonZero (s ∪ {[ th ]}) th 0));
-               [apply singleton_subseteq_l|]);
-          apply (auth_update_local_update _ (Zero (s ∪ {[ th ]})));
-          simpl; constructor; split; [set_solver|lia]
-        ).
-      (* iIntros "[#CT (%th & %n & A)]". *)
-      set m' := <[ th := 0 ]> m.
-      iMod (ghost_map_insert th 0 with "[$]") as "[? $]".
-      { apply /not_elem_of_dom. by rewrite Hdom. }
-      iExists m'; subst m'. iModIntro. iFrame.
-      iIntros "!%".
-      by rewrite dom_insert_L Hdom comm_L.
+        iMod (own_update with "A") as "H".
+        { apply (auth_update_alloc _ (s ∪ {[th]}, None) (s ∪ {[th]}, None)).
+          apply prod_local_update_1.
+          apply (gset_local_update _ _ (s ∪ {[th]})). set_solver. }
+        iDestruct "H" as "[● ◯]".
+        iEval (
+          replace None with (None ⋅ None:(optionR (exclR (prodO thread_idTO natO))))
+          ) in "◯".
+        iEval (rewrite -gset_op pair_op auth_frag_op) in "◯".
+        iDestruct (own_op with "◯") as "[Hs $]".
+        iModIntro; iExists 0. iFrame. 
+      }
+      {
+        iDestruct "A" as "(%t & A)". 
+        iMod (own_update with "A") as "H".
+        { apply (auth_update_alloc _ (s ∪ {[th]}, Excl' (t, n)) (s ∪ {[th]}, None)).
+          apply prod_local_update_1.
+          apply (gset_local_update _ _ (s ∪ {[th]})). set_solver.
+          }
+        iDestruct "H" as "[● ◯]".
+        iEval (
+          replace None with (None ⋅ None:(optionR (exclR (prodO thread_idTO natO))))
+          ) in "◯".
+        iEval (rewrite -gset_op pair_op auth_frag_op) in "◯".
+        iDestruct (own_op with "◯") as "[Hs $]".
+        iModIntro; iExists (S n).
+        iFrame. 
+      }
     Qed.
 
     Section with_ghost_map_inG.
