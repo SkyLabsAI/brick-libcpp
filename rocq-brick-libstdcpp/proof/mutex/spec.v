@@ -105,7 +105,8 @@ Module recursive_mutex.
 
   (** <<locked γ th n>> <<th>> owns the mutex <<γ>> <<n>> times. *)
   Class lockedG `{Σ : cpp_logic} := {
-    #[local] has_locked :: HasOwn mpredI cmraR
+    #[local] has_locked :: HasOwn (iPropI _Σ) cmraR;
+    #[local] has_locked_upd :: HasOwnUpd (iPropI _Σ) cmraR
   }.
   #[global] Arguments lockedG {_ _} Σ : assert.
 
@@ -143,9 +144,6 @@ Module recursive_mutex.
     Context `{Σ : cpp_logic}.
     Context `{!lockedG Σ}.
     Context `{!HasStdThreads Σ}.
-
-    Instance HOU : HasOwnUpd mpredI cmraR.
-    Admitted.
 
     Lemma use_thread th g s :
       th ∉ s ->
