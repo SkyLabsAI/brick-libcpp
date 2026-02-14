@@ -21,6 +21,7 @@
   skylabs.iris.extra
   Equations Equations.Prop Equations.Type
   skylabs.lang.cpp
+  skylabs.cpp.stdlib
   skylabs.ltac2.logger
   skylabs.auto.core
   ;
