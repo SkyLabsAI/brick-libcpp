@@ -98,25 +98,27 @@ Module recursive_mutex.
   *)
 
   Canonical Structure locked_ghostUR : ucmra :=
-    prodR (gsetR thread_idTO) (optionR (exclR (prodO thread_idTO natO))).
+    prodR (gset_disjR thread_idTO) (optionR (exclR (prodO thread_idTO natO))).
   (* Not prodO thread_idTO natO. *)
   (* A thread that has zero, locked γ th 0 does not even know which thread has non-0. *)
-  Canonical Structure cmraR := authR locked_ghostUR.
+  Canonical Structure locked_cmraR := authR locked_ghostUR.
 
   (** <<locked γ th n>> <<th>> owns the mutex <<γ>> <<n>> times. *)
   Class lockedG `{Σ : cpp_logic} := {
-    #[local] has_locked :: HasOwn (iPropI _Σ) cmraR;
-    #[local] has_locked_upd :: HasOwnUpd (iPropI _Σ) cmraR
+    #[local] has_locked :: HasOwn (iPropI _Σ) locked_cmraR;
+    #[local] has_locked_upd :: HasOwnUpd (iPropI _Σ) locked_cmraR;
+    #[local] has_locked_valid :: HasOwnValid (iPropI _Σ) locked_cmraR
   }.
   #[global] Arguments lockedG {_ _} Σ : assert.
 
   sl.lock
   Definition locked `{Σ : cpp_logic, !lockedG Σ}
       (γ : gname) (th : thread_idT) (n : nat) : mpred :=
-    match n with
-    | 0 => own γ (◯ ({[ th ]}, None))
-    | S n => own γ (◯ ({[ th ]}, Excl' (th, n)))
-    end.
+      own γ (◯ (GSet {[ th ]},
+        match n with
+        | 0 => None
+        | S n => Excl' (th, n)
+        end)).
 
   sl.lock
   Definition used_threads
@@ -124,10 +126,9 @@ Module recursive_mutex.
     (γ : gname) (s : gset thread_idT) : mpred :=
     ∃ n,
     match n with
-    | 0 => own γ (● (s, None))
-    | S n => ∃ t, own γ (● (s, Excl' (t, n)))
+    | 0 => own γ (● (GSet s, None))
+    | S n => ∃ t, own γ (● (GSet s, Excl' (t, n)))
     end.
-    (* own γ (● (s, (NonZero s t n)). *)
 
   #[only(timeless)] derive locked.
   #[only(timeless)] derive used_threads.
@@ -155,48 +156,29 @@ Module recursive_mutex.
       destruct n.
       {
         iMod (own_update with "A") as "[● ◯]".
-        { apply (auth_update_alloc _ (s ∪ {[th]}, None) (s ∪ {[th]}, None)).
+        { apply (auth_update_alloc _ (GSet ({[th]} ∪ s), None) (GSet ({[th]}), None)).
           apply prod_local_update_1.
-          apply (gset_local_update _ _ (s ∪ {[th]})). set_solver. }
+          apply gset_disj_alloc_empty_local_update. set_solver. }
         iEval (
           replace None with (None ⋅ None:(optionR (exclR (prodO thread_idTO natO))))
           ) in "◯".
-        iEval (rewrite -gset_op pair_op auth_frag_op) in "◯".
-        iDestruct "◯" as "[Hs $]".
-        iModIntro; iExists 0. iFrame.
+        iFrame.
+        iModIntro; iExists 0. rewrite comm_L //.
       }
       {
         iDestruct "A" as "(%t & A)".
         iMod (own_update with "A") as "[● ◯]".
-        { apply (auth_update_alloc _ (s ∪ {[th]}, Excl' (t, n)) (s ∪ {[th]}, None)).
+        { apply (auth_update_alloc _ (GSet ({[th]} ∪ s), Excl' (t, n)) (GSet {[th]}, None)).
           apply prod_local_update_1.
-          apply (gset_local_update _ _ (s ∪ {[th]})). set_solver.
+          apply gset_disj_alloc_empty_local_update. set_solver.
         }
         iEval (
           replace None with (None ⋅ None:(optionR (exclR (prodO thread_idTO natO))))
           ) in "◯".
-        iEval (rewrite -gset_op pair_op auth_frag_op) in "◯".
-        iDestruct "◯" as "[Hs $]".
-        iModIntro; iExists (S n).
         iFrame.
+        iModIntro; iExists (S n). rewrite comm_L //. iFrame.
       }
     Qed.
-
-    Section with_ghost_map_inG.
-      #[local] Existing Instance ghost_map_inG.
-
-      (* TODO: necessary? useful? *)
-      #[local]
-      Lemma locked_unseal γ th n :
-        locked γ th n ⊣⊢
-        own γ (gmap_view.gmap_view_frag (V:=agreeR $ natO) th (DfracOwn 1) (to_agree n)).
-      Import iprop_own.
-      Proof.
-        rewrite locked.unlock ghost_map.ghost_map_elem_unseal /ghost_map.ghost_map_elem_def.
-        rewrite /own /=.
-        by rewrite has_own_monpred_eq /has_own_monpred_def has_own_iprop_eq /has_own_iprop_def /=.
-      Qed.
-    End with_ghost_map_inG.
 
     #[global] Instance
       locked_WeaklyObjective γ thr n :
@@ -207,20 +189,13 @@ Module recursive_mutex.
       locked g th n ** locked g th m |-- False.
     Proof.
       rewrite locked.unlock.
-      (* constructor => i. work. iStopProof. *)
-      iIntros "[A B]". iCombine "A B" gives %[HQV _].
-      by exfalso.
+      iIntros "[A B]".
+      iDestruct (own_valid_2 with "A B") as "%".
+      rewrite -auth_frag_op -pair_op auth_frag_valid in H.
+      destruct H.
+      rewrite /= gset_disj_valid_op /= in H.
+      set_solver.
     Qed.
-
-      (* work.
-      cbv in HQV.
-      work.
-      constructor => i.
-      (* work.
-      Import monpred. *)
-      rewrite monPred_at_sep !monPred_at_embed monPred_at_pure.
-      by exfalso.
-    Qed. *)
 
     Lemma locked_excl_different_thread g th th' n m :
       locked g th n ** locked g th' m |-- [| n = 0 \/ m = 0 |] ** True.
@@ -229,11 +204,13 @@ Module recursive_mutex.
         rewrite locked_excl_same_thread. work.
       }
       rewrite locked.unlock.
-      constructor => i.
       iIntros "[A B]".
-      work.
-      (* missing a restriction *)
-    Admitted.
+      destruct n, m; try auto.
+      iDestruct (own_valid_2 with "A B") as "%".
+      rewrite -auth_frag_op -pair_op auth_frag_valid in H.
+      destruct H as [_ H]. done.
+    Qed.
+
   End locked_with_cpp.
 
   (* the mask of recursive_mutex *)
