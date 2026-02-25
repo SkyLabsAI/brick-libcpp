@@ -214,12 +214,12 @@ Module recursive_mutex.
   End locked_with_cpp.
 
   (* the mask of recursive_mutex *)
-  Definition mask := nroot .@@ "std" .@@ "recursive_mutex".
+  Definition mask := nroot .@@ "std" .@@ "recursive_mutex" .@@ "mask".
 
   (** Derived construction *)
   Record rmutex_gname :=
     { lock_gname : gname; level_gname : gname }.
-  Definition rmutex_namespace := nroot .@@ "std" .@@ "recursive_mutex_inv".
+  Definition rmutex_namespace := nroot .@@ "std" .@@ "recursive_mutex" .@@ "derived".
 
   Canonical Structure cmraR := (excl_authR (prodO natO thread_idTO)).
 
