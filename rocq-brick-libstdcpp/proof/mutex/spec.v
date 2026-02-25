@@ -1,3 +1,6 @@
+Require Import iris.algebra.gset.
+Require Import iris.algebra.lib.excl_auth.
+
 Require Import skylabs.bi.tls_modalities.
 Require Import skylabs.bi.tls_modalities_rep.
 Require Import skylabs.bi.weakly_objective.
@@ -83,9 +86,6 @@ Section with_cpp.
 End with_cpp.
 End mutex.
 
-
-Require Import iris.algebra.gset.
-
 Module recursive_mutex.
   (*
   Inductive locked_ghost :=
@@ -96,8 +96,6 @@ Module recursive_mutex.
   NonZero . Zero = NonZero
 
   *)
-Require Import iris.algebra.lib.excl_auth.
-
   Canonical Structure locked_ghostUR : ucmra :=
     prodR (gset_disjR thread_idTO) (optionR (exclR (prodO thread_idTO natO))).
   (* Not prodO thread_idTO natO. *)
@@ -118,19 +116,17 @@ Require Import iris.algebra.lib.excl_auth.
   }.
   #[global] Arguments lockedG {_ _} Σ : assert.
 
-  (* TODO distinguish *)
-  (* Record gname := MkGname { locked_gname : iprop.gname; token_gname : iprop.gname }. *)
+  (*
+  TODO fix: define and use this record instead of reusing the same gname for
+  multiple pieces of ghost state.
 
-  sl.lock
-  Definition locked `{Σ : cpp_logic, !lockedG Σ}
-      (γ : gname) (th : thread_idT) (n : nat) : mpred :=
-      own γ (◯ (GSet {[ th ]},
-        match n with
-        | 0 => None
-        | S n => Excl' (th, n)
-        end)).
+  Record gname := MkGname {
+    owned_count_id : iprop.gname;
+    locked_gname : iprop.gname;
+    token_gname : iprop.gname;
+  }.
+  *)
 
-  (** TODO inline? *)
   sl.lock
   Definition owned_count_id_auth `{Σ : cpp_logic, !lockedG Σ}
     (γ : gname) (om : option (thread_idT * natO)) : mpred :=
@@ -144,6 +140,16 @@ Require Import iris.algebra.lib.excl_auth.
   #[only(timeless)] derive owned_count_id_frag.
 
   sl.lock
+  Definition locked `{Σ : cpp_logic, !lockedG Σ}
+      (γ : gname) (th : thread_idT) (n : nat) : mpred :=
+      own γ (◯ (GSet {[ th ]},
+        match n with
+        | 0 => None
+        | S n => Excl' (th, n)
+        end)).
+  #[only(timeless)] derive locked.
+
+  sl.lock
   Definition used_threads
     `{Σ : cpp_logic, !lockedG Σ, !HasStdThreads Σ}
     (γ : gname) (s : gset thread_idT) : mpred :=
@@ -153,16 +159,7 @@ Require Import iris.algebra.lib.excl_auth.
     | S n => ∃ t, own γ (● (GSet s, Excl' (t, n))) ** owned_count_id_frag γ (Some (t, n))
     end.
 
-  #[only(timeless)] derive locked.
   #[only(timeless)] derive used_threads.
-
-  (* XXX upstream *)
-  (* #[only(fwd,bwd(l2r))] derive monPred_at_sep.
-  #[only(fwd,bwd(l2r))] derive monPred_at_embed.
-  #[only(fwd,bwd(l2r))] derive monPred_at_pure.
-  #[only(fwd,bwd(l2r))] derive monPred_at_only_provable. *)
-  (* #[only(fwd,bwd(l2r))] derive monPred_at_exist. *)
-  (* #[only(fwd)] derive monPred_at_exist. *)
 
   Section locked_with_cpp.
     Context `{Σ : cpp_logic}.
@@ -178,25 +175,21 @@ Require Import iris.algebra.lib.excl_auth.
       iIntros "[#CT (% & A)]".
       destruct n.
       {
-        (* iMod (own_update with "A") as "[● ◯]".
+        iDestruct "A" as "(A & ?)".
+        iMod (own_update with "A") as "[● $]"; last iModIntro.
         { apply (auth_update_alloc _ (GSet ({[th]} ∪ s), None) (GSet ({[th]}), None)).
-          apply prod_local_update_1.
-          apply gset_disj_alloc_empty_local_update. set_solver. }
-        iFrame.
-        iModIntro; iExists 0. rewrite comm_L //.
+          apply prod_local_update_1, gset_disj_alloc_empty_local_update. set_solver. }
+        rewrite comm_L. iExists 0. iFrame.
       }
       {
-        iDestruct "A" as "(%t & A)".
-        iMod (own_update with "A") as "[● ◯]".
+        iDestruct "A" as "(%t & A & ?)".
+        iMod (own_update with "A") as "[● $]"; last iModIntro.
         { apply (auth_update_alloc _ (GSet ({[th]} ∪ s), Excl' (t, n)) (GSet {[th]}, None)).
-          apply prod_local_update_1.
-          apply gset_disj_alloc_empty_local_update. set_solver.
+          apply prod_local_update_1, gset_disj_alloc_empty_local_update. set_solver.
         }
-        iFrame.
-        iModIntro; iExists (S n). rewrite comm_L. iFrame.
+        rewrite comm_L. iExists (S n). iFrame.
       }
-    Qed. *)
-    Admitted.
+    Qed.
 
     #[global] Instance
       locked_WeaklyObjective γ thr n :
@@ -234,6 +227,35 @@ Require Import iris.algebra.lib.excl_auth.
   (* the mask of recursive_mutex *)
   Definition mask := nroot .@@ "std" .@@ "recursive_mutex" .@@ "mask".
 
+  (** We base the implementation protocol on
+  https://github.com/bminor/glibc/blob/04e750e75b73957cf1c791535a3f4319534a52fc/nptl/pthread_mutex_lock.c#L90-L112.
+
+  official mirror:
+  https://sourceware.org/git/?p=glibc.git;a=blob;f=nptl/pthread_mutex_lock.c;h=a697f2b6ca8dfa9e4557ab3f44b87bc5ceeec014;hb=HEAD#l90
+  TODO: revise.
+  *)
+
+  (** Intended meaning: ownership of physical C++ state for an instance of "std::recursive_mutex". *)
+  Parameter rawR : ∀ `{Σ : cpp_logic, σ : genv}, option (thread_idT * nat) -> Rep.
+  #[only(type_ptr="std::recursive_mutex")] derive rawR.
+
+  Definition rmutex_N : namespace :=
+    nroot .@@ "std" .@@ "recursive_mutex" .@ "raw_inv".
+
+  (* recursive mutex -- ownership of the class. *)
+  sl.lock
+  Definition I `{Σ : cpp_logic, σ : genv, !lockedG Σ} (γ : gname) : Rep :=
+    type_ptrR "std::recursive_mutex" **
+    cinv rmutex_N γ (∃ oth_n, rawR oth_n ** pureR (owned_count_id_auth γ oth_n)).
+  #[only(knowledge,type_ptr="std::recursive_mutex")] derive I.
+
+  sl.lock
+  Definition R `{Σ : cpp_logic, σ : genv, !lockedG Σ} (γ : gname) (q : cQp.t) : Rep :=
+    type_ptrR "std::recursive_mutex" **
+    cinv_own γ q.
+  #[only(cfractional,ascfractional,timeless,type_ptr="std::recursive_mutex")] derive R.
+
+
   Section base_construction.
     Context `{Σ : cpp_logic} `{MOD : source ⊧ σ}.
     Context {HAS_THREADS : HasStdThreads Σ}.
@@ -242,30 +264,14 @@ Require Import iris.algebra.lib.excl_auth.
     (* NOTE: Invariant used to protect resource [r]
       inv (r \\// exists th n, locked th (S n)) *)
     (* recursive mutex -- physical ownership of the fields. *)
-    Parameter rawR : option (thread_idT * nat) -> Rep.
-
-    Definition rmutex_N : namespace. Admitted.
-
-    (* recursive mutex -- ownership of the class. *)
-    Definition I (γ : gname) : Rep :=
-      type_ptrR "std::recursive_mutex" **
-      cinv rmutex_N γ (∃ oth_n, rawR oth_n ** pureR (owned_count_id_auth γ oth_n)).
-    #[global] Hint Opaque I : typeclass_instances sl_opacity.
-    #[only(knowledge,type_ptr="std::recursive_mutex")] derive I.
-    #[global] Instance I_learn : Cbn (Learn (learn_eq ==> learn_hints.fin) I).
-    Proof. solve_learnable. Qed.
-
-    Definition R (γ : gname) (q : cQp.t) : Rep :=
-      type_ptrR "std::recursive_mutex" **
-      cinv_own γ q.
-    #[global] Hint Opaque R : typeclass_instances sl_opacity.
 
     (*
+    TODO:
     - different gammas for invariant and ghost state. (fix records)
-    - connect th and n with other ghost state.
     *)
-      (* as_Rep (fun p => ... *)
-    #[only(cfractional,ascfractional,timeless,type_ptr="std::recursive_mutex")] derive R.
+
+    #[global] Instance I_learn : Cbn (Learn (learn_eq ==> learn_hints.fin) I).
+    Proof. solve_learnable. Qed.
     #[global] Instance R_learn : Cbn (Learn (learn_eq ==> any ==> learn_hints.fin) R).
     Proof. solve_learnable. Qed.
 
