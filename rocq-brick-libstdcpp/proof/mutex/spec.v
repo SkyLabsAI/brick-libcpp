@@ -182,9 +182,6 @@ Require Import iris.algebra.lib.excl_auth.
         { apply (auth_update_alloc _ (GSet ({[th]} ∪ s), None) (GSet ({[th]}), None)).
           apply prod_local_update_1.
           apply gset_disj_alloc_empty_local_update. set_solver. }
-        iEval (
-          replace None with (None ⋅ None:(optionR (exclR (prodO thread_idTO natO))))
-          ) in "◯".
         iFrame.
         iModIntro; iExists 0. rewrite comm_L //.
       }
@@ -195,11 +192,8 @@ Require Import iris.algebra.lib.excl_auth.
           apply prod_local_update_1.
           apply gset_disj_alloc_empty_local_update. set_solver.
         }
-        iEval (
-          replace None with (None ⋅ None:(optionR (exclR (prodO thread_idTO natO))))
-          ) in "◯".
         iFrame.
-        iModIntro; iExists (S n). rewrite comm_L //. iFrame.
+        iModIntro; iExists (S n). rewrite comm_L. iFrame.
       }
     Qed. *)
     Admitted.
