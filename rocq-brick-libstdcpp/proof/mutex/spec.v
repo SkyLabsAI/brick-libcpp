@@ -236,7 +236,8 @@ Module recursive_mutex.
   *)
 
   (** Intended meaning: ownership of physical C++ state for an instance of "std::recursive_mutex". *)
-  Parameter rawR : ∀ `{Σ : cpp_logic, σ : genv}, option (thread_idT * nat) -> Rep.
+  Parameter rawR : ∀ `{Σ : cpp_logic, σ : genv}, option thread_idT -> nat -> Rep.
+  (* The thread_idT is None (0) if there is no owner. *)
   #[only(type_ptr="std::recursive_mutex")] derive rawR.
 
   Definition rmutex_N : namespace :=
@@ -246,7 +247,8 @@ Module recursive_mutex.
   sl.lock
   Definition I `{Σ : cpp_logic, σ : genv, !lockedG Σ} (γ : gname) : Rep :=
     type_ptrR "std::recursive_mutex" **
-    cinv rmutex_N γ (∃ oth_n, rawR oth_n ** pureR (owned_count_id_auth γ oth_n)).
+    (* When *)
+    cinv rmutex_N γ (∃ owner count, rawR owner count ** [|owner = None <-> count = O|] ** pureR (owned_count_id_auth γ (option_map (λ t, (t, Nat.pred count)) owner))).
   #[only(knowledge,type_ptr="std::recursive_mutex")] derive I.
 
   sl.lock
