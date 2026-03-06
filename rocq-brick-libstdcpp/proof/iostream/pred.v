@@ -8,21 +8,21 @@ different style of specifications.
 Require Import skylabs.auto.cpp.prelude.proof.
 Require Export skylabs.cpp.string.
 
-(** TODO upstream *)
+Require Import skylabs.brick.libstdcpp.iostream.inc_iostream_cpp.
+
+(** TODO upstream START *)
 #[only(cfracsplittable)] derive cstring.R.
 
 (** TODO upstream *)
 #[global] Bind Scope bs_scope with cstring.t.
 (* We only have `Bind Scope bs_scope with t.` inside `Module cstring.` *)
 
-Require Import skylabs.brick.libstdcpp.iostream.inc_iostream_cpp.
-
-(** TODO: split this into pred.v and spec.v *)
-
 (** TODO upstream to auto *)
 #[global] Instance refine_bs_app' (str a b : BS.t) :
   Refine1 true true (str ++ a = str ++ b)%bs [a = b].
 Proof. tac_refine. exact: (inj (BS.append str)). Qed.
+
+(** TODO upstream END *)
 
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
