@@ -5,7 +5,7 @@
   (alias test_ast)
   (deps (:input inc_cassert.cpp) (glob_files_rec ../*.hpp) (universe))
   (action
-  	 (with-stderr-to inc_cassert_cpp.v.stderr (run cpp2v -v %{input} -o inc_cassert_cpp.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to inc_cassert_cpp.v.stderr (run cpp2v -v %{input} -o inc_cassert_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_cassert.cpp))
 )
 (subdir cctype
@@ -14,7 +14,7 @@
   (alias test_ast)
   (deps (:input inc_cctype.cpp) (glob_files_rec ../*.hpp) (universe))
   (action
-  	 (with-stderr-to inc_cctype_cpp.v.stderr (run cpp2v -v %{input} -o inc_cctype_cpp.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to inc_cctype_cpp.v.stderr (run cpp2v -v %{input} -o inc_cctype_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_cctype.cpp))
 )
 (subdir cstdlib
@@ -23,7 +23,7 @@
   (alias test_ast)
   (deps (:input inc_cstdlib.cpp) (glob_files_rec ../*.hpp) (universe))
   (action
-  	 (with-stderr-to inc_cstdlib_cpp.v.stderr (run cpp2v -v %{input} -o inc_cstdlib_cpp.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to inc_cstdlib_cpp.v.stderr (run cpp2v -v %{input} -o inc_cstdlib_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_cstdlib.cpp))
 )
 (subdir mutex
@@ -32,7 +32,7 @@
   (alias test_ast)
   (deps (:input demo.cpp) (glob_files_rec ../*.hpp) (universe))
   (action
-  	 (with-stderr-to demo_cpp.v.stderr (run cpp2v -v %{input} -o demo_cpp.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to demo_cpp.v.stderr (run cpp2v -v %{input} -o demo_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps demo.cpp))
 )
 (subdir mutex
@@ -41,7 +41,7 @@
   (alias test_ast)
   (deps (:input inc.hpp) (glob_files_rec ../*.hpp) (universe))
   (action
-  	 (with-stderr-to inc_hpp.v.stderr (run cpp2v -v %{input} -o inc_hpp.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to inc_hpp.v.stderr (run cpp2v -v %{input} -o inc_hpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc.hpp))
 )
 (subdir mutex
@@ -50,7 +50,7 @@
   (alias test_ast)
   (deps (:input test.cpp) (glob_files_rec ../*.hpp) (universe))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
 (subdir new
@@ -59,7 +59,7 @@
   (alias test_ast)
   (deps (:input inc_new.cpp) (glob_files_rec ../*.hpp) (universe))
   (action
-  	 (with-stderr-to inc_new_cpp.v.stderr (run cpp2v -v %{input} -o inc_new_cpp.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to inc_new_cpp.v.stderr (run cpp2v -v %{input} -o inc_new_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_new.cpp))
 )
 (subdir semaphore
@@ -68,7 +68,7 @@
   (alias test_ast)
   (deps (:input inc.hpp) (glob_files_rec ../*.hpp) (universe))
   (action
-  	 (with-stderr-to inc_hpp.v.stderr (run cpp2v -v %{input} -o inc_hpp.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to inc_hpp.v.stderr (run cpp2v -v %{input} -o inc_hpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc.hpp))
 )
 (subdir semaphore
@@ -77,6 +77,6 @@
   (alias test_ast)
   (deps (:input test.cpp) (glob_files_rec ../*.hpp) (universe))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )

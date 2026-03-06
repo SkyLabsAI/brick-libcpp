@@ -5,7 +5,7 @@
   (alias test_ast)
   (deps (:input test.cpp) (glob_files_rec ../*.hpp) (universe))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
 (subdir cstdlib
@@ -14,7 +14,7 @@
   (alias test_ast)
   (deps (:input test.cpp) (glob_files_rec ../*.hpp) (universe))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
 (subdir new
@@ -23,6 +23,6 @@
   (alias test_ast)
   (deps (:input demo.cpp) (glob_files_rec ../*.hpp) (universe))
   (action
-  	 (with-stderr-to demo_cpp.v.stderr (run cpp2v -v %{input} -o demo_cpp.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to demo_cpp.v.stderr (run cpp2v -v %{input} -o demo_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps demo.cpp))
 )
