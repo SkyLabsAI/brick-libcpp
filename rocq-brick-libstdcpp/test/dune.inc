@@ -37,6 +37,15 @@
 )
 (subdir geeks_for_geeks_examples
  (rule
+  (targets N3_input_cpp.v.stderr N3_input_cpp.v)
+  (alias test_ast)
+  (deps (:input N3_input.cpp) (glob_files_rec ../*.hpp) (universe))
+  (action
+  	 (with-stderr-to N3_input_cpp.v.stderr (run cpp2v -v %{input} -o N3_input_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps N3_input.cpp))
+)
+(subdir geeks_for_geeks_examples
+ (rule
   (targets N4_sum_cpp.v.stderr N4_sum_cpp.v)
   (alias test_ast)
   (deps (:input N4_sum.cpp) (glob_files_rec ../*.hpp) (universe))
@@ -79,6 +88,24 @@
   (action
   	 (with-stderr-to N6_print_sizeof_cpp.v.stderr (run cpp2v -v %{input} -o N6_print_sizeof_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N6_print_sizeof.cpp))
+)
+(subdir geeks_for_geeks_examples
+ (rule
+  (targets N8_ascii_value_cast_cpp.v.stderr N8_ascii_value_cast_cpp.v)
+  (alias test_ast)
+  (deps (:input N8_ascii_value_cast.cpp) (glob_files_rec ../*.hpp) (universe))
+  (action
+  	 (with-stderr-to N8_ascii_value_cast_cpp.v.stderr (run cpp2v -v %{input} -o N8_ascii_value_cast_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps N8_ascii_value_cast.cpp))
+)
+(subdir geeks_for_geeks_examples
+ (rule
+  (targets N8_ascii_value_printf_cpp.v.stderr N8_ascii_value_printf_cpp.v)
+  (alias test_ast)
+  (deps (:input N8_ascii_value_printf.cpp) (glob_files_rec ../*.hpp) (universe))
+  (action
+  	 (with-stderr-to N8_ascii_value_printf_cpp.v.stderr (run cpp2v -v %{input} -o N8_ascii_value_printf_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps N8_ascii_value_printf.cpp))
 )
 (subdir new
  (rule
