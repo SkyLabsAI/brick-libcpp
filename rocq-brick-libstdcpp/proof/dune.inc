@@ -26,6 +26,15 @@
   	 (with-stderr-to inc_cstdlib_cpp.v.stderr (run cpp2v -v %{input} -o inc_cstdlib_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_cstdlib.cpp))
 )
+(subdir iostream
+ (rule
+  (targets inc_iostream_cpp.v.stderr inc_iostream_cpp.v)
+  (alias test_ast)
+  (deps (:input inc_iostream.cpp) (glob_files_rec ../*.hpp) (universe))
+  (action
+  	 (with-stderr-to inc_iostream_cpp.v.stderr (run cpp2v -v %{input} -o inc_iostream_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps inc_iostream.cpp))
+)
 (subdir mutex
  (rule
   (targets demo_cpp.v.stderr demo_cpp.v)
@@ -79,4 +88,13 @@
   (action
   	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
+)
+(subdir string
+ (rule
+  (targets inc_string_cpp.v.stderr inc_string_cpp.v)
+  (alias test_ast)
+  (deps (:input inc_string.cpp) (glob_files_rec ../*.hpp) (universe))
+  (action
+  	 (with-stderr-to inc_string_cpp.v.stderr (run cpp2v -v %{input} -o inc_string_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps inc_string.cpp))
 )
