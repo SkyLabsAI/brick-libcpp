@@ -247,8 +247,9 @@ Module recursive_mutex.
   sl.lock
   Definition I `{Σ : cpp_logic, σ : genv, !lockedG Σ} (γ : gname) : Rep :=
     type_ptrR "std::recursive_mutex" **
-    (* When *)
-    cinv rmutex_N γ (∃ owner count, rawR owner count ** [|owner = None <-> count = O|] ** pureR (owned_count_id_auth γ (option_map (λ t, (t, Nat.pred count)) owner))).
+    cinv rmutex_N γ (∃ owner count, rawR owner count **
+      pureR (owned_count_id_auth γ ((λ t, (t, Nat.pred count)) <$> owner))).
+  (* TODO: readd [|owner = None <-> count = O|] elsewhere, as sequential invariant in [R]. *)
   #[only(knowledge,type_ptr="std::recursive_mutex")] derive I.
 
   sl.lock
