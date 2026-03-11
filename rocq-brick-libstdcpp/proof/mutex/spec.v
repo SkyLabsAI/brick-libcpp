@@ -255,6 +255,9 @@ Module recursive_mutex.
   sl.lock
   Definition R `{Σ : cpp_logic, σ : genv, !lockedG Σ} (γ : gname) (q : cQp.t) : Rep :=
     type_ptrR "std::recursive_mutex" **
+    (* TODO: add here sequential ownership of the lock, and maybe replace I by the lock invariant.
+    Something like *)
+    (* _mutex_field |-> mutex.R q ... ** *)
     cinv_own γ q.
   #[only(cfractional,ascfractional,timeless,type_ptr="std::recursive_mutex")] derive R.
 
