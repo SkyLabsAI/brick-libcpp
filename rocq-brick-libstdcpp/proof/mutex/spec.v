@@ -127,18 +127,22 @@ Module recursive_mutex.
   }.
   *)
 
+  (** [owned_count_id_auth γ Some (th, n)] implies that the lock's count is [n + 1]. *)
   sl.lock
   Definition owned_count_id_auth `{Σ : cpp_logic, !lockedG Σ}
     (γ : gname) (om : option (thread_idT * natO)) : mpred :=
     own γ (●E om).
   #[only(timeless)] derive owned_count_id_auth.
 
+  (** [owned_count_id_frag γ Some (th, n)] implies that the lock's count is [n + 1]. *)
   sl.lock
   Definition owned_count_id_frag `{Σ : cpp_logic, !lockedG Σ}
     (γ : gname) (om : option (thread_idT * natO)) : mpred :=
     own γ (◯E om).
   #[only(timeless)] derive owned_count_id_frag.
 
+  (** [locked γ th n] implies that the lock's count is [n]: see [used_threads]'s
+  definition and [owned_count_id_auth]'s informal contract. *)
   sl.lock
   Definition locked `{Σ : cpp_logic, !lockedG Σ}
       (γ : gname) (th : thread_idT) (n : nat) : mpred :=
@@ -248,6 +252,7 @@ Module recursive_mutex.
   Definition I `{Σ : cpp_logic, σ : genv, !lockedG Σ} (γ : gname) : Rep :=
     type_ptrR "std::recursive_mutex" **
     cinv rmutex_N γ (∃ owner count, rawR owner count **
+      (* We use [Nat.pred] because [owned_count_id_auth] stores [counter - 1]. *)
       pureR (owned_count_id_auth γ ((λ t, (t, Nat.pred count)) <$> owner))).
   (* TODO: readd [|owner = None <-> count = O|] elsewhere, as sequential invariant in [R]. *)
   #[only(knowledge,type_ptr="std::recursive_mutex")] derive I.
