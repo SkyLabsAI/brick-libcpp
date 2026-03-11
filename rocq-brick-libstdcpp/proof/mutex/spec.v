@@ -228,6 +228,52 @@ Module recursive_mutex.
 
   End locked_with_cpp.
 
+(**
+Underlying pthread implementation for [PTHREAD_MUTEX_RECURSIVE_NP] case:
+
+      /* Check whether we already hold the mutex.  */
+      if (mutex->__data.__owner == id)
+	{
+	  /* Just bump the counter.  */
+	  if (__glibc_unlikely (mutex->__data.__count + 1 == 0))
+	    /* Overflow of the counter.  */
+	    return EAGAIN;
+
+	  ++mutex->__data.__count;
+
+	  return 0;
+	}
+      (* LLL_MUTEX_LOCK_OPTIMIZED (mutex); *)
+      LLL_MUTEX_LOCK (mutex);
+
+Informally, we can read mutex->__data.__owner atomically, and we know that
+mutex->__data.__owner == id if and only if our thread has completed locking the
+recursive mutex; hence, mutex->__data.__owner != id means that nobody is
+touching the mutex or other threads are operating on it, but at no point will they set __owner to our ID.
+
+Hence:
+1. [if (mutex->__data.__owner == id)], we can get obtain sequential ownership of
+mutex->__data.__count, and of the underlying resources, and complete the lock operation.
+2. else, we can attempt to grab the underlying non-recursive lock, and be sure we
+  won't deadlock against ourselves.
+
+Formalizing step 1 seems nontrivial, but relatively routine.
+But the full pthread implementation would add annoying details.
+
+The right invariant might resemble the following, but significant details are TBD.
+[
+cinv (
+  \exists x,
+  mutex->__data.__owner |-> x **
+  if bool_decide (x = our thread id) then
+    sequential ownership of count ** ownership of data protected by the lock \/
+    some exclusive token (* needed to take the sequential out *)
+  else
+    emp
+  )
+]
+
+*)
   (* the mask of recursive_mutex *)
   Definition mask := nroot .@@ "std" .@@ "recursive_mutex" .@@ "mask".
 
