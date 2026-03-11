@@ -13,7 +13,7 @@ Section with_cpp.
 
   (** Fractional ownership of a <<std::mutex>> guarding the predicate <<P>>. *)
   Parameter R : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv}, gname -> cQp.t -> mpred -> Rep.
-  #[only(cfractional,cfracvalid,ascfractional,timeless)] derive R.
+  #[only(cfractional,cfracvalid,ascfractional)] derive R.
   #[global] Declare Instance mutex_rep_typed : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv}, Typed3 "std::mutex" R.
 
   (* TODO: index this by the specific mutex! Either via a mutex_gname or by making this a Rep *)
