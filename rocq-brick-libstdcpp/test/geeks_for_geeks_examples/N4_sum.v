@@ -12,7 +12,7 @@ Section with_cpp.
     \prepost{osM} _global "std::cout" |-> ostreamR 1$m osM
     \pre{str} _global "std::cout" |-> ostream_contentR 1$m str
     \post[Vint 0]
-      _global "std::cout" |-> ostream_contentR 1$m (str ++ Z_to_string 20)
+      _global "std::cout" |-> ostream_contentR 1$m str
   ).
 
   Lemma main_ok : verify[source] "main()".

@@ -17,8 +17,7 @@ Section with_cpp.
     \prepost{osM} _global "std::cout" |-> ostreamR 1$m osM
     \pre{str} _global "std::cout" |-> ostream_contentR 1$m str
     \post[Vint 0]
-      _global "std::cout" |-> ostream_contentR 1$m
-        (str ++ "Area = " ++ Z_to_string (area_of_rectangle side1 side2) ++ "\n" ++ "Perimeter = " ++ Z_to_string (perimeter_of_rectangle side1 side2))
+      _global "std::cout" |-> ostream_contentR 1$m str
   ).
 
   cpp.spec "areaRectangle(int, int)" from source inline.

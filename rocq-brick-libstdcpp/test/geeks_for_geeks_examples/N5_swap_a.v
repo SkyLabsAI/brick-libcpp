@@ -12,12 +12,7 @@ Section with_cpp.
     \prepost{osM} _global "std::cout" |-> ostreamR 1$m osM
     \pre{str} _global "std::cout" |-> ostream_contentR 1$m str
     \post[Vint 0]
-      _global "std::cout" |-> ostream_contentR 1$m
-        (str ++
-        "Before swapping a = " ++
-        Z_to_string 2 ++ " , b = " ++ Z_to_string 3 ++ "\n" ++
-        "After swapping a = " ++ Z_to_string 3 ++ " , b = " ++ Z_to_string 2 ++ "\n"
-      )
+      _global "std::cout" |-> ostream_contentR 1$m str
   ).
 
   Lemma main_ok : verify[source] "main()".

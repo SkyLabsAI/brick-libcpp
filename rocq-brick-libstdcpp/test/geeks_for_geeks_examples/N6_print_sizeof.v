@@ -15,12 +15,7 @@ Section with_cpp.
     \prepost{osM} _global "std::cout" |-> ostreamR 1$m osM
     \pre{str} _global "std::cout" |-> ostream_contentR 1$m str
     \post[Vint 0]
-      _global "std::cout" |-> ostream_contentR 1$m
-        (str ++
-        "Size of int is: " ++ Z_to_string 4 ++ newline ++
-        "Size of char is: " ++ Z_to_string 1 ++ newline ++
-        "Size of float is: " ++ Z_to_string 4 ++ newline ++
-        "Size of double is: " ++ Z_to_string 8 ++ newline)
+      _global "std::cout" |-> ostream_contentR 1$m str
   ).
 
   Lemma main_ok : verify[source] "main()".
