@@ -34,8 +34,7 @@ Section with_cpp.
     iModIntro.
     go.
     iPureIntro.
-    cbn [area_of_rectangle perimeter_of_rectangle side1 side2].
-    repeat rewrite assoc.
+    rewrite !assoc.
     reflexivity.
   Qed.
 End with_cpp.

@@ -32,7 +32,7 @@ Section with_cpp.
     iModIntro.
     go.
     iPureIntro.
-    repeat rewrite assoc.
+    rewrite !assoc.
     reflexivity.
   Qed.
 End with_cpp.

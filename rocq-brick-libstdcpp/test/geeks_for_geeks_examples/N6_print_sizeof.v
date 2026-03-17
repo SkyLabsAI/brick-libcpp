@@ -31,8 +31,7 @@ Section with_cpp.
     iModIntro.
     go.
     iPureIntro.
-    cbn [newline].
-    repeat rewrite assoc.
+    rewrite !assoc.
     reflexivity.
   Qed.
 End with_cpp.
