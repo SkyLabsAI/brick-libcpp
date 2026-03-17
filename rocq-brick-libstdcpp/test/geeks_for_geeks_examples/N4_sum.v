@@ -16,5 +16,7 @@ Section with_cpp.
   ).
 
   Lemma main_ok : verify[source] "main()".
-  Proof. Admitted.
+  Proof.
+    verify_spec; go.
+  Qed.
 End with_cpp.
