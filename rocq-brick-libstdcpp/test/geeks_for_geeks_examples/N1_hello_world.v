@@ -14,6 +14,11 @@ Section with_cpp.
 
   Lemma main_ok : verify[source] "main()".
   Proof.
-  Admitted.
+    verify_shift.
+    go.
+    banish_string_literals.
+    iModIntro.
+    go.
+  Qed.
 
 End with_cpp.

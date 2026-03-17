@@ -26,5 +26,16 @@ Section with_cpp.
 
   Lemma main_ok : verify[source] "main()".
   Proof.
-  Admitted.
+    verify_shift.
+    go.
+    iExists (fun osM => osM), (fun str => str ++ "\n")%bs.
+    go.
+    banish_string_literals.
+    iModIntro.
+    go.
+    iPureIntro.
+    cbn [area_of_rectangle perimeter_of_rectangle side1 side2].
+    repeat rewrite assoc.
+    reflexivity.
+  Qed.
 End with_cpp.
