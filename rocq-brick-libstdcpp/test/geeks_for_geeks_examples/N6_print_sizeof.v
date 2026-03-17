@@ -31,7 +31,6 @@ Section with_cpp.
     iModIntro.
     go.
     iPureIntro.
-    rewrite !assoc.
-    reflexivity.
+    by rewrite !assoc_L.
   Qed.
 End with_cpp.
