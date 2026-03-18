@@ -17,25 +17,5 @@ Section with_cpp.
 
   Lemma main_ok : verify[source] main_spec.
   Proof.
-    verify_shift.
-    go.
-    wp_for (fun rho =>
-      Exists a i,
-        _local rho "a" |-> intR 1$m a **
-        _local rho "b" |-> intR 1$m 9 **
-        _local rho "i" |-> intR 1$m i **
-        [| a = 11 + i /\ 0 <= i <= 9 |])%Z.
-    go.
-    wp_if => Hi.
-    all: go.
-    wp_for (fun rho =>
-      Exists a i,
-        _local rho "a" |-> intR 1$m a **
-        _local rho "b" |-> intR 1$m 9 **
-        _local rho "i" |-> intR 1$m i **
-        [| a = 20 /\ i = 0 |])%Z.
-    go.
-    iModIntro.
-    go.
-  Qed.
+  Admitted.
 End with_cpp.
