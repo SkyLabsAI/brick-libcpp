@@ -7,7 +7,8 @@ Require Import skylabs.bi.weakly_objective.
 Require Import skylabs.auto.cpp.weakly_local_with.
 
 Require Import skylabs.auto.cpp.proof.
-Require Import skylabs.brick.libstdcpp.mutex.inc_hpp.
+(* Require Import skylabs.brick.libstdcpp.mutex.inc_hpp. *)
+Require Import skylabs.brick.libstdcpp.mutex.test_cpp.
 Require Export skylabs.brick.libstdcpp.runtime.pred.
 
 Module mutex.
@@ -53,7 +54,7 @@ Section with_cpp.
   (** locked takes a [Qp] but _cannot_ be split. *)
   #[only(exclusive)] derive locked.
 
-  Context `{MOD : inc_hpp.source ⊧ σ}.
+  Context `{MOD : source ⊧ σ}.
   Context {HAS_THREADS : HasStdThreads Σ}.
 
   cpp.spec "std::mutex::mutex()" as ctor_spec with
@@ -94,6 +95,47 @@ Section with_cpp.
 
 End with_cpp.
 End mutex.
+
+Module lock_guard.
+
+Section with_cpp.
+  Context `{Σ : cpp_logic}.
+
+  Parameter R : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv}, ptr * gname * cQp.t -> cQp.t -> mpred -> Rep.
+  #[only(cfractional,cfracvalid,ascfractional)] derive R.
+  #[global] Declare Instance R_typed : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv}, Typed3 "std::lock_guard<std::mutex>" R.
+
+  cpp.spec "std::lock_guard<std::mutex>::lock_guard(std::mutex &)" as ctor_spec with (
+    \this this
+    \arg{mp} "m" (Vptr mp)
+    \persist{thr} current_thread thr
+    \pre{g q P} mp |-> mutex.R g q P
+    \pre mutex_token g q
+    \post
+      this |-> R (mp, g, q) 1$m P **
+      P ** mutex_locked g thr
+      (** TODO maybe wrap [mutex_locked] *)
+    ).
+
+  cpp.spec "std::lock_guard<std::mutex>::~lock_guard()" as dtor_spec with (
+    \this this
+    \pre{mp g q P} this |-> R (mp, g, q) 1$m P
+    \pre{thr} current_thread thr
+    \pre mutex_locked g thr
+    \pre ▷P
+    \post
+      mutex_token g q **
+      mp |-> mutex.R g q P
+  ).
+
+  Lemma mutex_borrow mp g q P :
+    this |-> R (mp, g, (q1 + q2)) 1$m P |--
+    mp |-> mutex.R g q1 P **
+    this |-> R (mp, g, q2) 1$m P.
+  Proof.
+  Admitted.
+End with_cpp.
+End lock_guard.
 
 Module recursive_mutex.
   Canonical Structure locked_ghostUR : ucmra :=
