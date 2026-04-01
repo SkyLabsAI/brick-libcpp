@@ -98,7 +98,8 @@ Section with_cpp.
 End with_cpp.
 End mutex.
 
-(* Require Import skylabs.auto.cpp.prelude.proof. *)
+Require skylabs.auto.cpp.prelude.proof.
+
 Module lock_guard.
 
   sl.lock
@@ -107,12 +108,13 @@ Module lock_guard.
     let '(mp, g, q') := mp in
     _field "std::lock_guard<std::mutex>::_M_device" |-> refR<"std::mutex"> q mp **
     pureR (
-      (* mutex.token g (q * q') ** *)
       mp |-> mutex.R g (q * q')$m P).
 
-  (* #[only(cfractional,cfracvalid,ascfractional)] derive R. *)
   #[only(type_ptr)] derive R.
   #[only(lazy_unfold)] derive R.
+
+  (** TODO: automated proofs fail, probably, and does not seem too useful. *)
+  (* #[only(cfractional,cfracvalid,ascfractional)] derive R. *)
 
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
@@ -129,7 +131,6 @@ Section with_cpp.
     \post
       this |-> R (mp, g, q) 1$m P **
       P ** mutex.locked g thr q
-      (** TODO maybe wrap [mutex_locked] *)
     ).
 
   cpp.spec "std::lock_guard<std::mutex>::~lock_guard()" as dtor_spec from source with (
