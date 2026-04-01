@@ -342,22 +342,25 @@ cinv (
     #[global] Instance R_learn : Cbn (Learn (learn_eq ==> any ==> learn_hints.fin) R).
     Proof. solve_learnable. Qed.
 
-    (* #[only(cfractional,timeless)] derive mutex_rep. *)
-    (** <<token γ q>> if <<q = 1>>, then the mutex is not locked and therefore can be destroyed.
-        <<token γ 1>> is shared among threads who has access to the lock, and a call to lock
-        turns some of <<token γ q>> into <<given_token γ q>>, unlock does the opposite.
-    *)
+    (** <<token γ q>>
+        if <<q = 1>>, then the mutex is not locked and therefore can be destroyed.
 
+        <<token γ 1>> is shared among threads who has access to the lock, and a
+        call to lock turns some of <<token γ q>> into <<given_token γ q>>, unlock
+        does the opposite.
+    *)
     Parameter token : gname -> Qp -> mpred.
     #[only(fracsplittable,timeless)] derive token.
+
+    (** Tracks whether any thread holds the lock. *)
     Parameter given_token : gname -> Qp -> mpred.
     #[only(timeless)] derive given_token.
+    (* #[only(cfracsplittable,timeless)] derive given_token. *)
 
     #[global]
     Instance given_token_learn γ : LearnEq1 (given_token γ) :=
       ltac:(solve_learnable).
 
-    (* #[only(cfracsplittable,timeless)] derive given_token. *)
 
     cpp.spec "std::recursive_mutex::recursive_mutex()" as ctor_spec with
       (\this this
@@ -391,7 +394,6 @@ cinv (
   End base_construction.
 
 
-  (* **************** *)
   (** * Derived construction *)
   Record rmutex_gname :=
     { lock_gname : gname; level_gname : gname }.
