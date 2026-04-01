@@ -11,6 +11,8 @@ Require Import skylabs.auto.cpp.proof.
 Require Import skylabs.brick.libstdcpp.mutex.test_cpp.
 Require Export skylabs.brick.libstdcpp.runtime.pred.
 
+Import linearity.
+
 Module mutex.
 Section with_cpp.
   Context `{Σ : cpp_logic}.
