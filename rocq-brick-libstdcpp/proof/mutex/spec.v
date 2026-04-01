@@ -13,6 +13,12 @@ Require Export skylabs.brick.libstdcpp.runtime.pred.
 
 Import linearity.
 
+Section TO_UPSTREAM.
+  Lemma cQp_mut_add q1 q2 :
+    (q1 + q2)$m%cQp = (q1$m + q2$m)%cQp.
+  Proof. done. Qed.
+End TO_UPSTREAM.
+
 Module mutex.
 Section with_cpp.
   Context `{Σ : cpp_logic}.
@@ -113,14 +119,46 @@ Module lock_guard.
   #[only(type_ptr)] derive R.
   #[only(lazy_unfold)] derive R.
 
-  (** TODO: automated proofs fail, probably, and does not seem too useful. *)
-  (* #[only(cfractional,cfracvalid,ascfractional)] derive R. *)
+  (**
+  These automated proofs fail, so we prove it by hand.
+  [R_cfrac] does not seem too useful (why ever split a lock guard?), but let's
+  prove it anyway to test our infrastructure. *)
+  Fail #[only(cfractional,cfracvalid,ascfractional)] derive R.
 
+  #[only(cfracvalid)] derive R.
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
-
-  (* Context `{MOD : source ⊧ σ}. *)
   Context {HAS_THREADS : HasStdThreads Σ}.
+
+  Set Printing Coercions.
+
+  Section with_R_cfrac'.
+    #[local] Instance R_cfrac' g q' P :
+      CFractional (λ q, mutex.R g (cQp.frac q * q')$m P).
+    (* Proof.
+      intros q1 q2.
+      rewrite -(cfractional (P := λ q, mutex.R _ q _)).
+      rewrite -cQp_mut_add.
+      rewrite -Qp.mul_add_distr_r.
+      Succeed done.
+      by rewrite -cQp.frac_add.
+    Restart.
+    *)
+    Proof.
+      intros q1 q2.
+      rewrite cQp.frac_add.
+      rewrite Qp.mul_add_distr_r.
+      rewrite cQp_mut_add.
+      by rewrite (cfractional (P := λ q, mutex.R g q P)).
+    Qed.
+
+    #[global] Instance R_cfrac mp : CFractional1 (R mp).
+    Proof. rewrite R.unlock. apply _. Qed.
+  End with_R_cfrac'.
+
+  Fail #[only(ascfractional)] derive R.
+  #[global] Instance R_as_cfrac mp : AsCFractional1 (R mp).
+  Proof. solve_as_cfrac. Qed.
 
   cpp.spec "std::lock_guard<std::mutex>::lock_guard(std::mutex &)" as ctor_spec from source with (
     \this this
@@ -156,6 +194,7 @@ Section with_cpp.
       rewrite R.unlock.
       work.
       iDestruct select (mp |-> mutex.R g _ P) as "[??]".
+      (* Unnecessary with our prelude. *)
       (* rewrite !left_id_L. *)
       work.
     Qed.
