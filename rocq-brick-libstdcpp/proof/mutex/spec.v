@@ -240,8 +240,9 @@ Module recursive_mutex.
 (**
 Underlying pthread implementation for [PTHREAD_MUTEX_RECURSIVE_NP] case:
 
-      /* Check whether we already hold the mutex.  */
-      if (mutex->__data.__owner == id)
+  <<
+  /* Check whether we already hold the mutex.  */
+  if (mutex->__data.__owner == id)
 	{
 	  /* Just bump the counter.  */
 	  if (__glibc_unlikely (mutex->__data.__count + 1 == 0))
@@ -252,8 +253,9 @@ Underlying pthread implementation for [PTHREAD_MUTEX_RECURSIVE_NP] case:
 
 	  return 0;
 	}
-      (* LLL_MUTEX_LOCK_OPTIMIZED (mutex); *)
-      LLL_MUTEX_LOCK (mutex);
+  (* LLL_MUTEX_LOCK_OPTIMIZED (mutex); *)
+  LLL_MUTEX_LOCK (mutex);
+  >>
 
 Informally, we can read mutex->__data.__owner atomically, and we know that
 mutex->__data.__owner == id if and only if our thread has completed locking the
@@ -270,7 +272,7 @@ Formalizing step 1 seems nontrivial, but relatively routine.
 But the full pthread implementation would add annoying details.
 
 The right invariant might resemble the following, but significant details are TBD.
-[
+[[
 cinv (
   \exists x,
   mutex->__data.__owner |-> x **
@@ -280,8 +282,7 @@ cinv (
   else
     emp
   )
-]
-
+]]
 *)
   (* the mask of recursive_mutex *)
   Definition mask := nroot .@@ "std" .@@ "recursive_mutex" .@@ "mask".
