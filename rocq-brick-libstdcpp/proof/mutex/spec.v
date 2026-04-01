@@ -30,22 +30,24 @@ Section with_cpp.
   (** A resource enforcing that the thread calling unlock must be the same thread
       that owns the lock
 
-  TODO: maybe a bigger test demonstrating the enforcement?
-  minimal version: this fails (fill in the obvious stuff)
-
+    <<
     \persist{th} >={ L_TI } th
     \pre{j} mutex_locked g j
     test_unlock(std::mutex & m) {
       m.unlock();
     }
+    >>
 
     this succeeds:
 
+    <<
     \persist{th} >={ L_TI } th
     \pre mutex_locked g th
     same test_unlock
+    >>
    *)
-  Parameter locked : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv}, gname -> thread_idT -> Qp -> mpred.
+  Parameter locked : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv},
+      gname -> thread_idT -> Qp -> mpred.
   #[only(timeless)] derive locked.
 
   (** locked takes a [Qp] but _cannot_ be split. *)
@@ -60,8 +62,8 @@ Section with_cpp.
       \post Exists g, this |-> R g 1$m P ** token g 1).
 
   (*
-  Note: An alternative spec would take unrelated fractions for [R] and [token];
-  that spec would be more expressive, but that expressiveness appears useless.
+  Note: An alternative spec would take unrelated fractions for [R] and [token].
+  That spec would be more expressive, but that expressiveness appears useless.
   See [recursive_mutex.lock_spec] for an example of the alternative. *)
   cpp.spec "std::mutex::lock()" as lock_spec with
       (\this this
@@ -345,9 +347,9 @@ cinv (
         turns some of <<token γ q>> into <<given_token γ q>>, unlock does the opposite.
     *)
 
-    Parameter token : gname -> cQp.t -> mpred.
-    #[only(cfracsplittable,timeless)] derive token.
-    Parameter given_token : gname -> cQp.t -> mpred.
+    Parameter token : gname -> Qp -> mpred.
+    #[only(fracsplittable,timeless)] derive token.
+    Parameter given_token : gname -> Qp -> mpred.
     #[only(timeless)] derive given_token.
 
     #[global]
@@ -447,7 +449,8 @@ cinv (
   sl.lock
   Definition acquireable
       `{Σ : cpp_logic, !lockedG Σ, !HasStdThreads Σ, !HasOwn (iPropI _) cmraR}
-      (g : rmutex_gname) (th : thread_idT) {TT: tele} (t : acquire_state TT) (P : TT -t> mpred) : mpred :=
+      (g : rmutex_gname) (th : thread_idT) {TT: tele} (t : acquire_state TT)
+      (P : TT -t> mpred) : mpred :=
     current_thread th **
     match t with
     | NotHeld => locked g.(lock_gname) th 0
@@ -486,14 +489,15 @@ cinv (
     Context `{!lockedG Σ}.
 
     (* Alternative style:
-        R γ q r ** locked γ th (S n) |--| R γ q r ** r ** was_locked γ th (S n)
+       <<
+       R γ q r ** locked γ th (S n) |--| R γ q r ** r ** was_locked γ th (S n)
+       >>
 
-        possible solution: two specs/choice in the spec for unlock: either
-        {locked γ th (n+1)} unlock() {locked γ th n}
-        or
-        {was_locked γ th (n+2)} unlock() {locked γ th (n+1)}
+       possible solution: two specs/choice in the spec for unlock: either
+       <<{locked γ th (n+1)} unlock() {locked γ th n}>>
+       or
+       <<{was_locked γ th (n+2)} unlock() {locked γ th (n+1)}>>
     *)
-
 
     (* TODO make this into a hint *)
     Lemma is_held {TT : tele} {t1 t2 : acquire_state TT} :
@@ -609,7 +613,7 @@ cinv (
       \post
         Exists g,
           this |-> R g.(lock_gname) 1 **
-          token g.(lock_gname) 1$m **
+          token g.(lock_gname) 1 **
           used_threads g.(lock_gname) empty **
           inv_rmutex g (∃ xs, tele_app P xs)).
 
@@ -639,10 +643,6 @@ cinv (
       LearnEq2 (fun a b => bi_later (acquireable γ th (TT := TT) a b)).
     Proof. solve_learnable. Qed.
 
-    (* #[global] Instance token_learn γ :
-      LearnEq1 (token γ).
-    Proof. solve_learnable. Qed. *)
-
     Import linearity.
 
     Context `{HOV : !HasOwnValid mpredI cmraR, HOU : !HasOwnUpd mpredI cmraR}.
@@ -661,7 +661,7 @@ cinv (
       ework with br_erefl.
     Qed.
 
-  (* Require Import bluerock.auto.cpp.prelude.proof. *)
+    (* Require Import bluerock.auto.cpp.prelude.proof. *)
     Lemma lock_spec_impl_lock_spec' :
       lock_spec |-- lock_spec'.
     Proof using MOD HOV HOU.
@@ -669,22 +669,12 @@ cinv (
       Import auto_frac.
       iExists q, q'.
 
-      iExists (∃ t,
-        [| acquire n t |] ∗
-        (* token (lock_gname g) (cQp.scale (1 / 2) q') ∗
-        a |-> R (lock_gname g) (cQp.scale (1 / 2) q) ∗ *)
-        ▷ acquireable g th t P)%I.
+      iExists (∃ t, [| acquire n t |] ∗ ▷ acquireable g th t P)%I.
 
       wname [bi_wand] "W".
       wfocus (bi_wand _ _) "W".
       { work $usenamed=true. }
       work.
-      (* wname [token] "T".
-      wname [R] "R".
-      wname [acquireable] "A".
-      (* About atomic_commit . *)
-      wfocus (atomic_commit _ _ _ _ _ _) "T R A". *)
-      (* iStopProof; work. *)
       iAcIntro; rewrite /commit_acc/=.
       rewrite inv_rmutex.unlock acquireable.unlock.
       iInv rmutex_namespace as (??) "(>Hn & Hcases)" "Hclose".
