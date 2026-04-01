@@ -98,58 +98,68 @@ Section with_cpp.
 End with_cpp.
 End mutex.
 
-Require Import skylabs.auto.cpp.prelude.proof.
+(* Require Import skylabs.auto.cpp.prelude.proof. *)
 Module lock_guard.
 
   sl.lock
-  Definition R `{Σ : cpp_logic, !HasStdThreads Σ} {σ : genv} (mp : ptr * gname * cQp.t) (q : cQp.t) (P : mpred) : Rep :=
+  Definition R `{Σ : cpp_logic, !HasStdThreads Σ} {σ : genv} (mp : ptr * gname * Qp) (q : cQp.t) (P : mpred) : Rep :=
     structR "std::lock_guard<std::mutex>" q **
     let '(mp, g, q') := mp in
     _field "std::lock_guard<std::mutex>::_M_device" |-> refR<"std::mutex"> q mp **
-    mutex.mutex_token g (cQp.scale (1/2) q) **
-    pureR (mp |-> mutex.R g (cQp.scale q q') P).
+    pureR (
+      (* mutex.token g (q * q') ** *)
+      mp |-> mutex.R g (q * q')$m P).
 
   (* #[only(cfractional,cfracvalid,ascfractional)] derive R. *)
   #[only(type_ptr)] derive R.
+  #[only(lazy_unfold)] derive R.
 
 Section with_cpp.
-  Context `{Σ : cpp_logic}.
+  Context `{Σ : cpp_logic, σ : genv}.
 
-  Context `{MOD : source ⊧ σ}.
+  (* Context `{MOD : source ⊧ σ}. *)
   Context {HAS_THREADS : HasStdThreads Σ}.
 
-  cpp.spec "std::lock_guard<std::mutex>::lock_guard(std::mutex &)" as ctor_spec with (
+  cpp.spec "std::lock_guard<std::mutex>::lock_guard(std::mutex &)" as ctor_spec from source with (
     \this this
     \arg{mp} "m" (Vptr mp)
     \persist{thr} current_thread thr
-    \pre{g q P} mp |-> mutex.R g q P
-    \pre mutex.mutex_token g q
+    \pre{g q P} mp |-> mutex.R g q$m P
+    \pre mutex.token g q
     \post
       this |-> R (mp, g, q) 1$m P **
-      P ** mutex.mutex_locked g thr
+      P ** mutex.locked g thr q
       (** TODO maybe wrap [mutex_locked] *)
     ).
 
-  cpp.spec "std::lock_guard<std::mutex>::~lock_guard()" as dtor_spec with (
+  cpp.spec "std::lock_guard<std::mutex>::~lock_guard()" as dtor_spec from source with (
     \this this
     \pre{mp g q P} this |-> R (mp, g, q) 1$m P
     \pre{thr} current_thread thr
-    \pre mutex.mutex_locked g thr
+    \pre mutex.locked g thr q
     \pre ▷P
     \post
-      mutex.mutex_token g q **
-      mp |-> mutex.R g q P
+      mutex.token g q **
+      mp |-> mutex.R g q$m P
   ).
 
-  Axiom mutex_borrow : forall mp g P (this : ptr) (q1 q2 : cQp.t),
-    this |-> R (mp, g, (q1 + q2)%cQp) 1$m P |--
-    mp |-> mutex.R g q1 P **
-    this |-> R (mp, g, q2) 1$m P.
+  Section with_prelude.
 
+    Import skylabs.auto.cpp.prelude.proof.
 
-Import linearity.
+    Lemma mutex_borrow mp g P (this : ptr) (q1 q2 : Qp) :
+      this |-> R (mp, g, (q1 + q2)%Qp) 1$m P |--
+      mp |-> mutex.R g q1$m P **
+      this |-> R (mp, g, q2) 1$m P.
+    Proof.
+      rewrite R.unlock.
+      work.
+      iDestruct select (mp |-> mutex.R g _ P) as "[??]".
+      (* rewrite !left_id_L. *)
+      work.
+    Qed.
+  End with_prelude.
 
-  #[only(lazy_unfold(local))] derive R.
   Lemma ctor_ok : verify[source] ctor_spec.
   Proof.
     verify_spec.
@@ -157,9 +167,19 @@ Import linearity.
     iExists _; go.
     iExists _; go.
     iExists _; go.
-    (* suff : cQp.scale 1 q = q by (rewrite this; go). *)
-    (* Search cQp.scale 1. *)
+    rewrite left_id_L.
+    go.
+  Qed.
 
+  Lemma dtor_ok : verify[source] dtor_spec.
+  Proof.
+    verify_spec.
+    rewrite !R.unlock.
+    go.
+    iExists _; go.
+    iExists _; go.
+    rewrite !left_id_L.
+    go.
   Qed.
 
 End with_cpp.
