@@ -96,24 +96,35 @@ Section with_cpp.
 End with_cpp.
 End mutex.
 
+Require Import skylabs.auto.cpp.prelude.proof.
 Module lock_guard.
+
+  sl.lock
+  Definition R `{Σ : cpp_logic, !HasStdThreads Σ} {σ : genv} (mp : ptr * gname * cQp.t) (q : cQp.t) (P : mpred) : Rep :=
+    structR "std::lock_guard<std::mutex>" q **
+    let '(mp, g, q') := mp in
+    _field "std::lock_guard<std::mutex>::_M_device" |-> refR<"std::mutex"> q mp **
+    mutex.mutex_token g (cQp.scale (1/2) q) **
+    pureR (mp |-> mutex.R g (cQp.scale q q') P).
+
+  (* #[only(cfractional,cfracvalid,ascfractional)] derive R. *)
+  #[only(type_ptr)] derive R.
 
 Section with_cpp.
   Context `{Σ : cpp_logic}.
 
-  Parameter R : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv}, ptr * gname * cQp.t -> cQp.t -> mpred -> Rep.
-  #[only(cfractional,cfracvalid,ascfractional)] derive R.
-  #[global] Declare Instance R_typed : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv}, Typed3 "std::lock_guard<std::mutex>" R.
+  Context `{MOD : source ⊧ σ}.
+  Context {HAS_THREADS : HasStdThreads Σ}.
 
   cpp.spec "std::lock_guard<std::mutex>::lock_guard(std::mutex &)" as ctor_spec with (
     \this this
     \arg{mp} "m" (Vptr mp)
     \persist{thr} current_thread thr
     \pre{g q P} mp |-> mutex.R g q P
-    \pre mutex_token g q
+    \pre mutex.mutex_token g q
     \post
       this |-> R (mp, g, q) 1$m P **
-      P ** mutex_locked g thr
+      P ** mutex.mutex_locked g thr
       (** TODO maybe wrap [mutex_locked] *)
     ).
 
@@ -121,19 +132,34 @@ Section with_cpp.
     \this this
     \pre{mp g q P} this |-> R (mp, g, q) 1$m P
     \pre{thr} current_thread thr
-    \pre mutex_locked g thr
+    \pre mutex.mutex_locked g thr
     \pre ▷P
     \post
-      mutex_token g q **
+      mutex.mutex_token g q **
       mp |-> mutex.R g q P
   ).
 
-  Lemma mutex_borrow mp g q P :
-    this |-> R (mp, g, (q1 + q2)) 1$m P |--
+  Axiom mutex_borrow : forall mp g P (this : ptr) (q1 q2 : cQp.t),
+    this |-> R (mp, g, (q1 + q2)%cQp) 1$m P |--
     mp |-> mutex.R g q1 P **
     this |-> R (mp, g, q2) 1$m P.
+
+
+Import linearity.
+
+  #[only(lazy_unfold(local))] derive R.
+  Lemma ctor_ok : verify[source] ctor_spec.
   Proof.
-  Admitted.
+    verify_spec.
+    go.
+    iExists _; go.
+    iExists _; go.
+    iExists _; go.
+    (* suff : cQp.scale 1 q = q by (rewrite this; go). *)
+    (* Search cQp.scale 1. *)
+
+  Qed.
+
 End with_cpp.
 End lock_guard.
 
