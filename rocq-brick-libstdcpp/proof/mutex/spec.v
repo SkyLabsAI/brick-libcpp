@@ -7,8 +7,7 @@ Require Import skylabs.bi.weakly_objective.
 Require Import skylabs.auto.cpp.weakly_local_with.
 
 Require Import skylabs.auto.cpp.proof.
-(* Require Import skylabs.brick.libstdcpp.mutex.inc_hpp. *)
-Require Import skylabs.brick.libstdcpp.mutex.test_cpp.
+Require Import skylabs.brick.libstdcpp.mutex.inc_hpp.
 Require Export skylabs.brick.libstdcpp.runtime.pred.
 
 Import linearity.
