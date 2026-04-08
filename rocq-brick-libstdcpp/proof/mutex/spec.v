@@ -96,15 +96,6 @@ End with_cpp.
 End mutex.
 
 Module recursive_mutex.
-  (*
-  Inductive locked_ghost :=
-  | Zero (threads : gset thread_idT) : locked_ghost
-  | NonZero (threads : gset thread_idT) (owner : thread_idT) (count : nat) : locked_ghost
-  | Bot.
-
-  NonZero . Zero = NonZero
-
-  *)
   Canonical Structure locked_ghostUR : ucmra :=
     prodR (gset_disjR thread_idTO) (optionR (exclR (prodO thread_idTO natO))).
   (* Not prodO thread_idTO natO. *)
@@ -125,29 +116,24 @@ Module recursive_mutex.
   }.
   #[global] Arguments lockedG {_ _} Σ : assert.
 
-  (*
-  TODO fix: define and use this record instead of reusing the same gname for
-  multiple pieces of ghost state.
-
-  Record gname := MkGname {
-    owned_count_id : iprop.gname;
+  Record gname : Set := MkGname
+  { owned_count_id : iprop.gname;
     locked_gname : iprop.gname;
-    token_gname : iprop.gname;
+    inv_gname : iprop.gname;
   }.
-  *)
 
   (** [owned_count_id_auth γ Some (th, n)] implies that the lock's count is [n + 1]. *)
   sl.lock
   Definition owned_count_id_auth `{Σ : cpp_logic, !lockedG Σ}
     (γ : gname) (om : option (thread_idT * natO)) : mpred :=
-    own γ (●E om).
+    own γ.(owned_count_id) (●E om).
   #[only(timeless)] derive owned_count_id_auth.
 
   (** [owned_count_id_frag γ Some (th, n)] implies that the lock's count is [n + 1]. *)
   sl.lock
   Definition owned_count_id_frag `{Σ : cpp_logic, !lockedG Σ}
     (γ : gname) (om : option (thread_idT * natO)) : mpred :=
-    own γ (◯E om).
+    own γ.(owned_count_id) (◯E om).
   #[only(timeless)] derive owned_count_id_frag.
 
   (** [locked γ th n] implies that the lock's count is [n]: see [used_threads]'s
@@ -155,7 +141,7 @@ Module recursive_mutex.
   sl.lock
   Definition locked `{Σ : cpp_logic, !lockedG Σ}
       (γ : gname) (th : thread_idT) (n : nat) : mpred :=
-      own γ (◯ (GSet {[ th ]},
+      own γ.(locked_gname) (◯ (GSet {[ th ]},
         match n with
         | 0 => None
         | S n => Excl' (th, n)
@@ -168,8 +154,8 @@ Module recursive_mutex.
     (γ : gname) (s : gset thread_idT) : mpred :=
     ∃ n,
     match n with
-    | 0 => own γ (● (GSet s, None)) ** owned_count_id_frag γ None
-    | S n => ∃ t, own γ (● (GSet s, Excl' (t, n))) ** owned_count_id_frag γ (Some (t, n))
+    | 0 => own γ.(locked_gname) (● (GSet s, None)) ** owned_count_id_frag γ None
+    | S n => ∃ t, own γ.(locked_gname) (● (GSet s, Excl' (t, n))) ** owned_count_id_frag γ (Some (t, n))
     end.
 
   #[only(timeless)] derive used_threads.
@@ -295,6 +281,14 @@ cinv (
   TODO: revise.
   *)
 
+  (* NOTE: Invariant used to protect resource [r]
+
+      [[
+      inv (r \\// exists th n, locked th (S n))
+      ]]
+   *)
+
+
   (** Intended meaning: ownership of physical C++ state for an instance of "std::recursive_mutex". *)
   Parameter rawR : ∀ `{Σ : cpp_logic, σ : genv}, option thread_idT -> nat -> Rep.
   (* The thread_idT is None (0) if there is no owner. *)
@@ -307,7 +301,7 @@ cinv (
   sl.lock
   Definition I `{Σ : cpp_logic, σ : genv, !lockedG Σ} (γ : gname) : Rep :=
     type_ptrR "std::recursive_mutex" **
-    cinv rmutex_N γ (∃ owner count, rawR owner count **
+    cinv rmutex_N γ.(inv_gname) (∃ owner count, rawR owner count **
       (* We use [Nat.pred] because [owned_count_id_auth] stores [counter - 1]. *)
       pureR (owned_count_id_auth γ ((λ t, (t, Nat.pred count)) <$> owner))).
   (* TODO: readd [|owner = None <-> count = O|] elsewhere, as sequential invariant in [R]. *)
@@ -319,7 +313,7 @@ cinv (
     (* TODO: add here sequential ownership of the lock, and maybe replace I by the lock invariant.
     Something like *)
     (* _mutex_field |-> mutex.R q ... ** *)
-    cinv_own γ q.
+    cinv_own γ.(inv_gname) q.
   #[only(cfractional,ascfractional,timeless,type_ptr="std::recursive_mutex")] derive R.
 
 
@@ -327,15 +321,6 @@ cinv (
     Context `{Σ : cpp_logic} `{MOD : source ⊧ σ}.
     Context {HAS_THREADS : HasStdThreads Σ}.
     Context `{!lockedG Σ}.
-
-    (* NOTE: Invariant used to protect resource [r]
-      inv (r \\// exists th n, locked th (S n)) *)
-    (* recursive mutex -- physical ownership of the fields. *)
-
-    (*
-    TODO:
-    - different gammas for invariant and ghost state. (fix records)
-    *)
 
     #[global] Instance I_learn : Cbn (Learn (learn_eq ==> learn_hints.fin) I).
     Proof. solve_learnable. Qed.
@@ -396,7 +381,7 @@ cinv (
 
   (** * Derived construction *)
   Record rmutex_gname :=
-    { lock_gname : gname; level_gname : gname }.
+    { lock_gname : gname; level_gname : iprop.gname }.
   Definition rmutex_namespace := nroot .@@ "std" .@@ "recursive_mutex" .@@ "derived".
 
   Canonical Structure cmraR := (excl_authR (prodO natO thread_idTO)).
@@ -597,10 +582,6 @@ cinv (
       | Held n xs => Held n (tele_app f xs)
       end.
 
-    (* TODO maybe a hint that says
-      TCEq f1 f2 ->
-      acquireable _ _ f1 ⊢ acquireable _ _ f2.
-      *)
     Lemma update_eq {TT : tele} f t1 t2 : acquire t1 t2 ->
         update f t1 = release (TT := TT) (update f t2).
     Proof.
