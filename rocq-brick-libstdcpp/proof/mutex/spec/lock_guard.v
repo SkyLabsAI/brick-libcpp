@@ -81,7 +81,7 @@ Section with_cpp.
   cpp.spec "std::lock_guard<std::mutex>::~lock_guard()" as dtor_spec from source with (
     \this this
     \pre{mp g q P} this |-> R (mp, g, q) 1$m P
-    \pre{thr} current_thread thr
+    \persist{thr} current_thread thr
     \pre mutex.locked g thr q
     \pre ▷P
     \post

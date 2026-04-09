@@ -78,7 +78,7 @@ Section with_cpp.
   cpp.spec "std::mutex::try_lock()" as try_lock_spec with
       (\this this
       \prepost{q P g} this |-> R g q P (* part of both pre and post *)
-      \prepost{th} current_thread th
+      \persist{th} current_thread th
       \pre token g q
       \post{b}[Vbool b] if b then P ** locked g th q else token g q).
 
