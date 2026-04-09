@@ -14,16 +14,6 @@ Require Import skylabs.brick.libstdcpp.ctime.inc_ctime_cpp.
 Section with_cpp.
   Context `{Σ : cpp_logic, module ⊧ σ}.
 
-  #[ignore_missing]
-  cpp.spec "tm::~tm()" as tm_dtor_spec with
-    (\this this
-     \post emp).
-
-  #[ignore_missing]
-  cpp.spec "timespec::~timespec()" as timespec_dtor_spec with
-    (\this this
-     \post emp).
-
   cpp.spec (named "clock") with
     (\post{ticks}[Vint ticks]
       [| clock_result ticks \/ ticks = -1 |]).
@@ -126,9 +116,3 @@ Section with_cpp.
   (* BRiCk does not currently support doubles, so [difftime] is deferred. *)
 
 End with_cpp.
-
-#[global] Hint Extern 1000 (SpecFor "tm::~tm()"%cpp_name _) =>
-  exact (SpecFor.mk _ emp) : typeclass_instances.
-
-#[global] Hint Extern 1000 (SpecFor "timespec::~timespec()"%cpp_name _) =>
-  exact (SpecFor.mk _ emp) : typeclass_instances.
