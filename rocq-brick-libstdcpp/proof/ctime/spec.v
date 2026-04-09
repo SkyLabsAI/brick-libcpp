@@ -5,7 +5,7 @@
  *)
 Require Import skylabs.auto.cpp.prelude.proof.
 
-Require Export skylabs.brick.libstdcpp.ctime.model.
+Require Export skylabs.brick.libstdcpp.ctime.pred.
 Require Import skylabs.brick.libstdcpp.ctime.inc_ctime_cpp.
 
 #[local] Set Primitive Projections.
@@ -23,7 +23,8 @@ Section with_cpp.
      \pre if bool_decide (timer_p = nullptr) then emp
           else timer_p |-> anyR Tlong 1$m
      \post{t}[Vint t]
-       [| current_time_result t |] **
+       [| 0 <= t |] **
+       later_than (abs_time_of_N (Z.to_N t)) **
        if bool_decide (timer_p = nullptr) then emp
        else timer_p |-> primR Tlong 1$m (Vint t)).
 

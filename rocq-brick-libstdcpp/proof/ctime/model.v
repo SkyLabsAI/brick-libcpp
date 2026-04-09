@@ -4,19 +4,37 @@
  * See the LICENSE-BedRock file in the repository root for details.
  *)
 Require Import skylabs.auto.cpp.prelude.spec.
-
-Require Export skylabs.brick.libstdcpp.ctime.pred.
+Require Export skylabs.cpp.string.
 
 #[local] Set Primitive Projections.
 #[local] Open Scope Z_scope.
+
+Record tm_model := {
+  tm_model_sec : Z;
+  tm_model_min : Z;
+  tm_model_hour : Z;
+  tm_model_mday : Z;
+  tm_model_mon : Z;
+  tm_model_year : Z;
+  tm_model_wday : Z;
+  tm_model_yday : Z;
+  tm_model_isdst : Z;
+}.
+
+Record timespec_model := {
+  timespec_model_sec : Z;
+  timespec_model_nsec : Z;
+}.
 
 Definition TIME_UTC : Z := 1.
 
 Definition clock_t_model := Z.
 Definition time_t_model := Z.
 
+Parameter abs_time : Type.
+Parameter abs_time_of_N : N -> abs_time.
+
 Parameter clock_result : clock_t_model -> Prop.
-Parameter current_time_result : time_t_model -> Prop.
 Parameter timespec_get_result : timespec_model -> Prop.
 Parameter utc_time_to_tm : time_t_model -> tm_model -> Prop.
 Parameter local_time_to_tm : time_t_model -> tm_model -> Prop.

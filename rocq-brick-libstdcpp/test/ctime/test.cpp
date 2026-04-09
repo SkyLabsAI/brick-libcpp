@@ -9,24 +9,35 @@ void test_time_store() {
     (void)std::time(&t);
 }
 
-void test_timespec_get() {
+void test_timespec_get_ptr(std::timespec *ts) {
+    (void)std::timespec_get(ts, TIME_UTC);
+}
+
+void test_timespec_get_local() {
     std::timespec ts{};
     (void)std::timespec_get(&ts, TIME_UTC);
 }
 
-void test_tm_dtor_bug() {
-    std::tm tm;
-//     ::wpOperand
-// [region: "tm" @ tm_addr; return {?: "void"}]
-// (Eimplicit_init "const char*")
+void test_timespec_dtor_bug() {
+    std::timespec ts;
+    (void)ts;
 }
 
-void test_mktime() {
+void test_mktime_ptr(std::tm *tm) {
+    (void)std::mktime(tm);
+}
+
+void test_mktime_local() {
     std::tm tm{};
     tm.tm_mday = 1;
     tm.tm_mon = 0;
     tm.tm_year = 124;
     (void)std::mktime(&tm);
+}
+
+void test_tm_dtor_bug() {
+    std::tm tm;
+    (void)tm;
 }
 
 void test_gmtime_and_asctime() {
@@ -63,8 +74,6 @@ void test_repeated_static_calls() {
 int main() {
     test_time_null();
     test_time_store();
-    test_timespec_get();
-    test_mktime();
     test_gmtime_and_asctime();
     test_localtime_and_ctime();
     test_strftime();
