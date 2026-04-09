@@ -44,11 +44,11 @@ Section with_cpp.
 
   cpp.spec (named "mktime") with
     (\arg{tm_p} "__tp" (Vptr tm_p)
-     \prepost{q tm_in} tm_p |-> tmR q tm_in
+     \pre{tm_in} tm_p |-> tmR 1$m tm_in
      \post{t}[Vint t]
        Exists tm_out,
          [| mktime_result tm_in tm_out t |] **
-         tm_p |-> tmR q tm_out).
+         tm_p |-> tmR 1$m tm_out).
 
   cpp.spec (named "gmtime") with
     (\arg{timer_p} "__timer" (Vptr timer_p)

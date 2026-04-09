@@ -55,19 +55,17 @@ Section with_cpp.
 
   cpp.spec "test_mktime_ptr(tm* )" with (
     \arg{tm_p} "tm" (Vptr tm_p)
-    \prepost{q tm_in} tm_p |-> tmR q tm_in
+    \pre{tm_in} tm_p |-> tmR 1$m tm_in
     \post
       Exists t tm_out,
         [| mktime_result tm_in tm_out t |] **
-        tm_p |-> tmR q tm_out
+        tm_p |-> tmR 1$m tm_out
   ).
   Lemma test_mktime_ptr_ok : verify[module] "test_mktime_ptr(tm* )".
   Proof.
     verify_spec.
     go.
-    iFrame.
-    go.
-    iExists _, _.
+    iExists _.
     go.
   Qed.
 

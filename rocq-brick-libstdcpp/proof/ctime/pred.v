@@ -50,5 +50,8 @@ Definition timespecR `{Σ : cpp_logic} {σ : genv} (q : cQp.t) (ts : timespec_mo
 #[only(lazy_unfold)] derive timespecR.
 #[only(type_ptr,cfracsplittable)] derive timespecR.
 
+#[global] Instance tmR_learnable `{Σ : cpp_logic} {σ : genv} : LearnEqF1 tmR :=
+  ltac:(solve_learnable).
+
 #[global] Instance timespecR_learnable `{Σ : cpp_logic} {σ : genv} : LearnEqF1 timespecR :=
   ltac:(solve_learnable).
