@@ -64,8 +64,6 @@ Section with_cpp.
     verify_spec.
     go.
     iFrame.
-    iExists q, tm_in.
-    iFrame.
     go.
     iExists _, _.
     go.
