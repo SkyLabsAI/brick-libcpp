@@ -3,7 +3,7 @@
  * This software is distributed under the terms of the BedRock Open-Source License.
  * See the LICENSE-BedRock file in the repository root for details.
  *)
-Require Import skylabs.auto.cpp.proof.
+Require Import skylabs.auto.cpp.prelude.proof.
 
 Require Import skylabs.brick.libstdcpp.ctime.spec.
 Require Import skylabs.brick.libstdcpp.test.ctime.test_cpp.
@@ -32,14 +32,11 @@ Section with_cpp.
   Proof.
     verify_spec.
     go.
-    iExists _.
-    iFrame.
     case_bool_decide.
     - iLeft.
       go.
-    - go.
-      iRight.
-      iFrame.
+    - iRight.
+      go.
   Qed.
 
   Lemma test_timespec_get_local_repro : True.
