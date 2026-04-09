@@ -3,6 +3,8 @@ Require Import skylabs.brick.libstdcpp.iostream.spec.
 
 Require Import skylabs.brick.libstdcpp.test.geeks_for_geeks_examples.N1_hello_world_cpp.
 
+Import linearity.
+
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
 
@@ -14,7 +16,10 @@ Section with_cpp.
 
   Lemma main_ok : verify[source] "main()".
   Proof.
-    verify_spec; go.
+    verify_shift; go.
+    banish_string_literals.
+    iModIntro.
+    go.
   Qed.
 
 End with_cpp.
