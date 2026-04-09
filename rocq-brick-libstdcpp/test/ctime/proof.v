@@ -32,7 +32,15 @@ Section with_cpp.
   Proof.
     verify_spec.
     go.
-  Admitted.
+    iExists _.
+    iFrame.
+    case_bool_decide.
+    - iLeft.
+      go.
+    - go.
+      iRight.
+      iFrame.
+  Qed.
 
   Lemma test_timespec_get_local_repro : True.
   Proof.
@@ -49,15 +57,22 @@ Section with_cpp.
   cpp.spec "test_mktime_ptr(tm* )" with (
     \arg{tm_p} "tm" (Vptr tm_p)
     \prepost{q tm_in} tm_p |-> tmR q tm_in
-    \post{t}[Vint t]
-      Exists tm_out,
+    \post
+      Exists t tm_out,
         [| mktime_result tm_in tm_out t |] **
         tm_p |-> tmR q tm_out
   ).
   Lemma test_mktime_ptr_ok : verify[module] "test_mktime_ptr(tm* )".
   Proof.
-    verify_spec; go.
-  Admitted.
+    verify_spec.
+    go.
+    iFrame.
+    iExists q, tm_in.
+    iFrame.
+    go.
+    iExists _, _.
+    go.
+  Qed.
 
   Lemma test_mktime_local_repro : True.
   Proof.
@@ -99,6 +114,6 @@ Section with_cpp.
   Lemma main_ok : verify[module] "main()".
   Proof.
     verify_spec; go.
-  Admitted.
+  Qed.
 
 End with_cpp.
