@@ -86,26 +86,30 @@ Section with_cpp.
   cpp.spec "test_gmtime_and_asctime()" default.
   Lemma test_gmtime_and_asctime_ok : verify[module] "test_gmtime_and_asctime()".
   Proof.
-    verify_spec; go.
-  Admitted.
+    verify_spec.
+    go.
+    wp_if; go.
+  Qed.
 
   cpp.spec "test_localtime_and_ctime()" default.
   Lemma test_localtime_and_ctime_ok : verify[module] "test_localtime_and_ctime()".
   Proof.
     verify_spec; go.
-  Admitted.
+  Qed.
 
   cpp.spec "test_strftime()" default.
   Lemma test_strftime_ok : verify[module] "test_strftime()".
   Proof.
-    verify_spec; go.
+    verify_spec.
+    go.
+    wp_if; go.
   Admitted.
 
   cpp.spec "test_repeated_static_calls()" default.
   Lemma test_repeated_static_calls_ok : verify[module] "test_repeated_static_calls()".
   Proof.
     verify_spec; go.
-  Admitted.
+  Qed.
 
   cpp.spec "main()" default.
   Lemma main_ok : verify[module] "main()".
