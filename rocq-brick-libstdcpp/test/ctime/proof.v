@@ -39,17 +39,19 @@ Section with_cpp.
       go.
   Qed.
 
-  Lemma test_timespec_get_local_repro : True.
+  cpp.spec "test_timespec_get_local()" default.
+  Lemma test_timespec_get_local_repro : verify?[module] "test_timespec_get_local()".
   Proof.
     (* Intentionally preserves the POD local-dtor completeness repro for [timespec]. *)
-    exact I.
-  Qed.
+    verify_spec; go.
+  Admitted.
 
-  Lemma test_timespec_dtor_bug_repro : True.
+  cpp.spec "test_timespec_dtor_bug()" default.
+  Lemma test_timespec_dtor_bug_repro : verify?[module] "test_timespec_dtor_bug()".
   Proof.
     (* Intentionally preserves the isolated POD ctor/dtor completeness repro for [timespec]. *)
-    exact I.
-  Qed.
+    verify_spec; go.
+  Admitted.
 
   cpp.spec "test_mktime_ptr(tm* )" with (
     \arg{tm_p} "tm" (Vptr tm_p)
@@ -69,17 +71,19 @@ Section with_cpp.
     go.
   Qed.
 
-  Lemma test_mktime_local_repro : True.
+  cpp.spec "test_mktime_local()" default.
+  Lemma test_mktime_local_repro : verify?[module] "test_mktime_local()".
   Proof.
     (* Intentionally preserves the POD local-dtor completeness repro for [tm]. *)
-    exact I.
-  Qed.
+    verify_spec; go.
+  Admitted.
 
-  Lemma test_tm_dtor_bug_repro : True.
+  cpp.spec "test_tm_dtor_bug()" default.
+  Lemma test_tm_dtor_bug_repro : verify?[module] "test_tm_dtor_bug()".
   Proof.
     (* Intentionally preserves the isolated POD ctor/dtor completeness repro for [tm]. *)
-    exact I.
-  Qed.
+    verify_spec; go.
+  Admitted.
 
   cpp.spec "test_gmtime_and_asctime()" default.
   Lemma test_gmtime_and_asctime_ok : verify[module] "test_gmtime_and_asctime()".
