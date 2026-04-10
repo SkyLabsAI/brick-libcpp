@@ -11,36 +11,25 @@ Require Import skylabs.brick.libstdcpp.test.ctime.test_cpp.
 Section with_cpp.
   Context `{Σ : cpp_logic} `{MOD : module ⊧ σ}.
 
+  Lemma arrayLR_to_arrayR_at {A} (ty : type) (lo hi : Z) (R : A -> Rep) (xs : list A) (p : ptr) :
+    is_Some (size_of σ ty) ->
+    p |-> arrayLR ty lo hi R xs ⊣⊢
+      [| lengthZ xs = hi - lo |] ** p .[ ty ! lo ] |-> arrayR ty R xs.
+  Proof.
+    intros Hsz.
+    rewrite arrayLR.unlock _at_sep _at_only_provable.
+    by rewrite _at_offsetR.
+  Qed.
+
   Lemma arrayLR_to_arrayR {A} (ty : type) (R : A -> Rep) (xs : list A) (p : ptr) :
+    is_Some (size_of σ ty) ->
     p |-> arrayLR ty 0 (lengthZ xs) R xs ⊢ p |-> arrayR ty R xs.
   Proof.
-    induction xs as [|x xs IH] in p |- *.
-    - rewrite arrayR_nil.
-      go.
-      cbn in *.
-      rewrite (offset_ptr_sub_0 p ty H).
-      done.
-    - rewrite _at_arrayR_cons.
-      rewrite arrayLR_cons.
-      iIntros "[[Htp Hx] Hxs]".
-      iPoseProof (type_ptr_size ty (p .[ ty ! 0 ]) with "Htp") as "%Hsz".
-      iSplitL "Htp".
-      + rewrite (offset_ptr_sub_0 p ty Hsz).
-        iExact "Htp".
-      + iSplitL "Hx".
-        * rewrite (offset_ptr_sub_0 p ty Hsz).
-          iExact "Hx".
-        * iAssert ((p .[ ty ! 1 ]) |-> arrayLR ty 0 (lengthZ xs) R xs)%I with "[Hxs]" as "Hxs'".
-          { rewrite (_at_sub_arrayLR p R 1 0 (lengthZ xs) xs).
-            replace (1 + lengthZ xs)%Z with (lengthZ (x :: xs)).
-            2: {
-              rewrite lengthN_cons.
-              rewrite N2Z.inj_add.
-              lia.
-            }
-            iExact "Hxs".
-          }
-          iApply (IH (p .[ ty ! 1 ]) with "Hxs'").
+    intros Hsz.
+    rewrite (arrayLR_to_arrayR_at ty 0 (lengthZ xs) R xs p Hsz).
+    rewrite (_at_sub_0 p ty (arrayR ty R xs) Hsz).
+    iIntros "[_ Harr]".
+    iExact "Harr".
   Qed.
 
   Lemma arrayLR_zeros_cstring_bufR_build (p : ptr) (sz : N) :
@@ -49,6 +38,8 @@ Section with_cpp.
       ⊢ p |-> cstring.bufR 1$m sz "".
   Proof.
     intros Hnz.
+    assert (Hchar : is_Some (size_of σ "char")).
+    { compute. eauto. }
     iIntros "Hbuf".
     iApply (arrayR_zeros_cstring_bufR_build sz); [done|].
     replace (Z.of_N sz) with (lengthZ (replicateN sz (Vchar 0))).
@@ -56,7 +47,7 @@ Section with_cpp.
       rewrite lengthN_replicateN.
       reflexivity.
     }
-    iApply (arrayLR_to_arrayR with "Hbuf").
+    iApply (arrayLR_to_arrayR _ _ _ _ Hchar with "Hbuf").
   Qed.
 
   cpp.spec "test_time_null()" default.
