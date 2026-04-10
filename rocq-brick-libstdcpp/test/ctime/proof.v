@@ -11,6 +11,54 @@ Require Import skylabs.brick.libstdcpp.test.ctime.test_cpp.
 Section with_cpp.
   Context `{Σ : cpp_logic} `{MOD : module ⊧ σ}.
 
+  Lemma arrayLR_to_arrayR {A} (ty : type) (R : A -> Rep) (xs : list A) (p : ptr) :
+    p |-> arrayLR ty 0 (lengthZ xs) R xs ⊢ p |-> arrayR ty R xs.
+  Proof.
+    induction xs as [|x xs IH] in p |- *.
+    - rewrite arrayR_nil.
+      go.
+      cbn in *.
+      rewrite (offset_ptr_sub_0 p ty H).
+      done.
+    - rewrite _at_arrayR_cons.
+      rewrite arrayLR_cons.
+      iIntros "[[Htp Hx] Hxs]".
+      iPoseProof (type_ptr_size ty (p .[ ty ! 0 ]) with "Htp") as "%Hsz".
+      iSplitL "Htp".
+      + rewrite (offset_ptr_sub_0 p ty Hsz).
+        iExact "Htp".
+      + iSplitL "Hx".
+        * rewrite (offset_ptr_sub_0 p ty Hsz).
+          iExact "Hx".
+        * iAssert ((p .[ ty ! 1 ]) |-> arrayLR ty 0 (lengthZ xs) R xs)%I with "[Hxs]" as "Hxs'".
+          { rewrite (_at_sub_arrayLR p R 1 0 (lengthZ xs) xs).
+            replace (1 + lengthZ xs)%Z with (lengthZ (x :: xs)).
+            2: {
+              rewrite lengthN_cons.
+              rewrite N2Z.inj_add.
+              lia.
+            }
+            iExact "Hxs".
+          }
+          iApply (IH (p .[ ty ! 1 ]) with "Hxs'").
+  Qed.
+
+  Lemma arrayLR_zeros_cstring_bufR_build (p : ptr) (sz : N) :
+    StringSidecond (sz <> 0%N) ->
+    p |-> arrayLR "char" 0 (Z.of_N sz) (primR "char" 1$m) (replicateN sz (Vchar 0))
+      ⊢ p |-> cstring.bufR 1$m sz "".
+  Proof.
+    intros Hnz.
+    iIntros "Hbuf".
+    iApply (arrayR_zeros_cstring_bufR_build sz); [done|].
+    replace (Z.of_N sz) with (lengthZ (replicateN sz (Vchar 0))).
+    2: {
+      rewrite lengthN_replicateN.
+      reflexivity.
+    }
+    iApply (arrayLR_to_arrayR with "Hbuf").
+  Qed.
+
   cpp.spec "test_time_null()" default.
   Lemma test_time_null_ok : verify[module] "test_time_null()".
   Proof. verify_spec; go. Qed.
@@ -103,6 +151,12 @@ Section with_cpp.
     verify_spec.
     go.
     wp_if; go.
+    iExists (""%bs).
+    iSplitL.
+    - iApply (arrayLR_zeros_cstring_bufR_build buf_addr 32%N).
+      + done.
+      + iFrame.
+    - (* Remaining cleanup blocker: downgrade [cstring.bufR] back to the stack-array [anyR] shape. *)
   Admitted.
 
   cpp.spec "test_repeated_static_calls()" default.
