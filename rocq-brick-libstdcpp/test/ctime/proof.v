@@ -12,24 +12,30 @@ Section with_cpp.
   Context `{Σ : cpp_logic} `{MOD : module ⊧ σ}.
 
   Lemma arrayLR_to_arrayR_at {A} (ty : type) (lo hi : Z) (R : A -> Rep) (xs : list A) (p : ptr) :
-    is_Some (size_of σ ty) ->
     p |-> arrayLR ty lo hi R xs ⊣⊢
       [| lengthZ xs = hi - lo |] ** p .[ ty ! lo ] |-> arrayR ty R xs.
   Proof.
-    intros Hsz.
-    rewrite arrayLR.unlock _at_sep _at_only_provable.
-    by rewrite _at_offsetR.
+    rewrite arrayLR.unlock.
+    by rewrite _at_sep _at_only_provable _at_offsetR.
   Qed.
 
+  Lemma _at_arrayR_valid_type_obs {A} (R : A -> Rep) (p : ptr) xs ty :
+    Observe [| is_Some (size_of σ ty) |] (p |-> arrayR ty R xs).
+  Proof.
+    rewrite -_at_only_provable. apply _at_observe, arrayR_valid_type_obs.
+  Qed.
+
+  Lemma _at_arrayR_valid_type_obs' {A} (R : A -> Rep) (p : ptr) xs ty :
+    Observe [| HasSize ty |] (p |-> arrayR ty R xs).
+  Proof. unfold HasSize. apply _. Qed.
+
   Lemma arrayLR_to_arrayR {A} (ty : type) (R : A -> Rep) (xs : list A) (p : ptr) :
-    is_Some (size_of σ ty) ->
     p |-> arrayLR ty 0 (lengthZ xs) R xs ⊢ p |-> arrayR ty R xs.
   Proof.
-    intros Hsz.
-    rewrite (arrayLR_to_arrayR_at ty 0 (lengthZ xs) R xs p Hsz).
-    rewrite (_at_sub_0 p ty (arrayR ty R xs) Hsz).
-    iIntros "[_ Harr]".
-    iExact "Harr".
+    rewrite arrayLR_to_arrayR_at.
+    iIntros "[_ ?]".
+    iDestruct (_at_arrayR_valid_type_obs' with "[$]") as %Hsz.
+    by normalize_ptrs.
   Qed.
 
   Lemma arrayLR_zeros_cstring_bufR_build (p : ptr) (sz : N) :
@@ -38,8 +44,6 @@ Section with_cpp.
       ⊢ p |-> cstring.bufR 1$m sz "".
   Proof.
     intros Hnz.
-    assert (Hchar : is_Some (size_of σ "char")).
-    { compute. eauto. }
     iIntros "Hbuf".
     iApply (arrayR_zeros_cstring_bufR_build sz); [done|].
     replace (Z.of_N sz) with (lengthZ (replicateN sz (Vchar 0))).
@@ -47,7 +51,7 @@ Section with_cpp.
       rewrite lengthN_replicateN.
       reflexivity.
     }
-    iApply (arrayLR_to_arrayR _ _ _ _ Hchar with "Hbuf").
+    iApply (arrayLR_to_arrayR _ _ _ _ with "Hbuf").
   Qed.
 
   cpp.spec "test_time_null()" default.
