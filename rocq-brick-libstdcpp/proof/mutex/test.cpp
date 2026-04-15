@@ -7,3 +7,10 @@ void test() {
   m.lock();
   m.unlock();
 }
+
+void test2() {
+  std::mutex m;
+  {
+    std::lock_guard<std::mutex> lm(m);
+  }
+}

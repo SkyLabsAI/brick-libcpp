@@ -2,9 +2,7 @@
 {
   "name": "SkyLabs FM default",
   "image":
-    // "ghcr.io/skylabsai/workspace:fm-release",
-    // "skylabsai/fm-releases:2025-11-16-llvm-19",
-    "skylabsai/fm-releases:fm-release-llvm-19",
+    "skylabsai/fm-releases:fm-release",
   "runArgs": [
     "--platform",
     "linux/amd64",
@@ -18,7 +16,7 @@
         "vsrocq.path": "/home/coq/.opam/main/bin/vsrocqtop"
       },
       "extensions": [
-        "rocq-prover.vsrocq",
+        "rocq-prover.vsrocq@2.3.4",
         "ocamllabs.ocaml-platform",
         "zeithaste.cursorcharcode@0.2.5",
         "mr-konn.generic-input-method"
