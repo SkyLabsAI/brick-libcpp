@@ -29,10 +29,32 @@ Section with_cpp.
   #[global] Existing Instance later_than_timeless.
   #[global] Existing Instance later_than_weakly_objective.
 
-  (* TODO: Investigate whether [tm_zone] should be owned, borrowed, or abstracted away. *)
+  (** Abstract model for the non-standard tail of glibc's [struct tm].
+
+      The public [tm_model] and [tmR] expose only the 9 ISO C fields.
+      Anything specific to the extra glibc fields lives here instead.
+
+      For now we choose the smallest possible hidden model, namely [unit]:
+      clients learn nothing about [tm_gmtoff] or [tm_zone], and the hidden
+      tail is represented only through [tmR_hidden]. This keeps the current
+      TODO local: we can later replace [unit] with a richer model once we
+      decide whether [tm_zone] should be owned, borrowed, or abstracted in
+      some other way. *)
+  Definition hidden_tm_bits : Type := unit.
+
+  (** Representation of the hidden, non-standard tail of [struct tm].
+
+      This predicate is the only place where the glibc-specific fields
+      [tm_gmtoff] and [tm_zone] may appear. It is meant to describe those
+      fields relative to the enclosing [tm] object while keeping their exact
+      ownership story abstract from clients of [tmR].
+
+      The hidden index is currently [unit], so [tmR_hidden] is effectively a
+      single abstract tail predicate. If we later decide to expose some hidden
+      semantic information, this is the place to refine. *)
   Parameter tmR_hidden :
-    cQp.t -> tm_model -> Rep.
-  #[only(type_ptr="tm", cfracsplittable)] derive tmR_hidden.
+    cQp.t -> hidden_tm_bits -> Rep.
+  #[only(cfracsplittable)] derive tmR_hidden.
 
   Parameter timespecR_raw : cQp.t -> timespec_model -> Rep.
   #[only(type_ptr="timespec", cfracsplittable)] derive timespecR_raw.
@@ -40,7 +62,17 @@ End with_cpp.
 
 sl.lock
 Definition tmR `{Σ : cpp_logic} {σ : genv} (q : cQp.t) (tm : tm_model) : Rep :=
-  tmR_hidden q tm.
+  structR "tm" q **
+  _field "tm::tm_sec" |-> primR Tint q (Vint tm.(tm_model_sec)) **
+  _field "tm::tm_min" |-> primR Tint q (Vint tm.(tm_model_min)) **
+  _field "tm::tm_hour" |-> primR Tint q (Vint tm.(tm_model_hour)) **
+  _field "tm::tm_mday" |-> primR Tint q (Vint tm.(tm_model_mday)) **
+  _field "tm::tm_mon" |-> primR Tint q (Vint tm.(tm_model_mon)) **
+  _field "tm::tm_year" |-> primR Tint q (Vint tm.(tm_model_year)) **
+  _field "tm::tm_wday" |-> primR Tint q (Vint tm.(tm_model_wday)) **
+  _field "tm::tm_yday" |-> primR Tint q (Vint tm.(tm_model_yday)) **
+  _field "tm::tm_isdst" |-> primR Tint q (Vint tm.(tm_model_isdst)) **
+  tmR_hidden q tt.
 #[only(lazy_unfold)] derive tmR.
 #[only(type_ptr,cfracsplittable)] derive tmR.
 
