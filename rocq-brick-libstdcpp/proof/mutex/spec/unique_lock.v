@@ -55,13 +55,13 @@ Section with_cpp.
       Definition do_unlock (thr : thread_idT) (lk : ptr * gname * Qp * mpred) (Q : mpred) : mpred :=
         match lk with
         | (mp, g, q, P) =>
-          mutex.locked g thr q ** ▷P ** |> (mutex.token g q -* Q)
+          mutex.locked g thr q ** ▷P ** ▷(mutex.token g q -* Q)
         end.
 
       Definition do_lock (thr : thread_idT) (lk : ptr * gname * Qp * mpred) (Q : mpred) : mpred :=
         match lk with
         | (mp, g, q, P) =>
-          mutex.token g q ** |> (mutex.locked g thr q ** ▷P -* Q)
+          mutex.token g q ** ▷(mutex.locked g thr q ** ▷P -* Q)
         end.
 
       cpp.spec "std::unique_lock<std::mutex>::unique_lock()"
@@ -117,7 +117,7 @@ Section with_cpp.
           match om with
           | Some (true, mm) => do_unlock thr mm K
           | Some (false, (mp, g, q, P)) =>
-            |> (mp |-> mutex.R g q$m P -* K)
+            ▷ (mp |-> mutex.R g q$m P -* K)
           | _ => K
           end
         \post K
