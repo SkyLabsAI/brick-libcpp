@@ -109,6 +109,8 @@ Section with_cpp.
           other |-> R 1$m None
       ).
 
+      (* spec for dtor written with do_unlock; dtor_spec below should be
+      equivalent to dtor_spec_alt. *)
       cpp.spec "std::unique_lock<std::mutex>::~unique_lock()" as dtor_spec_alt from source with (
         \this this
         \persist{thr} current_thread thr
