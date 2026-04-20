@@ -131,19 +131,23 @@ Section with_cpp.
           other |-> R 1$m None
       ).
 
-      (* spec for dtor written with do_unlock; dtor_spec below should be
-      equivalent to dtor_spec_alt. *)
+      (* unlock the associated mutex, if any  *)
+      Definition ensure_unlock (thr : thread_idT) (om : option (bool * (ptr * gname * Qp * mpred))) (Q : mpred) : mpred :=
+        match om with
+        | Some (true, mm) => do_unlock thr mm Q
+        | Some (false, (mp, g, q, P)) =>
+          ▷ (mp |-> mutex.R g q$m P -* Q)
+        | _ => (* TODO should this be [bi_later Q]? *) Q
+        end.
+
+      (* spec for dtor written with do_unlock.
+      Should be equivalent to dtor_spec. *)
       cpp.spec "std::unique_lock<std::mutex>::~unique_lock()" as dtor_spec_alt from source with (
         \this this
         \persist{thr} current_thread thr
         \pre{om} this |-> R 1$m om
         \pre{K}
-          match om with
-          | Some (true, mm) => do_unlock thr mm K
-          | Some (false, (mp, g, q, P)) =>
-            ▷ (mp |-> mutex.R g q$m P -* K)
-          | _ => K
-          end
+          ensure_unlock thr om K
         \post K
         ).
 
@@ -162,6 +166,22 @@ Section with_cpp.
           | Some (false, (mp, g, q, P)) => mp |-> mutex.R g q$m P
           | None => emp
           end
+        ).
+
+      (* unlock the associated mutex, if any, and set input as the associated mutex.
+      Should be equivalent to move_assign_spec. *)
+      cpp.spec "std::unique_lock<std::mutex>::operator=(std::unique_lock<std::mutex> &&)" as move_assign_spec_alt from source with (
+        \this this
+        \arg{other} "" (Vptr other)
+        \pre{om1} this |-> R 1$m om1
+        \pre{om2} other |-> R 1$m om2
+        \persist{thr} current_thread thr
+        \pre{K}
+          ensure_unlock thr om1 K
+        \post
+          this |-> R 1$m om2 **
+          other |-> R 1$m None **
+          K
         ).
 
       cpp.spec "std::unique_lock<std::mutex>::operator=(std::unique_lock<std::mutex> &&)" as move_assign_spec from source with (
