@@ -2,19 +2,22 @@
 
 ## Current Slice
 
-The first supported API slice covers the read-only byte-string functions
-`strlen`, `strcmp`, and `strncmp`.
+The supported read-only API slices cover the null-terminated byte-string
+functions `strlen`, `strcmp`, `strncmp`, `strchr`, `strrchr`, `strspn`,
+`strcspn`, `strpbrk`, and `strstr`.
 
 The reusable specs use the existing `cstring.R` abstraction. This keeps the
 library-facing contract aligned with existing clients such as `cstdlib::atoi`
 and `iostream`: callers provide a pointer to a valid null-terminated C string
 whose logical payload is a `cstring.t`.
 
-The ordinary litmus tests for this slice are proven in both
-`test/cstring/proof.v` and `test/cstring/proof_old.v`. Embedded-null literal
-tests are split into separate functions; they are specified but left admitted
-in the active `cstring.R` development, and proven in `proof_old.v` using the
-archived lower-level bridge.
+The ordinary v1 litmus tests for `strlen`, `strcmp`, and `strncmp` are proven
+in both `test/cstring/proof.v` and `test/cstring/proof_old.v`. The newer
+search/segment litmus tests are proven in the active development. Embedded-null
+literal tests are split into separate functions; the v1 literal tests are
+specified but left admitted in the active `cstring.R` development, and proven
+in `proof_old.v` using the archived lower-level bridge. Active `char[]`
+array-buffer tests cover the corresponding client-side splitting pattern.
 
 ## Representation Choice
 
@@ -42,6 +45,16 @@ Their proofs therefore use local `arrayR` splitting/recombination lemmas to
 match the generated proof state directly. This should not be read as a general
 preference for `arrayR` in library specs; it is a proof-local accommodation for
 the shape of generated stack-buffer resources.
+
+### Character Arguments
+
+Functions such as `strchr` and `strrchr` take an `int` argument but the textual
+specification searches for `static_cast<char>(ch)`. The active specs currently
+model only byte-range arguments with `valid<"unsigned char"> ch`. This is a
+deliberately conservative slice: it avoids claiming behavior for
+out-of-byte-range `int` arguments, whose result depends on the C++ conversion
+to `char` and therefore on implementation choices such as signedness and
+representable values.
 
 ## Archived Alternative
 

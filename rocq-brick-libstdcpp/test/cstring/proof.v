@@ -128,7 +128,7 @@ Section with_cpp.
       ltac:(rewrite cstring.to_zstring_unfold; reflexivity) with "Harr")
       as "Harr".
     go.
-    iSplitL "Harr"; [iExact "Harr"|].
+    iFrame "Harr".
     go.
   Qed.
 
@@ -209,6 +209,114 @@ Section with_cpp.
       as "Harry".
     go.
     iFrame "Harrx Harry".
+    go.
+  Qed.
+
+  cpp.spec "test_strchr()" default.
+  Lemma test_strchr_ok : verify[module] "test_strchr()".
+  Proof using MOD.
+    verify_spec; go; ego.
+    Arith.arith_simpl; go; ego.
+    Arith.arith_simpl; go; ego.
+  Qed.
+
+  cpp.spec "test_strrchr()" default.
+  Lemma test_strrchr_ok : verify[module] "test_strrchr()".
+  Proof using MOD.
+    verify_spec; go; ego.
+    Arith.arith_simpl; go; ego.
+    Arith.arith_simpl; go; ego.
+  Qed.
+
+  cpp.spec "test_strspn()" default.
+  Lemma test_strspn_ok : verify[module] "test_strspn()".
+  Proof. verify_spec; go; ego. Qed.
+
+  cpp.spec "test_strcspn()" default.
+  Lemma test_strcspn_ok : verify[module] "test_strcspn()".
+  Proof. verify_spec; go; ego. Qed.
+
+  cpp.spec "test_strpbrk()" default.
+  Lemma test_strpbrk_ok : verify[module] "test_strpbrk()".
+  Proof using MOD.
+    verify_spec; go; ego.
+    Arith.arith_simpl; go; ego.
+  Qed.
+
+  cpp.spec "test_strstr()" default.
+  Lemma test_strstr_ok : verify[module] "test_strstr()".
+  Proof using MOD.
+    verify_spec; go; ego.
+    Arith.arith_simpl; go; ego.
+    Arith.arith_simpl; go; ego.
+  Qed.
+
+  cpp.spec "test_search_embedded_null_array_buffer()" default.
+  Lemma test_search_embedded_null_array_buffer_ok :
+    verify[module] "test_search_embedded_null_array_buffer()".
+  Proof using MOD.
+    verify_spec; go.
+    iPoseProof (borrow_arrayR_cstringR _ _
+      (cstring.to_zstring "ab"%bs ++ [98%N; 99%N; 0%N]) "ab"%bs
+      [98%N; 99%N; 0%N] eq_refl
+      ltac:(apply cstring.WF_cons;
+        [change (Byte.x61 <> Byte.x00); congruence|];
+        apply cstring.WF_cons;
+        [change (Byte.x62 <> Byte.x00); congruence|];
+        apply cstring.WF_nil) with "[$]")
+      as "[Hs Hclose]".
+    iExists _, "ab"%bs. iFrame "Hs".
+    iIntros "Hs".
+    go.
+    Arith.arith_simpl; go; ego.
+    Arith.arith_simpl; go; ego.
+    Arith.arith_simpl; go; ego.
+    Arith.arith_simpl; go; ego.
+    Arith.arith_simpl; go; ego.
+    Arith.arith_simpl; go.
+    go.
+    Arith.arith_simpl; go.
+    go.
+    iSplitL "Hs"; [iExact "Hs"|].
+    iIntros "Hs".
+    Arith.arith_simpl; go; ego.
+    iSplitL "Hs"; [iExact "Hs"|].
+    iIntros "Hs".
+    Arith.arith_simpl; go; ego.
+    iSplitL "Hs"; [iExact "Hs"|].
+    iIntros "Hs".
+    Arith.arith_simpl; go; ego.
+    iSplitL "Hs"; [iExact "Hs"|].
+    iIntros "Hs".
+    Arith.arith_simpl; go; ego.
+    iSplitL "Hs"; [iExact "Hs"|].
+    iIntros "[Hs Haccept]".
+    Arith.arith_simpl; go; ego.
+    iSplitL "Hs"; [iExact "Hs"|].
+    iIntros "[Hs Hreject]".
+    Arith.arith_simpl; go; ego.
+    iSplitL "Hs"; [iExact "Hs"|].
+    iIntros "[Hs Hneedle]".
+    Arith.arith_simpl; go; ego.
+    iSplitL "Hs"; [iExact "Hs"|].
+    iIntros "[Hs Hneedle_b]".
+    Arith.arith_simpl; go; ego.
+    iSplitL "Hs"; [iExact "Hs"|].
+    iIntros "[Hs Hneedle_bc]".
+    Arith.arith_simpl; go; ego.
+    iSplitL "Hs"; [iExact "Hs"|].
+    iIntros "[Hs Hneedle_b2]".
+    Arith.arith_simpl; go; ego.
+    iSplitL "Hs"; [iExact "Hs"|].
+    iIntros "[Hs Hempty]".
+    Arith.arith_simpl; go; ego.
+    iPoseProof ("Hclose" with "Hs") as "Harr".
+    iPoseProof (arrayR_charR_anyR _ 6%N
+      (cstring.to_zstring "ab"%bs ++ [98%N; 99%N; 0%N])
+      ltac:(rewrite cstring.to_zstring_unfold; reflexivity) with "Harr")
+      as "Harr".
+    go.
+    iFrame "Harr".
     go.
   Qed.
 
