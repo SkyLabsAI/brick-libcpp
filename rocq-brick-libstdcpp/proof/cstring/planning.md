@@ -17,21 +17,25 @@ The intended workflow is iterative:
 
 ## Current Mental Model
 
-The current workspace contains a partial but coherent first slice for the
-read-only null-terminated byte-string operations:
+The current workspace contains coherent first and second slices for read-only
+null-terminated byte-string operations:
 
-- `model.v` defines pure byte-string models for `strcmp` and `strncmp`; the
-  active `strlen` spec uses the existing `cstring.strlen`.
+- `model.v` defines pure byte-string models for `strcmp`, `strncmp`, `strchr`,
+  `strrchr`, `strspn`, `strcspn`, `strpbrk`, and `strstr`; the active `strlen`
+  spec uses the existing `cstring.strlen`.
 - `pred.v` is intentionally minimal and reuses the existing `cstring.R`
   abstraction.
-- `spec.v` specifies `strlen`, `strcmp`, and `strncmp` against `cstring.R`.
+- `spec.v` specifies `strlen`, `strcmp`, `strncmp`, `strchr`, `strrchr`,
+  `strspn`, `strcspn`, `strpbrk`, and `strstr` against `cstring.R`.
 - `test/cstring/test.cpp` contains `void` litmus functions using `assert`.
   The embedded-null literal cases are isolated into separate functions from the
-  ordinary `strlen`, `strcmp`, and `strncmp` tests.
-- `test/cstring/proof.v` proves the ordinary `strlen`, `strcmp`, `strncmp`, and
-  slice-wrapper tests. The embedded-null tests are specified there but left
-  admitted because active clients must first split larger literal resources
-  before invoking the `cstring.R` specs.
+  ordinary `strlen`, `strcmp`, and `strncmp` tests; the search/segment slice
+  includes ordinary tests and an embedded-null `char[]` array-buffer client.
+- `test/cstring/proof.v` proves the ordinary `strlen`, `strcmp`, `strncmp`,
+  search/segment tests, array-buffer client tests, and slice-wrapper tests.
+  The embedded-null literal tests are specified there but left admitted because
+  active clients must first split larger literal resources before invoking the
+  `cstring.R` specs.
 - `test/cstring/proof_old.v` proves the same ordinary tests and also proves the
   embedded-null tests using the archived lower-level bridge.
 - `DESIGN.md` records the representation choice and remaining design notes.
@@ -53,7 +57,8 @@ cppreference groups the header into:
   `memmove`;
 - miscellaneous: `strerror`.
 
-The first implemented slice covers `strlen`, `strcmp`, and `strncmp`.
+The implemented read-only slices cover `strlen`, `strcmp`, `strncmp`, `strchr`,
+`strrchr`, `strspn`, `strcspn`, `strpbrk`, and `strstr`.
 
 ## Proposed Plan
 
@@ -73,11 +78,12 @@ The first implemented slice covers `strlen`, `strcmp`, and `strncmp`.
    these proofs; extending `test/cstring/proof_old.v` with matching archived
    proofs is an optional leftover task, not part of this completed step.
 
-3. Add read-only search and segment APIs next.
-   Suggested next slice: `strchr`, `strrchr`, `strspn`, `strcspn`, `strpbrk`,
-   and `strstr`. These mostly preserve input ownership and return either null
-   or a pointer into an existing string, so they extend the current read-only
-   story before mutable APIs complicate the model.
+3. Done: add read-only search and segment APIs.
+   This slice covers `strchr`, `strrchr`, `strspn`, `strcspn`, `strpbrk`, and
+   `strstr`. The active development has pure models, `cstring.R`-based specs,
+   ordinary litmus tests, and an embedded-null `char[]` array-buffer client
+   proof. Character-search specs intentionally cover byte-range arguments only,
+   matching the conservative policy in `DESIGN.md`.
 
 4. Add byte-array APIs as a separate slice.
    Suggested order: `memcmp`, `memchr`, then `memset`, then `memcpy`, then
