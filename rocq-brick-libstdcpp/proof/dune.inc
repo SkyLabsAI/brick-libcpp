@@ -26,6 +26,15 @@
   	 (with-stderr-to inc_cstdlib_cpp.v.stderr (run cpp2v -v %{input} -o inc_cstdlib_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_cstdlib.cpp))
 )
+(subdir cstring
+ (rule
+  (targets inc_cstring_cpp.v.stderr inc_cstring_cpp.v)
+  (alias test_ast)
+  (deps (:input inc_cstring.cpp) (glob_files_rec ../*.hpp) (universe))
+  (action
+  	 (with-stderr-to inc_cstring_cpp.v.stderr (run cpp2v -v %{input} -o inc_cstring_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps inc_cstring.cpp))
+)
 (subdir iostream
  (rule
   (targets inc_iostream_cpp.v.stderr inc_iostream_cpp.v)
