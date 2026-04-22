@@ -40,6 +40,18 @@ Section with_cpp.
          Instantiate with mutex, recursive_mutex, maybe in different styles (AC
          and invariant styles).
       *)
+
+      (*
+      TODO: could we write something like this?
+      Definition do_unlock_spec_body (thr : thread_idT) (lk : ptr * gname * Qp * mpred) (Q : mpred) : WpSpec_cpp :=
+        match lk with
+        | (mp, g, q, P) =>
+        \pre mutex.locked g thr q
+        \pre ▷P
+        \post mutex.token g q
+        end.
+        *)
+
       Definition do_unlock (thr : thread_idT) (lk : ptr * gname * Qp * mpred) (Q : mpred) : mpred :=
         match lk with
         | (mp, g, q, P) =>
