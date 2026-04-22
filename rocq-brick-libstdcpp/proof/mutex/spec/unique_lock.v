@@ -149,15 +149,16 @@ Section with_cpp.
           end
         ).
 
-      cpp.spec "std::unique_lock<std::mutex>::owns_lock() const" as owns_lock_spec from source with (
+      Notation owns_lock_spec_body := (
         \this this
         \prepost{om q} this |-> R q om
-        \post [Vbool (owned om)] emp).
+        \post [Vbool (owned om)] emp) (only parsing).
 
-      cpp.spec "std::unique_lock<std::mutex>::operator bool() const" as operator_bool_spec from source with (
-        \this this
-        \prepost{om q} this |-> R q om
-        \post [Vbool (owned om)] emp).
+      cpp.spec "std::unique_lock<std::mutex>::owns_lock() const" as owns_lock_spec
+        from source with (owns_lock_spec_body).
+
+      cpp.spec "std::unique_lock<std::mutex>::operator bool() const" as operator_bool_spec
+        from source with (owns_lock_spec_body).
 
       cpp.spec "std::unique_lock<std::mutex>::mutex() const" as mutex_spec from source with (
         \this this
