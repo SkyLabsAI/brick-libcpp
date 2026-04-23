@@ -48,10 +48,12 @@ rather than about the semantic contract of read-only cstring functions.
 ### `arrayR` and `arrayLR`
 
 For hand-written buffer specs and reusable buffer predicates, prefer `arrayLR`
-over one-sided `arrayR` or `arrayL` when the surrounding interface leaves us
-that choice. The two-sided predicate tends to preserve the right amount of
-information for clients that both inspect and later rebuild or mutate a
-buffer.
+over `arrayR` when the surrounding interface leaves us that choice. The
+meaning of the letters in these names is framework-specific and should be
+documented explicitly elsewhere; what matters here is that `arrayLR` is the
+more informative array view for our present clients. The two-sided predicate
+tends to preserve the right amount of information for clients that both inspect
+and later rebuild or mutate a buffer.
 
 In proofs, however, we must follow the proof state we actually get. With the
 current proof imports, `verify_spec; go` often exposes stack arrays as
@@ -70,25 +72,55 @@ null bytes are ordinary bytes, and the `n` argument determines the whole
 relevant range.
 
 For this slice, use counted object-byte views rather than `cstring.R`. The
-public specs use abstract predicates `object_bytesR byte_ty q bytes` and
-`object_bytes_anyR byte_ty n`, where `bytes` is the list of unsigned-byte
-values observed by the memory operation and `byte_ty` records the one-byte
-pointer-stepping type used for returned interior pointers. This is closer to
-the textual C++ specification than requiring an actual `unsigned char[]`
-object: the standard memory APIs take `void*`/`const void*` and operate on the
-object representation as bytes.
+current public specs use abstract predicates `object_bytesR byte_ty q bytes`
+and `object_bytes_anyR byte_ty n`, where `bytes` is the list of unsigned-byte
+values observed by the memory operation.
+
+Recent inspection of the framework predicates clarified three important
+alternatives:
+
+- `cstring.bufR q sz s` is just `zstring.bufR char_type.Cchar q sz
+  (cstring.to_zstring s)`;
+- `zstring.bufR` is a string-buffer predicate: it stores a logical string
+  payload, requires `zstring.WF`, and also describes a zero-filled tail up to
+  the buffer size `sz`;
+- `bytesR q xs` is the plain counted-byte predicate
+  `arrayR "unsigned char" (fun c => ucharR q c) xs`.
+
+This means `cstring.bufR` and `zstring.bufR` are not suitable definitions of
+`object_bytesR`: they are intentionally more structured than the memory
+functions require. They model string buffers, not arbitrary object
+representations. In contrast, `bytesR` is a much better semantic fit for the
+memory-family functions because it represents exactly a counted sequence of
+bytes, with no terminator or string well-formedness obligations.
+
+The remaining design question is whether to expose `bytesR` directly in the
+specs or to keep a local wrapper such as `object_bytesR`. At the moment the
+development still uses the abstract wrapper, but `bytesR` is now the leading
+candidate for the eventual underlying definition. If we keep `object_bytesR`,
+it should be viewed as an abstraction boundary over a counted-byte predicate,
+not as a string-like buffer predicate.
+
+The earlier `byte_ty : type` parameter was introduced as proof-level metadata
+for writing interior pointers such as `p.[byte_ty ! i]` in results like
+`memchr`. After inspecting the framework predicates, this now looks more like
+bookkeeping than semantic content. Since `bytesR` is already fixed to
+`"unsigned char"`, a future cleanup may well remove `byte_ty` and standardize
+these specs on `Tuchar`-based offsets instead. If `object_bytesR` survives as
+an abstraction layer, this proof-level role of `byte_ty` should be documented
+near the definition in `pred.v` or `model.v`.
 
 The previous exact-length `arrayLR Tuchar` specs are preserved in a commented
 region in `spec.v`. They were useful for bootstrapping the first byte-array
 proofs but are too narrow as reusable library specs.
 
-`object_bytesR` and `object_bytes_anyR` are parameters rather than definitions.
-The concrete meaning of object representation bytes is a framework-level
-concept, not just an `unsigned char[]` array. Existing unsigned-char litmus
-proofs therefore rely on explicit bridge laws between concrete arrays and the
-abstract object-byte predicates. Future work should replace these local bridge
-axioms with framework-provided object-representation facts for concrete
-`char[]`, `unsigned char[]`, and other trivially copyable objects as needed.
+`object_bytesR` and `object_bytes_anyR` are currently parameters rather than
+definitions. Existing unsigned-char litmus proofs therefore rely on explicit
+bridge laws between concrete arrays and the abstract object-byte predicates.
+Future work should either define these wrappers in terms of framework-provided
+byte predicates such as `bytesR`, or replace the local bridge axioms with
+framework-provided object-representation facts for concrete `char[]`,
+`unsigned char[]`, and other trivially copyable objects as needed.
 
 Embedded-null and embedded-zero litmus tests remain useful regression cases. At
 present:
@@ -144,6 +176,16 @@ active designs based on `cstring.R` and `object_bytesR`.
 - Decide whether to keep the archived files as a long-lived comparison surface
   or retire them once the active development fully subsumes their distinctive
   coverage.
+- Add a short framework-level documentation note somewhere under `docs/`
+  explaining the intended meaning and use cases of predicates such as `arrayR`
+  and `arrayLR`, since the names are not self-explanatory and easy to
+  misdescribe from surface intuition.
+- Decide whether the counted-byte specs should switch from the current
+  `object_bytesR` wrapper to the existing framework predicate `bytesR`, or
+  whether `object_bytesR` should remain as a documented wrapper around it.
+- If `object_bytesR` remains, document the exact role of its current
+  `byte_ty : type` parameter near the definition and keep that explanation in
+  sync with these design notes.
 - Investigate whether fractional automation should be derivable automatically
   for abstract object-byte predicates. The current parameterized predicates
   expose fractional behavior axiomatically; the manual split/recombine pattern

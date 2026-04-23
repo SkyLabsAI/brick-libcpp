@@ -11,6 +11,7 @@ Require Import skylabs.cpp.array.
 Import expr_join.
 #[local] Hint Resolve delayed_case.smash_delayed_case_B | 1000 : br_hints.
 #[local] Hint Resolve delayed_case.expr_join.smash_delayed_case_B | 1000 : br_hints.
+
 (** END: SKYLABS DEFAULT PROOF IMPORTS *)
 Require Import skylabs.brick.libstdcpp.cassert.spec.
 Require Import skylabs.brick.libstdcpp.cstring.spec.
@@ -486,10 +487,31 @@ Proof.
     unfold lengthZ, lengthN, replicateN.
     rewrite length_replicate N2Nat.id.
     lia.
-  - 
+  -
   rewrite _at_offsetR _at_sub_0; [|done].
   rewrite -(N2Nat.id n) Hlen.
   iApply (arrayR_ucharR_arrayR_anyR with "Hs").
+Qed.
+
+#[local] Lemma object_bytesR_arrayLR_cons `{Σ : cpp_logic, σ : genv}
+    (p : ptr) x xs :
+  p |-> object_bytesR Tuchar 1$m (x :: xs) ⊣⊢
+  (type_ptr Tuchar (p .[Tuchar ! 0]) ∗ p .[Tuchar ! 0] |-> ucharR 1$m x) ∗
+  p |-> arrayLR Tuchar 1 (lengthZ (x :: xs)) (fun b : Z => ucharR 1$m b) xs.
+Proof.
+  iSplit.
+  - iIntros "Hs".
+    iPoseProof (object_bytesR_to_arrayLR p Tuchar 1$m (lengthZ (x :: xs))
+      (x :: xs) eq_refl with "Hs") as "Hs".
+    iEval (rewrite (arrayLR_cons p 0 (lengthZ (x :: xs))
+      (fun b : Z => ucharR 1$m b) x xs)) in "Hs".
+    iExact "Hs".
+  - iIntros "[[#Hty Hx] Hs]".
+    iApply (object_bytesR_of_arrayLR p Tuchar 1$m (lengthZ (x :: xs))
+      (x :: xs) eq_refl).
+    rewrite (arrayLR_cons p 0 (lengthZ (x :: xs))
+      (fun b : Z => ucharR 1$m b) x xs).
+    iFrame "# ∗".
 Qed.
 
 #[local] Lemma uchar_cells_object_bytesR_two `{Σ : cpp_logic, σ : genv}
@@ -800,37 +822,26 @@ Section with_cpp.
         (cQp.mk false 1) 2 4 [120%Z; 120%Z] [99%Z; 100%Z]
         ltac:(reflexivity) ltac:(reflexivity) ltac:(reflexivity))
         with "[$Htarget $Htail]") as "Hs".
-      iPoseProof (object_bytesR_ucharR_arrayR with "Hs") as "Hs".
-      rewrite (at_arrayR_ucharR_cons s_addr 120%Z
-        [120%Z; 99%Z; 100%Z]).
-      iDestruct "Hs" as "[#Hty0 [H0 Hs]]".
-      iPoseProof (at_zero_intro s_addr with "H0") as "H0".
+      iPoseProof (object_bytesR_arrayLR_cons s_addr 120%Z
+        [120%Z; 99%Z; 100%Z] with "Hs") as "[[#Hty0 H0] Hs]".
       iExists (Vint 120%Z), (cQp.mk false 1%Qp).
       iFrame "H0". iIntros "H0".
       go.
-      iPoseProof (at_arrayR_ucharR_cons (s_addr .[Tuchar ! 1])
-        120%Z [99%Z; 100%Z] with "Hs") as "Hs".
-      iDestruct "Hs" as "[#Hty1 [H1 Hs]]".
+      iEval (rewrite (arrayLR_cons s_addr 1 4 (fun b : Z => ucharR 1$m b)
+        120%Z [99%Z; 100%Z])) in "Hs".
+      iDestruct "Hs" as "[[#Hty1 H1] Hs]".
       iExists (Vint 120%Z), (cQp.mk false 1%Qp).
       iFrame "H1". iIntros "H1".
       go.
-      iPoseProof (at_arrayR_ucharR_cons
-        (s_addr .[Tuchar ! 1] .[Tuchar ! 1])
-        99%Z [100%Z] with "Hs") as "Hs".
-      iDestruct "Hs" as "[#Hty2 [H2 Hs]]".
-      iEval (rewrite o_sub_sub) in "H2".
-      iEval (rewrite o_sub_sub) in "Hs".
-      Arith.arith_simpl.
+      iEval (rewrite (arrayLR_cons s_addr 2 4 (fun b : Z => ucharR 1$m b)
+        99%Z [100%Z])) in "Hs".
+      iDestruct "Hs" as "[[#Hty2 H2] Hs]".
       iExists (Vint 99%Z), (cQp.mk false 1%Qp).
       iFrame "H2". iIntros "H2".
       go.
-      iPoseProof (at_arrayR_ucharR_cons
-        (s_addr .[Tuchar ! 1] .[Tuchar ! 2])
-        100%Z [] with "Hs") as "Hs".
-      iDestruct "Hs" as "[#Hty3 [H3 Hs]]".
-      iEval (rewrite o_sub_sub) in "H3".
-      iEval (rewrite o_sub_sub) in "Hs".
-      Arith.arith_simpl.
+      iEval (rewrite (arrayLR_cons s_addr 3 4 (fun b : Z => ucharR 1$m b)
+        100%Z [])) in "Hs".
+      iDestruct "Hs" as "[[#Hty3 H3] Hs]".
       iExists (Vint 100%Z), (cQp.mk false 1%Qp).
       iFrame "H3". iIntros "H3".
       go.
@@ -863,35 +874,25 @@ Section with_cpp.
           (cQp.mk false 1) 2 4 [120%Z; 120%Z] [35%Z; 100%Z]
           ltac:(reflexivity) ltac:(reflexivity) ltac:(reflexivity))
           with "[$Hhead $Htail]") as "Hs".
-        iPoseProof (object_bytesR_ucharR_arrayR with "Hs") as "Hs".
         go.
-        rewrite (at_arrayR_ucharR_cons s_addr 120%Z
-          [120%Z; 35%Z; 100%Z]).
-        iDestruct "Hs" as "[#Hty0' [H0 Hs]]".
-        iPoseProof (at_zero_intro s_addr with "H0") as "H0_assert".
-        iPoseProof (at_arrayR_ucharR_cons (s_addr .[Tuchar ! 1])
-          120%Z [35%Z; 100%Z] with "Hs") as "Hs".
-        iDestruct "Hs" as "[#Hty1' [H1 Hs]]".
-        iPoseProof (at_arrayR_ucharR_cons
-          (s_addr .[Tuchar ! 1] .[Tuchar ! 1])
-          35%Z [100%Z] with "Hs") as "Hs".
-        iDestruct "Hs" as "[#Hty2' [H2 Hs]]".
-        iEval (rewrite o_sub_sub) in "H2".
-        iEval (rewrite o_sub_sub) in "Hs".
-        Arith.arith_simpl.
+        iPoseProof (object_bytesR_arrayLR_cons s_addr 120%Z
+          [120%Z; 35%Z; 100%Z] with "Hs") as "[[#Hty0' H0] Hs]".
+        iEval (rewrite (arrayLR_cons s_addr 1 4 (fun b : Z => ucharR 1$m b)
+          120%Z [35%Z; 100%Z])) in "Hs".
+        iDestruct "Hs" as "[[#Hty1' H1] Hs]".
+        iEval (rewrite (arrayLR_cons s_addr 2 4 (fun b : Z => ucharR 1$m b)
+          35%Z [100%Z])) in "Hs".
+        iDestruct "Hs" as "[[#Hty2' H2] Hs]".
         iExists (Vint 35%Z), (cQp.mk false 1%Qp).
         iFrame "H2". iIntros "H2".
         go.
-        iPoseProof (at_arrayR_ucharR_cons
-          (s_addr .[Tuchar ! 1] .[Tuchar ! 2])
-          100%Z [] with "Hs") as "Hs".
-        iDestruct "Hs" as "[#Hty3' [H3 Hempty2]]".
-        iEval (rewrite o_sub_sub) in "H3".
-        Arith.arith_simpl.
+        iEval (rewrite (arrayLR_cons s_addr 3 4 (fun b : Z => ucharR 1$m b)
+          100%Z [])) in "Hs".
+        iDestruct "Hs" as "[[#Hty3' H3] Hempty2]".
         iExists (Vint 100%Z), (cQp.mk false 1%Qp).
         iFrame "H3". iIntros "H3".
         go.
-        iPoseProof (at_zero_elim s_addr with "H0_assert") as "H0".
+        iPoseProof (at_zero_elim s_addr with "H0") as "H0".
         iPoseProof (uchar_cells_object_bytesR_two s_addr 120%Z 120%Z
           with "[$H0 $H1]") as "Hhead".
         iPoseProof (at_uchar_offset_add_intro s_addr 2 1 3
@@ -1069,70 +1070,49 @@ Section with_cpp.
         ltac:(reflexivity) ltac:(reflexivity) ltac:(reflexivity))
         with "[$Hdst_copy $Hdst_tail]") as "Hdst".
 
-      iPoseProof (object_bytesR_ucharR_arrayR with "Hdst") as "Hdst".
-      rewrite (at_arrayR_ucharR_cons dst_addr 97%Z
-        [98%Z; 99%Z; 122%Z]).
-      iDestruct "Hdst" as "[#Hdst_ty0 [Hdst0 Hdst]]".
-      iPoseProof (at_zero_intro dst_addr with "Hdst0") as "Hdst0".
+      iPoseProof (object_bytesR_arrayLR_cons dst_addr 97%Z
+        [98%Z; 99%Z; 122%Z] with "Hdst") as "[[#Hdst_ty0 Hdst0] Hdst]".
       iExists (Vint 97%Z), (cQp.mk false 1%Qp).
       iFrame "Hdst0". iIntros "Hdst0".
       go.
 
-      iPoseProof (at_arrayR_ucharR_cons (dst_addr .[Tuchar ! 1])
-        98%Z [99%Z; 122%Z] with "Hdst") as "Hdst".
-      iDestruct "Hdst" as "[#Hdst_ty1 [Hdst1 Hdst]]".
+      iEval (rewrite (arrayLR_cons dst_addr 1 4 (fun b : Z => ucharR 1$m b)
+        98%Z [99%Z; 122%Z])) in "Hdst".
+      iDestruct "Hdst" as "[[#Hdst_ty1 Hdst1] Hdst]".
       iExists (Vint 98%Z), (cQp.mk false 1%Qp).
       iFrame "Hdst1". iIntros "Hdst1".
       go.
 
-      iPoseProof (at_arrayR_ucharR_cons (dst_addr .[Tuchar ! 1] .[Tuchar ! 1])
-        99%Z [122%Z] with "Hdst") as "Hdst".
-      iDestruct "Hdst" as "[#Hdst_ty2 [Hdst2 Hdst]]".
-      iEval (rewrite o_sub_sub) in "Hdst2".
-      iEval (rewrite o_sub_sub) in "Hdst".
+      iEval (rewrite (arrayLR_cons dst_addr 2 4 (fun b : Z => ucharR 1$m b)
+        99%Z [122%Z])) in "Hdst".
+      iDestruct "Hdst" as "[[#Hdst_ty2 Hdst2] Hdst]".
       Arith.arith_simpl.
       iExists (Vint 99%Z), (cQp.mk false 1%Qp).
       iFrame "Hdst2". iIntros "Hdst2".
       go.
 
-      iPoseProof (at_arrayR_ucharR_cons
-        (dst_addr .[Tuchar ! 1] .[Tuchar ! 2])
-        122%Z [] with "Hdst") as "Hdst".
-      iDestruct "Hdst" as "[#Hdst_ty3 [Hdst3 Hdst]]".
-      iEval (rewrite o_sub_sub) in "Hdst".
-      Arith.arith_simpl.
-      iPoseProof (at_uchar_offset_add_elim dst_addr 1 2 3
-        (ucharR 1$m 122%Z) ltac:(lia) with "Hdst3") as "Hdst3".
+      iEval (rewrite (arrayLR_cons dst_addr 3 4 (fun b : Z => ucharR 1$m b)
+        122%Z [])) in "Hdst".
+      iDestruct "Hdst" as "[[#Hdst_ty3 Hdst3] Hdst_empty]".
       iExists (Vint 122%Z), (cQp.mk false 1%Qp).
       iFrame "Hdst3". iIntros "Hdst3".
       go.
 
-      iPoseProof (object_bytesR_ucharR_arrayR with "Hsrc") as "Hsrc".
-      rewrite (at_arrayR_ucharR_cons src_addr 97%Z
-        [98%Z; 99%Z; 100%Z]).
-      iDestruct "Hsrc" as "[#Hsrc_ty0 [Hsrc0 Hsrc]]".
-      iPoseProof (at_zero_intro src_addr with "Hsrc0") as "Hsrc0".
+      iPoseProof (object_bytesR_arrayLR_cons src_addr 97%Z
+        [98%Z; 99%Z; 100%Z] with "Hsrc") as "[[#Hsrc_ty0 Hsrc0] Hsrc]".
       iExists (Vint 97%Z), (cQp.mk false 1%Qp).
       iFrame "Hsrc0". iIntros "Hsrc0".
       go.
 
-      iPoseProof (at_arrayR_ucharR_cons (src_addr .[Tuchar ! 1])
-        98%Z [99%Z; 100%Z] with "Hsrc") as "Hsrc".
-      iDestruct "Hsrc" as "[#Hsrc_ty1 [Hsrc1 Hsrc]]".
-      iPoseProof (at_arrayR_ucharR_cons
-        (src_addr .[Tuchar ! 1] .[Tuchar ! 1])
-        99%Z [100%Z] with "Hsrc") as "Hsrc".
-      iDestruct "Hsrc" as "[#Hsrc_ty2 [Hsrc2 Hsrc]]".
-      iPoseProof (at_arrayR_ucharR_cons
-        (src_addr .[Tuchar ! 1] .[Tuchar ! 1] .[Tuchar ! 1])
-        100%Z [] with "Hsrc") as "Hsrc".
-      iDestruct "Hsrc" as "[#Hsrc_ty3 [Hsrc3 Hsrc]]".
-      iEval (rewrite o_sub_sub) in "Hsrc2".
-      iEval (rewrite o_sub_sub) in "Hsrc3".
-      iEval (rewrite o_sub_sub) in "Hsrc".
-      Arith.arith_simpl.
-      iPoseProof (at_uchar_offset_add_elim src_addr 1 2 3
-        (ucharR 1$m 100%Z) ltac:(lia) with "Hsrc3") as "Hsrc3".
+      iEval (rewrite (arrayLR_cons src_addr 1 4 (fun b : Z => ucharR 1$m b)
+        98%Z [99%Z; 100%Z])) in "Hsrc".
+      iDestruct "Hsrc" as "[[#Hsrc_ty1 Hsrc1] Hsrc]".
+      iEval (rewrite (arrayLR_cons src_addr 2 4 (fun b : Z => ucharR 1$m b)
+        99%Z [100%Z])) in "Hsrc".
+      iDestruct "Hsrc" as "[[#Hsrc_ty2 Hsrc2] Hsrc]".
+      iEval (rewrite (arrayLR_cons src_addr 3 4 (fun b : Z => ucharR 1$m b)
+        100%Z [])) in "Hsrc".
+      iDestruct "Hsrc" as "[[#Hsrc_ty3 Hsrc3] Hsrc_empty2]".
       iExists (Vint 100%Z), (cQp.mk false 1%Qp).
       iFrame "Hsrc3". iIntros "Hsrc3".
       go.
@@ -1177,16 +1157,16 @@ Section with_cpp.
       iPoseProof (object_bytesR_prefix_tail0 (dst_addr .[Tuchar ! 1]) Tuchar
         (cQp.mk false 1) 0 3 [] [98%Z; 99%Z; 122%Z]
         ltac:(reflexivity) ltac:(reflexivity) ltac:(reflexivity)
-        with "Hdst_suffix") as "[Hdst_empty Hdst_suffix]".
+        with "Hdst_suffix") as "[Hdst_empty1 Hdst_suffix1]".
 
       iExists Tuchar, (cQp.mk false 1), [].
       iExists Tuchar.
       iSplitL "Hsrc_empty"; [iExact "Hsrc_empty"|].
-      iSplitL "Hdst_empty".
+      iSplitL "Hdst_empty1".
       + iApply (object_bytesR_ucharR_object_bytes_anyR _ 0%N
-          [] ltac:(reflexivity) with "Hdst_empty").
+          [] ltac:(reflexivity) with "Hdst_empty1").
       + iSplit; [done|].
-        iIntros "[Hsrc_empty Hdst_empty]".
+        iIntros "[Hsrc_empty Hdst_empty1]".
         Arith.arith_simpl.
         go.
 
@@ -1202,24 +1182,22 @@ Section with_cpp.
         iPoseProof ((object_bytesR_prefix_tail0 (dst_addr .[Tuchar ! 1]) Tuchar
           (cQp.mk false 1) 0 3 [] [98%Z; 99%Z; 122%Z]
           ltac:(reflexivity) ltac:(reflexivity) ltac:(reflexivity))
-          with "[$Hdst_empty $Hdst_suffix]") as "Hdst_suffix".
+          with "[$Hdst_empty1 $Hdst_suffix1]") as "Hdst_suffix".
         iPoseProof ((object_bytesR_prefix_tail0 dst_addr Tuchar
           (cQp.mk false 1) 1 4 [97%Z] [98%Z; 99%Z; 122%Z]
           ltac:(reflexivity) ltac:(reflexivity) ltac:(reflexivity))
           with "[$Hdst_head1 $Hdst_suffix]") as "Hdst_full".
 
-        iPoseProof (object_bytesR_ucharR_arrayR with "Hdst_full") as "Hdst_arr".
-        rewrite (at_arrayR_ucharR_cons dst_addr 97%Z
-          [98%Z; 99%Z; 122%Z]).
-        iDestruct "Hdst_arr" as "[#Hdst_ty4 [Hdst0 Hdst_arr]]".
-        iPoseProof (at_zero_intro dst_addr with "Hdst0") as "Hdst0".
+        iPoseProof (object_bytesR_arrayLR_cons dst_addr 97%Z
+          [98%Z; 99%Z; 122%Z] with "Hdst_full")
+          as "[[#Hdst_ty4 Hdst0] Hdst_arr]".
         iExists (Vint 97%Z), (cQp.mk false 1%Qp).
         iFrame "Hdst0". iIntros "Hdst0".
         go.
 
-        iPoseProof (at_arrayR_ucharR_cons (dst_addr .[Tuchar ! 1])
-          98%Z [99%Z; 122%Z] with "Hdst_arr") as "Hdst_arr".
-        iDestruct "Hdst_arr" as "[#Hdst_ty5 [Hdst1 Hdst_arr]]".
+        iEval (rewrite (arrayLR_cons dst_addr 1 4 (fun b : Z => ucharR 1$m b)
+          98%Z [99%Z; 122%Z])) in "Hdst_arr".
+        iDestruct "Hdst_arr" as "[[#Hdst_ty5 Hdst1] Hdst_arr]".
         iExists (Vint 98%Z), (cQp.mk false 1%Qp).
         iFrame "Hdst1". iIntros "Hdst1".
         go.
@@ -1229,17 +1207,12 @@ Section with_cpp.
         iPoseProof (at_zero_elim dst_addr with "Hdst0") as "Hdst0".
         iPoseProof (uchar_cells_object_bytesR_two dst_addr 97%Z 98%Z
           with "[$Hdst0 $Hdst1]") as "Hdst_head".
-        iEval (rewrite (at_arrayR_ucharR_cons
-          (dst_addr .[Tuchar ! 1] .[Tuchar ! 1]) 99%Z [122%Z]))
-          in "Hdst_arr".
-        iDestruct "Hdst_arr" as "[#Hdst_ty6 [Hdst2 Hdst_arr]]".
-        iPoseProof (at_arrayR_ucharR_cons
-          (dst_addr .[Tuchar ! 1] .[Tuchar ! 1] .[Tuchar ! 1])
-          122%Z [] with "Hdst_arr") as "Hdst_arr".
-        iDestruct "Hdst_arr" as "[#Hdst_ty7 [Hdst3 Hdst_arr]]".
-        iEval (rewrite o_sub_sub) in "Hdst2".
-        iEval (rewrite o_sub_sub) in "Hdst3".
-        iEval (rewrite o_sub_sub) in "Hdst3".
+        iEval (rewrite (arrayLR_cons dst_addr 2 4 (fun b : Z => ucharR 1$m b)
+          99%Z [122%Z])) in "Hdst_arr".
+        iDestruct "Hdst_arr" as "[[#Hdst_ty6 Hdst2] Hdst_arr]".
+        iEval (rewrite (arrayLR_cons dst_addr 3 4 (fun b : Z => ucharR 1$m b)
+          122%Z [])) in "Hdst_arr".
+        iDestruct "Hdst_arr" as "[[#Hdst_ty7 Hdst3] Hdst_empty2]".
         iPoseProof (at_uchar_offset_add_intro dst_addr 2 1 3
           (ucharR 1$m 122%Z) ltac:(lia) with "Hdst3") as "Hdst3".
         iPoseProof (uchar_cells_object_bytesR_two (dst_addr .[Tuchar ! 2])
@@ -1279,41 +1252,30 @@ Section with_cpp.
       Arith.arith_simpl.
       go.
 
-      iPoseProof (object_bytesR_ucharR_arrayR with "Hdst") as "Hdst_arr".
-      rewrite (at_arrayR_ucharR_cons dst_addr 97%Z
-        [98%Z; 99%Z; 100%Z]).
-      iDestruct "Hdst_arr" as "[#Hdst_ty0 [Hdst0 Hdst_arr]]".
-      iPoseProof (at_zero_intro dst_addr with "Hdst0") as "Hdst0".
+      iPoseProof (object_bytesR_arrayLR_cons dst_addr 97%Z
+        [98%Z; 99%Z; 100%Z] with "Hdst") as "[[#Hdst_ty0 Hdst0] Hdst_arr]".
       iExists (Vint 97%Z), (cQp.mk false 1%Qp).
       iFrame "Hdst0". iIntros "Hdst0".
       go.
 
-      iPoseProof (at_arrayR_ucharR_cons (dst_addr .[Tuchar ! 1])
-        98%Z [99%Z; 100%Z] with "Hdst_arr") as "Hdst_arr".
-      iDestruct "Hdst_arr" as "[#Hdst_ty1 [Hdst1 Hdst_arr]]".
+      iEval (rewrite (arrayLR_cons dst_addr 1 4 (fun b : Z => ucharR 1$m b)
+        98%Z [99%Z; 100%Z])) in "Hdst_arr".
+      iDestruct "Hdst_arr" as "[[#Hdst_ty1 Hdst1] Hdst_arr]".
       iExists (Vint 98%Z), (cQp.mk false 1%Qp).
       iFrame "Hdst1". iIntros "Hdst1".
       go.
 
-      iPoseProof (at_arrayR_ucharR_cons
-        (dst_addr .[Tuchar ! 1] .[Tuchar ! 1])
-        99%Z [100%Z] with "Hdst_arr") as "Hdst_arr".
-      iDestruct "Hdst_arr" as "[#Hdst_ty2 [Hdst2 Hdst_arr]]".
-      iEval (rewrite o_sub_sub) in "Hdst2".
-      iEval (rewrite o_sub_sub) in "Hdst_arr".
+      iEval (rewrite (arrayLR_cons dst_addr 2 4 (fun b : Z => ucharR 1$m b)
+        99%Z [100%Z])) in "Hdst_arr".
+      iDestruct "Hdst_arr" as "[[#Hdst_ty2 Hdst2] Hdst_arr]".
       Arith.arith_simpl.
       iExists (Vint 99%Z), (cQp.mk false 1%Qp).
       iFrame "Hdst2". iIntros "Hdst2".
       go.
 
-      iPoseProof (at_arrayR_ucharR_cons
-        (dst_addr .[Tuchar ! 1] .[Tuchar ! 2])
-        100%Z [] with "Hdst_arr") as "Hdst_arr".
-      iDestruct "Hdst_arr" as "[#Hdst_ty3 [Hdst3 Hdst_arr]]".
-      iEval (rewrite o_sub_sub) in "Hdst_arr".
-      Arith.arith_simpl.
-      iPoseProof (at_uchar_offset_add_elim dst_addr 1 2 3
-        (ucharR 1$m 100%Z) ltac:(lia) with "Hdst3") as "Hdst3".
+      iEval (rewrite (arrayLR_cons dst_addr 3 4 (fun b : Z => ucharR 1$m b)
+        100%Z [])) in "Hdst_arr".
+      iDestruct "Hdst_arr" as "[[#Hdst_ty3 Hdst3] Hdst_empty0]".
       iExists (Vint 100%Z), (cQp.mk false 1%Qp).
       iFrame "Hdst3". iIntros "Hdst3".
       go.
@@ -1346,16 +1308,16 @@ Section with_cpp.
       iPoseProof (object_bytesR_prefix_tail0 (dst_addr .[Tuchar ! 1]) Tuchar
         (cQp.mk false 1) 0 3 [] [98%Z; 99%Z; 100%Z]
         ltac:(reflexivity) ltac:(reflexivity) ltac:(reflexivity)
-        with "Hdst_suffix") as "[Hdst_empty Hdst_suffix]".
+        with "Hdst_suffix") as "[Hdst_empty1 Hdst_suffix1]".
 
       iExists Tuchar, (cQp.mk false 1), [].
       iExists Tuchar.
       iSplitL "Hsrc_empty"; [iExact "Hsrc_empty"|].
-      iSplitL "Hdst_empty".
+      iSplitL "Hdst_empty1".
       + iApply (object_bytesR_ucharR_object_bytes_anyR _ 0%N
-          [] ltac:(reflexivity) with "Hdst_empty").
+          [] ltac:(reflexivity) with "Hdst_empty1").
       + iSplit; [done|].
-        iIntros "[Hsrc_empty Hdst_empty]".
+        iIntros "[Hsrc_empty Hdst_empty1]".
         Arith.arith_simpl.
         go.
 
@@ -1371,20 +1333,18 @@ Section with_cpp.
         iPoseProof ((object_bytesR_prefix_tail0 (dst_addr .[Tuchar ! 1]) Tuchar
           (cQp.mk false 1) 0 3 [] [98%Z; 99%Z; 100%Z]
           ltac:(reflexivity) ltac:(reflexivity) ltac:(reflexivity))
-          with "[$Hdst_empty $Hdst_suffix]") as "Hdst_suffix".
+          with "[$Hdst_empty1 $Hdst_suffix1]") as "Hdst_suffix".
         iPoseProof ((object_bytesR_prefix_tail0 dst_addr Tuchar
           (cQp.mk false 1) 1 4 [97%Z] [98%Z; 99%Z; 100%Z]
           ltac:(reflexivity) ltac:(reflexivity) ltac:(reflexivity))
           with "[$Hdst_head1 $Hdst_suffix]") as "Hdst_full".
 
-        iPoseProof (object_bytesR_ucharR_arrayR with "Hdst_full") as "Hdst_arr2".
-        rewrite (at_arrayR_ucharR_cons dst_addr 97%Z
-          [98%Z; 99%Z; 100%Z]).
-        iDestruct "Hdst_arr2" as "[#Hdst_ty4 [Hdst0 Hdst_arr2]]".
-        iPoseProof (at_zero_intro dst_addr with "Hdst0") as "Hdst0".
-        iPoseProof (at_arrayR_ucharR_cons (dst_addr .[Tuchar ! 1])
-          98%Z [99%Z; 100%Z] with "Hdst_arr2") as "Hdst_arr2".
-        iDestruct "Hdst_arr2" as "[#Hdst_ty5 [Hdst1 Hdst_arr2]]".
+        iPoseProof (object_bytesR_arrayLR_cons dst_addr 97%Z
+          [98%Z; 99%Z; 100%Z] with "Hdst_full")
+          as "[[#Hdst_ty4 Hdst0] Hdst_arr2]".
+        iEval (rewrite (arrayLR_cons dst_addr 1 4 (fun b : Z => ucharR 1$m b)
+          98%Z [99%Z; 100%Z])) in "Hdst_arr2".
+        iDestruct "Hdst_arr2" as "[[#Hdst_ty5 Hdst1] Hdst_arr2]".
         iExists (Vint 98%Z), (cQp.mk false 1%Qp).
         iFrame "Hdst1". iIntros "Hdst1".
         go.
@@ -1395,17 +1355,12 @@ Section with_cpp.
         iPoseProof (at_zero_elim dst_addr with "Hdst0") as "Hdst0".
         iPoseProof (uchar_cells_object_bytesR_two dst_addr 97%Z 98%Z
           with "[$Hdst0 $Hdst1]") as "Hdst_head".
-        iEval (rewrite (at_arrayR_ucharR_cons
-          (dst_addr .[Tuchar ! 1] .[Tuchar ! 1]) 99%Z [100%Z]))
-          in "Hdst_arr2".
-        iDestruct "Hdst_arr2" as "[#Hdst_ty6 [Hdst2 Hdst_arr3]]".
-        iPoseProof (at_arrayR_ucharR_cons
-          (dst_addr .[Tuchar ! 1] .[Tuchar ! 1] .[Tuchar ! 1])
-          100%Z [] with "Hdst_arr3") as "Hdst_arr3".
-        iDestruct "Hdst_arr3" as "[#Hdst_ty7 [Hdst3 Hdst_arr3]]".
-        iEval (rewrite o_sub_sub) in "Hdst2".
-        iEval (rewrite o_sub_sub) in "Hdst3".
-        iEval (rewrite o_sub_sub) in "Hdst3".
+        iEval (rewrite (arrayLR_cons dst_addr 2 4 (fun b : Z => ucharR 1$m b)
+          99%Z [100%Z])) in "Hdst_arr2".
+        iDestruct "Hdst_arr2" as "[[#Hdst_ty6 Hdst2] Hdst_arr3]".
+        iEval (rewrite (arrayLR_cons dst_addr 3 4 (fun b : Z => ucharR 1$m b)
+          100%Z [])) in "Hdst_arr3".
+        iDestruct "Hdst_arr3" as "[[#Hdst_ty7 Hdst3] Hdst_empty2]".
         iPoseProof (at_uchar_offset_add_intro dst_addr 2 1 3
           (ucharR 1$m 100%Z) ltac:(lia) with "Hdst3") as "Hdst3".
         iPoseProof (uchar_cells_object_bytesR_two (dst_addr .[Tuchar ! 2])
