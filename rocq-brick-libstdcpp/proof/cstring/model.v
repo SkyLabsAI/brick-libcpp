@@ -4,6 +4,7 @@
  * See the LICENSE-BedRock file in the repository root for details.
  *)
 Require Import skylabs.prelude.numbers.
+Require Import skylabs.prelude.list_numbers.
 Require Import skylabs.prelude.bytestring.
 
 #[local] Set Primitive Projections.
@@ -38,6 +39,9 @@ Fixpoint strncmp_nat (n : nat) (s1 s2 : bs) : Z :=
 
 Definition strncmp (s1 s2 : bs) (n : N) : Z :=
   strncmp_nat (N.to_nat n) s1 s2.
+
+Definition byte_of_int (c : Z) : Z :=
+  (c mod 256)%Z.
 
 Fixpoint strchr (s : bs) (c : Z) : option Z :=
   match s with
@@ -112,6 +116,32 @@ Fixpoint strstr (haystack needle : bs) : option Z :=
       end
   end.
 
+Fixpoint memchr (bytes : list Z) (c : Z) : option Z :=
+  match bytes with
+  | nil => None
+  | b :: rest =>
+      if bool_decide (b = byte_of_int c) then Some 0
+      else option_map (fun off => (1 + off)%Z) (memchr rest c)
+  end.
+
+Fixpoint memcmp (bytes1 bytes2 : list Z) : Z :=
+  match bytes1, bytes2 with
+  | nil, nil => 0
+  | nil, b2 :: _ => - b2
+  | b1 :: _, nil => b1
+  | b1 :: rest1, b2 :: rest2 =>
+      if bool_decide (b1 = b2) then memcmp rest1 rest2 else b1 - b2
+  end.
+
+Definition memset (c n : Z) : list Z :=
+  replicateZ n (byte_of_int c).
+
+Definition memcpy (bytes : list Z) : list Z :=
+  bytes.
+
+Definition memmove (bytes : list Z) : list Z :=
+  bytes.
+
 #[local] Open Scope bs_scope.
 
 Succeed Example strcmp_equal : strcmp "abc" "abc" = 0 := eq_refl.
@@ -136,3 +166,9 @@ Succeed Example strcspn_prefix : strcspn "abcde" "dx" = 3%N := eq_refl.
 Succeed Example strpbrk_found : strpbrk "abcdef" "xyc" = Some 2 := eq_refl.
 Succeed Example strstr_found : strstr "abracadabra" "cad" = Some 4 := eq_refl.
 Succeed Example strstr_empty : strstr "abracadabra" "" = Some 0 := eq_refl.
+
+Succeed Example memchr_found : memchr [97; 0; 98]%Z 98 = Some 2 := eq_refl.
+Succeed Example memchr_missing : memchr [97; 0; 98]%Z 122 = None := eq_refl.
+Succeed Example memcmp_equal : memcmp [97; 0]%Z [97; 0]%Z = 0 := eq_refl.
+Succeed Example memcmp_less : memcmp [97; 0; 120]%Z [97; 0; 121]%Z = -1 := eq_refl.
+Succeed Example memset_wrap : memset 291 2 = [35; 35]%Z := eq_refl.

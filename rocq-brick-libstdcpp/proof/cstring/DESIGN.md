@@ -1,29 +1,43 @@
 # `<cstring>` Design Notes
 
-## Current Slice
+## Current State
 
-The supported read-only API slices cover the null-terminated byte-string
-functions `strlen`, `strcmp`, `strncmp`, `strchr`, `strrchr`, `strspn`,
-`strcspn`, `strpbrk`, and `strstr`.
+The active development now has two substantial slices:
 
-The reusable specs use the existing `cstring.R` abstraction. This keeps the
-library-facing contract aligned with existing clients such as `cstdlib::atoi`
-and `iostream`: callers provide a pointer to a valid null-terminated C string
-whose logical payload is a `cstring.t`.
+- null-terminated byte-string operations specified against `cstring.R`:
+  `strlen`, `strcmp`, `strncmp`, `strchr`, `strrchr`, `strspn`, `strcspn`,
+  `strpbrk`, and `strstr`;
+- counted byte-array operations specified against abstract object-byte
+  predicates: `memchr`, `memcmp`, `memset`, `memcpy`, and `memmove`.
 
-The ordinary v1 litmus tests for `strlen`, `strcmp`, and `strncmp` are proven
-in both `test/cstring/proof.v` and `test/cstring/proof_old.v`. The newer
-search/segment litmus tests are proven in the active development. Embedded-null
-literal tests are split into separate functions; the v1 literal tests are
-specified but left admitted in the active `cstring.R` development, and proven
-in `proof_old.v` using the archived lower-level bridge. Active `char[]`
-array-buffer tests cover the corresponding client-side splitting pattern.
+The string slice keeps the reusable library-facing contract aligned with the
+existing `cstring.R` abstraction: callers provide a pointer to a valid
+null-terminated C string whose logical payload is a `cstring.t`.
+
+The counted byte slice uses abstract byte predicates rather than `cstring.R`.
+These operations are not about null-terminated strings, and embedded zero
+bytes are ordinary data.
+
+On the client side, the active `test/cstring/proof.v` currently proves:
+
+- the ordinary `strlen` / `strcmp` / `strncmp` litmus tests;
+- the active read-only search and segment litmus tests;
+- explicit `char[]` array-buffer clients for the string slice;
+- `test_memchr`, `test_memchr_embedded_null`, `test_memset`, `test_memcpy`,
+  `test_memmove`, and `test_memcmp`.
+
+The archived files `model_old.v`, `pred_old.v`, `spec_old.v`, and
+`test/cstring/proof_old.v` are still present for comparison and rollback. They
+continue to document the earlier lower-level bridge for literal embedded-null
+cases in the string slice.
 
 ## Representation Choice
 
-`cstring.R` remains the active representation for this slice. It describes the
-null-terminated string payload itself, not arbitrary storage that may continue
-after the first null byte.
+### Null-Terminated Strings
+
+`cstring.R` remains the active representation for the string slice. It
+describes the null-terminated payload itself, not arbitrary storage that may
+continue after the first null byte.
 
 This means embedded-null or larger-buffer cases are handled on the client side:
 a proof that starts from a larger literal or array resource must split off the
@@ -33,33 +47,79 @@ rather than about the semantic contract of read-only cstring functions.
 
 ### `arrayR` and `arrayLR`
 
-For hand-written byte-buffer specs and reusable buffer predicates, prefer
-`arrayLR` over one-sided `arrayR` or `arrayL` when the surrounding interface
-leaves us that choice. The two-sided predicate usually preserves more useful
-ownership information for clients that both read and later restore or mutate a
+For hand-written buffer specs and reusable buffer predicates, prefer `arrayLR`
+over one-sided `arrayR` or `arrayL` when the surrounding interface leaves us
+that choice. The two-sided predicate tends to preserve the right amount of
+information for clients that both inspect and later rebuild or mutate a
 buffer.
 
-The current explicit `char[]` litmus tests are slightly different: cpp2v
-generates stack-array initializer resources as concrete `arrayR` predicates.
-Their proofs therefore use local `arrayR` splitting/recombination lemmas to
-match the generated proof state directly. This should not be read as a general
-preference for `arrayR` in library specs; it is a proof-local accommodation for
-the shape of generated stack-buffer resources.
+In proofs, however, we must follow the proof state we actually get. With the
+current proof imports, `verify_spec; go` often exposes stack arrays as
+`arrayLR`, but some local helper steps still interact with `arrayR` after
+unlocking or after bridge lemmas. The practical rule is:
+
+- prefer `arrayLR` in specs and reusable bridge lemmas;
+- tolerate local `arrayR` reasoning inside proofs when it is simply the
+  unlocked form we need to rebuild.
+
+### Counted Byte Arrays
+
+The byte-array slice covers `memchr`, `memcmp`, `memset`, `memcpy`, and
+`memmove`. These functions are not null-terminated string functions: embedded
+null bytes are ordinary bytes, and the `n` argument determines the whole
+relevant range.
+
+For this slice, use counted object-byte views rather than `cstring.R`. The
+public specs use abstract predicates `object_bytesR byte_ty q bytes` and
+`object_bytes_anyR byte_ty n`, where `bytes` is the list of unsigned-byte
+values observed by the memory operation and `byte_ty` records the one-byte
+pointer-stepping type used for returned interior pointers. This is closer to
+the textual C++ specification than requiring an actual `unsigned char[]`
+object: the standard memory APIs take `void*`/`const void*` and operate on the
+object representation as bytes.
+
+The previous exact-length `arrayLR Tuchar` specs are preserved in a commented
+region in `spec.v`. They were useful for bootstrapping the first byte-array
+proofs but are too narrow as reusable library specs.
+
+`object_bytesR` and `object_bytes_anyR` are parameters rather than definitions.
+The concrete meaning of object representation bytes is a framework-level
+concept, not just an `unsigned char[]` array. Existing unsigned-char litmus
+proofs therefore rely on explicit bridge laws between concrete arrays and the
+abstract object-byte predicates. Future work should replace these local bridge
+axioms with framework-provided object-representation facts for concrete
+`char[]`, `unsigned char[]`, and other trivially copyable objects as needed.
+
+Embedded-null and embedded-zero litmus tests remain useful regression cases. At
+present:
+
+- `test_memchr_embedded_null_ok` is proved in the active development;
+- `test_memcmp_embedded_null`, `test_memset_embedded_null`,
+  `test_memcpy_embedded_null`, and `test_memmove_embedded_null` are still only
+  declared via `cpp.spec` stubs in `test/cstring/proof.v`.
+
+As with the earlier `cstring.R` pivot, reusable specs should describe ranges of
+exactly the length passed to the function. Clients that start from larger
+buffers are responsible for partitioning those buffers into the active prefix
+and the remaining tail, then recombining the tail after the call. This avoids
+putting `take`/`drop` bookkeeping into the library specs themselves.
+
+Use the framework-provided `lengthZ` and `replicateZ` notations from
+`skylabs.prelude.list_numbers`; do not define local aliases in `model.v`.
 
 ### Character Arguments
 
-Functions such as `strchr` and `strrchr` take an `int` argument but the textual
-specification searches for `static_cast<char>(ch)`. The active specs currently
-model only byte-range arguments with `valid<"unsigned char"> ch`. This is a
-deliberately conservative slice: it avoids claiming behavior for
-out-of-byte-range `int` arguments, whose result depends on the C++ conversion
-to `char` and therefore on implementation choices such as signedness and
-representable values.
+Functions such as `strchr`, `strrchr`, and the memory byte-search routines take
+an `int` argument but the textual specifications speak in terms of conversion
+to a byte-sized character value. The current specs model only byte-range
+arguments via `valid<"unsigned char"> ch`. This is intentionally conservative:
+it avoids claiming defined behavior for arguments whose result depends on
+implementation choices such as signedness or representable values.
 
 ## Archived Alternative
 
-The earlier experiment introduced a lower-level `cstringz.R q s tail` predicate
-for concrete character arrays shaped like:
+The earlier experiment introduced a lower-level `cstringz.R q s tail`
+predicate for concrete character arrays shaped like:
 
 ```text
 cstring.to_zstring s ++ tail
@@ -73,25 +133,31 @@ That variant is preserved in:
 - `test/cstring/proof_old.v`
 
 Those files are kept for comparison or rollback while we proceed with the
-`cstring.R`-based active design.
+active designs based on `cstring.R` and `object_bytesR`.
 
 ## Leftover Tasks
 
-- Transfer the string-literal embedded-null proof bridge from
-  `test/cstring/proof_old.v` to the active `test/cstring/proof.v` when we want
-  to discharge the currently admitted literal tests without depending on
-  `pred_old.v`. The active array-buffer proofs already cover the analogous
-  `char[]` client-side splitting pattern.
-- Optionally extend `test/cstring/proof_old.v` with the explicit `char[]`
-  array-buffer litmus proofs if we later want side-by-side regression coverage
-  for the archived `cstringz.R` design. For now the active and archived proof
-  files are intentionally not kept in lockstep.
-- Consider whether cpp2v should generate `arrayLR` rather than `arrayR` for
-  stack-allocated array initializers, or provide a standard bridge for this
-  case. The active `char[]` proofs use local `arrayR` helpers only because the
-  generated proof state has that shape.
+- Discharge the remaining embedded-null literal tests in the active
+  `cstring.R` development, or leave them intentionally archived-only with a
+  clear reason. The archived lower-level bridge in `proof_old.v` remains the
+  reference point.
+- Decide whether to keep the archived files as a long-lived comparison surface
+  or retire them once the active development fully subsumes their distinctive
+  coverage.
+- Investigate whether fractional automation should be derivable automatically
+  for abstract object-byte predicates. The current parameterized predicates
+  expose fractional behavior axiomatically; the manual split/recombine pattern
+  should not spread unchecked.
+- Extend the byte-array proofs to the remaining embedded-null regression tests:
+  `memcmp`, `memset`, `memcpy`, and `memmove`.
+- Extend the byte-array specs beyond non-overlapping cases. The active
+  `memcpy` and `memmove` proofs stay in the disjoint-source/destination lane.
+  Overlapping `memmove` needs a separate single-buffer or otherwise aliased
+  specification that snapshots the source range before updating the
+  destination range.
 - Keep undefined behavior out of green specs and tests: no null pointers,
-  invalid pointers, or arrays without a reachable null terminator.
+  invalid pointers, arrays without a reachable null terminator for string
+  functions, or out-of-bounds byte counts for memory functions.
 - Use the existing mutable cstring buffer support, especially `cstring.bufR`,
   when specifying functions such as `strcpy`, `strncpy`, `strcat`, and
   `strncat`; revisit only if these predicates are not expressive enough.

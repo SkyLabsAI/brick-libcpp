@@ -17,34 +17,40 @@ The intended workflow is iterative:
 
 ## Current Mental Model
 
-The current workspace contains coherent first and second slices for read-only
-null-terminated byte-string operations:
+The current workspace contains two active slices and one archived comparison
+track.
 
-- `model.v` defines pure byte-string models for `strcmp`, `strncmp`, `strchr`,
-  `strrchr`, `strspn`, `strcspn`, `strpbrk`, and `strstr`; the active `strlen`
-  spec uses the existing `cstring.strlen`.
-- `pred.v` is intentionally minimal and reuses the existing `cstring.R`
-  abstraction.
-- `spec.v` specifies `strlen`, `strcmp`, `strncmp`, `strchr`, `strrchr`,
-  `strspn`, `strcspn`, `strpbrk`, and `strstr` against `cstring.R`.
-- `test/cstring/test.cpp` contains `void` litmus functions using `assert`.
-  The embedded-null literal cases are isolated into separate functions from the
-  ordinary `strlen`, `strcmp`, and `strncmp` tests; the search/segment slice
-  includes ordinary tests and an embedded-null `char[]` array-buffer client.
-- `test/cstring/proof.v` proves the ordinary `strlen`, `strcmp`, `strncmp`,
-  search/segment tests, array-buffer client tests, and slice-wrapper tests.
-  The embedded-null literal tests are specified there but left admitted because
-  active clients must first split larger literal resources before invoking the
-  `cstring.R` specs.
-- `test/cstring/proof_old.v` proves the same ordinary tests and also proves the
-  embedded-null tests using the archived lower-level bridge.
-- `DESIGN.md` records the representation choice and remaining design notes.
+The active null-terminated byte-string slice covers:
 
-The main abstraction boundary is that `cstring.R` remains the convenient
-client-facing null-terminated string predicate. The older `cstringz.R` predicate
-is preserved only in `pred_old.v` and used by `proof_old.v` to demonstrate how
-embedded-null literal resources can be split and recombined around calls to the
-active specs.
+- `model.v` pure models for `strcmp`, `strncmp`, `strchr`, `strrchr`,
+  `strspn`, `strcspn`, `strpbrk`, and `strstr`; the active `strlen` spec uses
+  the existing `cstring.strlen`;
+- `pred.v` reuse of the existing `cstring.R` abstraction for the string slice;
+- `spec.v` specs for `strlen`, `strcmp`, `strncmp`, `strchr`, `strrchr`,
+  `strspn`, `strcspn`, `strpbrk`, and `strstr` against `cstring.R`;
+- `test/cstring/test.cpp` `void` litmus functions using `assert`, including
+  separated embedded-null cases and explicit `char[]` array-buffer clients;
+- `test/cstring/proof.v` proofs for the ordinary `strlen`, `strcmp`,
+  `strncmp`, search/segment tests, array-buffer client tests, and slice-wrapper
+  tests;
+- `test/cstring/proof_old.v` archived proofs for the earlier lower-level bridge
+  design, including literal embedded-null cases.
+
+The active counted byte-array slice covers:
+
+- `pred.v` abstract `object_bytesR` / `object_bytes_anyR` predicates together
+  with bridge axioms to and from concrete `arrayLR` byte arrays;
+- `spec.v` active specs for `memchr`, `memcmp`, `memset`, `memcpy`, and
+  `memmove`, plus a commented archived region containing the earlier
+  exact-length `arrayLR Tuchar` versions;
+- `test/cstring/test.cpp` ordinary and embedded-null litmus tests for
+  `memchr`, `memcmp`, `memset`, `memcpy`, and `memmove_overlap`;
+- `test/cstring/proof.v` proofs for `test_memchr`,
+  `test_memchr_embedded_null`, `test_memset`, `test_memcpy`, `test_memmove`,
+  and `test_memcmp`.
+
+The remaining byte-array embedded-null clients and the overlapping `memmove`
+client are not yet proved.
 
 ## `<cstring>` API Surface
 
@@ -57,45 +63,45 @@ cppreference groups the header into:
   `memmove`;
 - miscellaneous: `strerror`.
 
-The implemented read-only slices cover `strlen`, `strcmp`, `strncmp`, `strchr`,
-`strrchr`, `strspn`, `strcspn`, `strpbrk`, and `strstr`.
+The implemented active slices now cover:
+
+- `strlen`, `strcmp`, `strncmp`, `strchr`, `strrchr`, `strspn`, `strcspn`,
+  `strpbrk`, `strstr`;
+- `memchr`, `memcmp`, `memset`, `memcpy`, `memmove`.
 
 ## Proposed Plan
 
-1. Done: keep the existing v1 slice stable.
-   The active and archived files currently validate with `dune`; keep checking
-   them when touching this area:
+1. Done: keep the original read-only string slice stable.
+   The active and archived files are meant to keep building together:
    `proof/cstring/model.vo`, `proof/cstring/pred.vo`,
    `proof/cstring/spec.vo`, `proof/cstring/model_old.vo`,
    `proof/cstring/pred_old.vo`, `proof/cstring/spec_old.vo`,
    `test/cstring/proof.vo`, and `test/cstring/proof_old.vo`.
 
-2. Done: add explicit array-buffer litmus tests for the v1 slice.
+2. Done: add explicit array-buffer litmus tests for the string slice.
    Use `char[]` examples with bytes after the first `'\0'`. In the active
    development, prove these by explicitly splitting off the `cstring.R` prefix
-   and recombining the remaining buffer resource after the call. Keep tests as
-   `void` functions with `assert`. The active `test/cstring/proof.v` now has
-   these proofs; extending `test/cstring/proof_old.v` with matching archived
-   proofs is an optional leftover task, not part of this completed step.
+   and recombining the remaining buffer resource after the call.
 
 3. Done: add read-only search and segment APIs.
    This slice covers `strchr`, `strrchr`, `strspn`, `strcspn`, `strpbrk`, and
-   `strstr`. The active development has pure models, `cstring.R`-based specs,
-   ordinary litmus tests, and an embedded-null `char[]` array-buffer client
-   proof. Character-search specs intentionally cover byte-range arguments only,
-   matching the conservative policy in `DESIGN.md`.
+   `strstr`. Character-search specs intentionally cover byte-range arguments
+   only, matching the conservative policy in `DESIGN.md`.
 
-4. Add byte-array APIs as a separate slice.
-   Suggested order: `memcmp`, `memchr`, then `memset`, then `memcpy`, then
-   `memmove`. These operate over counted arrays and do not require null
-   termination, so they likely need a distinct byte-buffer predicate/model.
+4. In progress: counted byte-array APIs.
+   The active specs and ordinary litmus proofs now cover `memchr`, `memcmp`,
+   `memset`, `memcpy`, and non-overlapping `memmove` using abstract
+   object-byte predicates. Remaining work in this slice is:
+   - embedded-null regression proofs for the remaining byte-array tests;
+   - overlapping `memmove`, which needs a stronger aliased or single-buffer
+     spec.
 
-5. Add string-copy and concatenation APIs after mutable byte-array support.
+5. Next: string-copy and concatenation APIs after mutable byte-array support.
    Suggested order: `strcpy`, `strncpy`, `strcat`, and `strncat`. These require
    destination capacity, mutation, null termination, and non-overlap
    preconditions.
 
-6. Defer locale, global-state, and implementation-storage APIs.
+6. Later: locale, global-state, and implementation-storage APIs.
    `strcoll`, `strxfrm`, `strerror`, and especially `strtok` involve locale,
    static/internal storage, or global tokenization state. Handle them last with
    explicit abstraction choices or narrow axiomatization.
