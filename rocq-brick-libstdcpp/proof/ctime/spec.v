@@ -23,8 +23,7 @@ Section with_cpp.
      \pre if bool_decide (timer_p = nullptr) then emp
           else timer_p |-> anyR Tlong 1$m
      \post{t}[Vint t]
-       [| 0 <= t |] **
-       later_than (abs_time_of_N (Z.to_N t)) **
+       time_result t **
        if bool_decide (timer_p = nullptr) then emp
        else timer_p |-> primR Tlong 1$m (Vint t)).
 
@@ -35,13 +34,13 @@ Section with_cpp.
      \post{r}[Vint r]
        if bool_decide (base = TIME_UTC /\ r = TIME_UTC) then
          Exists ts,
-           [| timespec_get_result ts |] **
-           [| 0 <= timespec_model_nsec ts < 1000000000 |] **
+           timespec_get_result ts **
            ts_p |-> timespecR 1$m ts
        else
          [| r = 0 |] **
          ts_p |-> anyR "timespec" 1$m).
 
+  (* conversion function *)
   cpp.spec (named "mktime") with
     (\arg{tm_p} "__tp" (Vptr tm_p)
      \pre{tm_in} tm_p |-> tmR 1$m tm_in

@@ -71,7 +71,7 @@ Section with_cpp.
     \pre ts_p |-> anyR "timespec" 1$m
     \post
       (Exists ts,
-         [| timespec_get_result ts |] **
+         timespec_get_result ts **
          ts_p |-> timespecR 1$m ts) \\//
       (ts_p |-> anyR "timespec" 1$m)
   ).
@@ -147,15 +147,9 @@ Section with_cpp.
   cpp.spec "test_strftime()" default.
   Lemma test_strftime_ok : verify[module] "test_strftime()".
   Proof.
-    verify_spec.
-    go.
-    wp_if; go.
-    iExists (""%bs).
-    iSplitL.
-    - iApply (arrayLR_zeros_cstring_bufR_build buf_addr 32%N).
-      + done.
-      + iFrame.
-    - (* Remaining cleanup blocker: downgrade [cstring.bufR] back to the stack-array [anyR] shape. *)
+    (* Existing cleanup blocker: downgrade [cstring.bufR] back to the
+       stack-array [anyR] shape. Avoid replaying the partial proof here,
+       since automation can time out before reaching the known blocker. *)
   Admitted.
 
   cpp.spec "test_repeated_static_calls()" default.
