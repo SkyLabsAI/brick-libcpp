@@ -177,7 +177,7 @@ Section with_cpp.
        (fun _ : unit => anyR Tuchar 1$m) (replicateZ (Z.of_N n) tt)
      \require lengthZ bytes = Z.of_N n
      \post[Vptr dest_p] dest_p |-> arrayLR Tuchar 0 (Z.of_N n)
-       (fun b : Z => ucharR 1$m b) (memcpy bytes)).
+       (fun b : Z => ucharR 1$m b) bytes).
 
   cpp.spec "memmove" with
     (\arg{dest_p} "__dest" (Vptr dest_p)
@@ -189,7 +189,7 @@ Section with_cpp.
        (fun _ : unit => anyR Tuchar 1$m) (replicateZ (Z.of_N n) tt)
      \require lengthZ bytes = Z.of_N n
      \post[Vptr dest_p] dest_p |-> arrayLR Tuchar 0 (Z.of_N n)
-       (fun b : Z => ucharR 1$m b) (memmove bytes)).
+       (fun b : Z => ucharR 1$m b) bytes).
   *)
 
   cpp.spec "memchr(void*, int, unsigned long)" as memchr_mut_spec with
@@ -238,7 +238,7 @@ Section with_cpp.
        object_bytes_anyR dest_byte_ty (Z.of_N n)
      \require lengthZ bytes = Z.of_N n
      \post[Vptr dest_p] dest_p |-> object_bytesR dest_byte_ty 1$m
-       (memcpy bytes)).
+       bytes).
 
   cpp.spec "memmove" with
     (\arg{dest_p} "__dest" (Vptr dest_p)
@@ -250,5 +250,5 @@ Section with_cpp.
        object_bytes_anyR dest_byte_ty (Z.of_N n)
      \require lengthZ bytes = Z.of_N n
      \post[Vptr dest_p] dest_p |-> object_bytesR dest_byte_ty 1$m
-       (memmove bytes)).
+       bytes).
 End with_cpp.

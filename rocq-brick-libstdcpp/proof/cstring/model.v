@@ -136,12 +136,6 @@ Fixpoint memcmp (bytes1 bytes2 : list Z) : Z :=
 Definition memset (c n : Z) : list Z :=
   replicateZ n (byte_of_int c).
 
-Definition memcpy (bytes : list Z) : list Z :=
-  bytes.
-
-Definition memmove (bytes : list Z) : list Z :=
-  bytes.
-
 #[local] Open Scope bs_scope.
 
 Succeed Example strcmp_equal : strcmp "abc" "abc" = 0 := eq_refl.
