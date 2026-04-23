@@ -62,6 +62,10 @@ Section with_cpp.
   Lemma test_time_store_ok : verify[module] "test_time_store()".
   Proof. verify_spec; go. Qed.
 
+  cpp.spec "test_clock()" default.
+  Lemma test_clock_ok : verify[module] "test_clock()".
+  Proof. verify_spec; go. Qed.
+
   cpp.spec "test_timespec_get_ptr(timespec* )" with (
     \arg{ts_p} "ts" (Vptr ts_p)
     \pre ts_p |-> anyR "timespec" 1$m

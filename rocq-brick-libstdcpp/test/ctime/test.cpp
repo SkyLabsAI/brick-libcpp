@@ -9,6 +9,10 @@ void test_time_store() {
     (void)std::time(&t);
 }
 
+void test_clock() {
+    (void)std::clock();
+}
+
 void test_timespec_get_ptr(std::timespec *ts) {
     (void)std::timespec_get(ts, TIME_UTC);
 }
@@ -74,6 +78,7 @@ void test_repeated_static_calls() {
 int main() {
     test_time_null();
     test_time_store();
+    test_clock();
     test_gmtime_and_asctime();
     test_localtime_and_ctime();
     test_strftime();

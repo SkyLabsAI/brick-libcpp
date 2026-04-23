@@ -9,7 +9,7 @@ Require Export skylabs.cpp.string.
 #[local] Set Primitive Projections.
 #[local] Open Scope Z_scope.
 
-Record tm_model := {
+Record tm_t := {
   tm_model_sec : Z;
   tm_model_min : Z;
   tm_model_hour : Z;
@@ -21,34 +21,36 @@ Record tm_model := {
   tm_model_isdst : Z;
 }.
 
-Record timespec_model := {
+Record timespec_t := {
   timespec_model_sec : Z;
   timespec_model_nsec : Z;
 }.
 
 Definition TIME_UTC : Z := 1.
 
-Definition clock_t_model := Z.
-Definition time_t_model := Z.
+Definition clock_t := Z.
+Definition time_t := Z.
 
-Parameter abs_time : Type.
-Parameter abs_time_of_N : N -> abs_time.
+Parameter abs_time_t : Type.
+Parameter abs_time_of_N : N -> abs_time_t.
+Parameter abs_time_diff_t : Type.
 
-Parameter clock_result : clock_t_model -> Prop.
-Parameter timespec_get_result : timespec_model -> Prop.
-Parameter utc_time_to_tm : time_t_model -> tm_model -> Prop.
-Parameter local_time_to_tm : time_t_model -> tm_model -> Prop.
-Parameter mktime_result : tm_model -> tm_model -> time_t_model -> Prop.
-Parameter asctime_text_of : tm_model -> cstring.t -> Prop.
-Parameter strftime_text_of : cstring.t -> tm_model -> cstring.t -> Prop.
+Definition timespec_wf (ts : timespec_t) : Prop :=
+  0 <= timespec_model_nsec ts < 1000000000.
 
-Definition ctime_text_of (t : time_t_model) (out : cstring.t) : Prop :=
+Parameter time_t_to_abs_time : time_t -> abs_time_t -> Prop.
+Parameter timespec_to_abs_time : timespec_t -> abs_time_t -> Prop.
+Parameter clock_t_to_abs_time_diff : clock_t -> abs_time_diff_t -> Prop.
+Parameter abs_time_plus_diff : abs_time_t -> abs_time_diff_t -> abs_time_t -> Prop.
+
+Parameter utc_time_to_tm : time_t -> tm_t -> Prop.
+Parameter local_time_to_tm : time_t -> tm_t -> Prop.
+Parameter mktime_result : tm_t -> tm_t -> time_t -> Prop.
+Parameter asctime_text_of : tm_t -> cstring.t -> Prop.
+Parameter strftime_text_of : cstring.t -> tm_t -> cstring.t -> Prop.
+
+Definition ctime_text_of (t : time_t) (out : cstring.t) : Prop :=
   exists tm, local_time_to_tm t tm /\ asctime_text_of tm out.
-
-Axiom timespec_get_result_wf :
-  forall ts,
-    timespec_get_result ts ->
-    0 <= timespec_model_nsec ts < 1000000000.
 
 Axiom asctime_text_of_len :
   forall tm out,

@@ -16,7 +16,7 @@ Section with_cpp.
 
   cpp.spec (named "clock") with
     (\post{ticks}[Vint ticks]
-      [| clock_result ticks \/ ticks = -1 |]).
+      clock_result ticks \\// [| ticks = -1 |]).
 
   cpp.spec (named "time") with
     (\arg{timer_p} "__timer" (Vptr timer_p)
