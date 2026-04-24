@@ -40,6 +40,75 @@ Section with_cpp.
     verify[module] "test_strncmp_embedded_null()".
   Admitted.
 
+  cpp.spec "test_search_embedded_null_array_buffer()" default.
+  Lemma test_search_embedded_null_array_buffer_ok :
+    verify[module] "test_search_embedded_null_array_buffer()".
+  Proof using MOD.
+    verify_spec; go.
+    iPoseProof (borrow_arrayLR_cstringR _ _
+      (cstring.to_zstring "ab"%bs ++ [98%N; 99%N; 0%N]) "ab"%bs
+      [98%N; 99%N; 0%N] eq_refl
+      ltac:(apply cstring.WF_cons;
+        [change (Byte.x61 <> Byte.x00); congruence|];
+        apply cstring.WF_cons;
+        [change (Byte.x62 <> Byte.x00); congruence|];
+        apply cstring.WF_nil) with "[$]")
+      as "[Hs Hclose]".
+    iExists _, "ab"%bs. iFrame "Hs".
+    iIntros "Hs".
+    go.
+    Arith.arith_simpl; go; ego.
+    Arith.arith_simpl; go; ego.
+    Arith.arith_simpl; go; ego.
+    Arith.arith_simpl; go; ego.
+    Arith.arith_simpl; go; ego.
+    Arith.arith_simpl; go.
+    go.
+    Arith.arith_simpl; go.
+    go.
+    iSplitL "Hs"; [iExact "Hs"|].
+    iIntros "Hs".
+    Arith.arith_simpl; go; ego.
+    iSplitL "Hs"; [iExact "Hs"|].
+    iIntros "Hs".
+    Arith.arith_simpl; go; ego.
+    iSplitL "Hs"; [iExact "Hs"|].
+    iIntros "Hs".
+    Arith.arith_simpl; go; ego.
+    iSplitL "Hs"; [iExact "Hs"|].
+    iIntros "Hs".
+    Arith.arith_simpl; go; ego.
+    iSplitL "Hs"; [iExact "Hs"|].
+    iIntros "[Hs Haccept]".
+    Arith.arith_simpl; go; ego.
+    iSplitL "Hs"; [iExact "Hs"|].
+    iIntros "[Hs Hreject]".
+    Arith.arith_simpl; go; ego.
+    iSplitL "Hs"; [iExact "Hs"|].
+    iIntros "[Hs Hneedle]".
+    Arith.arith_simpl; go; ego.
+    iSplitL "Hs"; [iExact "Hs"|].
+    iIntros "[Hs Hneedle_b]".
+    Arith.arith_simpl; go; ego.
+    iSplitL "Hs"; [iExact "Hs"|].
+    iIntros "[Hs Hneedle_bc]".
+    Arith.arith_simpl; go; ego.
+    iSplitL "Hs"; [iExact "Hs"|].
+    iIntros "[Hs Hneedle_b2]".
+    Arith.arith_simpl; go; ego.
+    iSplitL "Hs"; [iExact "Hs"|].
+    iIntros "[Hs Hempty]".
+    Arith.arith_simpl; go; ego.
+    iPoseProof ("Hclose" with "Hs") as "Harr".
+    iPoseProof (arrayLR_charR_arrayLR_anyR _ 6%N
+      (cstring.to_zstring "ab"%bs ++ [98%N; 99%N; 0%N])
+      ltac:(rewrite cstring.to_zstring_unfold; reflexivity) with "Harr")
+      as "Harr".
+    go.
+    iFrame "Harr".
+    go.
+  Qed.
+
   cpp.spec "test_memset_embedded_null()" default.
   Lemma test_memset_embedded_null_ok :
     verify[module] "test_memset_embedded_null()".
