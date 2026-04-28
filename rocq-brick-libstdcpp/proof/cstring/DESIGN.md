@@ -18,13 +18,16 @@ The counted byte slice uses abstract byte predicates rather than `cstring.R`.
 These operations are not about null-terminated strings, and embedded zero
 bytes are ordinary data.
 
-On the client side, the active `test/cstring/proof.v` currently proves:
+On the client side, the active proof files currently prove:
 
-- the ordinary `strlen` / `strcmp` / `strncmp` litmus tests;
-- the active read-only search and segment litmus tests;
-- explicit `char[]` array-buffer clients for the string slice;
-- `test_memchr`, `test_memchr_embedded_null`, `test_memset`, `test_memcpy`,
-  `test_memmove`, and `test_memcmp`.
+- `test/cstring/proof.v` proves the ordinary `strlen` / `strcmp` / `strncmp`
+  litmus tests, the active read-only search and segment litmus tests, and the
+  explicit `char[]` array-buffer clients for the string slice;
+- `test/cstring/proof_mem_functions.v` proves `test_memchr`, `test_memset`,
+  `test_memcpy`, `test_memmove`, and `test_memcmp`;
+- `test/cstring/proofs_embedded_null.v` proves
+  `test_search_embedded_null_array_buffer`, `test_memset_embedded_null`, and
+  `test_memchr_embedded_null`.
 
 The archived files `model_old.v`, `pred_old.v`, `spec_old.v`, and
 `test/cstring/proof_old.v` are still present for comparison and rollback. They
@@ -126,9 +129,10 @@ Embedded-null and embedded-zero litmus tests remain useful regression cases. At
 present:
 
 - `test_memchr_embedded_null_ok` is proved in the active development;
-- `test_memcmp_embedded_null`, `test_memset_embedded_null`,
-  `test_memcpy_embedded_null`, and `test_memmove_embedded_null` are still only
-  declared via `cpp.spec` stubs in `test/cstring/proof.v`.
+- `test_memset_embedded_null_ok` is also proved in the active development;
+- `test_memcmp_embedded_null`, `test_memcpy_embedded_null`, and
+  `test_memmove_embedded_null` are still only declared via `cpp.spec` stubs in
+  `test/cstring/proofs_embedded_null.v`.
 
 As with the earlier `cstring.R` pivot, reusable specs should describe ranges of
 exactly the length passed to the function. Clients that start from larger
@@ -191,12 +195,13 @@ active designs based on `cstring.R` and `object_bytesR`.
   expose fractional behavior axiomatically; the manual split/recombine pattern
   should not spread unchecked.
 - Extend the byte-array proofs to the remaining embedded-null regression tests:
-  `memcmp`, `memset`, `memcpy`, and `memmove`.
+  `memcmp`, `memcpy`, and `memmove`.
 - Extend the byte-array specs beyond non-overlapping cases. The active
   `memcpy` and `memmove` proofs stay in the disjoint-source/destination lane.
-  Overlapping `memmove` needs a separate single-buffer or otherwise aliased
-  specification that snapshots the source range before updating the
-  destination range.
+  `test/cstring/proof_mem_functions.v` now carries the `test_memmove_overlap()`
+  client stub, but overlapping `memmove` still needs a separate single-buffer
+  or otherwise aliased specification that snapshots the source range before
+  updating the destination range.
 - Keep undefined behavior out of green specs and tests: no null pointers,
   invalid pointers, arrays without a reachable null terminator for string
   functions, or out-of-bounds byte counts for memory functions.
