@@ -100,9 +100,8 @@ Section with_cpp.
     iIntros "[Hs Hempty]".
     Arith.arith_simpl; go; ego.
     iPoseProof ("Hclose" with "Hs") as "Harr".
-    iPoseProof (arrayLR_charR_arrayLR_anyR _ 6%N
-      (cstring.to_zstring "ab"%bs ++ [98%N; 99%N; 0%N])
-      ltac:(rewrite cstring.to_zstring_unfold; reflexivity) with "Harr")
+    iPoseProof (arrayLR_charR_arrayLR_anyR _ 1$m
+      (cstring.to_zstring "ab"%bs ++ [98%N; 99%N; 0%N]) with "Harr")
       as "Harr".
     go.
     iFrame "Harr".
@@ -132,7 +131,7 @@ Section with_cpp.
     iDestruct "Htail" as "[[#Hty3 H3] Hempty]".
     iExists Tuchar.
     iSplitL "Htarget".
-    - iApply (object_bytesR_ucharR_object_bytes_anyR _ 2%N
+    - iApply (object_bytesR_ucharR_object_bytes_anyR _ 1$m 2%N
         [98%Z; 99%Z] ltac:(reflexivity) with "Htarget").
     - iIntros "Htarget".
       go.
@@ -163,7 +162,7 @@ Section with_cpp.
         (cQp.mk false 1) 2 4 [97%Z; 0%Z] [0%Z; 100%Z]
         ltac:(reflexivity) ltac:(reflexivity) ltac:(reflexivity))
         with "[$Hhead $Htail]") as "Hs".
-      iPoseProof (object_bytesR_ucharR_arrayLR_anyR _ 4%N
+      iPoseProof (object_bytesR_ucharR_arrayLR_anyR _ 1$m 4%N
         [97%Z; 0%Z; 0%Z; 100%Z] ltac:(reflexivity) with "Hs") as "Hs".
       iFrame "Hs".
       go.
@@ -209,7 +208,7 @@ Section with_cpp.
     iIntros "Hs".
     rewrite (memchr_found_after_prefix [97%Z; 0%Z] 98%Z [0%Z] 98%Z); [|solve_memchr_side..].
     Arith.arith_simpl; go.
-    iPoseProof (object_bytesR_ucharR_arrayLR_anyR _ 4%N
+    iPoseProof (object_bytesR_ucharR_arrayLR_anyR _ 1$m 4%N
       [97%Z; 0%Z; 98%Z; 0%Z]
       ltac:(reflexivity) with "Hs") as "Hs".
     iFrame "Hs".
@@ -224,4 +223,5 @@ Section with_cpp.
   cpp.spec "test_memcpy_embedded_null()" default.
 
   cpp.spec "test_memmove_embedded_null()" default.
+
 End with_cpp.

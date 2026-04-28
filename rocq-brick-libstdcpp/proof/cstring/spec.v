@@ -224,7 +224,7 @@ Section with_cpp.
     (\arg{s_p} "__s" (Vptr s_p)
      \arg{c} "__c" (Vint c)
      \arg{n} "__n" (Vn n)
-     \pre{byte_ty} s_p |-> object_bytes_anyR byte_ty (Z.of_N n)
+     \pre{byte_ty} s_p |-> object_bytes_anyR byte_ty 1$m (Z.of_N n)
      \post[Vptr s_p] s_p |-> object_bytesR byte_ty 1$m
        (memset c (Z.of_N n))).
 
@@ -235,7 +235,7 @@ Section with_cpp.
      \prepost{src_byte_ty q bytes} src_p |->
        object_bytesR src_byte_ty q bytes
      \pre{dest_byte_ty} dest_p |->
-       object_bytes_anyR dest_byte_ty (Z.of_N n)
+       object_bytes_anyR dest_byte_ty 1$m (Z.of_N n)
      \require lengthZ bytes = Z.of_N n
      \post[Vptr dest_p] dest_p |-> object_bytesR dest_byte_ty 1$m
        bytes).
@@ -247,7 +247,7 @@ Section with_cpp.
      \prepost{src_byte_ty q bytes} src_p |->
        object_bytesR src_byte_ty q bytes
      \pre{dest_byte_ty} dest_p |->
-       object_bytes_anyR dest_byte_ty (Z.of_N n)
+       object_bytes_anyR dest_byte_ty 1$m (Z.of_N n)
      \require lengthZ bytes = Z.of_N n
      \post[Vptr dest_p] dest_p |-> object_bytesR dest_byte_ty 1$m
        bytes).

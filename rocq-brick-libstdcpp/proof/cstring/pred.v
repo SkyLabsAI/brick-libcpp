@@ -31,10 +31,11 @@ Axiom object_bytesR_cfrac : forall `{Σ : cpp_logic} {σ : genv} byte_ty bytes,
     (fun q => object_bytesR byte_ty q bytes) q.
 Proof. solve_as_cfrac. Qed.
 
-(** [object_bytes_anyR byte_ty n] owns a writable [n]-byte destination range
-    whose previous byte values are irrelevant. *)
+(** [object_bytes_anyR byte_ty q n] owns an [n]-byte destination range at
+    permission [q] whose previous byte values are irrelevant. Specs for
+    mutating functions may still require [q = 1$m]. *)
 Axiom object_bytes_anyR : forall `{Σ : cpp_logic} {σ : genv},
-  type -> Z -> Rep.
+  type -> cQp.t -> Z -> Rep.
 
 Axiom object_bytesR_to_arrayLR : forall `{Σ : cpp_logic} {σ : genv}
     (p : ptr) ty q hi bytes,
@@ -49,9 +50,9 @@ Axiom object_bytesR_of_arrayLR : forall `{Σ : cpp_logic} {σ : genv}
   p |-> object_bytesR ty q bytes.
 
 Axiom object_bytes_anyR_of_anyR_array : forall `{Σ : cpp_logic} {σ : genv}
-    (p : ptr) ty n,
-  p |-> anyR (Tarray ty n) 1$m ⊢
-  p |-> object_bytes_anyR ty (Z.of_N n).
+    (p : ptr) ty q n,
+  p |-> anyR (Tarray ty n) q ⊢
+  p |-> object_bytes_anyR ty q (Z.of_N n).
 
 Lemma borrow_arrayR_cstringR `{Σ : cpp_logic, σ : genv}
     (p : ptr) q bytes s tail :
@@ -212,10 +213,10 @@ Proof.
 Qed.
 
 Lemma arrayR_charR_arrayR_anyR `{Σ : cpp_logic, σ : genv}
-    (p : ptr) xs :
-  p |-> arrayR (Tchar_ char_type.Cchar) (fun c : N => charR 1$m c) xs ⊢
+    (p : ptr) q xs :
+  p |-> arrayR (Tchar_ char_type.Cchar) (fun c : N => charR q c) xs ⊢
   p |-> arrayR (Tchar_ char_type.Cchar)
-         (fun _ : unit => anyR (Tchar_ char_type.Cchar) 1$m)
+         (fun _ : unit => anyR (Tchar_ char_type.Cchar) q)
          (replicateN (lengthN xs) ()).
 Proof.
   revert p.
@@ -235,28 +236,23 @@ Proof.
 Qed.
 
 Lemma arrayLR_charR_arrayLR_anyR `{Σ : cpp_logic, σ : genv}
-    (p : ptr) n xs :
-  N.to_nat n = length xs ->
-  p |-> arrayLR (Tchar_ char_type.Cchar) 0 (Z.of_N n)
-         (fun c : N => charR 1$m c) xs ⊢
-  p |-> arrayLR (Tchar_ char_type.Cchar) 0 (Z.of_N n)
-         (fun _ : unit => anyR (Tchar_ char_type.Cchar) 1$m)
-         (replicateN n ()).
+    (p : ptr) q xs :
+  p |-> arrayLR (Tchar_ char_type.Cchar) 0 (lengthZ xs)
+         (fun c : N => charR q c) xs ⊢
+  p |-> arrayLR (Tchar_ char_type.Cchar) 0 (lengthZ xs)
+         (fun _ : unit => anyR (Tchar_ char_type.Cchar) q)
+         (replicateN (lengthN xs) ()).
 Proof.
-  intros Hlen.
   rewrite arrayLR.unlock _at_sep.
   iIntros "[_ Harr]".
   rewrite _at_offsetR _at_sub_0; [|done].
-  replace (replicateN n ()) with (replicateN (lengthN xs) ())
-    by (rewrite /replicateN /lengthN -(N2Nat.id n) Hlen; reflexivity).
-  iPoseProof (arrayR_charR_arrayR_anyR with "Harr") as "Harr".
+  iPoseProof (arrayR_charR_arrayR_anyR _ q with "Harr") as "Harr".
   rewrite /arrayLR.
   iSplit.
   - iPureIntro.
     unfold lengthZ, lengthN, replicateN.
     rewrite length_replicate.
-    replace (length xs) with (N.to_nat n) by exact Hlen.
-    repeat rewrite N2Nat.id.
+    rewrite Nat2N.id.
     lia.
   - rewrite _at_offsetR _at_sub_0; [|done].
     iExact "Harr".
@@ -341,10 +337,10 @@ Proof.
     iExact "Hs".
 Qed.
 
-Lemma arrayLR_ucharR_anyR `{Σ : cpp_logic, σ : genv} (p : ptr) n xs :
+Lemma arrayLR_ucharR_anyR `{Σ : cpp_logic, σ : genv} (p : ptr) q n xs :
   N.to_nat n = length xs ->
-  p |-> arrayLR Tuchar 0 (Z.of_N n) (fun c : Z => ucharR 1$m c) xs ⊢
-  p |-> anyR (Tarray Tuchar n) 1$m.
+  p |-> arrayLR Tuchar 0 (Z.of_N n) (fun c : Z => ucharR q c) xs ⊢
+  p |-> anyR (Tarray Tuchar n) q.
 Proof.
   intros Hlen.
   rewrite arrayLR.unlock _at_sep.
@@ -408,14 +404,14 @@ Ltac solve_memchr_side :=
   end.
 
 Lemma object_bytesR_ucharR_anyR `{Σ : cpp_logic, σ : genv}
-    (p : ptr) n xs :
+    (p : ptr) q n xs :
   N.to_nat n = length xs ->
-  p |-> object_bytesR Tuchar 1$m xs ⊢
-  p |-> anyR (Tarray Tuchar n) 1$m.
+  p |-> object_bytesR Tuchar q xs ⊢
+  p |-> anyR (Tarray Tuchar n) q.
 Proof.
   intros Hlen.
   iIntros "Hs".
-  iPoseProof (object_bytesR_to_arrayLR p Tuchar 1$m (Z.of_N n) xs
+  iPoseProof (object_bytesR_to_arrayLR p Tuchar q (Z.of_N n) xs
     ltac:(apply lengthZ_of_to_nat_length; exact Hlen)
     with "Hs") as "Hs".
   iApply (arrayLR_ucharR_anyR with "Hs").
@@ -423,24 +419,24 @@ Proof.
 Qed.
 
 Lemma object_bytesR_ucharR_object_bytes_anyR
-    `{Σ : cpp_logic, σ : genv} (p : ptr) n xs :
+    `{Σ : cpp_logic, σ : genv} (p : ptr) q n xs :
   N.to_nat n = length xs ->
-  p |-> object_bytesR Tuchar 1$m xs ⊢
-  p |-> object_bytes_anyR Tuchar (Z.of_N n).
+  p |-> object_bytesR Tuchar q xs ⊢
+  p |-> object_bytes_anyR Tuchar q (Z.of_N n).
 Proof.
   intros Hlen.
   iIntros "Hs".
-  iPoseProof (object_bytesR_ucharR_anyR _ n xs Hlen with "Hs") as "Hs".
+  iPoseProof (object_bytesR_ucharR_anyR _ q n xs Hlen with "Hs") as "Hs".
   iApply (object_bytes_anyR_of_anyR_array with "Hs").
 Qed.
 
 Lemma object_bytesR_ucharR_arrayR `{Σ : cpp_logic, σ : genv}
-    (p : ptr) xs :
-  p |-> object_bytesR Tuchar 1$m xs ⊢
-  p |-> arrayR Tuchar (fun b : Z => ucharR 1$m b) xs.
+    (p : ptr) q xs :
+  p |-> object_bytesR Tuchar q xs ⊢
+  p |-> arrayR Tuchar (fun b : Z => ucharR q b) xs.
 Proof.
   iIntros "Hs".
-  iPoseProof (object_bytesR_to_arrayLR p Tuchar 1$m (lengthZ xs) xs
+  iPoseProof (object_bytesR_to_arrayLR p Tuchar q (lengthZ xs) xs
     eq_refl with "Hs") as "Hs".
   rewrite arrayLR.unlock _at_sep.
   iDestruct "Hs" as "[_ Hs]".
@@ -448,11 +444,11 @@ Proof.
 Qed.
 
 Lemma at_arrayR_ucharR_cons `{Σ : cpp_logic, σ : genv}
-    (p : ptr) x xs :
-  p |-> arrayR Tuchar (fun b : Z => ucharR 1$m b) (x :: xs) ⊣⊢
+    (p : ptr) q x xs :
+  p |-> arrayR Tuchar (fun b : Z => ucharR q b) (x :: xs) ⊣⊢
   p |-> type_ptrR Tuchar ∗
-  p |-> ucharR 1$m x ∗
-  p .[Tuchar ! 1] |-> arrayR Tuchar (fun b : Z => ucharR 1$m b) xs.
+  p |-> ucharR q x ∗
+  p .[Tuchar ! 1] |-> arrayR Tuchar (fun b : Z => ucharR q b) xs.
 Proof.
   rewrite arrayR_cons !_at_sep.
   rewrite _at_offsetR.
@@ -480,22 +476,22 @@ Proof.
 Qed.
 
 Lemma arrayR_ucharR_arrayR_anyR `{Σ : cpp_logic, σ : genv}
-    (p : ptr) xs :
-  p |-> arrayR Tuchar (fun b : Z => ucharR 1$m b) xs ⊢
-  p |-> arrayR Tuchar (fun _ : unit => anyR Tuchar 1$m)
+    (p : ptr) q xs :
+  p |-> arrayR Tuchar (fun b : Z => ucharR q b) xs ⊢
+  p |-> arrayR Tuchar (fun _ : unit => anyR Tuchar q)
     (replicateN (lengthN xs) ()).
 Proof.
   revert p.
   induction xs as [|x xs IH].
   all: intros p.
   - rewrite /lengthN /= !arrayR_nil. reflexivity.
-  - rewrite (at_arrayR_ucharR_cons p x xs).
+  - rewrite (at_arrayR_ucharR_cons p q x xs).
     iIntros "(Hty & Hx & Hxs)".
     replace (lengthN (x :: xs)) with (N.succ (lengthN xs)) by
       (rewrite /lengthN Nat2N.inj_succ; reflexivity).
     rewrite replicateN_S.
     rewrite (at_arrayR_cons p Tuchar
-      (fun _ : unit => anyR Tuchar 1$m) () (replicateN (lengthN xs) ())).
+      (fun _ : unit => anyR Tuchar q) () (replicateN (lengthN xs) ())).
     iFrame "Hty".
     iSplitL "Hx".
     + iApply (at_ucharR_anyR with "Hx").
@@ -503,15 +499,15 @@ Proof.
 Qed.
 
 Lemma object_bytesR_ucharR_arrayLR_anyR
-    `{Σ : cpp_logic, σ : genv} (p : ptr) n xs :
+    `{Σ : cpp_logic, σ : genv} (p : ptr) q n xs :
   N.to_nat n = length xs ->
-  p |-> object_bytesR Tuchar 1$m xs ⊢
+  p |-> object_bytesR Tuchar q xs ⊢
   p |-> arrayLR Tuchar 0 (Z.of_N n)
-    (fun _ : unit => anyR Tuchar 1$m) (replicateN n ()).
+    (fun _ : unit => anyR Tuchar q) (replicateN n ()).
 Proof.
   intros Hlen.
   iIntros "Hs".
-  iPoseProof (object_bytesR_ucharR_arrayR with "Hs") as "Hs".
+  iPoseProof (object_bytesR_ucharR_arrayR p q xs with "Hs") as "Hs".
   rewrite arrayLR.unlock _at_sep.
   iSplit.
   - iPureIntro.
@@ -555,9 +551,9 @@ Proof.
   iDestruct (observe (p .[Tuchar ! 1] |-> type_ptrR Tuchar) with "Hb")
     as "#Hty1".
   iApply arrayR_ucharR_object_bytesR.
-  rewrite (at_arrayR_ucharR_cons p a [b]).
+  rewrite (at_arrayR_ucharR_cons p 1$m a [b]).
   iFrame "Hty0 Ha".
-  rewrite (at_arrayR_ucharR_cons (p .[Tuchar ! 1]) b []).
+  rewrite (at_arrayR_ucharR_cons (p .[Tuchar ! 1]) 1$m b []).
   iFrame "Hty1 Hb".
   rewrite arrayR_nil _at_sep.
   iSplit.
