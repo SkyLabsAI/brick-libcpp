@@ -137,13 +137,17 @@ Section with_cpp.
           other |-> R 1$m None
       ).
 
-      (* unlock the associated mutex, if any  *)
+      (** Ensures the associated mutex is unlocked and released. *)
       Definition ensure_unlock (thr : thread_idT) (om : option (bool * (ptr * gname * Qp * mpred))) (Q : mpred) : mpred :=
         match om with
-        | Some (true, mm) => do_unlock thr mm Q
+        | Some (true, (mp, g, q, P)) =>
+          letI* := do_unlock thr (mp, g, q, P) in
+          mp |-> mutex.R g q$m P -* Q
         | Some (false, (mp, g, q, P)) =>
           ▷ (mp |-> mutex.R g q$m P -* Q)
-        | _ => (* TODO should this be [bi_later Q]? *) Q
+        | _ =>
+        (* TODO should this be [bi_later Q]? *)
+          Q
         end.
 
       (* spec for dtor written with do_unlock.
