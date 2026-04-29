@@ -102,10 +102,26 @@ later promotion into shared docs.
   clause structure. Even when a witness or equality seems conceptually “inside”
   the hint, exposing it as an ordinary premise may let hint search instantiate
   it more effectively.
+- That negative lesson has an important complement: if a witness is computable
+  from consumed data and the main problem is aligning with the actual
+  goal-side parameters, a stronger `_C` hint may still work well if it
+  combines:
+  - a computation-friendly wrapper premise such as
+    `unpack_cstring bytes =[Vm]=> Some (s, tail)`
+  - `\bound` variables on the `\proving` side
+  - pure `\through` equalities tying those bound variables to the computed
+    values
+  In the `<cstring>` opener, this was the reformulation that finally let the
+  hint fire cleanly under `go`/`ego` without an explicit client-side `Hex`.
 - Hint matching is very intensional. A reformulation that replaces compound
   expressions by variables such as `mid` and `k`, together with simple equality
   premises, can fire much more reliably because it matches the post-call proof
   state more directly.
+- Reducibility/evaluation-style premises can be a better automation surface
+  than plain equalities or existentials when the hint should compute a witness
+  from concrete data. In wrapper obligations, converting such a premise with
+  `%RedEq_eq` gives back an ordinary equality while keeping the client-facing
+  hint surface computation-friendly.
 - In the `memset` family, a direct Family A opener can be worthwhile even when
   a more generic wrapper does not fire. Here, `arrayLR_open_prefix_any_C`
   became useful only after its consumed surface was phrased with an explicit

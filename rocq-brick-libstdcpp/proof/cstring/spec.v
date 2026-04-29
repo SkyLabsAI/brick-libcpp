@@ -131,8 +131,8 @@ Section with_cpp.
   cpp.spec "memchr(void*, int, unsigned long)" as memchr_mut_spec_old with
     (\arg{s_p} "__s" (Vptr s_p)
      \arg{c} "__c" (Vint c)
-     \arg{n} "__n" (Vn n)
-     \prepost{q bytes} s_p |-> arrayLR Tuchar 0 (Z.of_N n)
+     \arg{k} "__n" (Vint k)
+     \prepost{q n bytes} s_p |-> arrayLR Tuchar 0 n
        (fun b : Z => ucharR q b) bytes
      \require lengthZ bytes = Z.of_N n
      \post[byte_search_result s_p (memchr bytes c)] emp).

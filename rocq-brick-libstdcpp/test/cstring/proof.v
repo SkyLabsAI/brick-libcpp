@@ -3,14 +3,12 @@
  * This software is distributed under the terms of the BedRock Open-Source License.
  * See the LICENSE-BedRock file in the repository root for details.
  *)
+(*
 Require Import skylabs.auto.cpp.proof.
-Require Import skylabs.auto.cpp.hints.anyR.
+Require Import skylabs.auto.cpp.hints.anyR.*)
 (** BEGIN: SKYLABS DEFAULT PROOF IMPORTS *)
 Require Import skylabs.auto.cpp.prelude.proof.
-Require Import skylabs.cpp.array.
-Import expr_join.
-#[local] Hint Resolve delayed_case.smash_delayed_case_B | 1000 : br_hints.
-#[local] Hint Resolve delayed_case.expr_join.smash_delayed_case_B | 1000 : br_hints.
+(*Require Import skylabs.cpp.array.*)
 (** END: SKYLABS DEFAULT PROOF IMPORTS *)
 Require Import skylabs.brick.libstdcpp.cassert.spec.
 Require Import skylabs.brick.libstdcpp.cstring.spec.
@@ -20,21 +18,27 @@ Import normalize.only_provable_norm.
 
 Import normalize.normalize_ptr.
 Import refine_lib.
+Import expr_join.
+
+#[local] Hint Resolve delayed_case.smash_delayed_case_B | 1000 : br_hints.
+#[local] Hint Resolve delayed_case.expr_join.smash_delayed_case_B | 1000 : br_hints.
+
+#[only(cfracsplittable)] derive cstring.R. (*Upstream into auto*)
 
 Section with_cpp.
-  Context `{Σ : cpp_logic} `{MOD : module ⊧ σ}.
+  Context `{Σ : cpp_logic} {σ:genv} . (*`{MOD : module ⊧ σ}.*)
 
-  cpp.spec "test_strlen()" default.
+  cpp.spec "test_strlen()" from module default.
   Lemma test_strlen_ok : verify[module] "test_strlen()".
-  Proof. verify_spec; go; ego. Qed.
+  Proof. verify_spec; go. Qed.
 
-  cpp.spec "test_strcmp()" default.
+  cpp.spec "test_strcmp()" from module default.
   Lemma test_strcmp_ok : verify[module] "test_strcmp()".
-  Proof. verify_spec; go; ego. Qed.
+  Proof. verify_spec; go. Qed.
 
-  cpp.spec "test_strncmp()" default.
+  cpp.spec "test_strncmp()" from module default.
   Lemma test_strncmp_ok : verify[module] "test_strncmp()".
-  Proof. verify_spec; go; ego. Qed.
+  Proof. verify_spec; go. Qed.
 
   #[local] Fixpoint split_bytes_at_null (bytes : list N) :
       option (list N * list N) :=
@@ -315,27 +319,21 @@ Section with_cpp.
   Hint Resolve cstring_arrayLR : sl_opacity.
 
   #[local, program] Definition arrayLR_open_cstring_C
-      (p : ptr) q k bytes tail
-      (Hex : exists s, unpack_cstring bytes = Some (s, tail)) :=
+      (p : ptr) q k bytes s tail
+      (Hex : unpack_cstring bytes =[Vm]=> Some (s, tail)) :=
     \cancelx
-    \consuming p |-> arrayLR "char" 0 k
-                 (λ v : N, charR q v) bytes
-    \proving{s (Hunpack : unpack_cstring bytes = Some (s, tail))}
-      p |-> cstring.R q s
+    \consuming p |-> arrayLR "char" 0 k (λ v : N, charR q v) bytes
+    \bound qq ss
+    \proving p |-> cstring.R qq ss
+    \through [| qq  = q |]
+    \through [| ss = s |]
     \deduce p |-> arrayLR "char" (k - lengthZ tail) k
                 (λ v : N, charR q v) tail
     \end@{mpred}.
   Next Obligation.
-    intros p q k bytes tail [s0 Hunpack0].
-    iIntros "Harr".
-    pose proof (unpack_cstring_sound _ _ _ Hunpack0) as [Hbytes0 Hwf0].
-    iPoseProof (arrayLR_cstring q bytes k tail p s0 Hbytes0 Hwf0 with "Harr")
-      as "(%Hk & Hs0 & Htail)".
-    iFrame "Htail".
-    iIntros (s Hunpack).
-    rewrite Hunpack0 in Hunpack.
-    injection Hunpack as <-.
-    iExact "Hs0".
+    intros p q k bytes s tail Hs%RedEq_eq.
+    pose proof (unpack_cstring_sound _ _ _ Hs) as [Hbytes0 Hwf0]. work.
+    rewrite arrayLR_cstring . work. by rewrite app_nil_r. done.
   Qed.
   #[local] Hint Resolve arrayLR_open_cstring_C : sl_opacity.
 
@@ -450,95 +448,67 @@ Section with_cpp.
   Qed.
   *)
 
-  cpp.spec "test_strlen_array_buffer()" default.
+  cpp.spec "test_strlen_array_buffer()" from module default.
   Lemma test_strlen_array_buffer_ok :
     verify[module] "test_strlen_array_buffer()".
   Proof.
     verify_spec; go.
-    assert (Hex :
-      exists s,
-        unpack_cstring
-          (cstring.to_zstring "ab"%bs ++ [99%N; 100%N; 0%N]) =
-        Some (s, [99%N; 100%N; 0%N])) by (eexists; reflexivity).
-    ego.
   Qed.
 
-  cpp.spec "test_strcmp_array_buffer()" default.
+  cpp.spec "test_strcmp_array_buffer()" from module default.
   Lemma test_strcmp_array_buffer_ok :
     verify[module] "test_strcmp_array_buffer()".
   Proof.
     verify_spec; go.
-    assert (Hex :
-      exists s,
-        unpack_cstring
-          (cstring.to_zstring "ab"%bs ++ [120%N; 0%N]) =
-        Some (s, [120%N; 0%N])) by (eexists; reflexivity).
-    assert (Hey :
-      exists s,
-        unpack_cstring
-          (cstring.to_zstring "ab"%bs ++ [121%N; 0%N]) =
-        Some (s, [121%N; 0%N])) by (eexists; reflexivity).
-    ego.
   Qed.
 
-  cpp.spec "test_strncmp_array_buffer()" default.
+  cpp.spec "test_strncmp_array_buffer()" from module default.
   Lemma test_strncmp_array_buffer_ok :
     verify[module] "test_strncmp_array_buffer()".
   Proof.
     verify_spec; go.
-    assert (Hex :
-      exists s,
-        unpack_cstring
-          (cstring.to_zstring "ab"%bs ++ [120%N; 0%N]) =
-        Some (s, [120%N; 0%N])) by (eexists; reflexivity).
-    assert (Hey :
-      exists s,
-        unpack_cstring
-          (cstring.to_zstring "ab"%bs ++ [121%N; 0%N]) =
-        Some (s, [121%N; 0%N])) by (eexists; reflexivity).
-    ego.
   Qed.
 
-  cpp.spec "test_strchr()" default.
+  cpp.spec "test_strchr()" from module default.
   Lemma test_strchr_ok : verify[module] "test_strchr()".
-  Proof using MOD.
-    verify_spec; go; ego.
-    Arith.arith_simpl; go; ego.
-    Arith.arith_simpl; go; ego.
+  Proof.
+    verify_spec; go.
+    Arith.arith_simpl; go.
+    Arith.arith_simpl; go.
   Qed.
 
-  cpp.spec "test_strrchr()" default.
+  cpp.spec "test_strrchr()" from module default.
   Lemma test_strrchr_ok : verify[module] "test_strrchr()".
-  Proof using MOD.
-    verify_spec; go; ego.
-    Arith.arith_simpl; go; ego.
-    Arith.arith_simpl; go; ego.
+  Proof.
+    verify_spec; go.
+    Arith.arith_simpl; go.
+    Arith.arith_simpl; go.
   Qed.
 
-  cpp.spec "test_strspn()" default.
+  cpp.spec "test_strspn()" from module default.
   Lemma test_strspn_ok : verify[module] "test_strspn()".
-  Proof. verify_spec; go; ego. Qed.
+  Proof. verify_spec; go. Qed.
 
-  cpp.spec "test_strcspn()" default.
+  cpp.spec "test_strcspn()" from module default.
   Lemma test_strcspn_ok : verify[module] "test_strcspn()".
-  Proof. verify_spec; go; ego. Qed.
+  Proof. verify_spec; go. Qed.
 
-  cpp.spec "test_strpbrk()" default.
+  cpp.spec "test_strpbrk()" from module default.
   Lemma test_strpbrk_ok : verify[module] "test_strpbrk()".
-  Proof using MOD.
-    verify_spec; go; ego.
-    Arith.arith_simpl; go; ego.
+  Proof.
+    verify_spec; go.
+    Arith.arith_simpl; go.
   Qed.
 
-  cpp.spec "test_strstr()" default.
+  cpp.spec "test_strstr()" from module default.
   Lemma test_strstr_ok : verify[module] "test_strstr()".
-  Proof using MOD.
-    verify_spec; go; ego.
-    Arith.arith_simpl; go; ego.
-    Arith.arith_simpl; go; ego.
+  Proof.
+    verify_spec; go.
+    Arith.arith_simpl; go.
+    Arith.arith_simpl; go.
   Qed.
 
-  cpp.spec "test_cstring_slice1()" default.
+  cpp.spec "test_cstring_slice1()" from module default.
   Lemma test_cstring_slice1_ok : verify[module] "test_cstring_slice1()".
   Proof. verify_spec; go. Qed.
 
