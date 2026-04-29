@@ -33,6 +33,8 @@ Section with_cpp.
       Context {σ : genv}.
       Context `{HAS_THREADS : !HasStdThreads Σ}.
 
+      #[global] Instance: LearnEqF1 R := ltac:(solve_learnable).
+
       (* TODO maybe a class / interface Lockable that exposes do_lock, do_unlock
          and the rep predicate R, formalizing the C++ lockable concept
          <https://en.cppreference.com/w/cpp/named_req/Lockable.html>.
@@ -211,6 +213,36 @@ Section with_cpp.
         \post
           this |-> R 1$m (Some (true, (mp, g, q, P))) **
           P ** mutex.locked g thr q).
+
+      cpp.spec "std::unique_lock<std::mutex>::lock()" as lock_spec_alt from source with (
+        \this this
+        \pre{mm} this |-> R 1$m (Some (false, mm))
+        \persist{thr} current_thread thr
+        \pre{K} do_lock thr mm K
+        \post
+          this |-> R 1$m (Some (true, mm)) **
+          K).
+
+      cpp.spec "std::unique_lock<std::mutex>::unlock()" as unlock_spec from source with (
+        \this this
+        \pre{mp g q P} this |-> R 1$m (Some (true, (mp, g, q, P)))
+        \persist{thr} current_thread thr
+        \pre mutex.locked g thr q
+        \pre ▷P
+        \post
+          this |-> R 1$m (Some (false, (mp, g, q, P))) **
+          mutex.token g q
+      ).
+
+      cpp.spec "std::unique_lock<std::mutex>::unlock()" as unlock_spec_alt from source with (
+        \this this
+        \pre{mm} this |-> R 1$m (Some (true, mm))
+        \persist{thr} current_thread thr
+        \pre{K} do_unlock thr mm K
+        \post
+          this |-> R 1$m (Some (false, mm)) **
+          K
+      ).
     End with_threads.
 End with_cpp.
 End unique_lock.
