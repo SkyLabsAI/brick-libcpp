@@ -14,3 +14,17 @@ void test2() {
     std::lock_guard<std::mutex> lm(m);
   }
 }
+
+void test_unique_lock() {
+  std::mutex m;
+  {
+    std::unique_lock<std::mutex> ul(m);
+  }
+}
+
+void test_unique_lock_defer() {
+  std::mutex m;
+  {
+    std::unique_lock<std::mutex> ul(m, std::defer_lock);
+  }
+}
