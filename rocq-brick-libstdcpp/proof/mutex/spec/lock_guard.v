@@ -33,9 +33,14 @@ Module lock_guard.
   Fail #[only(cfractional,cfracvalid,ascfractional)] derive R.
 
   #[only(cfracvalid)] derive R.
+
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
   Context {HAS_THREADS : HasStdThreads Σ}.
+
+  #[global] Instance R_learn :
+    Cbn (Learn (learn_eq ==> any ==> learn_eq ==> learn_hints.fin) lock_guard.R) :=
+    ltac:(solve_learnable).
 
   Set Printing Coercions.
 
