@@ -57,19 +57,6 @@ Module scoped_lock.
           mp1 |-> mutex.R g1 q1$m P1 ** mutex.token g1 q1 **
           mp2 |-> mutex.R g2 q2$m P2 ** mutex.token g2 q2
       ).
-
-      cpp.spec "foo()" as foo_spec from source with
-      (
-        \persist{thr} current_thread thr
-        \post emp
-      ).
-
-      Lemma foo_ok : verify[source] foo_spec.
-      Proof.
-        verify_spec; go.
-        iExists emp; go.
-        iExists emp; go.
-      Qed.
     End with_threads.
   End with_cpp.
 

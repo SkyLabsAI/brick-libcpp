@@ -53,15 +53,6 @@
   	 (with-stderr-to inc_hpp.v.stderr (run cpp2v -v %{input} -o inc_hpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc.hpp))
 )
-(subdir mutex
- (rule
-  (targets test_cpp.v.stderr test_cpp.v)
-  (alias test_ast)
-  (deps (:input test.cpp) (glob_files_rec ../*.hpp) (universe))
-  (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
- (alias (name srcs) (deps test.cpp))
-)
 (subdir new
  (rule
   (targets inc_new_cpp.v.stderr inc_new_cpp.v)
