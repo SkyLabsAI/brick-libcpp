@@ -1,6 +1,6 @@
 Require Import skylabs.auto.cpp.prelude.proof.
-Require Import skylabs.brick.libstdcpp.mutex.test_cpp.
 Require Import skylabs.brick.libstdcpp.mutex.spec.
+Require Import skylabs.brick.libstdcpp.test.mutex.test_cpp.
 
 Section with_cpp.
   Context `{Σ : cpp_logic} {HAS_THREADS : HasStdThreads Σ}.
