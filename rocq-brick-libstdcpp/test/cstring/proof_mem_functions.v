@@ -187,7 +187,11 @@ Section with_cpp.
     \cancelx
     \consuming p |-> arrayLR Tuchar 0 n
                  (fun v : Z => ucharR q v) bytes
-    \proving p |-> object_bytes_anyR Tuchar q len
+    \bound byte_ty qq nn
+    \proving p |-> object_bytes_anyR byte_ty qq nn
+    \through [| byte_ty = Tuchar |]
+    \through [| qq = q |]
+    \through [| nn = len |]
     \deduce p .[Tuchar ! len] |-> object_bytesR Tuchar q (dropZ len bytes)
     \end@{mpred}.
   Next Obligation.
@@ -217,11 +221,18 @@ Section with_cpp.
     iPoseProof (object_bytesR_ucharR_object_bytes_anyR p q
       (lengthN (takeZ len bytes)) (takeZ len bytes)
       ltac:(rewrite Nat2N.id; reflexivity) with "Hpre_bytes") as "Hpre_any".
-    rewrite Htake Z2N.id; [ | lia]. iFrame.
-    iApply (object_bytesR_of_arrayLR (p.[Tuchar ! len]) Tuchar q
-        (lengthZ (dropZ len bytes))
-        (dropZ len bytes) eq_refl).
-    rewrite arrayLR.unlock. arith_simpl. work; iFrame.
+    rewrite Htake Z2N.id; [ | lia].
+    iAssert (p.[Tuchar ! len] |-> object_bytesR Tuchar q (dropZ len bytes))
+      with "[Htail]" as "Htail_bytes".
+    { iApply (object_bytesR_of_arrayLR (p.[Tuchar ! len]) Tuchar q
+          (lengthZ (dropZ len bytes))
+          (dropZ len bytes) eq_refl).
+      rewrite arrayLR.unlock. arith_simpl. work; iFrame. }
+    iSplitL "Htail_bytes".
+    - iExact "Htail_bytes".
+    - iIntros (byte_ty qq nn) "(%Hty & %Hq & %Hnn)".
+      subst byte_ty qq nn.
+      iExact "Hpre_any".
   Qed.
   #[local] Hint Resolve arrayLR_open_prefix_any_C | 1000 : sl_opacity.
 
@@ -231,7 +242,11 @@ Section with_cpp.
     \cancelx
     \consuming p |-> arrayLR Tuchar 0 n
                  (fun v : Z => ucharR q v) bytes
-    \proving p |-> object_bytesR Tuchar q (takeZ len bytes)
+    \bound byte_ty qq seg
+    \proving p |-> object_bytesR byte_ty qq seg
+    \through [| byte_ty = Tuchar |]
+    \through [| qq = q |]
+    \through [| seg = takeZ len bytes |]
     \deduce p .[Tuchar ! len] |-> object_bytesR Tuchar q (dropZ len bytes)
     \end@{mpred}.
   Next Obligation.
@@ -258,17 +273,25 @@ Section with_cpp.
     { iApply (object_bytesR_of_arrayLR p Tuchar q len (takeZ len bytes)).
       lia.
       rewrite arrayLR.unlock _at_sep _at_offsetR _at_sub_0; [work; iFrame | done]. }
-    iFrame "Hpre_bytes".
     iPoseProof (at_uchar_offset_eq p (lengthZ (takeZ len bytes)) len
       (arrayR Tuchar (fun v : Z => ucharR q v) (dropZ len bytes))
       ltac:(unfold lengthZ; rewrite Htake; apply Z2N.id; lia)
       with "Htail") as "Htail".
-    iApply (object_bytesR_of_arrayLR (p.[Tuchar ! len]) Tuchar q
-      (lengthZ (dropZ len bytes))
-      (dropZ len bytes) eq_refl).
-    rewrite arrayLR.unlock. arith_simpl. work; iFrame.
+    iAssert (p.[Tuchar ! len] |-> object_bytesR Tuchar q (dropZ len bytes))
+      with "[Htail]" as "Htail_bytes".
+    { iApply (object_bytesR_of_arrayLR (p.[Tuchar ! len]) Tuchar q
+        (lengthZ (dropZ len bytes))
+        (dropZ len bytes) eq_refl).
+      rewrite arrayLR.unlock. arith_simpl. work; iFrame. }
+    iSplitL "Htail_bytes".
+    - iExact "Htail_bytes".
+    - iIntros (byte_ty qq seg) "(%Hty & %Hq & %Hseg)".
+      subst byte_ty qq seg.
+      iExact "Hpre_bytes".
   Qed.
   #[local] Hint Resolve arrayLR_open_prefix_bytes_C | 1000 : sl_opacity.
+
+  Remove Hints arrayLR_open_prefix_any_C arrayLR_open_prefix_bytes_C : sl_opacity.
 
   (*
     The generic wrapper/openers above are useful proof principles, but the
@@ -500,87 +523,110 @@ Section with_cpp.
   Lemma test_memset_ok : verify[module] "test_memset()".
   Proof using MOD _Σ thread_info Σ σ.
     verify_spec; go.
-    iExists Tuchar.
-    ego.
-    change (memset 120 2) with [120%Z; 120%Z].
-    change (lengthZ [120%Z; 120%Z]) with 2%Z.
-    iAssert (
-      s_addr .[Tuchar ! 2] |-> object_bytesR Tuchar 1$m
-        (dropZ 2 [97%Z; 98%Z; 99%Z; 100%Z]))%I with "[$]" as "Htail".
-    iPoseProof (at_zero_intro s_addr
-      (object_bytesR Tuchar 1$m [120%Z; 120%Z]) with "[$]") as "Hmid".
-    iPoseProof (object_bytesR_read_head_uchar_after_open
-      s_addr (cQp.mk false 1%Qp) 0 120%Z [120%Z]
-      (dropZ 2 [97%Z; 98%Z; 99%Z; 100%Z])
-      with "[$Hmid $Htail]") as "[H0 Hrest]".
-    (* Read back the first modified byte: [assert(s[0] == 'x');]. *)
-    iSplitL "H0"; [ iExact "H0" | iIntros "H0"].
-    (* Now we are onto the next C++ instruction: [assert(s[1] == 'x');]. *)
-    go.
-    iPoseProof (object_bytesR_arrayLR_cons (s_addr .[Tuchar ! 1]) 120%Z
-      (dropZ 2 [97%Z; 98%Z; 99%Z; 100%Z]) with "Hrest")
-      as "[[#Hty1 H1] Hrest]".
-    iPoseProof (at_zero_elim (s_addr .[Tuchar ! 1]) with "H1") as "H1".
-    (* Read back the second modified byte: [assert(s[1] == 'x');]. *)
-    iExists (Vint 120%Z), (cQp.mk false 1%Qp); iFrame "H1"; iIntros "H1".
-    (* Now we are onto the next C++ instruction: [assert(s[2] == 'c');]. *)
-    go.
-    change (dropZ 2 [97%Z; 98%Z; 99%Z; 100%Z]) with [99%Z; 100%Z].
-    change (lengthZ (120%Z :: [99%Z; 100%Z])) with 3%Z.
-    iEval (rewrite (arrayLR_cons (s_addr .[Tuchar ! 1]) 1 3
-      (fun b : Z => ucharR 1$m b) 99%Z [100%Z])) in "Hrest".
-    iDestruct "Hrest" as "[[#Hty2 H2] Hrest]".
-    iPoseProof (at_uchar_offset_add_elim s_addr 1 1 2
-      (ucharR 1$m 99%Z) ltac:(lia) with "H2") as "H2".
-    iExists (Vint 99%Z), (cQp.mk false 1%Qp); iFrame "H2"; iIntros "H2".
-    (* Now we are onto the next C++ instruction: [assert(s[3] == 'd');]. *)
-    go.
-    iEval (rewrite (arrayLR_cons (s_addr .[Tuchar ! 1]) 2 3
-      (fun b : Z => ucharR 1$m b) 100%Z [])) in "Hrest".
-    iDestruct "Hrest" as "[[#Hty3 H3] _]".
-    iPoseProof (at_uchar_offset_add_elim s_addr 1 2 3
-      (ucharR 1$m 100%Z) ltac:(lia) with "H3") as "H3".
-    iExists (Vint 100%Z), (cQp.mk false 1%Qp); iFrame "H3"; iIntros "H3".
-    (* Now we are onto the next C++ instruction:
-       [assert(std::memset(s + 2, 0x123, 1) == s + 2);]. *)
-    go.
-    iPoseProof (at_zero_elim s_addr with "H0") as "H0".
-    iPoseProof (uchar_cells_object_bytesR_two s_addr 120%Z 120%Z
-      with "[$H0 $H1]") as "Hhead".
-    Arith.arith_simpl.
-    iPoseProof (at_uchar_offset_add_intro s_addr 2 1 3
-      (ucharR 1$m 100%Z) ltac:(lia) with "H3") as "H3".
-    iPoseProof (uchar_cells_object_bytesR_two (s_addr .[Tuchar ! 2])
-      99%Z 100%Z with "[$H2 $H3]") as "Htail".
-    iPoseProof (object_bytesR_prefix_tail0 (s_addr .[Tuchar ! 2])
-      Tuchar (cQp.mk false 1) 1 2 [99%Z] [100%Z]
-      ltac:(reflexivity) ltac:(reflexivity) ltac:(reflexivity) with "Htail")
+    iDestruct select (s_addr |-> arrayLR Tuchar 0 4
+      (fun v : Z => ucharR 1$m v) [97%Z; 98%Z; 99%Z; 100%Z]) as "Hs".
+    iPoseProof (object_bytesR_of_arrayLR s_addr Tuchar (cQp.mk false 1)
+      4 [97%Z; 98%Z; 99%Z; 100%Z] ltac:(reflexivity) with "Hs") as "Hs".
+
+    iPoseProof (object_bytesR_prefix_tail0 s_addr Tuchar
+      (cQp.mk false 1) 2 4 [97%Z; 98%Z] [99%Z; 100%Z]
+      ltac:(reflexivity) ltac:(reflexivity) ltac:(reflexivity) with "Hs")
       as "[Htarget Htail]".
     iExists Tuchar.
     iSplitL "Htarget".
-    { iApply (object_bytesR_ucharR_object_bytes_anyR _ 1$m 1%N
-        [99%Z] ltac:(reflexivity) with "Htarget"). }
-    iIntros "Htarget".
-    go.
-    change (memset 291 1) with [35%Z].
-    iPoseProof (at_uchar_offset_add_elim s_addr 2 1 3
-      (object_bytesR Tuchar 1$m [100%Z]) ltac:(lia) with "Htail") as "Htail".
-    iPoseProof (object_bytesR_read_head_uchar_after_open
-      s_addr (cQp.mk false 1%Qp) 2 35%Z []
-      [100%Z] with "[$Htarget $Htail]") as "[H2' Htail]".
-    iExists (Vint 35%Z), (cQp.mk false 1%Qp); iFrame "H2'"; iIntros "H2'".
-    (* Now we are onto the next C++ instruction: [assert(s[3] == 'd');]. *)
-    go.
-    iPoseProof (object_bytesR_arrayLR_cons (s_addr .[Tuchar ! 3]) 100%Z []
-      with "Htail") as "[[#Hty3' H3'] _]".
-    iPoseProof (at_zero_elim (s_addr .[Tuchar ! 3]) with "H3'") as "H3'".
-    iExists (Vint 100%Z), (cQp.mk false 1%Qp); iFrame "H3'"; iIntros "H3'".
-    (* Now we are onto establishing the postcondition. *)
-    go.
-    iPoseProof (object_bytesR_ucharR_ucharR_arrayLR_anyR s_addr
-      [120%Z; 120%Z] 35%Z 100%Z with "[$Hhead $H2' $H3']") as "Hs".
-    iFrame "Hs".
-    go.
+    - iApply (object_bytesR_ucharR_object_bytes_anyR _ 1$m 2%N
+        [97%Z; 98%Z] ltac:(reflexivity) with "Htarget").
+    - iIntros "Htarget".
+      go.
+      iPoseProof ((object_bytesR_prefix_tail0 s_addr Tuchar
+        (cQp.mk false 1) 2 4 [120%Z; 120%Z] [99%Z; 100%Z]
+        ltac:(reflexivity) ltac:(reflexivity) ltac:(reflexivity))
+        with "[$Htarget $Htail]") as "Hs".
+      iPoseProof (object_bytesR_arrayLR_cons s_addr 120%Z
+        [120%Z; 99%Z; 100%Z] with "Hs") as "[[#Hty0 H0] Hs]".
+      iExists (Vint 120%Z), (cQp.mk false 1%Qp).
+      iFrame "H0". iIntros "H0".
+      go.
+      iEval (rewrite (arrayLR_cons s_addr 1 4 (fun b : Z => ucharR 1$m b)
+        120%Z [99%Z; 100%Z])) in "Hs".
+      iDestruct "Hs" as "[[#Hty1 H1] Hs]".
+      iExists (Vint 120%Z), (cQp.mk false 1%Qp).
+      iFrame "H1". iIntros "H1".
+      go.
+      iEval (rewrite (arrayLR_cons s_addr 2 4 (fun b : Z => ucharR 1$m b)
+        99%Z [100%Z])) in "Hs".
+      iDestruct "Hs" as "[[#Hty2 H2] Hs]".
+      iExists (Vint 99%Z), (cQp.mk false 1%Qp).
+      iFrame "H2". iIntros "H2".
+      go.
+      iEval (rewrite (arrayLR_cons s_addr 3 4 (fun b : Z => ucharR 1$m b)
+        100%Z [])) in "Hs".
+      iDestruct "Hs" as "[[#Hty3 H3] Hs]".
+      iExists (Vint 100%Z), (cQp.mk false 1%Qp).
+      iFrame "H3". iIntros "H3".
+      go.
+      iPoseProof (at_zero_elim s_addr with "H0") as "H0".
+      iPoseProof (uchar_cells_object_bytesR_two s_addr 120%Z 120%Z
+        with "[$H0 $H1]") as "Hhead".
+      Arith.arith_simpl.
+      iPoseProof (at_uchar_offset_add_intro s_addr 2 1 3
+        (ucharR 1$m 100%Z) ltac:(lia) with "H3") as "H3".
+      iPoseProof (uchar_cells_object_bytesR_two (s_addr .[Tuchar ! 2])
+        99%Z 100%Z with "[$H2 $H3]") as "Htail".
+      iPoseProof (object_bytesR_prefix_tail0 (s_addr .[ Tuchar ! 2])
+        Tuchar (cQp.mk false 1) 1 2 [99%Z] [100%Z]
+        ltac:(reflexivity) ltac:(reflexivity) ltac:(reflexivity) with "Htail")
+        as "[Htarget Htail]".
+      iRename "Hs" into "Hempty".
+      go.
+      go.
+      iExists Tuchar.
+      iSplitL "Htarget".
+      + iApply (object_bytesR_ucharR_object_bytes_anyR _ 1$m 1%N
+          [99%Z] ltac:(reflexivity) with "Htarget").
+      + iIntros "Htarget".
+        go.
+        iPoseProof ((object_bytesR_prefix_tail0 (s_addr .[ Tuchar ! 2])
+          Tuchar (cQp.mk false 1) 1 2 [35%Z] [100%Z]
+          ltac:(reflexivity) ltac:(reflexivity) ltac:(reflexivity))
+          with "[$Htarget $Htail]") as "Htail".
+        iPoseProof ((object_bytesR_prefix_tail0 s_addr Tuchar
+          (cQp.mk false 1) 2 4 [120%Z; 120%Z] [35%Z; 100%Z]
+          ltac:(reflexivity) ltac:(reflexivity) ltac:(reflexivity))
+          with "[$Hhead $Htail]") as "Hs".
+        go.
+        iPoseProof (object_bytesR_arrayLR_cons s_addr 120%Z
+          [120%Z; 35%Z; 100%Z] with "Hs") as "[[#Hty0' H0] Hs]".
+        iEval (rewrite (arrayLR_cons s_addr 1 4 (fun b : Z => ucharR 1$m b)
+          120%Z [35%Z; 100%Z])) in "Hs".
+        iDestruct "Hs" as "[[#Hty1' H1] Hs]".
+        iEval (rewrite (arrayLR_cons s_addr 2 4 (fun b : Z => ucharR 1$m b)
+          35%Z [100%Z])) in "Hs".
+        iDestruct "Hs" as "[[#Hty2' H2] Hs]".
+        iExists (Vint 35%Z), (cQp.mk false 1%Qp).
+        iFrame "H2". iIntros "H2".
+        go.
+        iEval (rewrite (arrayLR_cons s_addr 3 4 (fun b : Z => ucharR 1$m b)
+          100%Z [])) in "Hs".
+        iDestruct "Hs" as "[[#Hty3' H3] Hempty2]".
+        iExists (Vint 100%Z), (cQp.mk false 1%Qp).
+        iFrame "H3". iIntros "H3".
+        go.
+        iPoseProof (at_zero_elim s_addr with "H0") as "H0".
+        iPoseProof (uchar_cells_object_bytesR_two s_addr 120%Z 120%Z
+          with "[$H0 $H1]") as "Hhead".
+        iPoseProof (at_uchar_offset_add_intro s_addr 2 1 3
+          (ucharR 1$m 100%Z) ltac:(lia) with "H3") as "H3".
+        iPoseProof (uchar_cells_object_bytesR_two (s_addr .[Tuchar ! 2])
+          35%Z 100%Z with "[$H2 $H3]") as "Htail".
+        iPoseProof ((object_bytesR_prefix_tail0 s_addr Tuchar
+          (cQp.mk false 1) 2 4 [120%Z; 120%Z] [35%Z; 100%Z]
+          ltac:(reflexivity) ltac:(reflexivity) ltac:(reflexivity))
+          with "[$Hhead $Htail]") as "Hs".
+        iPoseProof (object_bytesR_ucharR_arrayLR_anyR _ 1$m 4%N
+          [120%Z; 120%Z; 35%Z; 100%Z] with "Hs") as "Hs".
+        iFrame "Hs".
+        go.
   Qed.
 
   cpp.spec "test_memchr()" default.
@@ -1018,9 +1064,19 @@ Section with_cpp.
         go.
         *)
 
+  (*
   cpp.spec "test_memmove()" default.
+  Lemma test_memmove_ok_workspace : verify[module] "test_memmove()".
+  Proof using MOD _Σ thread_info Σ σ.
+    verify_spec; go.
+    (*USING ego. HERE LEADS TO NONTREMINATION!*)
+    Show.
+  Abort.*)
+
   Lemma test_memmove_ok : verify[module] "test_memmove()".
   Proof using MOD _Σ thread_info Σ σ.
+    (* Workspace probe for the first memmove call boundary:
+       [test_memmove_ok_workspace]. *)
     verify_spec; go.
     iDestruct select (src_addr |-> arrayLR Tuchar 0 4
       (fun v : Z => ucharR 1$m v) [97%Z; 98%Z; 99%Z; 100%Z]) as "Hsrc".
@@ -1043,11 +1099,11 @@ Section with_cpp.
       Arith.arith_simpl.
       go.
 
-      iPoseProof (object_bytesR_arrayLR_cons dst_addr 97%Z
-        [98%Z; 99%Z; 100%Z] with "Hdst") as "[[#Hdst_ty0 Hdst0] Hdst_arr]".
-      iExists (Vint 97%Z), (cQp.mk false 1%Qp).
-      iFrame "Hdst0". iIntros "Hdst0".
-      go.
+    iPoseProof (object_bytesR_arrayLR_cons dst_addr 97%Z
+      [98%Z; 99%Z; 100%Z] with "Hdst") as "[[#Hdst_ty0 Hdst0] Hdst_arr]".
+    iExists (Vint 97%Z), (cQp.mk false 1%Qp).
+    iFrame "Hdst0". iIntros "Hdst0".
+    go.
 
       iEval (rewrite (arrayLR_cons dst_addr 1 4 (fun b : Z => ucharR 1$m b)
         98%Z [99%Z; 100%Z])) in "Hdst_arr".

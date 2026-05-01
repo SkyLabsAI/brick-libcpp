@@ -3,19 +3,14 @@
  * This software is distributed under the terms of the BedRock Open-Source License.
  * See the LICENSE-BedRock file in the repository root for details.
  *)
-(*
-Require Import skylabs.auto.cpp.proof.
-Require Import skylabs.auto.cpp.hints.anyR.*)
-(** BEGIN: SKYLABS DEFAULT PROOF IMPORTS *)
 Require Import skylabs.auto.cpp.prelude.proof.
-(*Require Import skylabs.cpp.array.*)
-(** END: SKYLABS DEFAULT PROOF IMPORTS *)
 Require Import skylabs.brick.libstdcpp.cassert.spec.
 Require Import skylabs.brick.libstdcpp.cstring.spec.
+Require Export skylabs.cpp.string.
+
 Require Import skylabs.brick.libstdcpp.test.cstring.test_cpp.
 
 Import normalize.only_provable_norm.
-
 Import normalize.normalize_ptr.
 Import refine_lib.
 Import expr_join.
@@ -114,6 +109,7 @@ Section with_cpp.
       + exact Hfor.
   Qed.
 
+  (* Currently dead but provable lemmas
   #[local] Lemma split_bytes_at_cstring_complete prefix tail :
     List.Forall (fun b => b <> 0%N) prefix ->
     split_bytes_at_cstring (prefix ++ [0%N] ++ tail) =
@@ -125,8 +121,6 @@ Section with_cpp.
     reflexivity.
   Qed.
 
-  (*
-  Dead lemmas
   #[local] Lemma split_bytes_at_null_spec bytes prefix tail :
     split_bytes_at_null bytes = Some (prefix, tail) <->
     bytes = prefix ++ 0%N :: tail /\
@@ -270,18 +264,6 @@ Section with_cpp.
     - exact Hwf.
   Qed.
 
-
-  (* Older accepted experiment kept only as a reminder that proof-bearing
-     binders inside [\proving{...}] are syntactically accepted. *)
-(*
-  #[local] Lemma arrayLR_cstring bytes m tail (p : ptr) s :
-    bytes = cstring.to_zstring s ++ tail ->
-    cstring.WF s ->
-    p |-> arrayLR "char" 0 m (λ v : N, charR 1$m v) bytes ⊢
-    p |-> cstring.R 1$m s ∗
-    p |-> arrayLR "char" (m - Zlength tail) m (λ v : N, charR 1$m v) tail.
-*)
-
   #[local] Lemma arrayLR_cstring q bytes m tail (p : ptr) s :
     bytes = cstring.to_zstring s ++ tail ->
     cstring.WF s ->
@@ -290,15 +272,11 @@ Section with_cpp.
     p |-> cstring.R q s ∗
     p |-> arrayLR "char" (m - lengthZ tail) m (λ v : N, charR q v) tail.
   Proof.
-    intros -> Hwf.
-    rewrite arrayLR.unlock _at_sep lengthN_app.
-    arith_simpl.
-    iIntros "[%Hlen Harr]".
-    rewrite _at_offsetR _at_sub_0; [|done].
-    rewrite arrayR_app__N.
-    iDestruct "Harr" as "[Hs Htail]".
-    assert (H: m - lengthZ tail = lengthZ (cstring.to_zstring s)) by lia.
-    rewrite H /cstring.R /zstring.R. iFrame. done.
+    intros -> Hwf; work.
+    rewrite arrayLR.unlock _at_sep.
+    arith_simpl; work.
+    rewrite _at_sub_0; [|done].
+    rewrite /cstring.R /zstring.R; iFrame; done.
   Qed.
   Hint Resolve arrayLR_cstring : sl_opacity.
 
@@ -310,10 +288,10 @@ Section with_cpp.
     p |-> arrayLR "char" (m - lengthZ tail) m (λ v : N, charR q v) tail ⊢
     p |-> arrayLR "char" 0 m (λ v : N, charR q v) bytes.
   Proof.
-    intros -> Hwf. work. arith_simpl.
-    rewrite lengthN_app. arith_simpl.
-    rewrite /cstring.R /zstring.R. work.
-    rewrite arrayLR.unlock. arith_simpl. work.
+    intros -> Hwf; work.
+    rewrite lengthN_app; arith_simpl.
+    rewrite /cstring.R /zstring.R; work.
+    rewrite arrayLR.unlock; arith_simpl; work.
     rewrite _at_sub_0; [trivial|done].
   Qed.
   Hint Resolve cstring_arrayLR : sl_opacity.
@@ -337,10 +315,60 @@ Section with_cpp.
   Qed.
   #[local] Hint Resolve arrayLR_open_cstring_C : sl_opacity.
 
+  Lemma at_charR_anyR (p : ptr) q x :
+    p |-> charR q x ⊢ p |-> anyR (Tchar_ char_type.Cchar) q.
+  Proof.
+    apply heap_pred._at_cancel.
+    apply primR_anyR.
+  Qed.
+  Lemma arrayR_charR_arrayR_anyR (p : ptr) q xs :
+    p |-> arrayR (Tchar_ char_type.Cchar) (fun c : N => charR q c) xs ⊢
+    p |-> arrayR (Tchar_ char_type.Cchar)
+           (fun _ : unit => anyR (Tchar_ char_type.Cchar) q)
+           (replicateN (lengthN xs) ()).
+  Proof.
+    revert p.
+    induction xs as [|x xs IH].
+    all: intros p.
+    - rewrite /lengthN /= !arrayR_nil. reflexivity.
+    - rewrite arrayR_cons !_at_sep _at_offsetR.
+      iIntros "(Hty & Hx & Hxs)".
+      replace (lengthN (x :: xs)) with (N.succ (lengthN xs)) by
+        (rewrite /lengthN Nat2N.inj_succ; reflexivity).
+      rewrite replicateN_S.
+      rewrite arrayR_cons !_at_sep _at_offsetR.
+      iFrame "Hty".
+      iSplitL "Hx".
+      + iApply (at_charR_anyR with "Hx").
+      + iApply (IH with "Hxs").
+  Qed.
+
+  Lemma arrayLR_charR_arrayLR_anyR  (p : ptr) q xs :
+    p |-> arrayLR (Tchar_ char_type.Cchar) 0 (lengthZ xs)
+           (fun c : N => charR q c) xs ⊢
+    p |-> arrayLR (Tchar_ char_type.Cchar) 0 (lengthZ xs)
+           (fun _ : unit => anyR (Tchar_ char_type.Cchar) q)
+           (replicateN (lengthN xs) ()).
+  Proof.
+    rewrite arrayLR.unlock _at_sep.
+    iIntros "[_ Harr]".
+    rewrite _at_offsetR _at_sub_0; [|done].
+    iPoseProof (arrayR_charR_arrayR_anyR _ q with "Harr") as "Harr".
+    rewrite /arrayLR.
+    iSplit.
+    - iPureIntro.
+      unfold lengthZ, lengthN, replicateN.
+      rewrite length_replicate.
+      rewrite Nat2N.id.
+      lia.
+    - rewrite _at_offsetR _at_sub_0; [|done].
+      iExact "Harr".
+  Qed.
+
   #[local, program] Definition arrayLR_close_cstring_C
       (p : ptr) q mid k tail s
       (Hmid : mid = lengthZ (cstring.to_zstring s))
-      (Htailk : mid = k - lengthZ tail) :=
+      (Htailk : (mid = k - lengthZ tail)%Z) :=
     \cancelx
     \consuming p |-> cstring.R q s
     \consuming p |-> arrayLR "char" mid k (λ v : N, charR q v) tail
@@ -372,81 +400,6 @@ Section with_cpp.
     iExact "Harr".
   Qed.
   #[local] Hint Resolve arrayLR_close_cstring_C : sl_opacity.
-
-  (*
-    Experimental variants that internalize the unpack witness more aggressively.
-
-    Both [arrayLR_open_cstring_guard_C] and [arrayLR_open_cstring_using_C] are
-    provable, but in this file they do not fire under [go]/[ego] at the
-    [test_strlen_array_buffer()] call site, even when the matching pure
-    existence fact is supplied explicitly in the proof context. We therefore
-    keep them parked for design/reference purposes and continue using the
-    simpler [arrayLR_open_cstring_C] together with an explicit [Hex] witness in
-    the verification proof.
-
-  #[local, program] Definition arrayLR_open_cstring_guard_C
-      (p : ptr) q k bytes :=
-    \cancelx
-    \guard (exists stail, unpack_cstring bytes = Some stail)
-    \consuming p |-> arrayLR "char" 0 k
-                 (λ v : N, charR q v) bytes
-    \deduce{stail} [| unpack_cstring bytes = Some stail |]
-    \bound_existential s
-    \proving p |-> cstring.R q s
-    \instantiate s := fst stail
-    \deduce p |-> arrayLR "char" (k - lengthZ (snd stail)) k
-                (λ v : N, charR q v) (snd stail)
-    \end@{mpred}.
-  Next Obligation.
-    intros p q k bytes [stail Hunpack0].
-    destruct stail as [s0 tail0].
-    iIntros "Harr".
-    pose proof (unpack_cstring_sound _ _ _ Hunpack0) as [Hbytes0 Hwf0].
-    iPoseProof (arrayLR_cstring q bytes k tail0 p s0 Hbytes0 Hwf0 with "Harr")
-      as "(%Hk & Hs0 & Htail)".
-    iExists (s0, tail0).
-    iSplitL "Htail".
-    { iSplit.
-      - iPureIntro. exact Hunpack0.
-      - iFrame. }
-    iIntros (??). subst.
-    cbn.
-    iIntros (?).
-    subst.
-    iExact "Hs0".
-  Qed.
-
-  #[local, program] Definition arrayLR_open_cstring_using_C
-      (p : ptr) q k bytes :=
-    \cancelx
-    \using [| exists stail, unpack_cstring bytes = Some stail |]
-    \consuming p |-> arrayLR "char" 0 k
-                 (λ v : N, charR q v) bytes
-    \deduce{stail} [| unpack_cstring bytes = Some stail |]
-    \bound_existential s
-    \proving p |-> cstring.R q s
-    \instantiate s := fst stail
-    \deduce p |-> arrayLR "char" (k - lengthZ (snd stail)) k
-                (λ v : N, charR q v) (snd stail)
-    \end@{mpred}.
-  Next Obligation.
-    iIntros (p q k bytes) "[%Hex Harr]".
-    destruct Hex as [[s0 tail0] Hunpack0].
-    pose proof (unpack_cstring_sound _ _ _ Hunpack0) as [Hbytes0 Hwf0].
-    iPoseProof (arrayLR_cstring q bytes k tail0 p s0 Hbytes0 Hwf0 with "Harr")
-      as "(%Hk & Hs0 & Htail)".
-    iExists (s0, tail0).
-    iSplitL "Htail".
-    { iSplit.
-      - iPureIntro. exact Hunpack0.
-      - iFrame. }
-    iIntros (??). subst.
-    cbn.
-    iIntros (?).
-    subst.
-    iExact "Hs0".
-  Qed.
-  *)
 
   cpp.spec "test_strlen_array_buffer()" from module default.
   Lemma test_strlen_array_buffer_ok :
