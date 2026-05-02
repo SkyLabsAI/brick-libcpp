@@ -8,7 +8,6 @@ Module scoped_lock.
   Section with_cpp.
     Context `{Σ : cpp_logic}.
 
-    (* Parameter gname : Set. *)
     Parameter R : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv},
       cQp.t -> list (ptr * gname * Qp * mpred) -> Rep.
 
