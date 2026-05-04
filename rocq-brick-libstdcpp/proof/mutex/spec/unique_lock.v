@@ -26,8 +26,8 @@ End with_cpp.
 End defer_lock_t.
 
 Module unique_lock.
-Section with_cpp.
-  Context `{Σ : cpp_logic}.
+  Section with_cpp.
+    Context `{Σ : cpp_logic}.
 
     (* a unique_lock may have an associated mutex, if so it holds
        (Some (b * mutex_state)) where b indicates whether the unique_lock
@@ -310,5 +310,5 @@ Section with_cpp.
       Qed.
 
     End with_threads.
-End with_cpp.
+  End with_cpp.
 End unique_lock.
