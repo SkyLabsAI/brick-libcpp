@@ -27,6 +27,7 @@
   skylabs.elpi.extra
   skylabs.elpi.cpp
   skylabs
+  tactic_classes
   ; skylabs.brick.libstdcpp deps end
   skylabs.brick.libstdcpp))
 (include dune.inc)
