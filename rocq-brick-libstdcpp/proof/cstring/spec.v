@@ -118,10 +118,7 @@ Context `{Σ : cpp_logic, module ⊧ σ}.
      \prepost{needle_q needle} needle_p |-> cstring.R needle_q needle
      \post[search_result haystack_p (strstr haystack needle)] emp).
 
-(*  sound but weak in C++17: memchr behaves as if it reads the bytes
-    sequentially and stops as soon as a matching bytes is found: if the array
-    pointed to by ptr is smaller than count, but the match is found within the
-    array, the behavior is well-defined. *)
+(*  Strong but unsound before C++17, and awkward
   cpp.spec "memchr(void*, int, unsigned long)" as memchr_mut_spec with
     (\arg{s_p} "__s" (Vptr s_p)
      \arg{c} "__c" (Vint c)
@@ -149,7 +146,9 @@ Context `{Σ : cpp_logic, module ⊧ σ}.
      (*equivalently: \require hi >= n \/ (hi < n /\ exists off, memchr bytes c = Some off)*)
      \post[byte_search_result Tuchar s_p
        (memchr (takeZ n bytes) c)] emp).
+*)
 
+(* sound, but weak in C++17*)
    cpp.spec "memchr(void*, int, unsigned long)" as memchr_mut_simple_spec with
     (\arg{s_p} "__s" (Vptr s_p)
      \arg{c} "__c" (Vint c)

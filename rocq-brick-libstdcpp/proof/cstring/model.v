@@ -49,7 +49,8 @@ Fixpoint strchr (s : bs) (c : Z) : option Z :=
       if bool_decide (c = 0) then Some 0 else None
   | BS.String ch rest =>
       if bool_decide (c = byte_ord ch) then Some 0
-      else option_map (fun off => (1 + off)%Z) (strchr rest c)
+      (*else option_map (fun off => (1 + off)%Z) (strchr rest c)*)
+      else Z.succ <$> (strchr rest c)
   end.
 
 Fixpoint strrchr (s : bs) (c : Z) : option Z :=
@@ -90,7 +91,8 @@ Fixpoint strpbrk (s accept : bs) : option Z :=
   | BS.EmptyString => None
   | BS.String ch rest =>
       if contains ch accept then Some 0
-      else option_map (fun off => (1 + off)%Z) (strpbrk rest accept)
+      (*else option_map (fun off => (1 + off)%Z) (strpbrk rest accept)*)
+      else Z.succ <$> (strpbrk rest accept)
   end.
 
 Fixpoint prefix (needle haystack : bs) : bool :=
@@ -112,7 +114,8 @@ Fixpoint strstr (haystack needle : bs) : option Z :=
       | BS.EmptyString => None
       | BS.String _ rest =>
           if prefix needle haystack then Some 0
-          else option_map (fun off => (1 + off)%Z) (strstr rest needle)
+          (*else option_map (fun off => (1 + off)%Z) (strstr rest needle)*)
+          else Z.succ <$> (strstr rest needle)
       end
   end.
 
@@ -121,7 +124,8 @@ Fixpoint memchr (bytes : list Z) (c : Z) : option Z :=
   | nil => None
   | b :: rest =>
       if bool_decide (b = byte_of_int c) then Some 0
-      else option_map (fun off => (1 + off)%Z) (memchr rest c)
+      (*else option_map (fun off => (1 + off)%Z) (memchr rest c)*)
+      else Z.succ <$> (memchr rest c)
   end.
 
 Fixpoint memcmp (bytes1 bytes2 : list Z) : Z :=

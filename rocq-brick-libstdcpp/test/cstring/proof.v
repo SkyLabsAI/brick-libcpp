@@ -278,7 +278,7 @@ Section with_cpp.
     rewrite _at_sub_0; [|done].
     rewrite /cstring.R /zstring.R; iFrame; done.
   Qed.
-  Hint Resolve arrayLR_cstring : sl_opacity.
+  #[local] Hint Resolve arrayLR_cstring : sl_opacity.
 
   #[local] Lemma cstring_arrayLR q bytes m tail (p : ptr) s :
     bytes = cstring.to_zstring s ++ tail ->
@@ -294,7 +294,7 @@ Section with_cpp.
     rewrite arrayLR.unlock; arith_simpl; work.
     rewrite _at_sub_0; [trivial|done].
   Qed.
-  Hint Resolve cstring_arrayLR : sl_opacity.
+  #[local] Hint Resolve cstring_arrayLR : sl_opacity.
 
   #[local, program] Definition arrayLR_open_cstring_C
       (p : ptr) q k bytes s tail
