@@ -413,6 +413,13 @@ Section with_cpp.
   Qed.
   #[local] Hint Resolve arrayLR_close_cstring_C : sl_opacity.
 
+  #[local] Lemma char_ptr_sub_0 (p : ptr) :
+    p.[ "char" ! 0 ] = p.
+  Proof.
+    assert (Hsz : is_Some (size_of σ "char")) by (vm_compute; eauto).
+    exact (offset_ptr_sub_0 p "char" Hsz).
+  Qed.
+
   cpp.spec "test_strlen_array_buffer()" from module default.
   Lemma test_strlen_array_buffer_ok :
     verify[module] "test_strlen_array_buffer()".
@@ -438,16 +445,24 @@ Section with_cpp.
   Lemma test_strchr_ok : verify[module] "test_strchr()".
   Proof.
     verify_spec; go.
+    normalize_ptrs.
     Arith.arith_simpl; go.
-    Arith.arith_simpl; go.
+    normalize_ptrs.
+    Arith.arith_simpl.
+    - contradiction.
+    - rewrite char_ptr_sub_0 in H. contradiction.
   Qed.
 
   cpp.spec "test_strrchr()" from module default.
   Lemma test_strrchr_ok : verify[module] "test_strrchr()".
   Proof.
     verify_spec; go.
+    normalize_ptrs.
     Arith.arith_simpl; go.
-    Arith.arith_simpl; go.
+    normalize_ptrs.
+    Arith.arith_simpl.
+    - contradiction.
+    - rewrite char_ptr_sub_0 in H. contradiction.
   Qed.
 
   cpp.spec "test_strspn()" from module default.
@@ -462,15 +477,21 @@ Section with_cpp.
   Lemma test_strpbrk_ok : verify[module] "test_strpbrk()".
   Proof.
     verify_spec; go.
-    Arith.arith_simpl; go.
+    normalize_ptrs.
+    Arith.arith_simpl.
+    contradiction.
   Qed.
 
   cpp.spec "test_strstr()" from module default.
   Lemma test_strstr_ok : verify[module] "test_strstr()".
   Proof.
     verify_spec; go.
+    normalize_ptrs.
     Arith.arith_simpl; go.
-    Arith.arith_simpl; go.
+    normalize_ptrs.
+    Arith.arith_simpl.
+    - contradiction.
+    - rewrite char_ptr_sub_0 in H. contradiction.
   Qed.
 
   cpp.spec "test_cstring_slice1()" from module default.

@@ -13,7 +13,7 @@ Require Import skylabs.brick.libstdcpp.cstring.inc_cstring_cpp.
 
 #[local] Open Scope Z_scope.
 
-Notation search_result p found :=
+(*Notation search_result p found :=
   (match found with
   | Some 0 => Vptr p
   | Some off => Vptr (p .[ Tchar ! off ])
@@ -25,10 +25,19 @@ Notation byte_search_result byte_ty p found :=
   | Some 0 => Vptr p
   | Some off => Vptr (p .[ byte_ty ! off ])
   | None => Vptr nullptr
-  end (only parsing).
+  end (only parsing).*)
+
+Notation byte_search_result := (fun byte_ty p found =>
+Vptr (match found with
+  | Some off => (p .[ byte_ty ! off ])
+  | None => nullptr
+  end)) (only parsing).
+
+Notation search_result := (fun p found =>
+  (byte_search_result Tchar p found)) (only parsing).
 
 Section with_cpp.
-  Context `{Σ : cpp_logic, module ⊧ σ}.
+Context `{Σ : cpp_logic, module ⊧ σ}.
 
   cpp.spec "strlen" with
     (\arg{s_p} "__s" (Vptr s_p)
