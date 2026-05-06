@@ -321,21 +321,32 @@ Section with_cpp.
     apply heap_pred._at_cancel.
     apply primR_anyR.
   Qed.
+
+  Lemma replicateZ_lengthZ_eq_replicateN_lengthN {A : Type} (xs : list A) (x : unit) :
+    replicateZ (lengthZ xs) x = replicateN (lengthN xs) x.
+  Proof.
+    by rewrite /replicateZ N2Z.id.
+  Qed.
+
   Lemma arrayR_charR_arrayR_anyR (p : ptr) q xs :
     p |-> arrayR (Tchar_ char_type.Cchar) (fun c : N => charR q c) xs ⊢
     p |-> arrayR (Tchar_ char_type.Cchar)
            (fun _ : unit => anyR (Tchar_ char_type.Cchar) q)
-           (replicateN (lengthN xs) ()).
+           (replicateZ (lengthZ xs) ()).
   Proof.
     revert p.
     induction xs as [|x xs IH].
     all: intros p.
-    - rewrite /lengthN /= !arrayR_nil. reflexivity.
+    - rewrite /replicateZ N2Z.id /= !arrayR_nil. reflexivity.
     - rewrite arrayR_cons !_at_sep _at_offsetR.
       iIntros "(Hty & Hx & Hxs)".
-      replace (lengthN (x :: xs)) with (N.succ (lengthN xs)) by
-        (rewrite /lengthN Nat2N.inj_succ; reflexivity).
-      rewrite replicateN_S.
+      replace (replicateZ (lengthZ (x :: xs)) ()) with
+        (() :: replicateZ (lengthZ xs) ()).
+      2:{
+        rewrite !replicateZ_lengthZ_eq_replicateN_lengthN.
+        rewrite /lengthN Nat2N.inj_succ replicateN_S.
+        reflexivity.
+      }
       rewrite arrayR_cons !_at_sep _at_offsetR.
       iFrame "Hty".
       iSplitL "Hx".
@@ -348,7 +359,7 @@ Section with_cpp.
            (fun c : N => charR q c) xs ⊢
     p |-> arrayLR (Tchar_ char_type.Cchar) 0 (lengthZ xs)
            (fun _ : unit => anyR (Tchar_ char_type.Cchar) q)
-           (replicateN (lengthN xs) ()).
+           (replicateZ (lengthZ xs) ()).
   Proof.
     rewrite arrayLR.unlock _at_sep.
     iIntros "[_ Harr]".
@@ -357,7 +368,8 @@ Section with_cpp.
     rewrite /arrayLR.
     iSplit.
     - iPureIntro.
-      unfold lengthZ, lengthN, replicateN.
+      rewrite replicateZ_lengthZ_eq_replicateN_lengthN.
+      unfold lengthN, replicateN.
       rewrite length_replicate.
       rewrite Nat2N.id.
       lia.
@@ -373,7 +385,7 @@ Section with_cpp.
     \consuming p |-> cstring.R q s
     \consuming p |-> arrayLR "char" mid k (λ v : N, charR q v) tail
     \proving p |-> arrayLR "char" 0 k
-         (λ _ : unit, anyR "char" q) (replicateN (Z.to_N k) ())
+         (λ _ : unit, anyR "char" q) (replicateZ k ())
     \end@{mpred}.
   Next Obligation.
     intros p q mid k tail s Hmid Htailk.
@@ -394,7 +406,7 @@ Section with_cpp.
         iSplitL "Hs".
         + iFrame. iPureIntro. exact Hwf.
         + iFrame "Htail". }
-    rewrite Hk N2Z.id.
+    rewrite Hk.
     iPoseProof (arrayLR_charR_arrayLR_anyR _ q (cstring.to_zstring s ++ tail)
       with "Harr") as "Harr".
     iExact "Harr".
