@@ -23,6 +23,7 @@
   ExtLib
   skylabs.elpi.extra
   skylabs.elpi.cpp
+  tactic_classes
   ; skylabs deps end
   skylabs))
 (include dune.inc)
