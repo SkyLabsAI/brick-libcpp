@@ -8,7 +8,7 @@ different style of specifications.
 Require Import skylabs.auto.cpp.prelude.proof.
 Require Export skylabs.cpp.string.
 Require Export skylabs.brick.libstdcpp.iostream.pred.
-Require Import skylabs.brick.libstdcpp.iostream.itree.
+Require Export skylabs.brick.libstdcpp.iostream.itree_prop.
 
 Require Import skylabs.brick.libstdcpp.iostream_trace.inc_iostream_cpp.
 
@@ -35,16 +35,16 @@ Module ostream.
   Section with_cpp.
     Context `{Σ : cpp_logic, σ : genv}.
 
-    Fixpoint bs_dos {OS : Ostream} (bs : bs) (K : mpred) : mpred :=
+    Fixpoint bs_dos (OS : Ostream) (bs : bs) (K : mpred) : mpred :=
       match bs with
       | BS.EmptyString => K
-      | BS.String b bs => do {[Write $ Byte.to_N b]} $ fun _ => bs_dos bs K
+      | BS.String b bs => OS.(do) {[Write $ Byte.to_N b]} $ fun _ => bs_dos OS bs K
       end.
     #[global] Hint Opaque bs_dos : sl_opacity.
 
     #[global]
-    Instance bs_dos_proper_frame {OS: Ostream} b
-      : kont.ProperFrame (T:=[tele]) (bs_dos b).
+    Instance bs_dos_proper_frame (OS: Ostream) b
+      : kont.ProperFrame (T:=[tele]) (bs_dos OS b).
     Proof.
       constructor; intros.
       induction b; simpl.
@@ -56,8 +56,8 @@ Module ostream.
     Qed.
 
     #[global]
-    Instance bs_dos_positive_proper_frame_eta {OS: Ostream} b
-      : kont.ProperFrame (T:=[tele]) (fun x => bs_dos b x).
+    Instance bs_dos_positive_proper_frame_eta (OS: Ostream) b
+      : kont.ProperFrame (T:=[tele]) (fun x => bs_dos OS b x).
     Proof. apply bs_dos_proper_frame. Qed.
 
 
@@ -67,7 +67,7 @@ Module ostream.
       \prepost{OS γ} osP |-> ostream.R OS γ 1$m
       \arg{strP} "" (Vptr strP)
       \prepost{q__s strM} strP |-> cstring.R q__s strM
-      \pre{Q} bs_dos strM Q
+      \pre{Q} bs_dos OS strM Q
       \post[Vptr osP] Q).
 
     Parameter format_int : Z -> bs.
@@ -79,7 +79,7 @@ Module ostream.
       \this this
       \arg{n} "" (Vint n)
       \prepost{OS γ} this |-> ostream.R OS γ 1$m
-      \pre{Q} bs_dos (format_int n) Q
+      \pre{Q} bs_dos OS (format_int n) Q
       \post[Vptr this] Q
     ).
 
@@ -88,7 +88,7 @@ Module ostream.
       \this this
       \arg{n} "" (Vint n)
       \prepost{OS γ} this |-> ostream.R OS γ 1$m
-      \pre{Q} bs_dos (format_int n) Q
+      \pre{Q} bs_dos OS (format_int n) Q
       \post[Vptr this] Q
     ).
 
@@ -96,7 +96,7 @@ Module ostream.
       \arg{osP : ptr} "" (Vptr osP)
       (* XXX: manipulators can cause output! *)
       \prepost{OS γ} osP |-> ostream.R OS γ 1$m
-      \pre{Q} bs_dos contents_f Q
+      \pre{Q} bs_dos OS contents_f Q
       \post[Vptr osP] Q).
 
     Definition ostream_cpp_type : type :=
@@ -197,13 +197,17 @@ Module istream.
             end
         ).
 
+    (** TODO: this specification is unsound because it needs to re-buffer the
+        next character that it read (the first component of the pair returned by
+        [read_int]).
+     *)
     cpp.spec "std::basic_istream<char, std::char_traits<char>>::operator>>(int&)"
       from source as istream_take_int_spec with (
           \this this
           \pre{IS isM} this |-> istream.R IS isM 1$m
           \arg{nP} "" (Vref nP)
           \pre nP |-> anyR "int" 1$m
-          \pre{K : Z -> mpred} interp_itree as_event read_int (K ∘ snd)
+          \pre{K : Z -> mpred} interp_itree as_event IS read_int (K ∘ snd)
           \post[Vptr this] Exists isM' n,
             this |-> istream.R IS isM' 1$m **
               nP |-> intR 1$m n **

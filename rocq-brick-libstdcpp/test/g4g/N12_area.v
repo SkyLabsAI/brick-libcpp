@@ -41,7 +41,7 @@ Section with_cpp.
     (ANY_STEPS : AnySteps only_output {[s]} ((fun x => Write x) <$> BS.string_to_bytes str) s') :=
     \cancelx
     \using{γ} AuthSet.frag γ {[s]}
-    \proving{K : mpredI} ostream.bs_dos (OS:=OS ⊤ γ) str K
+    \proving{K : mpredI} ostream.bs_dos (OS ⊤ γ) str K
     \through (AuthSet.frag γ s' -∗ K)
     \end@{mpredI}.
   Next Obligation.
