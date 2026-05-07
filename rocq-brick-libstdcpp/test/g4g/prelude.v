@@ -82,7 +82,7 @@ Section operational.
   Context {T E} (step : T -> option E -> T -> Prop).
 
   Class AnyStep  (Pre : propset T) (evt : E) (Post : propset T) : Prop :=
-  { _safe : forall s, s ∈ Pre -> exists s', step s (Some evt) s'
+  { _safe : forall s, s ∈ Pre -> exists s', step s (Some evt) s' /\ s' ∈ Post
   ; _steps_to : forall s', s' ∈ Post -> ∃ s, s ∈ Pre /\ step s (Some evt) s' }.
 
 
@@ -95,6 +95,38 @@ Section operational.
   | Refine {Pre'} {_ : ∅ ⊂ Pre} (_ : Pre' ⊆ Pre) {es Post} :
     AnySteps Pre' es Post -> AnySteps Pre es Post.
 
+  Lemma AnySteps_mono_post Pre evts Post Post' :
+    ∅ ⊂ Post' ⊆ Post ->
+    AnySteps Pre evts Post ->
+    AnySteps Pre evts Post'.
+  Proof.
+    induction 2; eauto using AnySteps.
+    constructor; set_solver.
+  Qed.
+
+  Lemma AnySteps_mono_pre Pre Pre' evts Post :
+    (* ∅ ⊂ Pre' ⊆ Pre ->
+    AnySteps Pre evts Post ->
+    AnySteps Pre' evts Post. *)
+    ∅ ⊂ Pre ->
+    Pre' ⊆ Pre ->
+    AnySteps Pre' evts Post ->
+    AnySteps Pre evts Post.
+  Proof. intros. exact: Refine. Qed.
+
+  Lemma AnyStep_invert_nonempty Pre evt Post :
+    AnyStep Pre evt Post ->
+    ∅ ⊂ Post <-> ∅ ⊂ Pre.
+  Proof. intros []; set_solver. Qed.
+
+  Lemma AnySteps_invert_nonempty Pre evts Post :
+    AnySteps Pre evts Post ->
+    ∅ ⊂ Post /\ ∅ ⊂ Pre.
+  Proof.
+    induction 1; intuition.
+    - set_solver.
+    - by rewrite -AnyStep_invert_nonempty.
+  Qed.
 End operational.
 Existing Class AnySteps.
 #[global] Hint Mode AnyStep + + + + + - : typeclass_instances.
