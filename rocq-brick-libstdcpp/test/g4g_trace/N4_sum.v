@@ -1,7 +1,7 @@
 Require Import skylabs.auto.cpp.prelude.proof.
-Require Import skylabs.brick.libstdcpp.iostream.spec.
+Require Import skylabs.brick.libstdcpp.iostream_trace.spec.
 
-Require Import skylabs.brick.libstdcpp.test.geeks_for_geeks_examples.N1_hello_world_cpp.
+Require Import skylabs.brick.libstdcpp.test.g4g_trace.N4_sum_cpp.
 
 Import linearity.
 
@@ -12,14 +12,9 @@ Section with_cpp.
     \prepost{osM} _global "std::cout" |-> ostreamR 1$m osM
     \pre{str} _global "std::cout" |-> ostream_contentR 1$m str
     \post[Vint 0]
-      _global "std::cout" |-> ostream_contentR 1$m (str ++ "Hello World")).
+      _global "std::cout" |-> ostream_contentR 1$m (str ++ Z_to_string 20)
+  ).
 
   Lemma main_ok : verify[source] "main()".
-  Proof.
-    verify_shift; go.
-    banish_string_literals.
-    iModIntro.
-    go.
-  Qed.
-
+  Proof. verify_spec; go. Qed.
 End with_cpp.

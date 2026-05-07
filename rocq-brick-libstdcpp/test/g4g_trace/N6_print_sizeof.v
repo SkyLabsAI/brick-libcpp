@@ -1,7 +1,7 @@
 Require Import skylabs.auto.cpp.prelude.proof.
-Require Import skylabs.brick.libstdcpp.iostream.spec.
+Require Import skylabs.brick.libstdcpp.iostream_trace.spec.
 
-Require Import skylabs.brick.libstdcpp.test.geeks_for_geeks_examples.N6_print_sizeof_cpp.
+Require Import skylabs.brick.libstdcpp.test.g4g_trace.N6_print_sizeof_cpp.
 
 Import linearity.
 

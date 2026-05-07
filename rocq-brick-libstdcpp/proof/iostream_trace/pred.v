@@ -8,7 +8,7 @@ different style of specifications.
 Require Import skylabs.auto.cpp.prelude.proof.
 Require Export skylabs.cpp.string.
 
-Require Import skylabs.brick.libstdcpp.iostream.inc_iostream_cpp.
+Require Import skylabs.brick.libstdcpp.iostream_trace.inc_iostream_cpp.
 
 (** TODO upstream START *)
 #[only(cfracsplittable)] derive cstring.R.

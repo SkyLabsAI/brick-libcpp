@@ -35,7 +35,7 @@
   	 (with-stderr-to inc_cstring_cpp.v.stderr (run cpp2v -v %{input} -o inc_cstring_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_cstring.cpp))
 )
-(subdir iostream
+(subdir iostream_trace
  (rule
   (targets inc_iostream_cpp.v.stderr inc_iostream_cpp.v)
   (alias test_ast)

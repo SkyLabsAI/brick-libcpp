@@ -7,9 +7,9 @@ different style of specifications.
 *)
 Require Import skylabs.auto.cpp.prelude.proof.
 Require Export skylabs.cpp.string.
-Require Export skylabs.brick.libstdcpp.iostream.pred.
+Require Export skylabs.brick.libstdcpp.iostream_trace.pred.
 
-Require Import skylabs.brick.libstdcpp.iostream.inc_iostream_cpp.
+Require Import skylabs.brick.libstdcpp.iostream_trace.inc_iostream_cpp.
 
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
