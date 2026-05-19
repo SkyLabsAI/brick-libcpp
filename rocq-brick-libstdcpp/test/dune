@@ -3,6 +3,7 @@
 (include_subdirs qualified)
 (rocq.theory
  (name skylabs.brick.libstdcpp.test) ; logical path of this library
+ (generate_project_file)
  (theories
   ; skylabs.brick.libstdcpp deps
   Stdlib
