@@ -2,7 +2,7 @@
 {
   "name": "SkyLabs FM default",
   "image":
-    "skylabsai/fm-releases:fm-release",
+    "skylabsai/fm-releases:fm-release-nightly",
   "runArgs": [
     "--platform",
     "linux/amd64",
