@@ -23,26 +23,6 @@ Section to_spectra.
   Defined.
 End to_spectra.
 
-Section to_tele.
-  Lemma tele_snoc_arg_snoc {TT T} (x : tele_snoc TT T) : exists ys y,
-      x = tele_arg_snoc ys y.
-  Proof.
-    clear.
-    induction TT; simpl in *.
-    { destruct x. exists tele_arg_tail, tele_arg_head. destruct tele_arg_tail. done. }
-    { destruct x.
-      destruct (H tele_arg_head tele_arg_tail) as [?[??]].
-      subst. exists (TeleArgCons (f:=fun _ => _) tele_arg_head x), x0. done. }
-  Qed.
-  Lemma tele_app_bind_snoc {TT : tele} T U (x : T) : forall (xs : TT) (f : _ -> _ -> U),
-      tele_app (tele_bind_snoc f) (tele_arg_snoc xs x) = f xs x.
-  Proof.
-    clear. induction TT; intros.
-    { destruct xs; done. }
-    { destruct xs. etrans. apply H. done. }
-  Qed.
-End to_tele.
-
 Section to_auto.
   Context {PROP : bi}.
   #[program]
