@@ -61,17 +61,32 @@ End to_cpp_auto.
 Section operational.
   Context {T E} (step : T -> option E -> T -> Prop).
 
-  Class AnyStep  (Pre : propset T) (evt : E) (Post : propset T) : Prop :=
-  { _safe : forall s, s ∈ Pre -> exists s', step s (Some evt) s' /\ s' ∈ Post
-  ; _steps_to : forall s', s' ∈ Post -> ∃ s, s ∈ Pre /\ step s (Some evt) s' }.
+  (** [AnyStep Pre evt Post] states that the step relation can
+      step from [Pre] by [evt] to the [Post].
 
+      Note that [_steps_to] ensures that every state in [Post]
+      is reachable which is necessary for soundness.
+   *)
+  Class AnyStep  (Pre : propset T) (evt : option E) (Post : propset T) : Prop :=
+  { _safe : forall s, s ∈ Pre -> exists s', step s evt s' /\ s' ∈ Post
+  ; _steps_to : forall s', s' ∈ Post -> ∃ s, s ∈ Pre /\ step s evt s' }.
 
+  (** The transitive generalization of [AnyStep].
+
+      Note: This is likely too weak to support input because it
+      takes a list of fixed events rather something that allows dependency,
+      e.g. such as an interaction tree.
+   *)
   Inductive AnySteps (Pre : propset T) : list E -> propset T -> Prop :=
   | Finish {Post} {_ : ∅ ⊂ Post} (_ : Post ⊆ Pre) : AnySteps Pre [] Post
   | Step {evt evts Mid Post}
-      (_ : AnyStep Pre evt Mid)
+      (_ : AnyStep Pre (Some evt) Mid)
       (_ : AnySteps Mid evts Post)
     : AnySteps Pre (evt :: evts) Post
+  | Tau {evts Mid Post}
+      (_ : AnyStep Pre None Mid)
+      (_ : AnySteps Mid evts Post)
+    : AnySteps Pre evts Post
   | Refine {Pre'} {_ : ∅ ⊂ Pre} (_ : Pre' ⊆ Pre) {es Post} :
     AnySteps Pre' es Post -> AnySteps Pre es Post.
 
@@ -105,6 +120,7 @@ Section operational.
   Proof.
     induction 1; intuition.
     - set_solver.
+    - by rewrite -AnyStep_invert_nonempty.
     - by rewrite -AnyStep_invert_nonempty.
   Qed.
 End operational.
@@ -162,7 +178,7 @@ Section to_spectra.
 
   #[program]
   Definition requester_C {_ : BiBUpdFUpd PROP} (app : App.app) (s : _) s' evt
-    (ANY_STEP : AnyStep app.(App.lts).(Sts._step) {[s]} evt s'):=
+    (ANY_STEP : AnyStep app.(App.lts).(Sts._step) {[s]} (Some evt) s'):=
     \cancelx
     \using{γ} AuthSet.frag γ {[s]}
     \proving{E K} Step.requester app E γ {[ evt ]} K
@@ -278,7 +294,9 @@ Inductive only_output : bs -> option output_event -> bs -> Prop :=
 | skip {bs} : only_output bs None bs.
 
 #[global]
-Instance only_output_any_step {c cs} : AnyStep only_output {[ BS.String c cs ]} (Write $ Byte.to_N c) {[ cs ]}.
+Instance only_output_any_step {c cs}
+  : AnyStep only_output {[ BS.String c cs ]}
+      (Some $ Write $ Byte.to_N c) {[ cs ]}.
 Proof.
   constructor; inversion 1; subst.
   { eexists; constructor => //. constructor. }
