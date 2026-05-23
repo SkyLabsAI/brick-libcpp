@@ -4,28 +4,36 @@
 (rocq.theory
  (name skylabs.brick.libstdcpp.test) ; logical path of this library
  (theories
-  ; skylabs.brick.libstdcpp deps
   Stdlib
   stdpp
   skylabs.upoly
-  elpi elpi_elpi elpi.apps.locker elpi.apps.NES
-  Lens Lens.Elpi
-  Ltac2 skylabs.ltac2.extra
+  elpi
+  elpi_elpi
+  elpi.apps.locker
+  elpi.apps.NES
+  Lens
+  Lens.Elpi
+  Ltac2
+  skylabs.ltac2.extra
   skylabs.prelude
   iris
   skylabs.iris.extra
-  Equations Equations.Prop Equations.Type
+  Equations
+  Equations.Prop
+  Equations.Type
   skylabs.lang.cpp
   skylabs.ltac2.logger
   skylabs.auto.core
-  ;
   ExtLib
   skylabs.elpi.extra
   skylabs.elpi.cpp
   skylabs
   tactic_classes
-  ; skylabs.brick.libstdcpp deps end
-  skylabs.brick.libstdcpp))
+  skylabs.brick.libstdcpp
+  ; transitive dependencies
+  Corelib Flocq elpi.apps.NES.elpi elpi.apps.derive elpi.apps.derive.elpi
+  elpi.apps.locker.elpi
+ ))
 (include dune.inc)
 
 (rule
