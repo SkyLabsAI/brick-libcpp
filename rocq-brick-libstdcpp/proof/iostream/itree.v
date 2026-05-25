@@ -1,3 +1,4 @@
+(* TODO: replace this with the actual itree library *)
 CoInductive itree {E : Type -> Type} {T : Type} : Type :=
 | Ret (_ : T)
 | Tau (_ : itree)

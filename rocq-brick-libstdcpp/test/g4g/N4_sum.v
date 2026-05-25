@@ -19,7 +19,7 @@ Section with_cpp.
 
   #[program]
   Definition OS (E : coPset) γ : Ostream :=
-    {| do evt K := Step.requester Sum E γ evt K |}%I.
+    {| do := Step.requester Sum E γ |}%I.
   Next Obligation. repeat intro. apply requester_ne; done. Qed.
 
   #[program]

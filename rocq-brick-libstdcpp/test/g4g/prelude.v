@@ -203,7 +203,7 @@ Section to_spectra.
     iSplitR.
     { iPureIntro.
       intros. destruct ANY_STEP.
-      inversion H; subst. apply _safe0. done. }
+      inversion H; subst. edestruct _safe0. done. intuition; eauto. }
     iIntros (?) "[% Hfrag]". iMod "Hclose".
     work.
     iApply bupd_fupd.
@@ -301,7 +301,7 @@ Inductive only_output : bs -> option output_event -> bs -> Prop :=
 Instance only_output_any_step {c cs} : AnyStep only_output {[ BS.String c cs ]} (Write $ Byte.to_N c) {[ cs ]}.
 Proof.
   constructor; inversion 1; subst.
-  { eexists; constructor. }
+  { eexists; constructor => //. constructor. }
   { eexists; repeat constructor. }
 Qed.
 
@@ -320,7 +320,7 @@ Proof.
     econstructor; [ | eassumption ].
     constructor.
     { intros. exists str'.
-      inversion H; subst. constructor. }
+      inversion H; subst. constructor => //. constructor. }
     { inversion 1; subst.
       eexists _; split. set_solver.
       constructor. } }
@@ -344,7 +344,7 @@ Proof.
       { intros. exists (str' ++ rest)%bs.
         inversion H; subst.
         have->: (BS.String b str' ++ rest = BS.String b (str' ++ rest))%bs by done.
-        constructor. }
+        constructor => //. constructor. }
       { inversion 1; subst.
         eexists _; split. set_solver.
         constructor. } } }

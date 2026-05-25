@@ -22,7 +22,7 @@ Section with_cpp.
      the event signature. *)
   #[program]
   Definition OS (E : coPset) γ : Ostream :=
-  {| do evt K := Step.requester HelloWorld E γ evt K |}%I.
+  {| do := Step.requester HelloWorld E γ |}%I.
   Next Obligation. intros. repeat intro. by apply requester_ne. Qed.
 
   cpp.spec "main()" from source as main_spec with (

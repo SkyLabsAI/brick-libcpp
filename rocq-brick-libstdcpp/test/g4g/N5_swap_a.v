@@ -16,8 +16,8 @@ Section with_cpp.
   Hint Resolve X : sl_opacity.
 
   #[program]
-    Definition OS (E : coPset) γ : Ostream :=
-    {| do evt K := Step.requester Swap E γ evt K |}%I.
+  Definition OS (E : coPset) γ : Ostream :=
+    {| do := Step.requester Swap E γ |}%I.
   Next Obligation. repeat intro. apply requester_ne; done. Qed.
 
 
