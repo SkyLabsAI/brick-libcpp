@@ -1,12 +1,13 @@
 (**
-Tentative iostreams specs.
-
-These are trace-based specifications, and there is a _wish_ to move to a
-different style of specifications.
-
+  Refinement-based specifications for the <iostream> library.
+  See README.md for more information
 *)
 Require Import skylabs.auto.cpp.prelude.proof.
 Require Export skylabs.cpp.string.
+
+Require Import skylabs.auto.hints.kont.
+
+Require Import skylabs.brick.libstdcpp.iostream.itree_prop.
 
 Require Import skylabs.brick.libstdcpp.iostream.inc_iostream_cpp.
 
@@ -18,31 +19,48 @@ Require Import skylabs.brick.libstdcpp.iostream.inc_iostream_cpp.
 (* We only have `Bind Scope bs_scope with t.` inside `Module cstring.` *)
 (** TODO upstream END *)
 
-Section with_cpp.
-  Context `{Σ : cpp_logic, σ : genv}.
+(** Events that send output.
 
-  Parameter ostreamT : Type.
-  Parameter ostreamR : cQp.t -> ostreamT -> Rep.
-  Parameter ostream_contentR : cQp.t -> cstring.t -> Rep.
-  (* TODO: type_ptr *)
-  #[only(cfracsplittable)] derive ostreamR.
-  #[only(cfracsplittable)] derive ostream_contentR.
+    For most buffered streams, writes go to the buffer and are only guaranteed
+    to be sent to the consumer on a [Flush].
+ *)
+Variant output_event : Set :=
+  | Write (_ : N).
 
-  #[global] Instance: LearnEqF1 ostreamR := ltac:(solve_learnable).
-  #[global] Instance: LearnEqF1 ostream_contentR := ltac:(solve_learnable).
+Variant input_event : Set :=
+  | Read (_ : N).
 
-  Parameter istreamT : Type.
-  Parameter istreamR : cQp.t -> istreamT -> Rep.
-  #[only(cfracsplittable)] derive istreamR.
-  #[global] Instance: LearnEqF1 istreamR := ltac:(solve_learnable).
+(** The behavior of an [ostream] is described by a handler of an [output_event]  *)
+Notation Ostream := (SepHandler mpred output_event).
+Notation Istream := (SepHandler mpred input_event).
 
-  Lemma ostream_contentR_aggressive (os_p : ptr) q str str':
-    os_p |-> ostream_contentR q str ⊢
-    [| str = str' |] -∗
-    os_p |-> ostream_contentR q str'.
-  Proof. work. Qed.
-  Definition ostream_contentR_aggressiveC := [CANCEL] ostream_contentR_aggressive.
+Module ostream.
+  Parameter gname : Set.
 
-End with_cpp.
+  (** TODO: Add support for <iomanip> *)
+  Parameter R : forall `{Σ : cpp_logic} {σ : genv}, Ostream -> gname -> cQp.t -> Rep.
+  #[only(cfracsplittable)] derive R.
 
-#[export] Hint Resolve ostream_contentR_aggressiveC : br_hints.
+  Section with_cpp.
+    Context `{Σ : cpp_logic, σ : genv}.
+
+    #[global] Instance: Cbn (Learn (learn_eq ==> learn_eq ==> any ==> learn_hints.fin) R).
+    Proof. solve_learnable. Qed.
+
+  End with_cpp.
+End ostream.
+
+Module istream.
+  Parameter gname : Set.
+  Parameter R : forall `{Σ : cpp_logic} {σ : genv}, Istream -> gname -> cQp.t -> Rep.
+  #[only(cfracsplittable)] derive R.
+
+  Section with_cpp.
+    Context `{Σ : cpp_logic, σ : genv}.
+
+    #[global] Instance: Cbn (Learn (learn_eq ==> learn_eq ==> any ==> learn_hints.fin) R).
+    Proof. solve_learnable. Qed.
+
+  End with_cpp.
+
+End istream.

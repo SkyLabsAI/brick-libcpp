@@ -44,6 +44,15 @@
   	 (with-stderr-to inc_iostream_cpp.v.stderr (run cpp2v -v %{input} -o inc_iostream_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_iostream.cpp))
 )
+(subdir iostream_trace
+ (rule
+  (targets inc_iostream_cpp.v.stderr inc_iostream_cpp.v)
+  (alias test_ast)
+  (deps (:input inc_iostream.cpp) (glob_files_rec ../*.hpp) (universe))
+  (action
+  	 (with-stderr-to inc_iostream_cpp.v.stderr (run cpp2v -v %{input} -o inc_iostream_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps inc_iostream.cpp))
+)
 (subdir mutex
  (rule
   (targets demo_cpp.v.stderr demo_cpp.v)
