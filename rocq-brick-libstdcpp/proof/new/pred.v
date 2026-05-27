@@ -1,4 +1,4 @@
-Require Import iris.proofmode.tactics.
+Require Import skylabs.iris.extra.proofmode.proofmode.
 Require Import skylabs.auto.cpp.prelude.pred.
 Require Import skylabs.auto.cpp.elpi.derive.bi.
 Require Import skylabs.brick.libstdcpp.new.inc_new_cpp.
