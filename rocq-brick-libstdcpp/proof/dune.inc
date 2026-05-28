@@ -107,3 +107,12 @@
   	 (with-stderr-to inc_string_cpp.v.stderr (run cpp2v -v %{input} -o inc_string_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_string.cpp))
 )
+(subdir vector
+ (rule
+  (targets inc_vector_cpp.v.stderr inc_vector_cpp.v)
+  (alias test_ast)
+  (deps (:input inc_vector.cpp) (glob_files_rec ../*.hpp) (universe))
+  (action
+  	 (with-stderr-to inc_vector_cpp.v.stderr (run cpp2v -v %{input} -o inc_vector_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps inc_vector.cpp))
+)
