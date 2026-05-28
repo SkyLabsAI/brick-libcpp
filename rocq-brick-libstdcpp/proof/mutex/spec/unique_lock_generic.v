@@ -21,9 +21,8 @@ Section with_cpp.
   (* a unique_lock may have an associated mutex, if so it holds
       (Some (b * mutex_state)) where b indicates whether the unique_lock
       has acquired the associated mutex. *)
-  Parameter R : forall {σ : genv},
-      forall ty {T} mutexR {BL : BasicLockable ty (T:=T) mutexR},
-                        cQp.t -> option (M T) -> Rep.
+  Parameter R : forall {σ : genv} ty {T} mutexR `{!BasicLockable ty (T:=T) mutexR},
+    cQp.t -> option (M T) -> Rep.
 
   Definition owned {T} (om : option (M T)) : bool :=
     match om with
@@ -42,7 +41,7 @@ Section with_cpp.
   Section with_threads.
     Context {σ : genv}.
     Context `{HAS_THREADS : !HasStdThreads Σ}.
-    Context {ty : type} {mutexT : Type} (mutexR : cQp.t -> mutexT -> Rep) {BL : BasicLockable ty mutexR}.
+    Context ty {mutexT} mutexR `{!BasicLockable ty (T:=mutexT) mutexR}.
 
     #[global] Instance: LearnEqF1 (R ty mutexR) := ltac:(solve_learnable).
     #[local] Notation R := (R ty (T:=mutexT) mutexR).
