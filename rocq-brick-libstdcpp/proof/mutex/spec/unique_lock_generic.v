@@ -36,7 +36,10 @@ Section with_cpp.
     | None => nullptr
     end.
 
-  #[only(cfracsplittable,type_ptr="std::unique_lock<std::mutex>")] derive R.
+  #[only(cfracsplittable)] derive R.
+
+  #[global] Declare Instance R_type_ptr {σ : genv} `{!BasicLockable ty (T:=T) mutexR} q om :
+    Typed ("std::unique_lock" .<< Atype ty >>) (R ty mutexR q om).
 
   Section with_threads.
     Context {σ : genv}.
