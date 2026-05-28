@@ -49,6 +49,8 @@ Section with_cpp.
     #[global] Instance: LearnEqF1 (R ty mutexR) := ltac:(solve_learnable).
     #[local] Notation R := (R ty (T:=mutexT) mutexR).
 
+    (* TODO: all the following specs should be generalized over the lock type, except for [lock_spec] and [unlock_spec]. *)
+
     cpp.spec "std::unique_lock<std::mutex>::unique_lock()"
       as default_ctor_spec from source with (
       \this this
@@ -175,6 +177,8 @@ Section with_cpp.
       \prepost{om q} this |-> R q om
       \post[Vptr (mutex om)] emp
     ).
+
+    (* TODO: these specs seem mutex-specific. unlock_spec doesn't seem good for recursive mutexes. *)
 
     (* these preconditions statically rule out cases that throw exceptions, such as:
     - If there is no associated mutex, std::system_error with an error code of std::errc::operation_not_permitted.
