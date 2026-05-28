@@ -15,7 +15,7 @@ Section with_cpp.
   ; mutex_ptr : ptr
   ; mutex_q : Qp
   ; mutex_m : T }.
-  Arguments M _ : clear implicits.
+  #[global] Arguments M _ : clear implicits.
   #[only(lens)] derive M.
 
   (* a unique_lock may have an associated mutex, if so it holds
