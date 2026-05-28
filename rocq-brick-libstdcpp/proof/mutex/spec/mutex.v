@@ -144,12 +144,18 @@ Section with_cpp.
     go. iExists q$m%cQp. go.
   Qed.
 
-  #[global] Instance mutex_basic_lockable ptr : BasicLockable _ _ :=
-  { do_lock := fun _ t K => let '(thr, lk, K) := t in do_lock thr lk K;
-    do_unlock := fun _ t K => let '(thr, lk, K) := t in do_unlock thr lk K }.
-        
+  (* candidate? *)
+  Definition T : Type := gname * mpred.
 
+  #[global,program] Instance mutex_basic_lockable : BasicLockable (T := thread_idT * gname * Qp * mpred) "std::mutex" (λ q '(thr, γ, q', P), R γ q$m P) :=
+  { do_lock := fun this '(thr, γ, q', P) K => do_lock thr (γ, q', P) K
+  ; do_unlock := fun this '(thr, γ, q', P) K => do_unlock thr (γ, q', P) K }.
 
+  (*
+  #[global,program] Instance mutex_basic_lockable : BasicLockable (T := gname * Qp * mpred) "std::mutex" (λ q '(thr, γ, q', P), R γ q$m P) :=
+  { do_lock := fun this '(γ, q', P) K => do_lock thr (γ, q', P) K
+  ; do_unlock := fun this '(γ, q', P) K => do_unlock thr (γ, q', P) K }.
+  *)
 End with_cpp.
 End mutex.
 
