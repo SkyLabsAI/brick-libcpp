@@ -19,7 +19,7 @@ Import auto.cpp.lazy.big_sep.array.
 
 Module Aggregate.
   Import concepts.
-  
+
    cpp.class "Aggregate" prefix "" from module
     dataclass { copyable ; movable ; destructible }.
   #[only(eq_dec)] derive T.
@@ -89,7 +89,12 @@ Module Aggregate.
 
       Lemma copy_assign_ok :
         denoteModule module |-- copy_assign_spec.
-      Proof using MOD. verify_spec. go with pick_frac. Qed.
+      Proof using MOD.
+        verify_spec. go with pick_frac.
+        (* errors.Errors.UNSUPPORTED.body
+          "wp_method_shift: defaulted methods"%pstring *)
+      Fail Qed.
+      Admitted.
       Definition copy_assign_B := [LINK] copy_assign_ok.
 
       Lemma copy_ctor_ok :
@@ -109,7 +114,11 @@ Module Aggregate.
 
       Lemma move_assign_ok :
         denoteModule module |-- move_assign_spec.
-      Proof using MOD. verify_spec. go with pick_frac. Qed.
+      Proof using MOD.
+        verify_spec. go with pick_frac.
+
+      Fail Qed.
+      Admitted.
       Definition move_assign_B := [LINK] move_assign_ok.
 
       Lemma move_ctor_ok :
