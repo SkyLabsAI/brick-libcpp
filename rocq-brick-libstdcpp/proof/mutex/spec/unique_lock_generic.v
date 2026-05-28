@@ -36,13 +36,28 @@ Section with_cpp.
     | None => nullptr
     end.
 
-  #[only(cfracsplittable)] derive R.
+  #[global] Declare Instance R_cfrac {σ : genv} `{!BasicLockable ty (T:=T) mutexR} :
+    CFractional1 mutexR ->
+    CFractional1 (R ty mutexR).
+
+  #[global] Instance R_as_cfrac {σ : genv} `{!BasicLockable ty (T:=T) mutexR} :
+    CFractional1 mutexR ->
+    AsCFractional1 (R ty mutexR).
+  Proof. solve_as_cfrac. Qed.
+
+  (* #[global] Declare Instance R_timeless {σ : genv} `{!BasicLockable ty (T:=T) mutexR} : *)
+  (*   Timeless2 mutexR -> *)
+  (*   Timeless2 (R ty mutexR). *)
+
+  #[global] Declare Instance R_cfrac_valid {σ : genv} `{!BasicLockable ty (T:=T) mutexR} :
+    CFracValid1 (R ty mutexR).
 
   #[global] Declare Instance R_type_ptr {σ : genv} `{!BasicLockable ty (T:=T) mutexR} q om :
     Typed ("std::unique_lock" .<< Atype ty >>) (R ty mutexR q om).
 
   Section with_threads.
     Context {σ : genv}.
+
     Context `{HAS_THREADS : !HasStdThreads Σ}.
     Context ty {mutexT} mutexR `{!BasicLockable ty (T:=mutexT) mutexR}.
 
