@@ -11,6 +11,7 @@ Require Import skylabs.auto.cpp.proof.
 Require Export skylabs.brick.libstdcpp.runtime.pred.
 
 Require Import skylabs.brick.libstdcpp.mutex.inc_hpp.
+Require Import skylabs.brick.libstdcpp.mutex.requirements.
 
 Import linearity.
 
@@ -142,6 +143,13 @@ Section with_cpp.
     rewrite /do_unlock.
     go. iExists q$m%cQp. go.
   Qed.
+
+  #[global] Instance mutex_basic_lockable ptr : BasicLockable _ _ :=
+  { do_lock := fun _ t K => let '(thr, lk, K) := t in do_lock thr lk K;
+    do_unlock := fun _ t K => let '(thr, lk, K) := t in do_unlock thr lk K }.
+        
+
+
 End with_cpp.
 End mutex.
 
