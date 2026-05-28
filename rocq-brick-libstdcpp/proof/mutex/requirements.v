@@ -22,7 +22,7 @@ Section with_cpp.
     (* the WP for <ty::lock()> *)
   ; do_unlock : ptr -> T -> mpred -> mpred
     (* the WP for <ty::unlock()> *)
-  ; cfrac :> CFracSplittable_1 R }.
+  }.
 
   Section with_BasicLockable.
     Context (ty : type) {T: Type} (R : cQp.t -> T -> Rep) {BL : BasicLockable ty R}.
