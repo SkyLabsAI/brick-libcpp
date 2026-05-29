@@ -7,6 +7,7 @@ Require Import skylabs.bi.weakly_objective.
 Require Import skylabs.auto.cpp.weakly_local_with.
 
 Require Import skylabs.auto.cpp.spec.
+Require Import skylabs.auto.cpp.proof.
 Require Export skylabs.brick.libstdcpp.runtime.pred.
 
 Require Import skylabs.brick.libstdcpp.mutex.inc_hpp.
@@ -59,6 +60,24 @@ Section with_cpp.
   Context `{MOD : source ⊧ σ}.
   Context {HAS_THREADS : HasStdThreads Σ}.
 
+  Definition do_unlock (thr : thread_idT) (lk : gname * Qp * mpred) (Q : mpred) : mpred :=
+      match lk with
+      | (g, q, P) =>
+        locked g thr q ** ▷P **
+        (* TODO readd *)
+        (* ▷ *)
+        (token g q -* Q)
+      end.
+
+  Definition do_lock (thr : thread_idT) (lk : gname * Qp * mpred) (K: mpred) : mpred :=
+      match lk with
+      | (g, q, P) =>
+        token g q **
+        (* TODO readd *)
+        (* ▷ *)
+        (locked g thr q ** ▷P -* K)
+      end.
+
   cpp.spec "std::mutex::mutex()" as ctor_spec with
       (\this this
       \pre{P} ▷P
@@ -75,6 +94,14 @@ Section with_cpp.
       \pre token g q
       \post P ** locked g thr q).
 
+  cpp.spec "std::mutex::lock()" as lock_spec_alt with
+      (\this this
+      \prepost{q P g} this |-> R g q$m P (* part of both pre and post *)
+      \persist{thr} current_thread thr
+      \pre{K} do_lock thr (g, q, P) K
+      \post K
+      ).
+
   cpp.spec "std::mutex::try_lock()" as try_lock_spec with
       (\this this
       \prepost{q P g} this |-> R g q P (* part of both pre and post *)
@@ -90,11 +117,31 @@ Section with_cpp.
       \pre ▷P
       \post token g q).
 
+  cpp.spec "std::mutex::unlock()" as unlock_spec_alt with
+      (\this this
+      \prepost{q P g} this |-> R g q$m P (* part of both pre and post *)
+      \persist{thr} current_thread thr
+      \pre{K} do_unlock thr (g, q, P) K
+      \post K).
+
   cpp.spec "std::mutex::~mutex()" as dtor_spec with
       (\this this
       \pre{g P} this |-> R g 1$m P ** token g 1
       \post P).
 
+  Lemma lock_spec_entails_lock_spec_alt : lock_spec |-- lock_spec_alt.
+  Proof.
+    apply specify_mono.
+    rewrite /do_lock.
+    go. iExists q$m%cQp. go.
+  Qed.
+
+  Lemma unlock_spec_entails_unlock_spec_alt : unlock_spec |-- unlock_spec_alt.
+  Proof.
+    apply specify_mono.
+    rewrite /do_unlock.
+    go. iExists q$m%cQp. go.
+  Qed.
 End with_cpp.
 End mutex.
 
