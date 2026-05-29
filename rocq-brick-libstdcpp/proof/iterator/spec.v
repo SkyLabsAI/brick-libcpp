@@ -1,8 +1,7 @@
-(**
- * Copyright (C) 2025 SkyLabs AI, Inc.
- * All rights reserved.
- *
- * SPDX-License-Identifier: LGPL-2.1 WITH BlueRock Exception for use over network, see repository root for details.
+(*
+ * Copyright (c) 2026 SkyLabs AI, Inc.
+ * This software is distributed under the terms of the BedRock Open-Source License.
+ * See the LICENSE-BedRock file in the repository root for details.
  *)
 Require Import skylabs.auto.cpp.spec.
 Require Import skylabs.auto.lazy.big_sep.lemmas.
