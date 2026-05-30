@@ -218,7 +218,7 @@ NES.Begin unique_lock.
       \persist{thr} current_thread thr
       \post
         this |-> R 1$m (Some (true, (mp, g, q, P))) **
-        P ** mutex.locked g thr q).
+        |> P ** mutex.locked g thr q).
 
     cpp.spec "std::unique_lock<std::mutex>::lock()" as lock_spec_alt from source with (
       \this this
@@ -270,10 +270,7 @@ NES.Begin unique_lock.
     Proof.
       apply specify_mono.
       go.
-      (* failed goal: ▷ P -∗ P. This might work with a stronger specify_mono offering a later. *)
-      admit.
-      all: fail.
-    Abort.
+    Qed.
 
     Lemma unlock_spec_alt_entails_unlock_spec : unlock_spec_alt |-- unlock_spec.
     Proof.
