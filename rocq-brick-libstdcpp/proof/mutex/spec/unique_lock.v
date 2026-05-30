@@ -48,6 +48,30 @@ Module unique_lock.
     #[only(lazy_unfold(export))] derive R.
   End R_unfold.
 
+  sl.lock
+  Definition do_unlock
+      `{Σ : cpp_logic} {σ : genv} `{HAS_THREADS : !HasStdThreads Σ}
+      (thr : thread_idT) (lk : ptr * gname * Qp * mpred) (Q : mpred) : mpred :=
+    match lk with
+    | (mp, g, q, P) =>
+      mutex.locked g thr q ** ▷P **
+      (* TODO readd *)
+      (* ▷ *)
+      (mutex.token g q -* Q)
+    end.
+
+  sl.lock
+  Definition do_lock
+      `{Σ : cpp_logic} {σ : genv} `{HAS_THREADS : !HasStdThreads Σ}
+      (thr : thread_idT) (lk : ptr * gname * Qp * mpred) (Q : mpred) : mpred :=
+    match lk with
+    | (mp, g, q, P) =>
+      mutex.token g q **
+      (* TODO readd *)
+      (* ▷ *)
+      (mutex.locked g thr q ** ▷P -* Q)
+    end.
+
   Section with_cpp.
     Context `{Σ : cpp_logic}.
 
@@ -116,24 +140,6 @@ Module unique_lock.
         \post mutex.token g q
         end.
         *)
-
-      Definition do_unlock (thr : thread_idT) (lk : ptr * gname * Qp * mpred) (Q : mpred) : mpred :=
-        match lk with
-        | (mp, g, q, P) =>
-          mutex.locked g thr q ** ▷P **
-          (* TODO readd *)
-          (* ▷ *)
-          (mutex.token g q -* Q)
-        end.
-
-      Definition do_lock (thr : thread_idT) (lk : ptr * gname * Qp * mpred) (Q : mpred) : mpred :=
-        match lk with
-        | (mp, g, q, P) =>
-          mutex.token g q **
-          (* TODO readd *)
-          (* ▷ *)
-          (mutex.locked g thr q ** ▷P -* Q)
-        end.
 
       cpp.spec "std::unique_lock<std::mutex>::unique_lock()"
         as default_ctor_spec from source with (
@@ -320,7 +326,7 @@ Module unique_lock.
       Lemma lock_spec_entails_lock_spec_alt : lock_spec |-- lock_spec_alt.
       Proof.
         apply specify_mono.
-        rewrite /do_lock.
+        rewrite do_lock.unlock.
         go.
         (* XXX needs removing later in do_lock, or a stronger specify_mono offering a later. *)
         repeat case_match; go.
@@ -329,7 +335,7 @@ Module unique_lock.
       Lemma unlock_spec_entails_unlock_spec_alt : unlock_spec |-- unlock_spec_alt.
       Proof.
         apply specify_mono.
-        rewrite /do_unlock.
+        rewrite do_unlock.unlock.
         go.
         (* XXX needs removing later in do_unlock, or a stronger specify_mono offering a later. *)
         repeat case_match; go.
@@ -338,7 +344,7 @@ Module unique_lock.
       Lemma lock_spec_alt_entails_lock_spec : lock_spec_alt |-- lock_spec.
       Proof.
         apply specify_mono.
-        rewrite /do_lock.
+        rewrite do_lock.unlock.
         go.
         (* failed goal: ▷ P -∗ P. This might work with a stronger specify_mono offering a later. *)
         admit.
@@ -348,7 +354,7 @@ Module unique_lock.
       Lemma unlock_spec_alt_entails_unlock_spec : unlock_spec_alt |-- unlock_spec.
       Proof.
         apply specify_mono.
-        rewrite /do_unlock.
+        rewrite do_unlock.unlock.
         go.
       Qed.
 
@@ -363,12 +369,8 @@ Module unique_lock.
       Lemma mutex_ctor_spec_alt_ok : __addressof_spec |-- verify[source] mutex_ctor_spec_alt.
       Proof.
         verify_spec.
-        Opaque do_lock.
         go.
         iExists (mp, g, q, P), K.
-        go.
-        Transparent do_lock.
-        unfold do_lock.
         go.
       Qed.
 
