@@ -26,14 +26,36 @@ End with_cpp.
 End defer_lock_t.
 
 Module unique_lock.
-Section with_cpp.
-  Context `{Σ : cpp_logic}.
+
+  sl.lock
+  Definition R
+      `{Σ : cpp_logic} {σ : genv} `{HAS_THREADS : !HasStdThreads Σ}
+      (q : cQp.t) (om : option (bool * (ptr * gname * Qp * mpred))) : Rep :=
+    structR "std::unique_lock<std::mutex>" q **
+    (* _M_owns stores whether the mutex is locked. *)
+    _field "std::unique_lock<std::mutex>::_M_owns" |-> boolR q (default false $ fst <$> om) **
+    _field "std::unique_lock<std::mutex>::_M_device" |-> ptrR<"std::mutex"> q
+      (default nullptr $
+        (fun x => let '(_, (mp, _, _, _)) := x in mp) <$> om) **
+    match om with
+    | None => emp
+    | Some (b, (mp, g, q', P)) =>
+      pureR (mp |-> mutex.R g q'$m P)
+    end.
+
+  #[only(type_ptr="std::unique_lock<std::mutex>")] derive R.
+  Module R_unfold.
+    #[only(lazy_unfold(export))] derive R.
+  End R_unfold.
+
+  Section with_cpp.
+    Context `{Σ : cpp_logic}.
 
     (* a unique_lock may have an associated mutex, if so it holds
        (Some (b * mutex_state)) where b indicates whether the unique_lock
        has acquired the associated mutex. *)
-    Parameter R : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv},
-      cQp.t -> option (bool * (ptr * gname * Qp * mpred)) -> Rep.
+    (* Parameter R : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv},
+      cQp.t -> option (bool * (ptr * gname * Qp * mpred)) -> Rep. *)
 
     Definition owned (om : option (bool * (ptr * gname * Qp * mpred))) : bool :=
       match om with
@@ -47,11 +69,32 @@ Section with_cpp.
       | None => nullptr
       end.
 
-    #[only(cfracsplittable,type_ptr="std::unique_lock<std::mutex>")] derive R.
+    (* #[only(cfractional,cfracvalid,ascfractional,type_ptr="std::unique_lock<std::mutex>")] derive R. *)
 
     Section with_threads.
       Context {σ : genv}.
       Context `{HAS_THREADS : !HasStdThreads Σ}.
+
+      (* Lemma R_equiv q om :
+        R q om
+        ⊣⊢@{RepI}
+        structR "std::unique_lock<std::mutex>" q **
+        match om with
+        | None =>
+          _field "std::unique_lock<std::mutex>::_M_owns" |-> boolR q false **
+          _field "std::unique_lock<std::mutex>::_M_device" |-> ptrR<"std::mutex"> q nullptr
+        | Some (b, (mp, g, q', P)) =>
+          (* owns is locked? *)
+          _field "std::unique_lock<std::mutex>::_M_owns" |-> boolR q b **
+          _field "std::unique_lock<std::mutex>::_M_device" |-> ptrR<"std::mutex"> q mp **
+          pureR (mp |-> mutex.R g q'$m P)
+        end.
+      Proof.
+        rewrite R.unlock.
+        repeat case_match; subst; simpl.
+        done.
+        by rewrite (right_id emp%I).
+      Qed. *)
 
       #[global] Instance: LearnEqF1 R := ltac:(solve_learnable).
 
@@ -308,6 +351,32 @@ Section with_cpp.
         rewrite /do_unlock.
         go.
       Qed.
+
+      cpp.spec "std::__addressof<std::mutex>(std::mutex&)" as __addressof_spec from source with (
+        \arg{mp} "" (Vptr mp)
+        \post[Vptr mp] emp
+      ).
+
+      (** Proofs, TODO move *)
+      Import R_unfold.
+
+      Lemma mutex_ctor_spec_alt_ok : __addressof_spec |-- verify[source] mutex_ctor_spec_alt.
+      Proof.
+        verify_spec.
+        Opaque do_lock.
+        go.
+        iExists (mp, g, q, P), K.
+        go.
+        Transparent do_lock.
+        unfold do_lock.
+        go.
+      Qed.
+
+      Lemma default_ctor_spec_ok : verify[source] default_ctor_spec.
+      Proof. verify_spec; go. Qed.
+
+      Lemma mutex_defer_ctor_spec_ok : __addressof_spec |-- verify[source] mutex_defer_ctor_spec.
+      Proof. verify_spec; go. Qed.
 
     End with_threads.
 End with_cpp.
