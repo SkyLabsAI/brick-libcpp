@@ -72,7 +72,9 @@ NES.Begin unique_lock.
         mutex.token g q **
         (* TODO readd *)
         (* ▷ *)
-        (mutex.locked g thr q ** ▷P -* Q)
+        (mutex.locked g thr q ** P -* Q)
+        (* Here, we assume we can return [P] instead of [▷ P] because [lock()] can
+        take a skip step to strip the later before invoking this wand and returning [Q]. *)
       end.
     #[global] Arguments do_lock /.
 
@@ -218,7 +220,7 @@ NES.Begin unique_lock.
       \persist{thr} current_thread thr
       \post
         this |-> R 1$m (Some (true, (mp, g, q, P))) **
-        |> P ** mutex.locked g thr q).
+        P ** mutex.locked g thr q).
 
     cpp.spec "std::unique_lock<std::mutex>::lock()" as lock_spec_alt from source with (
       \this this
