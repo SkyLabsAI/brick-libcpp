@@ -61,19 +61,23 @@ Section with_cpp.
   Context `{MOD : source ⊧ σ}.
   Context {HAS_THREADS : HasStdThreads Σ}.
 
-  Definition do_unlock (thr : thread_idT) (lk : gname * Qp * mpred) (Q : mpred) : mpred :=
+  #[global] Instance token_learn : Cbn (Learn (req_eq ==> learn_eq ==> learn_eq ==> learn_hints.fin) locked).
+  Proof. solve_learnable. Qed.
+
+
+  Definition do_unlock (lk : gname * mpred) (Q : mpred) : mpred :=
       match lk with
-      | (g, q, P) =>
-        locked g thr q ** ▷P **
+      | (g, P) =>
+        Exists q thr, current_thread thr ** locked g thr q ** ▷P **
         (* TODO readd *)
         (* ▷ *)
         (token g q -* Q)
       end.
 
-  Definition do_lock (thr : thread_idT) (lk : gname * Qp * mpred) (K: mpred) : mpred :=
+  Definition do_lock (lk : gname * mpred) (K: mpred) : mpred :=
       match lk with
-      | (g, q, P) =>
-        token g q **
+      | (g, P) =>
+        ∃ q thr, current_thread thr ∗ token g q ∗
         (* TODO readd *)
         (* ▷ *)
         (locked g thr q ** ▷P -* K)
@@ -92,14 +96,13 @@ Section with_cpp.
       (\this this
       \prepost{q P g} this |-> R g q P (* part of both pre and post *)
       \persist{thr} current_thread thr
-      \pre token g q
-      \post P ** locked g thr q).
+      \pre{q'} token g q'
+      \post P ** locked g thr q').
 
   cpp.spec "std::mutex::lock()" as lock_spec_alt with
       (\this this
       \prepost{q P g} this |-> R g q$m P (* part of both pre and post *)
-      \persist{thr} current_thread thr
-      \pre{K} do_lock thr (g, q, P) K
+      \pre{K} do_lock (g, P) K
       \post K
       ).
 
@@ -114,15 +117,14 @@ Section with_cpp.
       (\this this
       \prepost{q P g} this |-> R g q P (* part of both pre and post *)
       \persist{thr} current_thread thr
-      \pre locked g thr q
+      \pre{q'} locked g thr q'
       \pre ▷P
-      \post token g q).
+      \post token g q').
 
   cpp.spec "std::mutex::unlock()" as unlock_spec_alt with
       (\this this
       \prepost{q P g} this |-> R g q$m P (* part of both pre and post *)
-      \persist{thr} current_thread thr
-      \pre{K} do_unlock thr (g, q, P) K
+      \pre{K} do_unlock (g, P) K
       \post K).
 
   cpp.spec "std::mutex::~mutex()" as dtor_spec with
@@ -134,22 +136,23 @@ Section with_cpp.
   Proof.
     apply specify_mono.
     rewrite /do_lock.
-    go. iExists q$m%cQp. go.
+    ework with br_erefl.
   Qed.
+
 
   Lemma unlock_spec_entails_unlock_spec_alt : unlock_spec |-- unlock_spec_alt.
   Proof.
     apply specify_mono.
     rewrite /do_unlock.
-    go. iExists q$m%cQp. go.
+    ework with br_erefl.
   Qed.
 
-  (* candidate? *)
+  (** <<std::mutex>> implements [BasicLockable] *)
   Definition T : Type := gname * mpred.
 
-  #[global,program] Instance mutex_basic_lockable : BasicLockable (T := thread_idT * gname * Qp * mpred) "std::mutex" (λ q '(thr, γ, q', P), R γ q$m P) :=
-  { do_lock := fun this '(thr, γ, q', P) K => do_lock thr (γ, q', P) K
-  ; do_unlock := fun this '(thr, γ, q', P) K => do_unlock thr (γ, q', P) K }.
+  #[global,program] Instance mutex_basic_lockable : BasicLockable (T:=T) "std::mutex" (λ q '(γ, P), R γ q$m P) :=
+  { do_lock := fun this '(γ, P) K => do_lock (γ, P) K
+  ; do_unlock := fun this '(γ, P) K => do_unlock (γ, P) K }.
 
   (*
   #[global,program] Instance mutex_basic_lockable : BasicLockable (T := gname * Qp * mpred) "std::mutex" (λ q '(thr, γ, q', P), R γ q$m P) :=
