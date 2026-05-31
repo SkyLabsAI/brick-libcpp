@@ -9,7 +9,7 @@ Require Export skylabs.iris.extra.base_logic.lib.spectra.
 Class appG {evt : Type} (lts : LTS evt) (Σ : gFunctors) : Type :=
 { _has_auth_set_state : inG Σ (auth_setR (lts_state lts)) }.
 
-Section to_spectra.
+Section to_spectra_mpred.
   Context `{Σ : cpp_logic}.
 
   #[program]
@@ -21,7 +21,7 @@ Section to_spectra.
   Next Obligation.
     intros. unshelve eapply mpred_prop.mpred_has_usual_own. apply SPECTRA.
   Defined.
-End to_spectra.
+End to_spectra_mpred.
 
 Section to_auto.
   Context {PROP : bi}.
@@ -135,8 +135,8 @@ Section to_spectra.
   Context `{SPECTRA : @appG evt lts Σ}.
 
 
-  #[global] Instance requester_frame' T app E γ ps (F : (T -t> PROP) -> [tele (_:App.evt app)] -t> PROP)
- :
+  #[global]
+  Instance requester_frame' T app E γ ps (F : (T -t> PROP) -> [tele (_:App.evt app)] -t> PROP) :
     (forall x, kont.ProperFrame (PROP:=PROP) (T:=T) (fun K => F K x)) ->
     kont.ProperFrame (PROP:=PROP) (T:=T) (fun K => Step.requester app E γ ps (F K)).
   Proof.
@@ -149,6 +149,46 @@ Section to_spectra.
     iIntros (? e); destruct (H e).
     iApply _frame. done.
   Qed.
+
+  #[global]
+  Instance gen_requester_frame' T app E m γ ps (F : (T -t> PROP) -> [tele (_:App.evt app)] -t> PROP) :
+    (forall x, kont.ProperFrame (PROP:=PROP) (T:=T) (fun K => F K x)) ->
+    kont.ProperFrame (PROP:=PROP) (T:=T) (fun K => Step.gen_requester app E m γ ps (F K)).
+  Proof.
+    intros.
+    constructor.
+    iIntros (??) "K H".
+    rewrite /Step.requester.
+    iApply (atomic_commit_ppost_wand with "[H]") => //.
+    simpl.
+    iIntros (? e); destruct (H e).
+    iApply _frame. done.
+  Qed.
+
+  #[global]
+  Instance requester_ne {app E γ} :
+    forall n, Proper ((≡) ==> pointwise_relation _ (dist n) ==> dist n) (Step.requester app E γ).
+  Proof.
+    repeat intro.
+    apply atomic_commit_ne => //; repeat intro;
+                              repeat match goal with
+                                | h : tele_arg _ |- _ => destruct h
+                                end; simpl; repeat f_equiv; eauto.
+    by setoid_rewrite H.
+  Qed.
+
+  #[global]
+  Instance gen_requester_ne {app E m γ} :
+    forall n, Proper ((≡) ==> pointwise_relation _ (dist n) ==> dist n) (Step.gen_requester app E m γ).
+  Proof.
+    repeat intro.
+    apply atomic_commit_ne => //; repeat intro;
+                              repeat match goal with
+                                | h : tele_arg _ |- _ => destruct h
+                                end; simpl; repeat f_equiv; eauto.
+    by setoid_rewrite H.
+  Qed.
+
 
   Context {T : Type} {HAS_OWN : prop_constraints.HasUsualOwn PROP (auth_setR T)}.
   Lemma frag_frag_exact  γ val :
@@ -212,17 +252,6 @@ Section to_spectra.
   Qed.
   Hint Resolve requester_C : sl_opacity.
 
-  #[global]
-  Instance requester_ne {app E γ} :
-    forall n, Proper ((≡) ==> pointwise_relation _ (dist n) ==> dist n) (Step.requester app E γ).
-  Proof.
-    repeat intro.
-    apply atomic_commit_ne => //; repeat intro;
-                             repeat match goal with
-                               | h : tele_arg _ |- _ => destruct h
-                               end; simpl; repeat f_equiv; eauto.
-    by setoid_rewrite H.
-  Qed.
 
   (* NOTE: generalizing this over an [App.app] is difficult because [App.app] hides
      the event signature. *)
