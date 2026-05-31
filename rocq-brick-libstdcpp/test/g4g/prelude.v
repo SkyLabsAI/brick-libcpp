@@ -132,7 +132,7 @@ Existing Class AnySteps.
 Section to_spectra.
   Context {PROP : bi}.
   Context {HAS_FUPD : BiFUpd PROP} {GHOSTLY : prop_constraints.Ghostly PROP}.
-  Context `{SPECTRA : @appG evt lts Σ}.
+  Context `{SPECTRA : @appG Evt lts Σ}.
 
 
   #[global] Instance requester_frame' T app E γ ps (F : (T -t> PROP) -> [tele (_:App.evt app)] -t> PROP)
@@ -175,6 +175,14 @@ Section to_spectra.
     \end@{mpredI}.
   Next Obligation. Abort.
   *)
+
+  Lemma gen_requester_anystep {_ : BiBUpdFUpd PROP} (app : App.app) (s : _) s' evt m
+    (ANY_STEP : AnyStep app.(App.lts).(Sts._step) s (Some evt) s') γ :
+    AuthSet.frag γ s ⊢@{PROP}
+      ∀ E K, (AuthSet.frag γ s' -∗ K evt) -∗ Step.gen_requester app E m γ {[ evt ]} K.
+  Proof.
+    iIntros "H".
+
 
   #[program]
   Definition requester_C {_ : BiBUpdFUpd PROP} (app : App.app) (s : _) s' evt

@@ -37,9 +37,12 @@ Section with_cpp.
     generalize dependent str.
     induction ANY_STEP; simpl.
     { destruct str; simpl; try congruence.
-      intros. admit. }
+      intros. iIntros "H" (?) "K"; iApply "K".
+      iDestruct (AuthSet.frag_upd with "H") as ">$"; eauto. }
     { destruct str; simpl; try congruence.
-      inversion 1; subst; intros. admit.
+      inversion 1; subst; intros.
+      iIntros "H" (?) "K".
+      work $usenamed=true.
     }
     { admit. }
   Admitted.
