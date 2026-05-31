@@ -20,32 +20,21 @@ Section with_cpp.
   Context `{SPECTRA : !appG APP _Σ}.
 
   #[local] Instance SizeOf : App.app := mkApp APP.
-  Definition X := requester_C SizeOf.
-  Hint Resolve X : sl_opacity.
-
   #[program]
-  Definition OS (E : coPset) γ : Ostream :=
-    {| do evt K := Step.requester SizeOf E γ evt K |}%I.
-  Next Obligation. repeat intro. apply requester_ne; done. Qed.
+  Definition OS γ : Ostream :=
+    AppHandler SizeOf (⊤ ∖ ↑refinement_rootNS) masks.default γ.
 
-  #[program]
-  Definition bs_dos_steps_C (s : bs) (s' : propset (Sts._state (App.lts SizeOf))) str
-    (ANY_STEPS : AnySteps only_output {[s]} ((fun x => Write x) <$> BS.string_to_bytes str) s') :=
-    \cancelx
-    \using{γ} AuthSet.frag γ {[s]}
-    \proving{K : mpredI} ostream.bs_dos (OS ⊤ γ) str K
-    \through (AuthSet.frag γ s' -∗ K)
-    \end@{mpredI}.
-  Next Obligation.
-    simpl.
-    intros.
-    iIntros "F" (?) "K".
-    rewrite /Step.requester.
-  Admitted.
+  (* NOTE: the following two specializations work around issues with the
+     Spectra packaging which uses bundling. *)
+  Definition gen_X := gen_requester_C SizeOf.
+  Hint Resolve gen_X : sl_opacity.
+  Definition bs_dos_steps_C :=
+    gen_bs_dos_steps_C SizeOf.(App.lts) SizeOf.(App.inG).
   Hint Resolve bs_dos_steps_C : sl_opacity.
 
   cpp.spec "main()" from source as main_spec with (
-    \prepost{γ osM} _global "std::cout" |-> ostream.R (OS ⊤ γ) osM 1$m
+    \prepost{γ osM} _global "std::cout" |-> ostream.R (OS γ) osM 1$m
+    \prepost Step.updater SizeOf (⊤ ∖ ↑refinement_rootNS) γ
     \pre AuthSet.frag γ {[ behavior ]}
     \post[Vint 0]  AuthSet.frag γ {[ ""%bs ]}).
 

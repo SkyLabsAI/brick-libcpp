@@ -6,57 +6,32 @@ Import linearity.
 
 #[local] Open Scope Z_scope.
 
-Definition output_app (init : bs -> Prop) : LTS output_event :=
-  {| Sts._state := bs
-   ; Sts._init_state := init
-   ; Sts._step := only_output |}.
-
-
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
+
+  #[local] Notation APP := (output_app (eq $ ostream.format_int 20)).
+
   Context `{SPECTRA : !appG (output_app (eq $ ostream.format_int 20)) _Σ}.
 
+  #[local] Instance Sum : App.app := mkApp APP.
   #[program]
-  Instance Sum : App.app :=
-    {| App.evt := output_event
-    ; App.lts := output_app (eq $ ostream.format_int 20)
-    ; App.inG := _
-    |}.
-  Next Obligation.
-    unshelve eapply mpred_prop.mpred_has_usual_own. apply SPECTRA.
-  Defined.
+    Definition OS γ : Ostream :=
+    AppHandler Sum (⊤ ∖ ↑refinement_rootNS) masks.default γ.
 
-  #[program]
-  Definition OS (E : coPset) γ : Ostream :=
-    {| do := Step.requester Sum E γ |}%I.
-  Next Obligation. repeat intro. apply requester_ne; done. Qed.
-
-  Definition X := Step.requester Sum.
-  #[local] Hint Resolve X : sl_opacity.
-
-  #[program]
-  Definition bs_dos_steps_C (s : bs) (s' : propset (Sts._state (App.lts Sum))) str
-    (ANY_STEPS : AnySteps only_output {[s]} ((fun x => Write x) <$> BS.string_to_bytes str) s') :=
-    \cancelx
-    \using{γ} AuthSet.frag γ {[s]}
-    \proving{K : mpredI} ostream.bs_dos (OS ⊤ γ) str K
-    \through (AuthSet.frag γ s' -∗ K)
-    \end@{mpredI}.
-  Next Obligation.
-    simpl.
-    intros.
-    iIntros "F" (?) "K".
-    rewrite /Step.requester.
-  Admitted.
+  (* NOTE: the following two specializations work around issues with the
+     Spectra packaging which uses bundling. *)
+  Definition gen_X := gen_requester_C Sum.
+  Hint Resolve gen_X : sl_opacity.
+  Definition bs_dos_steps_C := gen_bs_dos_steps_C Sum.(App.lts) Sum.(App.inG).
   Hint Resolve bs_dos_steps_C : sl_opacity.
 
   cpp.spec "main()" from source as main_spec with (
-    \prepost{γ osM} _global "std::cout" |-> ostream.R (OS ⊤ γ) osM 1$m
+    \prepost{γ osM} _global "std::cout" |-> ostream.R (OS γ) osM 1$m
+    \persist Step.updater Sum (⊤ ∖ ↑refinement_rootNS) γ
     \pre AuthSet.frag γ {[ ostream.format_int 20 ]}
     \post[Vint 0]  AuthSet.frag γ {[ ""%bs ]}).
 
-
-  Lemma main_ok : verify[source] main_spec.
+  Lemma main_ok : verify[source] "main()".
   Proof.
     verify_spec; go.
 

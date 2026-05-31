@@ -68,7 +68,8 @@ Section operational.
       is reachable which is necessary for soundness.
    *)
   Class AnyStep  (Pre : propset T) (evt : option E) (Post : propset T) : Prop :=
-  { _safe : forall s, s ∈ Pre -> exists s', step s evt s' /\ s' ∈ Post
+  { _non_empty : exists s, s ∈ Pre
+  ; _safe : forall s, s ∈ Pre -> exists s', step s evt s' /\ s' ∈ Post
   ; _steps_to : forall s', s' ∈ Post -> ∃ s, s ∈ Pre /\ step s evt s' }.
 
   (** The transitive generalization of [AnyStep].
@@ -78,50 +79,51 @@ Section operational.
       e.g. such as an interaction tree.
    *)
   Inductive AnySteps (Pre : propset T) : list E -> propset T -> Prop :=
-  | Finish {Post} {_ : ∅ ⊂ Post} (_ : Post ⊆ Pre) : AnySteps Pre [] Post
+  | Finish {_ : exists s, s ∈ Pre} : AnySteps Pre [] Pre
   | Step {evt evts Mid Post}
       (_ : AnyStep Pre (Some evt) Mid)
       (_ : AnySteps Mid evts Post)
     : AnySteps Pre (evt :: evts) Post
+(*
   | Tau {evts Mid Post}
+      (* Tau events are not stored in the trace *)
       (_ : AnyStep Pre None Mid)
       (_ : AnySteps Mid evts Post)
     : AnySteps Pre evts Post
-  | Refine {Pre'} {_ : ∅ ⊂ Pre} (_ : Pre' ⊆ Pre) {es Post} :
+*)
+  | Refine {Pre'} (_ : Pre' ⊆ Pre) {_ : exists s, s ∈ Pre'}  {es Post} :
     AnySteps Pre' es Post -> AnySteps Pre es Post.
 
   Lemma AnySteps_mono_post Pre evts Post Post' :
-    ∅ ⊂ Post' ⊆ Post ->
+    Post' ⊆ Post ->
+    (exists s, s ∈ Post') ->
     AnySteps Pre evts Post ->
     AnySteps Pre evts Post'.
-  Proof.
-    induction 2; eauto using AnySteps.
-    constructor; set_solver.
-  Qed.
+  Proof. induction 3; eauto using AnySteps. Qed.
 
-  Lemma AnySteps_mono_pre Pre Pre' evts Post :
+  Lemma AnySteps_mono_pre Pre' {Pre evts Post} :
     (* ∅ ⊂ Pre' ⊆ Pre ->
     AnySteps Pre evts Post ->
     AnySteps Pre' evts Post. *)
-    ∅ ⊂ Pre ->
     Pre' ⊆ Pre ->
     AnySteps Pre' evts Post ->
+    (exists x, x ∈ Pre') ->
     AnySteps Pre evts Post.
-  Proof. intros. exact: Refine. Qed.
+  Proof. intros. eapply Refine; eauto. Qed.
 
   Lemma AnyStep_invert_nonempty Pre evt Post :
     AnyStep Pre evt Post ->
-    ∅ ⊂ Post <-> ∅ ⊂ Pre.
+    (exists x, x ∈ Pre) /\ (exists x, x ∈ Post).
   Proof. intros []; set_solver. Qed.
 
   Lemma AnySteps_invert_nonempty Pre evts Post :
     AnySteps Pre evts Post ->
-    ∅ ⊂ Post /\ ∅ ⊂ Pre.
+    (exists x, x ∈ Pre) /\ (exists x, x ∈ Post).
   Proof.
     induction 1; intuition.
-    - set_solver.
-    - by rewrite -AnyStep_invert_nonempty.
-    - by rewrite -AnyStep_invert_nonempty.
+    - by destruct H.
+(*    - by destruct H. *)
+    - destruct H0 as [x ?]; exists x. eapply elem_of_subseteq; eauto.
   Qed.
 End operational.
 Existing Class AnySteps.
@@ -216,15 +218,14 @@ Section to_spectra.
   Next Obligation. Abort.
   *)
 
-  #[program]
-  Definition requester_C {_ : BiBUpdFUpd PROP} (app : App.app) (s : _) s' evt
-    (ANY_STEP : AnyStep app.(App.lts).(Sts._step) {[s]} (Some evt) s'):=
-    \cancelx
-    \using{γ} AuthSet.frag γ {[s]}
-    \proving{E K} Step.requester app E γ {[ evt ]} K
-    \through AuthSet.frag γ s' -∗ K evt
-    \end@{PROP}.
-  Next Obligation.
+  Lemma default_masks_valid : masks.valid masks.default (⊤ ∖ ↑refinement_rootNS).
+  Proof. red. set_solver. Qed.
+
+  Lemma requester_anystep {_ : BiBUpdFUpd PROP} (app : App.app) (s : _) s' e
+    (ANY_STEP : AnyStep app.(App.lts).(Sts._step) {[s]} (Some e) s') γ :
+    AuthSet.frag γ {[s]}
+    ⊢ ∀ E K, (AuthSet.frag γ s' -∗ K e)%I -∗ Step.requester app E γ {[ e ]} K.
+  Proof.
     intros.
     work.
     rewrite /Step.requester.
@@ -239,18 +240,71 @@ Section to_spectra.
     iSplitR.
     { iPureIntro.
       intros. destruct ANY_STEP.
-      inversion H; subst. edestruct _safe0. done. intuition; eauto. }
+      inversion H0; subst. edestruct _safe0. done. intuition; eauto. }
     iIntros (?) "[% Hfrag]". iMod "Hclose".
     work.
     iApply bupd_fupd.
     iDestruct (AuthSet.frag_upd with "Hfrag") as ">Hfrag"; last by iModIntro; iFrame.
     inversion ANY_STEP.
-    inversion H; subst; clear H.
+    inversion H0; subst; clear H0.
     intros ? Hin. apply _steps_to0 in Hin.
     inversion Hin as [?[??]].
-    inversion H; subst. done.
+    inversion H0; subst. done.
   Qed.
+
+  (* NOTE: These definitions do not work as hints due to unfication failures *)
+  #[program]
+  Definition requester_C {_ : BiBUpdFUpd PROP} (app : App.app) (s : _) s' evt
+    (ANY_STEP : AnyStep app.(App.lts).(Sts._step) {[s]} (Some evt) s'):=
+    \cancelx
+    \using{γ} AuthSet.frag γ {[s]}
+    \proving{E K} Step.requester app E γ {[ evt ]} K
+    \through AuthSet.frag γ s' -∗ K evt
+    \end@{PROP}.
+  Next Obligation. intros. by apply requester_anystep. Qed.
   Hint Resolve requester_C : sl_opacity.
+
+  Lemma gen_requester_anystep {_ : BiBUpdFUpd PROP} (app : App.app) (s : _) s' e
+    (ANY_STEP : AnyStep app.(App.lts).(Sts._step) s (Some e) s') γ :
+    AuthSet.frag γ s
+    ⊢ ∀ E m (_ : masks.valid m E) K, (AuthSet.frag γ s' -∗ K e)%I -∗ Step.gen_requester app E m γ {[ e ]} K.
+  Proof.
+    intros.
+    work.
+    lazymatch goal with H : masks.valid _ _ |- _ => rename H into Hvalid end.
+    iAcIntro.
+    rewrite /commit_acc.
+    simpl.
+    iApply fupd_mask_weaken; [| iIntros "Hclose"; iModIntro ].
+    { clear -Hvalid; destruct Hvalid. set_solver. }
+    work.
+    iExists s. work.
+    iSplitR.
+    { iPureIntro. split.
+      { apply AnyStep_invert_nonempty in ANY_STEP. tauto. }
+      intros. destruct ANY_STEP.
+      inversion H1; subst. edestruct _safe0. done. intuition; eauto. }
+    iIntros (?) "[% Hfrag]". iMod "Hclose".
+    work.
+    iApply bupd_fupd.
+    iDestruct (AuthSet.frag_upd with "Hfrag") as ">Hfrag"; last by iModIntro; iFrame.
+    inversion ANY_STEP.
+    inversion H0; subst; clear H0.
+    intros ? Hin. apply _steps_to0 in Hin.
+    inversion Hin as [?[??]].
+    apply elem_of_PropSet. eexists; intuition eauto.
+  Qed.
+
+  #[program]
+  Definition gen_requester_C {_ : BiBUpdFUpd PROP} (app : App.app) (s : _) s' evt
+    (ANY_STEP : AnyStep app.(App.lts).(Sts._step) s (Some evt) s'):=
+    \cancelx
+    \using{γ} AuthSet.frag γ s
+    \proving{E m (_ : masks.valid m E) K} Step.gen_requester app E m γ {[ evt ]} K
+    \through AuthSet.frag γ s' -∗ K evt
+    \end@{PROP}.
+  Next Obligation. intros. erewrite gen_requester_anystep; eauto. Qed.
+  Hint Resolve gen_requester_C : sl_opacity.
 
 End to_spectra.
 #[global] Hint Resolve frag_frag_exact_B frag_frag_exact_F : sl_opacity.
@@ -310,6 +364,46 @@ Definition AppHandler {PROP : bi} {HasFupd : BiFUpd PROP} {HasGhost : prop_const
   (APP: App.app) (E : coPset) (m : masks.t) γ : SepHandler PROP (App.evt APP) :=
   {| do := Step.gen_requester APP E m γ |}%I.
 
+Section app_handler_hints.
+  Context `{Σ : cpp_logic}.
+  Context `{SPECTRA : @appG evt lts _Σ}.
+
+  #[program]
+  Definition gen_bs_dos_steps_C (lts : _) inG
+    (APP := {| App.evt := output_event
+             ; App.lts := lts
+             ; App.inG := inG |})
+    (str : bs) (s s' : propset (Sts._state (App.lts _)))
+    (ANY_STEPS : AnySteps APP.(App.lts).(Sts._step) s ((fun x => Write x) <$> BS.string_to_bytes str) s') :=
+    \cancelx
+    \using{γ} AuthSet.frag γ s
+    \proving{K : mpredI} ostream.bs_dos (AppHandler APP (⊤ ∖ ↑refinement_rootNS) masks.default γ) str K
+    \through (AuthSet.frag γ s' -∗ K)
+    \end@{mpredI}.
+  Next Obligation.
+    simpl. clear.
+    intros ? ? str s s' ANY_STEPS.
+    remember ((fun x => Write x) <$> BS.string_to_bytes str) as X.
+    generalize dependent str.
+    induction ANY_STEPS; simpl.
+    { destruct str; simpl; try congruence.
+      intros. iIntros "f" (?) "k". iApply "k"; done. }
+    { destruct str; simpl; try congruence.
+      inversion 1; subst; intros.
+      iIntros "f" (?) "k".
+      eapply (gen_requester_anystep {| App.evt := output_event; App.lts := lts0; App.inG := inG |}) in H.
+      iDestruct (H with "f") as "X"; clear H.
+      iApply "X".
+      { iPureIntro. exact default_masks_valid. }
+      { iIntros "!> f". iApply (IHANY_STEPS with "f k"). } }
+    { intros; subst.
+      iIntros "f" (?) "k".
+      iDestruct (AuthSet.frag_upd with "f") as ">X"; first done.
+      by iApply (IHANY_STEPS with "X"). }
+  Qed.
+
+End app_handler_hints.
+
 
 (** * Output Applications *)
 
@@ -331,7 +425,8 @@ Instance only_output_any_step {c cs}
   : AnyStep only_output {[ BS.String c cs ]}
       (Some $ Write $ Byte.to_N c) {[ cs ]}.
 Proof.
-  constructor; inversion 1; subst.
+  constructor; try inversion 1; subst.
+  { set_solver. }
   { eexists; constructor => //. }
   { eexists; repeat constructor. }
 Qed.
@@ -351,6 +446,7 @@ Proof.
   { simpl.
     econstructor; [ | eapply IHstr' ].
     { constructor.
+      { set_solver. }
       { intros. exists (str' ++ rest)%bs.
         inversion H; subst.
         have->: (BS.String b str' ++ rest = BS.String b (str' ++ rest))%bs by done.
