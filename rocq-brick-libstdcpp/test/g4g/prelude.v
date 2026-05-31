@@ -252,13 +252,6 @@ Section to_spectra.
   Qed.
   Hint Resolve requester_C : sl_opacity.
 
-
-  (* NOTE: generalizing this over an [App.app] is difficult because [App.app] hides
-     the event signature. *)
-  #[program]
-  Definition OS (APP: App.app) (E : coPset) γ : SepHandler PROP (App.evt APP) :=
-    {| do evt K := Step.requester APP E γ evt K |}%I.
-
 End to_spectra.
 #[global] Hint Resolve frag_frag_exact_B frag_frag_exact_F : sl_opacity.
 
@@ -312,6 +305,10 @@ Section to_kont.
   Qed.
 End to_kont.
 (* END UPSTREAM *)
+
+Definition AppHandler {PROP : bi} {HasFupd : BiFUpd PROP} {HasGhost : prop_constraints.Ghostly PROP}
+  (APP: App.app) (E : coPset) (m : masks.t) γ : SepHandler PROP (App.evt APP) :=
+  {| do := Step.gen_requester APP E m γ |}%I.
 
 
 (** The step relation for a simple LTS that uses [bs] as the state.
