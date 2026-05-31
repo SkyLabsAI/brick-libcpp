@@ -311,13 +311,20 @@ Definition AppHandler {PROP : bi} {HasFupd : BiFUpd PROP} {HasGhost : prop_const
   {| do := Step.gen_requester APP E m γ |}%I.
 
 
+(** * Output Applications *)
+
 (** The step relation for a simple LTS that uses [bs] as the state.
 
     This LTS only supports output transitions.
  *)
 Inductive only_output : bs -> option output_event -> bs -> Prop :=
-| output_char {c} {b : bs} : only_output (BS.String c b) (Some $ Write $ Byte.to_N c) b
-| skip {bs} : only_output bs None bs.
+| output_char {c} {b : bs} : only_output (BS.String c b) (Some $ Write $ Byte.to_N c) b.
+
+Definition output_app (init : bs -> Prop) : LTS output_event :=
+  {| Sts._state := bs
+   ; Sts._init_state := init
+   ; Sts._step := only_output |}.
+
 
 #[global]
 Instance only_output_any_step {c cs}
@@ -325,29 +332,8 @@ Instance only_output_any_step {c cs}
       (Some $ Write $ Byte.to_N c) {[ cs ]}.
 Proof.
   constructor; inversion 1; subst.
-  { eexists; constructor => //. constructor. }
+  { eexists; constructor => //. }
   { eexists; repeat constructor. }
-Qed.
-
-#[global]
-Instance final_any_steps {str str' : bs} :
-  str = str' ->
-  AnySteps only_output {[str]}
-      ((λ x : N, Write x) <$> BS.string_to_bytes (str'))
-      {[""%bs]}.
-Proof.
-  intros; subst.
-  clear.
-  induction str'.
-  { constructor; set_solver. }
-  { simpl.
-    econstructor; [ | eassumption ].
-    constructor.
-    { intros. exists str'.
-      inversion H; subst. constructor => //. constructor. }
-    { inversion 1; subst.
-      eexists _; split. set_solver.
-      constructor. } }
 Qed.
 
 #[global]
@@ -368,13 +354,20 @@ Proof.
       { intros. exists (str' ++ rest)%bs.
         inversion H; subst.
         have->: (BS.String b str' ++ rest = BS.String b (str' ++ rest))%bs by done.
-        constructor => //. constructor. }
+        constructor => //. }
       { inversion 1; subst.
         eexists _; split. set_solver.
         constructor. } } }
 Qed.
 
-Definition output_app (init : bs -> Prop) : LTS output_event :=
-  {| Sts._state := bs
-   ; Sts._init_state := init
-   ; Sts._step := only_output |}.
+#[global]
+Instance final_any_steps {str str' : bs} :
+  str = str' ->
+  AnySteps only_output {[str]}
+      ((λ x : N, Write x) <$> BS.string_to_bytes (str'))
+      {[""%bs]}.
+Proof.
+  intros.
+  have->: str = (str ++ "")%bs by rewrite right_id.
+  by apply initial_any_steps.
+Qed.
