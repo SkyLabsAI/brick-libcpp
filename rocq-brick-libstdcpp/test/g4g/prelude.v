@@ -84,13 +84,11 @@ Section operational.
       (_ : AnyStep Pre (Some evt) Mid)
       (_ : AnySteps Mid evts Post)
     : AnySteps Pre (evt :: evts) Post
-(*
   | Tau {evts Mid Post}
       (* Tau events are not stored in the trace *)
       (_ : AnyStep Pre None Mid)
       (_ : AnySteps Mid evts Post)
     : AnySteps Pre evts Post
-*)
   | Refine {Pre'} (_ : Pre' ⊆ Pre) {_ : exists s, s ∈ Pre'}  {es Post} :
     AnySteps Pre' es Post -> AnySteps Pre es Post.
 
@@ -122,7 +120,7 @@ Section operational.
   Proof.
     induction 1; intuition.
     - by destruct H.
-(*    - by destruct H. *)
+    - by destruct H.
     - destruct H0 as [x ?]; exists x. eapply elem_of_subseteq; eauto.
   Qed.
 End operational.
@@ -220,6 +218,37 @@ Section to_spectra.
 
   Lemma default_masks_valid : masks.valid masks.default (⊤ ∖ ↑refinement_rootNS).
   Proof. red. set_solver. Qed.
+
+  Lemma use_updater APP E γ sset (_ : exists s, s ∈ sset) (_ : Step.tau_safe APP.(App.lts) sset) :
+    Step.updater APP E γ
+    ⊢ AuthSet.frag γ sset -∗
+      |={E}=> AuthSet.frag γ {[ s' | (∃ s : lts_state (App.lts APP), s ∈ sset ∧ lts_step (App.lts APP) s None s')%type ]}.
+  Proof.
+    rewrite Step.updater_unseal/Step.updater_def.
+    iIntros "#u".
+    iApply "u"; iPureIntro; eauto.
+  Qed.
+
+  Lemma subseteq_PropSet {A} P xs : xs ⊆ PropSet P <-> forall x : A, x ∈ xs -> P x.
+  Proof.
+    split; intros.
+    - rewrite -elem_of_PropSet; apply H; done.
+    - do 2 intro. rewrite elem_of_PropSet; apply H; done.
+  Qed.
+
+  Lemma updater_anystep {_ : BiBUpdFUpd PROP} (app : App.app) ss ss' E
+    (ANY_STEP : AnyStep app.(App.lts).(Sts._step) ss None ss') γ :
+    AuthSet.frag γ ss
+    ⊢ Step.updater app E γ -∗ |={E}=> AuthSet.frag γ ss'.
+  Proof.
+    iIntros "f #u".
+    iDestruct (use_updater with "u f") as ">X".
+    { apply ANY_STEP. }
+    { intros. apply ANY_STEP in H0. destruct H0. eexists; intuition eauto. }
+    iDestruct (AuthSet.frag_upd with "X") as ">$"; eauto.
+    rewrite subseteq_PropSet.
+    by apply ANY_STEP.
+  Qed.
 
   Lemma requester_anystep {_ : BiBUpdFUpd PROP} (app : App.app) (s : _) s' e
     (ANY_STEP : AnyStep app.(App.lts).(Sts._step) {[s]} (Some e) s') γ :
@@ -377,29 +406,37 @@ Section app_handler_hints.
     (ANY_STEPS : AnySteps APP.(App.lts).(Sts._step) s ((fun x => Write x) <$> BS.string_to_bytes str) s') :=
     \cancelx
     \using{γ} AuthSet.frag γ s
+    \using Step.updater APP (⊤ ∖ ↑refinement_rootNS) γ
     \proving{K : mpredI} ostream.bs_dos (AppHandler APP (⊤ ∖ ↑refinement_rootNS) masks.default γ) str K
     \through (AuthSet.frag γ s' -∗ K)
     \end@{mpredI}.
   Next Obligation.
-    simpl. clear.
-    intros ? ? str s s' ANY_STEPS.
+    clear.
+    intros ? ? APP str s s' ANY_STEPS.
     remember ((fun x => Write x) <$> BS.string_to_bytes str) as X.
     generalize dependent str.
     induction ANY_STEPS; simpl.
     { destruct str; simpl; try congruence.
-      intros. iIntros "f" (?) "k". iApply "k"; done. }
+      intros. iIntros "[f #_]" (?) "k". iApply "k"; done. }
     { destruct str; simpl; try congruence.
       inversion 1; subst; intros.
-      iIntros "f" (?) "k".
-      eapply (gen_requester_anystep {| App.evt := output_event; App.lts := lts0; App.inG := inG |}) in H.
+      iIntros "[f #u]" (?) "k".
+      eapply (gen_requester_anystep APP) in H.
       iDestruct (H with "f") as "X"; clear H.
       iApply "X".
       { iPureIntro. exact default_masks_valid. }
-      { iIntros "!> f". iApply (IHANY_STEPS with "f k"). } }
+      { iIntros "!> f". iApply (IHANY_STEPS with "[f u] k"). iFrame "#∗". } }
+    { (* tau *)
+      intros; subst.
+      iIntros "[f #u]" (?) "k".
+      rewrite ostream.bs_dos_fupd. (* TODO: shouldn't be necessary, I must have the wrong instances *)
+      iDestruct ((updater_anystep APP _ _ _ H) with "f u") as ">f". iModIntro.
+      iApply (IHANY_STEPS with "[f u] k").
+      iFrame "#∗". }
     { intros; subst.
-      iIntros "f" (?) "k".
-      iDestruct (AuthSet.frag_upd with "f") as ">X"; first done.
-      by iApply (IHANY_STEPS with "X"). }
+      iIntros "[f #u]" (?) "k".
+      iDestruct (AuthSet.frag_upd with "f") as ">f"; first done.
+      iApply (IHANY_STEPS with "[f u]"); iFrame "#∗". }
   Qed.
 
 End app_handler_hints.
