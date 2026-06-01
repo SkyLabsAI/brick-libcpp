@@ -203,19 +203,6 @@ Section to_spectra.
   Proof. clear. solve_learnable. Qed.
   Hint Resolve authset_frag_exact_learn : sl_opacity.
 
-
-  (* The early commit version
-  #[program]
-  Definition requester_ec_C (app : App.app) (s : _) s' evt :=
-    \cancelx
-    \using{γ} AuthSet.frag γ {[s]}
-    \proving{E K} Step.requester app E γ {[ evt ]} K
-    \through{s'} [| AnyStep app.(App.lts).(Sts._step) {[s]} evt s' |]
-    \through AuthSet.frag γ s' -∗ K evt
-    \end@{mpredI}.
-  Next Obligation. Abort.
-  *)
-
   Lemma default_masks_valid : masks.valid masks.default (⊤ ∖ ↑refinement_rootNS).
   Proof. red. set_solver. Qed.
 
@@ -396,6 +383,7 @@ Definition AppHandler {PROP : bi} {HasFupd : BiFUpd PROP} {HasGhost : prop_const
 Section app_handler_hints.
   Context `{Σ : cpp_logic}.
   Context `{SPECTRA : @appG evt lts _Σ}.
+
 
   #[program]
   Definition gen_bs_dos_steps_C (lts : _) inG
