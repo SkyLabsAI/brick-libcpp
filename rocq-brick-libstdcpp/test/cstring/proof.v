@@ -264,7 +264,7 @@ Section with_cpp.
     - exact Hwf.
   Qed.
 
-  #[local] Lemma arrayLR_cstring q bytes m tail (p : ptr) s :
+  #[local] Lemma arrayLR_cstring s tail q bytes m (p : ptr) :
     bytes = cstring.to_zstring s ++ tail ->
     cstring.WF s ->
     p |-> arrayLR "char" 0 m (λ v : N, charR q v) bytes ⊢
@@ -272,29 +272,12 @@ Section with_cpp.
     p |-> cstring.R q s ∗
     p |-> arrayLR "char" (m - lengthZ tail) m (λ v : N, charR q v) tail.
   Proof.
-    intros -> Hwf; work.
-    rewrite arrayLR.unlock _at_sep.
-    arith_simpl; work.
-    rewrite _at_sub_0; [|done].
-    rewrite /cstring.R /zstring.R; iFrame; done.
+    work.
+    rewrite arrayLR.unlock /cstring.R /zstring.R.
+    work.
+    normalize_ptrs.
+    by work.
   Qed.
-  #[local] Hint Resolve arrayLR_cstring : sl_opacity.
-
-  #[local] Lemma cstring_arrayLR q bytes m tail (p : ptr) s :
-    bytes = cstring.to_zstring s ++ tail ->
-    cstring.WF s ->
-    [| m = lengthZ bytes |] ∗
-    p |-> cstring.R q s ∗
-    p |-> arrayLR "char" (m - lengthZ tail) m (λ v : N, charR q v) tail ⊢
-    p |-> arrayLR "char" 0 m (λ v : N, charR q v) bytes.
-  Proof.
-    intros -> Hwf; work.
-    rewrite lengthN_app; arith_simpl.
-    rewrite /cstring.R /zstring.R; work.
-    rewrite arrayLR.unlock; arith_simpl; work.
-    rewrite _at_sub_0; [trivial|done].
-  Qed.
-  #[local] Hint Resolve cstring_arrayLR : sl_opacity.
 
   #[local, program] Definition arrayLR_open_cstring_C
       (p : ptr) q k bytes s tail
@@ -310,23 +293,16 @@ Section with_cpp.
     \end@{mpred}.
   Next Obligation.
     intros p q k bytes s tail Hs%RedEq_eq.
-    pose proof (unpack_cstring_sound _ _ _ Hs) as [Hbytes0 Hwf0]. work.
-    rewrite arrayLR_cstring . work. by rewrite app_nil_r. done.
+    pose proof (unpack_cstring_sound _ _ _ Hs) as [-> Hwf].
+    work.
+    rewrite (arrayLR_cstring _ []); [ | by rewrite app_nil_r | done].
+    work.
   Qed.
   #[local] Hint Resolve arrayLR_open_cstring_C : sl_opacity.
 
-  Lemma at_charR_anyR (p : ptr) q x :
-    p |-> charR q x ⊢ p |-> anyR (Tchar_ char_type.Cchar) q.
-  Proof.
-    apply heap_pred._at_cancel.
-    apply primR_anyR.
-  Qed.
-
-  Lemma replicateZ_lengthZ_eq_replicateN_lengthN {A : Type} (xs : list A) (x : unit) :
-    replicateZ (lengthZ xs) x = replicateN (lengthN xs) x.
-  Proof.
-    by rewrite /replicateZ N2Z.id.
-  Qed.
+  Lemma replicateZ_lengthZ_eq_replicateN_lengthN {A} (xs : list A) :
+    replicateZ (lengthZ xs) () = replicateN (lengthN xs) ().
+  Proof. by rewrite /replicateZ N2Z.id. Qed.
 
   Lemma arrayR_charR_arrayR_anyR (p : ptr) q xs :
     p |-> arrayR (Tchar_ char_type.Cchar) (fun c : N => charR q c) xs ⊢
@@ -334,24 +310,10 @@ Section with_cpp.
            (fun _ : unit => anyR (Tchar_ char_type.Cchar) q)
            (replicateZ (lengthZ xs) ()).
   Proof.
-    revert p.
-    induction xs as [|x xs IH].
-    all: intros p.
-    - rewrite /replicateZ N2Z.id /= !arrayR_nil. reflexivity.
-    - rewrite arrayR_cons !_at_sep _at_offsetR.
-      iIntros "(Hty & Hx & Hxs)".
-      replace (replicateZ (lengthZ (x :: xs)) ()) with
-        (() :: replicateZ (lengthZ xs) ()).
-      2:{
-        rewrite !replicateZ_lengthZ_eq_replicateN_lengthN.
-        rewrite /lengthN Nat2N.inj_succ replicateN_S.
-        reflexivity.
-      }
-      rewrite arrayR_cons !_at_sep _at_offsetR.
-      iFrame "Hty".
-      iSplitL "Hx".
-      + iApply (at_charR_anyR with "Hx").
-      + iApply (IH with "Hxs").
+    rewrite arrayR_anyR_f; last done.
+    repeat f_equiv.
+    rewrite length_lengthN repeatN_replicateN.
+    by rewrite replicateZ_lengthZ_eq_replicateN_lengthN.
   Qed.
 
   Lemma arrayLR_charR_arrayLR_anyR  (p : ptr) q xs :
@@ -361,20 +323,28 @@ Section with_cpp.
            (fun _ : unit => anyR (Tchar_ char_type.Cchar) q)
            (replicateZ (lengthZ xs) ()).
   Proof.
-    rewrite arrayLR.unlock _at_sep.
-    iIntros "[_ Harr]".
-    rewrite _at_offsetR _at_sub_0; [|done].
-    iPoseProof (arrayR_charR_arrayR_anyR _ q with "Harr") as "Harr".
-    rewrite /arrayLR.
-    iSplit.
-    - iPureIntro.
-      rewrite replicateZ_lengthZ_eq_replicateN_lengthN.
-      unfold lengthN, replicateN.
-      rewrite length_replicate.
-      rewrite Nat2N.id.
-      lia.
-    - rewrite _at_offsetR _at_sub_0; [|done].
-      iExact "Harr".
+    rewrite arrayLR.unlock.
+    work.
+    rewrite arrayR_charR_arrayR_anyR.
+    normalize_ptrs.
+    work.
+    by rewrite replicateZ_lengthZ_eq_replicateN_lengthN lengthN_replicateN.
+  Qed.
+
+  #[local] Lemma cstring_arrayLR s tail q bytes m (p : ptr) :
+    bytes = cstring.to_zstring s ++ tail ->
+    cstring.WF s ->
+    [| m = lengthZ bytes |] ∗
+    p |-> cstring.R q s ∗
+    p |-> arrayLR "char" (m - lengthZ tail) m (λ v : N, charR q v) tail ⊢
+    p |-> arrayLR "char" 0 m (λ v : N, charR q v) bytes.
+  Proof.
+    intros -> Hwf; work.
+    rewrite lengthN_app.
+    work.
+    rewrite arrayLR.unlock /cstring.R /zstring.R.
+    work.
+    by normalize_ptrs.
   Qed.
 
   #[local, program] Definition arrayLR_close_cstring_C
@@ -388,37 +358,16 @@ Section with_cpp.
          (λ _ : unit, anyR "char" q) (replicateZ k ())
     \end@{mpred}.
   Next Obligation.
-    intros p q mid k tail s Hmid Htailk.
-    iIntros "[Hs Htail]".
     rewrite /cstring.R /zstring.R.
-    iDestruct "Hs" as "[Hs %Hwf]".
-    assert (Hk : k = lengthZ (cstring.to_zstring s ++ tail)).
-    { rewrite lengthN_app. arith_simpl. lia. }
-    clear Hmid.
-    subst mid.
-    iPoseProof
-      (cstring_arrayLR q (cstring.to_zstring s ++ tail) k tail p s eq_refl Hwf
-        with "[Hs Htail]")
-      as "Harr".
-    { iSplit.
-      - iPureIntro. exact Hk.
-      - rewrite /cstring.R /zstring.R.
-        iSplitL "Hs".
-        + iFrame. iPureIntro. exact Hwf.
-        + iFrame "Htail". }
-    rewrite Hk.
-    iPoseProof (arrayLR_charR_arrayLR_anyR _ q (cstring.to_zstring s ++ tail)
-      with "Harr") as "Harr".
-    iExact "Harr".
+    intros.
+    assert (k = lengthZ (cstring.to_zstring s ++ tail)) as ->.
+    { rewrite lengthN_app. lia. }
+    work.
+    iApply arrayLR_charR_arrayLR_anyR.
+    iApply (cstring_arrayLR s tail); first done.
+    rewrite /cstring.R /zstring.R. work.
   Qed.
   #[local] Hint Resolve arrayLR_close_cstring_C : sl_opacity.
-
-  #[local] Lemma char_ptr_sub_0 (p : ptr) :
-    p.[ "char" ! 0 ] = p.
-  Proof.
-    assert (Hsz : is_Some (size_of σ "char")) by (vm_compute; eauto).
-    exact (offset_ptr_sub_0 p "char" Hsz).
-  Qed.
 
   cpp.spec "test_strlen_array_buffer()" from module default.
   Lemma test_strlen_array_buffer_ok :
@@ -445,24 +394,16 @@ Section with_cpp.
   Lemma test_strchr_ok : verify[module] "test_strchr()".
   Proof.
     verify_spec; go.
-    normalize_ptrs.
-    Arith.arith_simpl; go.
-    normalize_ptrs.
-    Arith.arith_simpl.
-    - contradiction.
-    - rewrite char_ptr_sub_0 in H. contradiction.
+    all: exfalso.
+    all: by normalize_ptrs.
   Qed.
 
   cpp.spec "test_strrchr()" from module default.
   Lemma test_strrchr_ok : verify[module] "test_strrchr()".
   Proof.
     verify_spec; go.
-    normalize_ptrs.
-    Arith.arith_simpl; go.
-    normalize_ptrs.
-    Arith.arith_simpl.
-    - contradiction.
-    - rewrite char_ptr_sub_0 in H. contradiction.
+    all: exfalso.
+    all: by normalize_ptrs.
   Qed.
 
   cpp.spec "test_strspn()" from module default.
@@ -477,21 +418,16 @@ Section with_cpp.
   Lemma test_strpbrk_ok : verify[module] "test_strpbrk()".
   Proof.
     verify_spec; go.
-    normalize_ptrs.
-    Arith.arith_simpl.
-    contradiction.
+    exfalso.
+    by normalize_ptrs.
   Qed.
 
   cpp.spec "test_strstr()" from module default.
   Lemma test_strstr_ok : verify[module] "test_strstr()".
   Proof.
     verify_spec; go.
-    normalize_ptrs.
-    Arith.arith_simpl; go.
-    normalize_ptrs.
-    Arith.arith_simpl.
-    - contradiction.
-    - rewrite char_ptr_sub_0 in H. contradiction.
+    all: exfalso.
+    all: by normalize_ptrs.
   Qed.
 
   cpp.spec "test_cstring_slice1()" from module default.
