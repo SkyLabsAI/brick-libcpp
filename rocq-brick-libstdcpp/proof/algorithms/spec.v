@@ -57,7 +57,7 @@ Section with_cpp.
   Notation ok := (tFunction "$it_ty" ["$it_ty";"$it_ty";"const $ty &"]%cpp_type).
 
   Definition find :=
-    specify_notation.specify ok "std::__1::find<$it_ty,$ty>($it_ty,$it_ty,const $ty &)"
+    specify_notation.specify ok "std::find<$it_ty,$ty>($it_ty,$it_ty,const $ty &)"
     ( \\requires{C Iter} BundledRep it_ty (C * Iter)%type
       \\requires HasRanges it_ty C Iter
       \\requires{V} BundledRep ty V

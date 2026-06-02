@@ -156,12 +156,12 @@ Section with_cpp.
   Section specs.
     Context `{MOD : test_cpp.module ⊧ σ}.
 
-    cpp.spec "test(bool, const char*)" as test_spec with
+    cpp.spec "test(bool, const char* )" as test_spec with
       (\arg "b" (Vbool true)
        \arg{p} "" (Vptr p)
        \post emp).
 
-    cpp.spec "sum(const std::__1::vector<unsigned, std::__1::allocator<unsigned>>&)" as sum_spec with
+    cpp.spec "sum(const std::vector<unsigned int, std::allocator<unsigned int>>&)" as sum_spec with
         ( \arg{vp} "v" (Vptr vp)
           \with q vs st size
           \prepost vp |-> std.vector.R_cap "unsigned" q size st vs
@@ -298,8 +298,8 @@ Section with_cpp.
       ▷ ( std.vector.specs "Aggregate" alloc_agg **
           std.vector.specs "int" alloc_int **
           std.vector.specs "unsigned" alloc_uint **
-          std.vector.iterator.specs true "unsigned" **
-          std.vector.iterator.specs false "int" **
+          std.vector.iterator.specs true "unsigned" alloc_uint **
+          std.vector.iterator.specs false "int" alloc_int **
           find_spec **
           std.cassert.specs)
       |-- main.

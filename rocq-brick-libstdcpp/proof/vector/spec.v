@@ -18,7 +18,7 @@ NES.Begin std.
   #[local] Open Scope Z_scope.
 
   Module Type VECTOR_PREDS.
-    #[global] Notation N ty alloc_ty := (Ninst "std::__1::vector" [Atype ty;Atype alloc_ty]) (only parsing).
+    #[global] Notation N ty alloc_ty := (Ninst "std::vector" [Atype ty;Atype alloc_ty]) (only parsing).
     #[global] Notation T ty alloc_ty := (Tnamed (N ty alloc_ty)) (only parsing).
 
     (**
@@ -214,80 +214,87 @@ NES.Begin std.
     Module iterator.
       Import skylabs.brick.libstdcpp.iterator.spec.
 
-      #[global] Notation NS := "std::__1"%cpp_name.
-      #[global] Notation N_base const ty :=
-        (NS .:: Nid "__wrap_iter" .<< Atype (Tptr (Tconst_if const ty)) >> ).
-      #[global] Notation T_base const ty := (Tnamed (N_base const ty)).
+      #[global] Notation NS := "__gnu_cxx"%cpp_name.
+      #[global] Notation N_base const ty alloc_ty :=
+        (NS .:: Nid "__normal_iterator" .<< Atype (Tptr (Tconst_if const ty)), Atype (vector.T ty alloc_ty) >> ).
+      #[global] Notation T_base const ty alloc_ty := (Tnamed (N_base const ty alloc_ty)).
       sl.lock
-      Definition R_base `{Σ : cpp_logic, σ : genv} (const : bool) (ty : type) (q : cQp.t) (basep : ptr) (i : Z) : Rep :=
-        _field (N_base const ty .:: Nid "__i_") |-> ptrR<ty> q (basep .[ ty ! i]) **
-        structR (N_base const ty) q.
+      Definition R_base `{Σ : cpp_logic, σ : genv} (const : bool) (ty alloc_ty : type) (q : cQp.t) (basep : ptr) (i : Z) : Rep :=
+        _field (N_base const ty alloc_ty .:: Nid "__i_") |-> ptrR<ty> q (basep .[ ty ! i]) **
+        structR (N_base const ty alloc_ty) q.
       #[only(type_ptr,ascfractional)] derive R_base.
 
-      #[global] Notation N ty       := (N_base false ty).
-      #[global] Notation N_const ty := (N_base true ty).
-      #[global] Notation T ty       := (T_base false ty).
-      #[global] Notation T_const ty := (T_base true ty).
-      #[global] Notation R ty       := (R_base false ty).
-      #[global] Notation R_const ty := (R_base true ty).
+      #[global] Notation N_alloc ty alloc_ty       := (N_base false ty alloc_ty).
+      #[global] Notation N_alloc_const ty alloc_ty := (N_base true ty alloc_ty).
+      #[global] Notation T_alloc ty alloc_ty       := (T_base false ty alloc_ty).
+      #[global] Notation T_alloc_const ty alloc_ty := (T_base true ty alloc_ty).
+      #[global] Notation R_alloc ty alloc_ty       := (R_base false ty alloc_ty).
+      #[global] Notation R_alloc_const ty alloc_ty := (R_base true ty alloc_ty).
+
+      #[global] Notation N ty       := (N_base false ty (std.allocator.T ty)).
+      #[global] Notation N_const ty := (N_base true ty (std.allocator.T ty)).
+      #[global] Notation T ty       := (T_base false ty (std.allocator.T ty)).
+      #[global] Notation T_const ty := (T_base true ty (std.allocator.T ty)).
+      #[global] Notation R ty       := (R_base false ty (std.allocator.T ty)).
+      #[global] Notation R_const ty := (R_base true ty (std.allocator.T ty)).
 
       Section iter.
         Context `{Σ : cpp_logic, σ : genv}.
 
         (* TODO: why do we need this instance locally instead of the one we make global? *)
-        #[local] Instance iterator_has_rep' is_const ty : concepts.BundledRep (T_base is_const ty) (ptr * Z) :=
-          {| objR := fun q st => R_base is_const ty q st.1 st.2 |}.
+        #[local] Instance iterator_has_rep' is_const ty alloc_ty : concepts.BundledRep (T_base is_const ty alloc_ty) (ptr * Z) :=
+          {| objR := fun q st => R_base is_const ty alloc_ty q st.1 st.2 |}.
 
         (* This has a type similar to [iterator_has_rep'] with some additional variables to
            facilitate unification. *)
-        Definition iterator_has_rep is_const ty :=
-          make_abstracted_name (T_base is_const ty, Hnf (iterator_has_rep' is_const ty)).
+        Definition iterator_has_rep is_const ty alloc_ty :=
+          make_abstracted_name (T_base is_const ty alloc_ty, Hnf (iterator_has_rep' is_const ty alloc_ty)).
 
-        Definition iter_default_ctor const ty :=
-          concepts.default_ctor (T_base const ty) (nullptr, 0).
+        Definition iter_default_ctor const ty alloc_ty :=
+          concepts.default_ctor (T_base const ty alloc_ty) (nullptr, 0).
         #[global] Hint Opaque iter_default_ctor : sl_opacity.
         #[global] Arguments iter_default_ctor : simpl never.
         Definition iter_default_ctor_SpecFor const := RegisterSpec (iter_default_ctor const).
         #[global] Existing Instance iter_default_ctor_SpecFor.
 
-        Definition iter_copy_ctor const ty :=
-          concepts.copy_ctor (T_base const ty).
+        Definition iter_copy_ctor const ty alloc_ty :=
+          concepts.copy_ctor (T_base const ty alloc_ty).
         #[global] Hint Opaque iter_copy_ctor : sl_opacity.
         #[global] Arguments iter_copy_ctor : simpl never.
         Definition iter_copy_ctor_SpecFor const :=
           RegisterSpec (iter_copy_ctor const).
         #[global] Existing Instance iter_copy_ctor_SpecFor.
 
-        Definition iter_dtor const ty := concepts.dtor (T_base const ty).
+        Definition iter_dtor const ty alloc_ty := concepts.dtor (T_base const ty alloc_ty).
         #[global] Hint Opaque iter_dtor : sl_opacity.
         #[global] Arguments iter_dtor : simpl never.
         Definition iter_dtor_SpecFor := RegisterSpec (iter_dtor).
         #[global] Existing Instance iter_dtor_SpecFor.
 
-        Definition iter_move_assign const ty :=
-          concepts.move_assign (T_base const ty) (fun p => p).
+        Definition iter_move_assign const ty alloc_ty :=
+          concepts.move_assign (T_base const ty alloc_ty) (fun p => p).
         #[global] Hint Opaque iter_move_assign : sl_opacity.
         #[global] Arguments iter_move_assign : simpl never.
         Definition iter_move_assign_SpecFor :=
           RegisterSpec (iter_move_assign).
         #[global] Existing Instance iter_move_assign_SpecFor.
 
-        Definition iter_deref const ty :=
+        Definition iter_deref const ty alloc_ty :=
           let qf := function_qualifiers.mk true false Prvalue in
-          specify.template.op (N_base const ty) OOStar qf (Tref (Tconst_if const ty)) [] $
+          specify.template.op (N_base const ty alloc_ty) OOStar qf (Tref (Tconst_if const ty)) [] $
             \this this
             \with basep i
             \let  itemp := basep .[ ty ! i ]
-            \prepost{q} this |-> R_base const ty q basep i
+            \prepost{q} this |-> R_base const ty alloc_ty q basep i
             \post[Vref itemp] emp.
         #[global] Hint Opaque iter_deref : sl_opacity.
         #[global] Arguments iter_deref : simpl never.
         Definition iter_deref_SpecFor := RegisterSpec iter_deref.
         #[global] Existing Instance iter_deref_SpecFor.
 
-        Definition iter_op_post_inc const ty :=
+        Definition iter_op_post_inc const ty alloc_ty :=
           let qf := function_qualifiers.mk false false Prvalue in
-          specify.template.op (N_base const ty) OOPlusPlus qf (T_base const ty) [Tint] $
+          specify.template.op (N_base const ty alloc_ty) OOPlusPlus qf (T_base const ty alloc_ty) [Tint] $
             \this this
             \arg{dummy} "_ignored_" (Vint dummy)
             (* TODO: we need a precondition to state that we don't go out of bounds.
@@ -301,68 +308,68 @@ NES.Begin std.
                   even when we don't dereference them
              *)
             \with basep i
-            \pre  this |-> R_base const ty 1$m basep i
+            \pre  this |-> R_base const ty alloc_ty 1$m basep i
             \post{prevp}[Vptr prevp]
-              prevp |-> R_base const ty 1$m basep i **
-              this  |-> R_base const ty 1$m basep (i + 1).
+              prevp |-> R_base const ty alloc_ty 1$m basep i **
+              this  |-> R_base const ty alloc_ty 1$m basep (i + 1).
         #[global] Hint Opaque iter_op_post_inc : sl_opacity.
         #[global] Arguments iter_op_post_inc : simpl never.
         Definition iter_op_post_inc_SpecFor := RegisterSpec iter_op_post_inc.
         #[global] Existing Instance iter_op_post_inc_SpecFor.
 
-        Definition iter_op_pre_inc const ty :=
+        Definition iter_op_pre_inc const ty alloc_ty :=
           let qf := function_qualifiers.mk false false Prvalue in
-          specify.template.op (N_base const ty) OOPlusPlus qf (Tref (T_base const ty)) [] $
+          specify.template.op (N_base const ty alloc_ty) OOPlusPlus qf (Tref (T_base const ty alloc_ty)) [] $
             \this this
             \with basep i
             (* TODO bound-checking, like above *)
-            \pre             this |-> R_base const ty 1$m basep i
-            \post[Vptr this] this |-> R_base const ty 1$m basep (i + 1).
+            \pre             this |-> R_base const ty alloc_ty 1$m basep i
+            \post[Vptr this] this |-> R_base const ty alloc_ty 1$m basep (i + 1).
         #[global] Hint Opaque iter_op_pre_inc : sl_opacity.
         #[global] Arguments iter_op_pre_inc : simpl never.
         Definition iter_op_pre_inc_SpecFor := RegisterSpec iter_op_pre_inc.
         #[global] Existing Instance iter_op_pre_inc_SpecFor.
 
-        Definition iter_op_eq const ty :=
+        Definition iter_op_eq const ty alloc_ty :=
           specify.template.static_op NS OOEqualEqual
-              [Atype (Tptr (Tconst_if const ty))]
-              Tbool  [Tref (Tconst (T_base const ty)); Tref (Tconst (T_base const ty))] $
+              [Atype (Tptr (Tconst_if const ty)); Atype (vector.T ty alloc_ty)]
+              Tbool  [Tref (Tconst (T_base const ty alloc_ty)); Tref (Tconst (T_base const ty alloc_ty))] $
             \arg{firstp}  "first"  (Vptr firstp)
             \arg{secondp} "second" (Vptr secondp)
             \with basep i j
-            \prepost{q0} firstp  |-> R_base const ty q0 basep i
-            \prepost{q1} secondp |-> R_base const ty q1 basep j
+            \prepost{q0} firstp  |-> R_base const ty alloc_ty q0 basep i
+            \prepost{q1} secondp |-> R_base const ty alloc_ty q1 basep j
             \post[Vbool (bool_decide (i = j))] emp.
         #[global] Hint Opaque iter_op_eq : sl_opacity.
         #[global] Arguments iter_op_eq : simpl never.
         Definition iter_op_eq_SpecFor := RegisterSpec iter_op_eq.
         #[global] Existing Instance iter_op_eq_SpecFor.
 
-        Definition iter_op_ne const ty :=
+        Definition iter_op_ne const ty alloc_ty :=
           specify.template.static_op NS OOExclaimEqual
-              [Atype (Tptr (Tconst_if const ty))]
-              Tbool  [Tref (Tconst (T_base const ty)); Tref (Tconst (T_base const ty))] $
+              [Atype (Tptr (Tconst_if const ty)); Atype (vector.T ty alloc_ty)]
+              Tbool  [Tref (Tconst (T_base const ty alloc_ty)); Tref (Tconst (T_base const ty alloc_ty))] $
             \arg{firstp}  "first"  (Vptr firstp)
             \arg{secondp} "second" (Vptr secondp)
             \with basep i j
-            \prepost{q0} firstp  |-> R_base const ty q0 basep i
-            \prepost{q1} secondp |-> R_base const ty q1 basep j
+            \prepost{q0} firstp  |-> R_base const ty alloc_ty q0 basep i
+            \prepost{q1} secondp |-> R_base const ty alloc_ty q1 basep j
             \post[Vbool (bool_decide (i <> j))] emp.
         #[global] Hint Opaque iter_op_ne : sl_opacity.
         #[global] Arguments iter_op_ne : simpl never.
         Definition iter_op_ne_SpecFor := RegisterSpec iter_op_ne.
         #[global] Existing Instance iter_op_ne_SpecFor.
 
-        Definition specs const ty :=
-          iter_default_ctor const ty **
-          iter_copy_ctor const ty **
-          iter_dtor const ty **
-          iter_move_assign const ty **
-          iter_deref const ty **
-          iter_op_post_inc const ty **
-          iter_op_pre_inc const ty **
-          iter_op_eq const ty **
-          iter_op_ne const ty.
+        Definition specs const ty alloc_ty :=
+          iter_default_ctor const ty alloc_ty **
+          iter_copy_ctor const ty alloc_ty **
+          iter_dtor const ty alloc_ty **
+          iter_move_assign const ty alloc_ty **
+          iter_deref const ty alloc_ty **
+          iter_op_post_inc const ty alloc_ty **
+          iter_op_pre_inc const ty alloc_ty **
+          iter_op_eq const ty alloc_ty **
+          iter_op_ne const ty alloc_ty.
 
       End iter.
       #[global] Existing Instance iterator_has_rep.
@@ -370,7 +377,7 @@ NES.Begin std.
       Section hints.
         Context `{Σ : cpp_logic, σ : genv}.
 
-        #[global] Instance R_base_learn c ty : LearnEqF2 (R_base c ty) := ltac:(solve_learnable).
+        #[global] Instance R_base_learn c ty alloc_ty : LearnEqF2 (R_base c ty alloc_ty) := ltac:(solve_learnable).
 
         Definition congr_iterator_R_base := normalize.NormCongr4 iterator.R_base.
       End hints.
@@ -378,13 +385,13 @@ NES.Begin std.
 
     End iterator.
 
-    #[global] Notation range_base const ty := (std.range (iterator.T_base const ty)).
-    #[global] Notation range ty            := (std.range (iterator.T ty)).
-    #[global] Notation range_const ty      := (std.range (iterator.T_const ty)).
+    #[global] Notation range_base const ty alloc_ty := (std.range (iterator.T_base const ty alloc_ty)).
+    #[global] Notation range ty alloc_ty            := (std.range (iterator.T_alloc ty alloc_ty)).
+    #[global] Notation range_const ty alloc_ty      := (std.range (iterator.T_alloc_const ty alloc_ty)).
 
-    #[global] Notation payload_base const ty := (std.payload (iterator.T_base const ty)).
-    #[global] Notation payload ty            := (std.payload (iterator.T ty)).
-    #[global] Notation payload_const ty      := (std.payload (iterator.T_const ty)).
+    #[global] Notation payload_base const ty alloc_ty := (std.payload (iterator.T_base const ty alloc_ty)).
+    #[global] Notation payload ty alloc_ty            := (std.payload (iterator.T_alloc ty alloc_ty)).
+    #[global] Notation payload_const ty alloc_ty      := (std.payload (iterator.T_alloc_const ty alloc_ty)).
 
     Section with_cpp.
       Context `{Σ : cpp_logic, σ : genv}.
@@ -692,11 +699,11 @@ NES.Begin std.
 
         Definition begin_spec const :=
           let qf := function_qualifiers.mk const false Prvalue in
-          specify.template.method vector "begin" qf (iterator.T_base const ty) [] $
+          specify.template.method vector "begin" qf (iterator.T_base const ty alloc_ty) [] $
             \this this
             \prepost{q size st}
                   this |-> spineR q size st
-            \post{itp}[Vptr itp] itp |-> iterator.R_base const ty 1$m (base_pointer st) 0.
+            \post{itp}[Vptr itp] itp |-> iterator.R_base const ty alloc_ty 1$m (base_pointer st) 0.
         #[global] Hint Opaque begin_spec : sl_opacity.
         #[global] Arguments begin_spec : simpl never.
         Definition SpecFor_begin_spec := RegisterSpec begin_spec.
@@ -704,11 +711,11 @@ NES.Begin std.
 
         Definition end_spec const :=
           let qf := function_qualifiers.mk const false Prvalue in
-          specify.template.method vector "end" qf (iterator.T_base const ty) [] $
+          specify.template.method vector "end" qf (iterator.T_base const ty alloc_ty) [] $
             \this this
             \prepost{q size st}
                   this |-> spineR q size st
-            \post{itp}[Vptr itp] itp |-> iterator.R_base const ty 1$m (base_pointer st) size.
+            \post{itp}[Vptr itp] itp |-> iterator.R_base const ty alloc_ty 1$m (base_pointer st) size.
         #[global] Hint Opaque end_spec : sl_opacity.
         #[global] Arguments end_spec : simpl never.
         Definition SpecFor_end_spec := RegisterSpec end_spec.
@@ -726,7 +733,7 @@ NES.Begin std.
         Definition vector_has_ranges const :=
              make_abstracted_name (* this notation rewrites type [it_ty] to make it easier to match
                                      modulo [const] *)
-               ( let it_ty := iterator.T_base const ty in
+               ( let it_ty := iterator.T_base const ty alloc_ty in
                  (it_ty, std.array_ranges ty it_ty)).
         #[global] Existing Instance vector_has_ranges.
 
@@ -809,7 +816,7 @@ NES.Begin std.
         \let basep := vector.base_pointer st
         \proving std.array_spine ty  basep q' i (rangeZ i j) j
         \bound A (R : A -> Rep)
-        \proving{(vs : list A)} payload ty basep R (rangeZ i j) vs
+        \proving{(vs : list A)} payload ty alloc_ty basep R (rangeZ i j) vs
         \through basep |-> arrayLR ty i j R vs
         \end.
       Next Obligation.
@@ -823,7 +830,7 @@ NES.Begin std.
         \preserving p |-> spineR ty alloc_ty q size st
         \let basep := vector.base_pointer st
         \with A (R : A -> Rep)
-        \using{(vs : list A)} payload ty basep R (rangeZ i j) vs
+        \using{(vs : list A)} payload ty alloc_ty basep R (rangeZ i j) vs
         \deduce basep |-> arrayLR ty i j R vs
         \end.
       Next Obligation.
