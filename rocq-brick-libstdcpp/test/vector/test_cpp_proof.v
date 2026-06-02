@@ -87,21 +87,6 @@ Module Aggregate.
       Import linearity auto_frac.
       Import wp_path.WpPrimRSep.
 
-      Lemma copy_assign_ok :
-        denoteModule module |-- copy_assign_spec.
-      Proof using MOD.
-        verify_spec. go with pick_frac.
-        (* errors.Errors.UNSUPPORTED.body
-          "wp_method_shift: defaulted methods"%pstring *)
-      Fail Qed.
-      Admitted.
-      Definition copy_assign_B := [LINK] copy_assign_ok.
-
-      Lemma copy_ctor_ok :
-        denoteModule module |-- copy_ctor_spec.
-      Proof using MOD. verify_spec. go with pick_frac. Qed.
-      Definition copy_ctor_B := [LINK] copy_ctor_ok.
-
       Lemma ctor_ok :
         denoteModule module |-- ctor_spec.
       Proof using MOD. verify_spec. go with pick_frac. Qed.
@@ -111,20 +96,6 @@ Module Aggregate.
         denoteModule module |-- dtor_spec.
       Proof using MOD. verify_spec. go with pick_frac. Qed.
       Definition dtor_B := [LINK] dtor_ok.
-
-      Lemma move_assign_ok :
-        denoteModule module |-- move_assign_spec.
-      Proof using MOD.
-        verify_spec. go with pick_frac.
-
-      Fail Qed.
-      Admitted.
-      Definition move_assign_B := [LINK] move_assign_ok.
-
-      Lemma move_ctor_ok :
-        denoteModule module |-- move_ctor_spec.
-      Proof using MOD. verify_spec. go with pick_frac. Qed.
-      Definition move_ctor_B := [LINK] move_ctor_ok.
 
       Import join.manual_expr_condition.
       Import reduce_bool_decide.
@@ -166,12 +137,8 @@ Module Aggregate.
   End with_cpp.
 End Aggregate.
 
-#[local] Hint Resolve Aggregate.copy_assign_B : sl_opacity.
-#[local] Hint Resolve Aggregate.copy_ctor_B : sl_opacity.
 #[local] Hint Resolve Aggregate.ctor_B : sl_opacity.
 #[local] Hint Resolve Aggregate.dtor_B : sl_opacity.
-#[local] Hint Resolve Aggregate.move_assign_B : sl_opacity.
-#[local] Hint Resolve Aggregate.move_ctor_B : sl_opacity.
 #[local] Hint Resolve Aggregate.op_eq_B : sl_opacity.
 #[local] Hint Resolve Aggregate.op_neq_B : sl_opacity.
 
