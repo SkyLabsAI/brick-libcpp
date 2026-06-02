@@ -84,7 +84,6 @@ Module Aggregate.
     Section proofs.
       Context `{MOD : test_cpp.module ⊧ σ}.
       Import linearity auto_frac.
-      Import wp_path.WpPrimRSep.
 
       Lemma ctor_ok :
         denoteModule module |-- ctor_spec.
@@ -208,9 +207,6 @@ Section with_cpp.
     #[local] Hint Resolve test_int_iter_B : sl_opacity.
 
     #[local] Hint Resolve prim.primR_aggressiveC : sl_opacity.
-
-    (* TODO: remove this when we can have a [StepToSubobject] instance for [arrayRL] *)
-    Import wp_path.WpPrimRSep.
 
     Lemma test_for_each_ok : verify[ source ] test_for_each.
     Proof using MOD.
