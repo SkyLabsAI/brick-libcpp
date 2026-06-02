@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+REL_PATH="$(grealpath `pwd` --relative-to "$DUNE_SOURCEROOT")"
+
+if [[ -n "$CPP2V_DOCKER_IMAGE" ]]; then
+	OPAM_ENV='$(opam env)'
+	BRICK_LIBCPP=/home/coq/worktree
+	ARGS=()
+	ARGS+=( "--platform" "linux/amd64" )
+	ARGS+=( "--volume" "${HOME}/.cache/remote_dune:/home/coq/.cache/dune:cached" )
+	ARGS+=( "--volume" "$DUNE_SOURCEROOT:$BRICK_LIBCPP" )
+	ARGS+=( "--workdir" "$BRICK_LIBCPP/$REL_PATH" )
+	CMD=$@
+	docker run "${ARGS[@]}" "$CPP2V_DOCKER_IMAGE" /bin/bash -c "eval ${OPAM_ENV} ; cpp2v $CMD "
+else
+	cpp2v "$@"
+fi
