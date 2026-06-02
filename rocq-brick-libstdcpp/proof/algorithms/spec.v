@@ -12,6 +12,8 @@ Require Import skylabs.prelude.under_rel_proper.
 
 Require Import skylabs.cpp.spec.concepts.
 
+Require Export skylabs.brick.libstdcpp.algorithms.inc_algorithms_cpp.
+Require Export skylabs.brick.libstdcpp.algorithms.inc_algorithms_cpp_templates.
 Require Export skylabs.brick.libstdcpp.iterator.spec.
 
 (* Require Import skylabs.ltac2.extra.internal.constr. *)
@@ -52,12 +54,13 @@ Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
   Context (it_ty ty : type).
   Implicit Types p : ptr.
-  Import specify_notation.
+  Import specify_notation. (** this should be enabled by default. Add to prelude? *)
 
-  Notation ok := (tFunction "$it_ty" ["$it_ty";"$it_ty";"const $ty &"]%cpp_type).
-
-  Definition find :=
-    specify_notation.specify ok "std::find<$it_ty,$ty>($it_ty,$it_ty,const $ty &)"
+  #[materialized]
+  cpp.spec "std::find<$it_ty, $ty>($it_ty, $it_ty,const $ty &)"
+    as find_spec
+    from inc_algorithms_cpp.source
+    templates inc_algorithms_cpp_templates.templates
     ( \\requires{C Iter} BundledRep it_ty (C * Iter)%type
       \\requires HasRanges it_ty C Iter
       \\requires{V} BundledRep ty V
@@ -86,11 +89,9 @@ Section with_cpp.
              | None => [| itr = ite |]
              end ).
 
-  Definition find_spec := Hnf (fst find).
-  Definition find_inst := Hnf (snd find find_spec).
-  #[global] Hint Opaque find_spec : sl_opacity.
-  #[global] Arguments find_spec : simpl never.
-  #[global] Existing Instance find_inst.
+  (* NOTE: in the argument list of [find_spec], we make the C++ types the explicit types and let
+     the type class [BundledRep] infer the model type for each. *)
+  #[global] Arguments find_spec tu {C Iter _IterRep _IterRanges} {T _TRep _TEq} : rename.
 
 End with_cpp.
 

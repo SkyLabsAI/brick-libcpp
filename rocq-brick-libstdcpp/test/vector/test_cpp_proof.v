@@ -276,17 +276,6 @@ Section with_cpp.
     Definition main_B := [LINK] main_ok.
     #[local] Hint Resolve main_B : sl_opacity.
 
-    (* NOTE(Simon): this is annoyingly verbose
-
-       Updated: latest update to [SpecFor] instances makes it more concise but the underscore are
-       still superfluous.
-     *)
-    Definition find_spec :=
-      std.find_spec
-        (std.vector.iterator.T "int") "int"
-        source
-        ptr Z _ _ Z _ _.
-
     (* glue all the proofs together *)
     Lemma specs_ok :
       denoteModule source **
@@ -295,7 +284,7 @@ Section with_cpp.
           std.vector.specs "unsigned" alloc_uint **
           std.vector.iterator.specs true "unsigned" alloc_uint **
           std.vector.iterator.specs false "int" alloc_int **
-          find_spec **
+          std.find_spec (std.vector.iterator.T "int") "int" source **
           std.cassert.specs)
       |-- main.
     Proof using MOD.
