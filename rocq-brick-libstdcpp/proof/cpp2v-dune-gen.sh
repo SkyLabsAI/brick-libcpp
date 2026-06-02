@@ -50,7 +50,8 @@ outRule() {
 		cpp2v="${cpp2v} --templates=${templates}"
 		targ="$targ ${templates}"
 	fi
-
+        local REALPATH="$(which grealpath || which realpath)"
+        local wrapper="$($REALPATH "$docker_script" --relative-to "$path")"
 	action="(run ${cpp2v} ${1+ $@} ${clang_options})"
 	sed "s/^/${indent}/" <<-EOF
 		(rule
@@ -58,7 +59,7 @@ outRule() {
 		 (alias test_ast)
 		 (deps
 			 (env_var CPP2V_DOCKER_IMAGE)
-			 (:script $(grealpath "$docker_script" --relative-to "$path"))
+			 (:script ${wrapper})
 			 (:input ${name}.${ext})
 			 (glob_files_rec ${prefix}*.hpp)${universe})
 		 (action
