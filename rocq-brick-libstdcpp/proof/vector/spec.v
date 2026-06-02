@@ -32,6 +32,8 @@ NES.Begin std.
     Record InternalState :=
       { capacity : Z ;
         base_pointer : ptr }.
+    #[global] Hint Opaque capacity : sl_opacity.
+    #[global] Hint Opaque base_pointer : sl_opacity.
 
     (**
      *  Module [std.vector]
