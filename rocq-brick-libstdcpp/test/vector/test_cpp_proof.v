@@ -153,7 +153,7 @@ Section with_cpp.
   End defs.
 
   Section specs.
-    Context `{MOD : test_cpp.module ⊧ σ}.
+    Context `{MOD : test_cpp.source ⊧ σ}.
 
     cpp.spec "test(bool, const char* )" as test_spec with
       (\arg "b" (Vbool true)
@@ -187,7 +187,7 @@ Section with_cpp.
   End specs.
 
   Section proofs.
-    Context `{MOD : test_cpp.module ⊧ σ}.
+    Context `{MOD : test_cpp.source ⊧ σ}.
     #[local] Notation alloc_int := (std.allocator.T "int").
     #[local] Notation alloc_uint := (std.allocator.T "unsigned").
     #[local] Notation alloc_agg := (std.allocator.T "Aggregate").
@@ -199,7 +199,7 @@ Section with_cpp.
     (* UPSTREAM. Where? *)
     #[global] Instance SplitRecord_prod A B : SplitRecord (@prod A B) := {}.
 
-    Lemma test_int_iter_ok : verify[ module ] test_int_iter.
+    Lemma test_int_iter_ok : verify[ source ] test_int_iter.
     Proof using MOD.
       verify_spec.
       time "test_int_iter_ok" go.
@@ -212,7 +212,7 @@ Section with_cpp.
     (* TODO: remove this when we can have a [StepToSubobject] instance for [arrayRL] *)
     Import wp_path.WpPrimRSep.
 
-    Lemma test_for_each_ok : verify[ module ] test_for_each.
+    Lemma test_for_each_ok : verify[ source ] test_for_each.
     Proof using MOD.
       verify_spec.
       time "test_for_each_ok" go.
@@ -220,7 +220,7 @@ Section with_cpp.
     Definition test_for_each_B := [LINK] test_for_each_ok.
     #[local] Hint Resolve test_for_each_B : sl_opacity.
 
-    Lemma sum_ok : verify[ module ] sum_spec.
+    Lemma sum_ok : verify[ source ] sum_spec.
     Proof using MOD.
       verify_spec.
       time "test_for_each_ok" go.
@@ -246,7 +246,7 @@ Section with_cpp.
     Definition sum_B := [LINK] sum_ok.
     #[local] Hint Resolve sum_B : sl_opacity.
 
-    Lemma test_basic_ok : verify[ module ] test_basic.
+    Lemma test_basic_ok : verify[ source ] test_basic.
     Proof using MOD.
       verify_spec.
       go.
@@ -254,7 +254,7 @@ Section with_cpp.
     Definition test_basic_B := [LINK] test_basic_ok.
     #[local] Hint Resolve test_basic_B : sl_opacity.
 
-    Lemma test_aggregate_ok : verify[ module ] test_aggregate.
+    Lemma test_aggregate_ok : verify[ source ] test_aggregate.
     Proof using MOD.
       verify_spec.
       go.
@@ -263,7 +263,7 @@ Section with_cpp.
     #[local] Hint Resolve test_aggregate_B : sl_opacity.
 
     (* TODO: investigate. We get a warning for missing specs but the proof goes through anyway *)
-    Lemma test_ok : verify[ module ] test_spec.
+    Lemma test_ok : verify[ source ] test_spec.
     Proof using MOD.
       verify_spec.
       go.
@@ -271,7 +271,7 @@ Section with_cpp.
     Definition test_B := [LINK] test_ok.
     #[local] Hint Resolve test_B : sl_opacity.
 
-    Lemma main_ok : verify[ module ] main.
+    Lemma main_ok : verify[ source ] main.
     Proof using MOD.
       verify_spec.
       go.
@@ -288,12 +288,12 @@ Section with_cpp.
     Definition find_spec :=
       std.find_spec
         (std.vector.iterator.T "int") "int"
-        module
+        source
         ptr Z _ _ Z _ _.
 
     (* glue all the proofs together *)
     Lemma specs_ok :
-      denoteModule module **
+      denoteModule source **
       ▷ ( std.vector.specs "Aggregate" alloc_agg **
           std.vector.specs "int" alloc_int **
           std.vector.specs "unsigned" alloc_uint **
