@@ -44,7 +44,7 @@ Module ostream.
       end.
     #[global] Hint Opaque bs_dos : sl_opacity.
     Lemma bs_dos_fupd OS bs K : bs_dos OS bs K ⊣⊢ |={⊤}=> bs_dos OS bs K.
-    Proof. destruct bs; simpl; rewrite fupd_idemp; done. Qed.
+    Proof. by destruct bs => /=; rewrite fupd_idemp. Qed.
 
     #[global] Instance elim_modal_fupd_wp_lval E OS bs p P Q :
       ElimModal True p false (|={E}=> P) P (bs_dos OS bs Q) (bs_dos OS bs Q).
