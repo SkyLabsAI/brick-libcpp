@@ -3,7 +3,6 @@
  * This software is distributed under the terms of the BedRock Open-Source License.
  * See the LICENSE-BedRock file in the repository root for details.
  *)
-Require Import skylabs.auto.cpp.proof.
 Require Import skylabs.brick.libstdcpp.allocator.spec.
 Require Import skylabs.brick.libstdcpp.cassert.spec.
 Require Import skylabs.brick.libstdcpp.vector.spec.
