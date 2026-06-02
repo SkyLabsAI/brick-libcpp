@@ -179,7 +179,7 @@ NES.Begin std.
      are said to be consecutive iff the end position of one coincides with the beginning position of
      the other.
    *)
-  Open Scope Z_scope.
+  #[local] Open Scope Z_scope.
 
   Section UPSTREAM.
 
@@ -218,7 +218,7 @@ NES.Begin std.
   End UPSTREAM.
 
   Section array.
-    Open Scope Z_scope.
+    #[local] Open Scope Z_scope.
     Context `{Σ : cpp_logic, σ : genv}.
     #[local] Notation IterState := Z (only parsing).
 
