@@ -11,8 +11,6 @@ Require Import skylabs.brick.libstdcpp.test.vector.test_cpp.
 
 Require Import skylabs.auto.cpp.prelude.test.
 
-(* #[global] Hint Resolve arrayLR_split_head_bwd_C : sl_opacity. *)
-
 Import auto.lazy.big_sep.hints.
 Import auto.cpp.lazy.big_sep.array.
 

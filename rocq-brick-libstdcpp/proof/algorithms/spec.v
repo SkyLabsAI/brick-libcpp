@@ -16,9 +16,6 @@ Require Export skylabs.brick.libstdcpp.algorithms.inc_algorithms_cpp.
 Require Export skylabs.brick.libstdcpp.algorithms.inc_algorithms_cpp_templates.
 Require Export skylabs.brick.libstdcpp.iterator.spec.
 
-(* Require Import skylabs.ltac2.extra.internal.constr. *)
-(* Require Import skylabs.ltac2.extra.extra. *)
-
 Section lists.
 
   Fixpoint list_findZ_from {A} (P : A → Prop) `{!∀ x : A, Decision (P x)} (base : Z) (xs : list A) : option (Z * A) :=
