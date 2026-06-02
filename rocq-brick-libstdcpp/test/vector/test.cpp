@@ -64,8 +64,8 @@ struct Aggregate {
     int x, y, z;
     Aggregate(const Aggregate &) = default;
     Aggregate(Aggregate &&) = default;
-    Aggregate& operator = (const Aggregate &) = default;
-    Aggregate& operator = (Aggregate &&) = default;  
+    Aggregate& operator=(const Aggregate &) = default;
+    Aggregate& operator=(Aggregate &&) = default;
 
     Aggregate(int a) : x(a), y(a), z(a) {}
     bool operator==(Aggregate& other) {
