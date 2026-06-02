@@ -38,11 +38,7 @@ outRule() {
 	if [ "$system" = 1 ]; then
 		universe=" (universe)"
 	fi
-        if [[ -n "$CPP2V_DOCKER_IMAGE" ]]; then
-	    local cpp2v="%{script} -v %{input} -o ${module} --no-elaborate"
-        else
-	    local cpp2v="cpp2v -v %{input} -o ${module} --no-elaborate"
-        fi
+        local cpp2v="%{script} -v %{input} -o ${module} --no-elaborate"
 	if [ "$gen_names" = 1 ]; then
 		local names="${name}_${ext}_names.v"
 		targ="${targ} ${names}"
@@ -56,37 +52,19 @@ outRule() {
 	fi
 
 	action="(run ${cpp2v} ${1+ $@} ${clang_options})"
-		 # (deps
-                 #         (env_var CPP2V_DOCKER_IMAGE)
-                 # 	 (:script $(grealpath "$docker_script" --relative-to "$path"))
-                 # 	 (:input ${name}.${ext})
-                 # 	 (glob_files_rec ${prefix}*.hpp)${universe})
-
-	if [[ -n "$CPP2V_DOCKER_IMAGE" ]]; then
-	    sed "s/^/${indent}/" <<-EOF
-			(rule
-				(targets ${module}.stderr ${targ})
-				(alias test_ast)
-				(deps
-					(env_var CPP2V_DOCKER_IMAGE)
-					(:script $(grealpath "$docker_script" --relative-to "$path"))
-					(:input ${name}.${ext})
-					(glob_files_rec ${prefix}*.hpp)${universe})
-			 	(action
-					(with-stderr-to ${module}.stderr ${action})))
-			(alias (name srcs) (deps ${name}.${ext}))
-		EOF
-	else
-		sed "s/^/${indent}/" <<-EOF
-			(rule
-				(targets ${module}.stderr ${targ})
-				(alias test_ast)
-				(deps (:input ${name}.${ext}) (glob_files_rec ${prefix}*.hpp)${universe})
-				(action
-					(with-stderr-to ${module}.stderr ${action})))
-			(alias (name srcs) (deps ${name}.${ext}))
-		EOF
-	fi
+	sed "s/^/${indent}/" <<-EOF
+		(rule
+		 (targets ${module}.stderr ${targ})
+		 (alias test_ast)
+		 (deps
+			 (env_var CPP2V_DOCKER_IMAGE)
+			 (:script $(grealpath "$docker_script" --relative-to "$path"))
+			 (:input ${name}.${ext})
+			 (glob_files_rec ${prefix}*.hpp)${universe})
+		 (action
+			 (with-stderr-to ${module}.stderr ${action})))
+		(alias (name srcs) (deps ${name}.${ext}))
+	EOF
 	# TODO: maybe drop @srcs alias, seems leftover from !2613
 }
 
