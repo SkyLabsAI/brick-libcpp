@@ -35,12 +35,33 @@ Module ostream.
   Section with_cpp.
     Context `{Σ : cpp_logic, σ : genv}.
 
+    (** Run the handler on each character in the string *)
     Fixpoint bs_dos (OS : Ostream) (bs : bs) (K : mpred) : mpred :=
+      |={⊤}=>
       match bs with
       | BS.EmptyString => K
       | BS.String b bs => OS.(do) {[Write $ Byte.to_N b]} $ fun _ => bs_dos OS bs K
       end.
     #[global] Hint Opaque bs_dos : sl_opacity.
+    Lemma bs_dos_fupd OS bs K : bs_dos OS bs K ⊣⊢ |={⊤}=> bs_dos OS bs K.
+    Proof. by destruct bs => /=; rewrite fupd_idemp. Qed.
+
+    #[global] Instance elim_modal_fupd_wp_lval E OS bs p P Q :
+      ElimModal True p false (|={E}=> P) P (bs_dos OS bs Q) (bs_dos OS bs Q).
+    Proof.
+      rewrite /ElimModal. rewrite bi.intuitionistically_if_elim/=.
+      rewrite {2}bs_dos_fupd. iIntros (?) "[>h k] !>"; iApply "k"; done.
+    Qed.
+    #[global] Instance elim_modal_bupd_wp_lval OS bs p P Q :
+      ElimModal True p false (|==> P) P (bs_dos OS bs Q) (bs_dos OS bs Q).
+    Proof.
+      rewrite /ElimModal (bupd_fupd top). exact: elim_modal_fupd_wp_lval.
+    Qed.
+    #[global] Instance add_modal_fupd_wp_lval OS bs P Q : AddModal (|={top}=> P) P (bs_dos OS bs Q).
+    Proof.
+      rewrite/AddModal.
+      rewrite {2}bs_dos_fupd. iIntros "[>h k] !>"; iApply "k"; done.
+    Qed.
 
     #[global]
     Instance bs_dos_proper_frame (OS: Ostream) b
@@ -48,8 +69,9 @@ Module ostream.
     Proof.
       constructor; intros.
       induction b; simpl.
-      { iIntros "X"; iApply ("X" $! ()). }
+      { iIntros "X >K !>"; iRevert "K"; iApply ("X" $! ()). }
       { iIntros "X". destruct OS.
+        iIntros ">Y !>"; iRevert "Y".
         iApply (do_frame {[Write $ Byte.to_N b]}).(kont._frame).
         iIntros ([?[]]); simpl.
         iApply IHb. iAssumption. }
@@ -59,7 +81,6 @@ Module ostream.
     Instance bs_dos_positive_proper_frame_eta (OS: Ostream) b
       : kont.ProperFrame (T:=[tele]) (fun x => bs_dos OS b x).
     Proof. apply bs_dos_proper_frame. Qed.
-
 
     cpp.spec "std::operator<<<std::char_traits<char>>(std::basic_ostream<char, std::char_traits<char>>&, const char*)"
       from source as ostream_insert_spec with (
