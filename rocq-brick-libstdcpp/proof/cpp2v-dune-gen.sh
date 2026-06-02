@@ -65,25 +65,25 @@ outRule() {
 	if [[ -n "$CPP2V_DOCKER_IMAGE" ]]; then
 	    sed "s/^/${indent}/" <<-EOF
 			(rule
-			 (targets ${module}.stderr ${targ})
-			 (alias test_ast)
-			 (deps
-				 (env_var CPP2V_DOCKER_IMAGE)
-				 (:script $(grealpath "$docker_script" --relative-to "$path"))
-				 (:input ${name}.${ext})
-				 (glob_files_rec ${prefix}*.hpp)${universe})
-			 (action
-				 (with-stderr-to ${module}.stderr ${action})))
+				(targets ${module}.stderr ${targ})
+				(alias test_ast)
+				(deps
+					(env_var CPP2V_DOCKER_IMAGE)
+					(:script $(grealpath "$docker_script" --relative-to "$path"))
+					(:input ${name}.${ext})
+					(glob_files_rec ${prefix}*.hpp)${universe})
+			 	(action
+					(with-stderr-to ${module}.stderr ${action})))
 			(alias (name srcs) (deps ${name}.${ext}))
 		EOF
 	else
 		sed "s/^/${indent}/" <<-EOF
 			(rule
-			 (targets ${module}.stderr ${targ})
-			 (alias test_ast)
-			 (deps (:input ${name}.${ext}) (glob_files_rec ${prefix}*.hpp)${universe})
-			 (action
-				 (with-stderr-to ${module}.stderr ${action})))
+				(targets ${module}.stderr ${targ})
+				(alias test_ast)
+				(deps (:input ${name}.${ext}) (glob_files_rec ${prefix}*.hpp)${universe})
+				(action
+					(with-stderr-to ${module}.stderr ${action})))
 			(alias (name srcs) (deps ${name}.${ext}))
 		EOF
 	fi
