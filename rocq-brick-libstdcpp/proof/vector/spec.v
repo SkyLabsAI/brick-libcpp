@@ -17,7 +17,7 @@ Require Export skylabs.brick.libstdcpp.iterator.spec.
 NES.Begin std.
   #[local] Open Scope Z_scope.
 
-  Module Type VECTOR_PREDS.
+  NES.Begin vector.
     #[global] Notation N ty alloc_ty := (Ninst "std::vector" [Atype ty;Atype alloc_ty]) (only parsing).
     #[global] Notation T ty alloc_ty := (Tnamed (N ty alloc_ty)) (only parsing).
 
@@ -206,10 +206,6 @@ NES.Begin std.
       #[global] Declare Instance obs_splineR_array_spine q size st :
           Observe (pureR (array_spine ty (base_pointer st) q 0 (rangeZ 0 size) size)) (spineR q size st).
     End spineR_props.
-
-  End VECTOR_PREDS.
-
-  Module VECTOR_SPECS (Import vector : VECTOR_PREDS).
 
     Module iterator.
       Import skylabs.brick.libstdcpp.iterator.spec.
@@ -857,10 +853,6 @@ NES.Begin std.
     #[global] Hint Resolve congr_spineR : normalize_db.
     #[global] Hint Resolve congr_resizedR : normalize_db.
 
-  End VECTOR_SPECS.
-
-  Module Type VECTOR := VECTOR_PREDS <+ VECTOR_SPECS.
-
-  Declare Module vector : VECTOR.
+  NES.End vector.
 
 NES.End std.
