@@ -80,14 +80,24 @@ Module Aggregate.
       Context `{MOD : test_cpp.module ⊧ σ}.
       Import linearity.
 
+      Lemma copy_ctor_ok :
+        denoteModule module |-- copy_ctor_spec.
+      Proof using MOD. verify_spec. go. Qed.
+      Definition copy_ctor_B := [LINK] copy_ctor_ok.
+
+      Lemma move_ctor_ok :
+        denoteModule module |-- move_ctor_spec.
+      Proof using MOD. verify_spec. go. Qed.
+      Definition move_ctor_B := [LINK] move_ctor_ok.
+
       Lemma ctor_ok :
         denoteModule module |-- ctor_spec.
-      Proof using MOD. verify_spec. go with pick_frac. Qed.
+      Proof using MOD. verify_spec. go. Qed.
       Definition ctor_B := [LINK] ctor_ok.
 
       Lemma dtor_ok :
         denoteModule module |-- dtor_spec.
-      Proof using MOD. verify_spec. go with pick_frac. Qed.
+      Proof using MOD. verify_spec. go. Qed.
       Definition dtor_B := [LINK] dtor_ok.
 
       Import join.manual_expr_condition.
@@ -108,7 +118,7 @@ Module Aggregate.
         case: (bool_decide_reflect (a = b)) => Hab.
         - go using prim.primR_aggressiveC with smash_delayed_case.
           by [].
-        - go with pick_frac smash_delayed_case; iIntros "!%".
+        - go with smash_delayed_case; iIntros "!%".
           + rewrite iff_eqv_both_or_neither; right; split; last by [].
             move => Hzab.
             apply: Hab; by destruct a, b; f_equal.
