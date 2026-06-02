@@ -1,47 +1,17 @@
 #! /bin/bash
 
-# echo
-# echo "DUNE_SOURCEROOT=$DUNE_SOURCEROOT"
-# echo ">>> $0 $@" 1>&2
-# pwd 1>&2
 REL_PATH="$(grealpath `pwd` --relative-to "$DUNE_SOURCEROOT")"
-LOCAL_PATH="$(grealpath `pwd` --relative-to "$DUNE_SOURCEROOT/fmdeps/brick-libcpp")"
-# echo "REL_PATH=$REL_PATH"
-# echo
-# ARGS=( "$@" )
-# i=0
-# while [ $i -lt $# ]; do
-#     echo "args[$i]=${ARGS[$i]}" 1>&2
-#     i=$(( i + 1 ))
-# done
 
-# set -x
 if [[ -n "$CPP2V_DOCKER_IMAGE" ]]; then
     OPAM_ENV='$(opam env)'
     BRICK_LIBCPP=/home/coq/worktree
-    BUILD_BRICK_LIBCPP=/home/coq/worktree/_build/default
     ARGS=()
     ARGS+=( "--platform" "linux/amd64" )
     ARGS+=( "--volume" "${HOME}/.cache/remote_dune:/home/coq/.cache/dune:cached" )
-    ARGS+=( "--volume" "$DUNE_SOURCEROOT:/home/coq/worktree" )
+    ARGS+=( "--volume" "$DUNE_SOURCEROOT:$BRICK_LIBCPP" )
     ARGS+=( "--workdir" "$BRICK_LIBCPP/$REL_PATH" )
-    docker run "${ARGS[@]}" "$CPP2V_DOCKER_IMAGE" /bin/bash -c pwd 1>&2
-    docker run "${ARGS[@]}" "$CPP2V_DOCKER_IMAGE" /bin/bash -c ls  1>&2
-    # foo () {
-    #     echo "hello world" 1>&2
-    # }
-    # export -f foo
-    # docker run "${ARGS[@]}" "$CPP2V_DOCKER_IMAGE" /bin/bash -c foo  1>&2
     CMD=$@
     docker run "${ARGS[@]}" "$CPP2V_DOCKER_IMAGE" /bin/bash -c "eval ${OPAM_ENV} ; cpp2v $CMD "
-    # docker run "${ARGS[@]}" "$CPP2V_DOCKER_IMAGE" /bin/bash -c "pwd ; ls ."
-    # docker run "${ARGS[@]}" "$CPP2V_DOCKER_IMAGE" /bin/bash -c "pwd"
-    # ls -la .
-    # ls -la "$DUNE_SOURCEROOT/fm _build/default/$LOCAL_PATH"
-    # ls -la "$DUNE_SOURCEROOT/fmdeps/brick-libcpp/_build/default/$LOCAL_PATH"
-    # ls -la "$DUNE_SOURCEROOT/fmdeps/brick-libcpp/$LOCAL_PATH"
-    # cat "$DUNE_SOURCEROOT/_build/default/$REL_PATH/inc_new_cpp.v.stderr"
-    # docker run "${ARGS[@]}" "$CPP2V_DOCKER_IMAGE" /bin/bash -c "find . -name inc_new.cpp -print" < /dev/null
 else
     cpp2v "$@"
 fi
