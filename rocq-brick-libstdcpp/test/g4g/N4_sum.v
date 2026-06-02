@@ -24,7 +24,7 @@ Section with_cpp.
 
   cpp.spec "main()" from source as main_spec with (
     \prepost{γ osM} _global "std::cout" |-> ostream.R (OS γ) osM 1$m
-    \prepost Step.updater Sum (⊤ ∖ ↑refinement_rootNS) γ
+    \persist Step.updater Sum (⊤ ∖ ↑refinement_rootNS) γ
     \pre AuthSet.frag γ {[ ostream.format_int 20 ]}
     \post[Vint 0]  AuthSet.frag γ {[ ""%bs ]}).
 

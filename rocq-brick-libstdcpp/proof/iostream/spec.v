@@ -46,8 +46,8 @@ Module ostream.
     Lemma bs_dos_fupd OS bs K : bs_dos OS bs K ⊣⊢ |={⊤}=> bs_dos OS bs K.
     Proof. destruct bs; simpl; rewrite fupd_idemp; done. Qed.
 
-    #[global] Instance elim_modal_fupd_wp_lval OS bs p P Q :
-      ElimModal True p false (|={top}=> P) P (bs_dos OS bs Q) (bs_dos OS bs Q).
+    #[global] Instance elim_modal_fupd_wp_lval E OS bs p P Q :
+      ElimModal True p false (|={E}=> P) P (bs_dos OS bs Q) (bs_dos OS bs Q).
     Proof.
       rewrite /ElimModal. rewrite bi.intuitionistically_if_elim/=.
       rewrite {2}bs_dos_fupd. iIntros (?) "[>h k] !>"; iApply "k"; done.

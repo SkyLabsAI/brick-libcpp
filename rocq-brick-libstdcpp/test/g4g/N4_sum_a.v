@@ -15,7 +15,7 @@ Section with_cpp.
 
   #[local] Instance Sum : App.app := mkApp APP.
   #[program]
-    Definition OS γ : Ostream :=
+  Definition OS γ : Ostream :=
     AppHandler Sum (⊤ ∖ ↑refinement_rootNS) masks.default γ.
 
   (* NOTE: the following two specializations work around issues with the

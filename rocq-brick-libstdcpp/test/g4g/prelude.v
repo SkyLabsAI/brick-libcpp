@@ -203,9 +203,6 @@ Section to_spectra.
   Proof. clear. solve_learnable. Qed.
   Hint Resolve authset_frag_exact_learn : sl_opacity.
 
-  Lemma default_masks_valid : masks.valid masks.default (⊤ ∖ ↑refinement_rootNS).
-  Proof. red. set_solver. Qed.
-
   Lemma use_updater APP E γ sset (_ : exists s, s ∈ sset) (_ : Step.tau_safe APP.(App.lts) sset) :
     Step.updater APP E γ
     ⊢ AuthSet.frag γ sset -∗
@@ -287,7 +284,7 @@ Section to_spectra.
   Proof.
     intros.
     work.
-    lazymatch goal with H : masks.valid _ _ |- _ => rename H into Hvalid end.
+    ren_hyp Hvalid (masks.valid _ _).
     iAcIntro.
     rewrite /commit_acc.
     simpl.
@@ -405,15 +402,16 @@ Section app_handler_hints.
     generalize dependent str.
     induction ANY_STEPS; simpl.
     { destruct str; simpl; try congruence.
-      intros. iIntros "[f #_]" (?) "k". iApply "k"; done. }
+      intros. iIntros "[f #_]" (?) "k". iModIntro. iApply "k"; done. }
     { destruct str; simpl; try congruence.
       inversion 1; subst; intros.
       iIntros "[f #u]" (?) "k".
       eapply (gen_requester_anystep APP) in H.
       iDestruct (H with "f") as "X"; clear H.
+      iModIntro.
       iApply "X".
-      { iPureIntro. exact default_masks_valid. }
-      { iIntros "!> f". iApply (IHANY_STEPS with "[f u] k"). iFrame "#∗". } }
+      { iPureIntro. red. set_solver. }
+      { iIntros "f". iApply (IHANY_STEPS with "[f u] k"). iFrame "#∗". } }
     { (* tau *)
       intros; subst.
       iIntros "[f #u]" (?) "k".
@@ -457,24 +455,22 @@ Proof.
 Qed.
 
 #[global]
-Instance initial_any_steps {str str' rest : bs} :
-  str = str' ->
+Instance initial_any_steps {str rest : bs} :
   AnySteps only_output {[str ++ rest]}%bs
-    ((λ x : N, Write x) <$> BS.string_to_bytes (str'))
+    ((λ x : N, Write x) <$> BS.string_to_bytes str)
     {[rest]}.
 Proof.
-  intros; subst.
   clear.
   revert rest.
-  induction str'.
+  induction str.
   { constructor; set_solver. }
   { simpl.
-    econstructor; [ | eapply IHstr' ].
+    econstructor; [ | eapply IHstr ].
     { constructor.
       { set_solver. }
-      { intros. exists (str' ++ rest)%bs.
+      { intros. exists (str ++ rest)%bs.
         inversion H; subst.
-        have->: (BS.String b str' ++ rest = BS.String b (str' ++ rest))%bs by done.
+        have->: (BS.String b str ++ rest = BS.String b (str ++ rest))%bs by done.
         constructor => //. }
       { inversion 1; subst.
         eexists _; split. set_solver.
@@ -482,13 +478,13 @@ Proof.
 Qed.
 
 #[global]
-Instance final_any_steps {str str' : bs} :
-  str = str' ->
+Instance final_any_steps {str : bs} :
   AnySteps only_output {[str]}
-      ((λ x : N, Write x) <$> BS.string_to_bytes (str'))
+      ((λ x : N, Write x) <$> BS.string_to_bytes str)
       {[""%bs]}.
 Proof.
   intros.
-  have->: str = (str ++ "")%bs by rewrite right_id.
+  have H: str = (str ++ "")%bs by rewrite right_id.
+  rewrite {1}H.
   by apply initial_any_steps.
 Qed.

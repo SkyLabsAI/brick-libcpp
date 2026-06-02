@@ -34,11 +34,6 @@ Section with_cpp.
     \pre AuthSet.frag γ {[ "Hello World"%bs ]}
     \post[Vint 0]  AuthSet.frag γ {[ ""%bs ]}).
 
-  (* Hint Resolve default_masks_valid : pure. *)
-  Hint Extern 0 (masks.valid _ _) => (red; set_solver) : pure.
-
-  Opaque ostream.bs_dos.
-
   Lemma main_ok : verify[source] "main()".
   Proof.
     #[local] Opaque ostream.bs_dos.

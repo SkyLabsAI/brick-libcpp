@@ -13,7 +13,7 @@ Section with_cpp.
 
   #[local] Instance Swap : App.app := mkApp APP.
   #[program]
-    Definition OS γ : Ostream :=
+  Definition OS γ : Ostream :=
     AppHandler Swap (⊤ ∖ ↑refinement_rootNS) masks.default γ.
 
   (* NOTE: the following two specializations work around issues with the
@@ -39,4 +39,3 @@ Section with_cpp.
     work.
   Qed.
 End with_cpp.
-
