@@ -11,9 +11,6 @@ Require Import skylabs.brick.libstdcpp.test.vector.test_cpp.
 
 Require Import skylabs.auto.cpp.prelude.test.
 
-Import auto.lazy.big_sep.hints.
-Import auto.cpp.lazy.big_sep.array.
-
 Module Aggregate.
   Import concepts.
 
@@ -81,7 +78,7 @@ Module Aggregate.
 
     Section proofs.
       Context `{MOD : test_cpp.module ⊧ σ}.
-      Import linearity auto_frac.
+      Import linearity.
 
       Lemma ctor_ok :
         denoteModule module |-- ctor_spec.
@@ -191,7 +188,7 @@ Section with_cpp.
     Implicit Type p : ptr.
 
     Import linearity.
-    Import normalize_ptr only_provable_norm.
+    Import normalize.normalize_ptr normalize.only_provable_norm.
 
     (* UPSTREAM. Where? *)
     #[global] Instance SplitRecord_prod A B : SplitRecord (@prod A B) := {}.
@@ -256,7 +253,6 @@ Section with_cpp.
     Definition test_aggregate_B := [LINK] test_aggregate_ok.
     #[local] Hint Resolve test_aggregate_B : sl_opacity.
 
-    (* TODO: investigate. We get a warning for missing specs but the proof goes through anyway *)
     Lemma test_ok : verify[ source ] test_spec.
     Proof using MOD.
       verify_spec.
