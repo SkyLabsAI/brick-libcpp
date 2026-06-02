@@ -101,7 +101,7 @@ Section with_cpp.
 
   cpp.spec "std::mutex::lock()" as lock_spec_alt with
       (\this this
-      \prepost{q P g} this |-> R g q$m P (* part of both pre and post *)
+      \prepost{q P g} this |-> R g q P (* part of both pre and post *)
       \pre{K} do_lock (g, P) K
       \post K
       ).
@@ -123,7 +123,7 @@ Section with_cpp.
 
   cpp.spec "std::mutex::unlock()" as unlock_spec_alt with
       (\this this
-      \prepost{q P g} this |-> R g q$m P (* part of both pre and post *)
+      \prepost{q P g} this |-> R g q P (* part of both pre and post *)
       \pre{K} do_unlock (g, P) K
       \post K).
 
@@ -150,9 +150,36 @@ Section with_cpp.
   (** <<std::mutex>> implements [BasicLockable] *)
   Definition T : Type := gname * mpred.
 
-  #[global,program] Instance mutex_basic_lockable : BasicLockable (T:=T) "std::mutex" (λ q '(γ, P), R γ q$m P) :=
-  { do_lock := fun this '(γ, P) K => do_lock (γ, P) K
-  ; do_unlock := fun this '(γ, P) K => do_unlock (γ, P) K }.
+  #[global,program] Instance mutex_basic_lockable : BasicLockable (T:=T) "std::mutex" (λ q '(γ, P), R γ q P) :=
+  { do_lock := fun this => do_lock
+  ; do_unlock := fun this => do_unlock }.
+
+  cpp.spec "std::mutex::lock()" as lock_spec_alt' with
+  (\exact Reduce (lock_basic_lockable "std::mutex" (λ q '(γ, P), R γ q P))).
+
+  cpp.spec "std::mutex::unlock()" as unlock_spec_alt' with
+  (\exact Reduce (unlock_basic_lockable "std::mutex" (λ q '(γ, P), R γ q P))).
+
+  Import observe2_fwd.
+  Definition current_thread_agree_F := ltac:(mk_obs2_fwd current_thread_agree).
+  #[local] Hint Resolve current_thread_agree_F : br_hints.
+
+  Lemma lock_spec_alt_equiv_lock_spec_alt' :
+    lock_spec_alt -|- lock_spec_alt'.
+  Proof.
+    iSplit; iApply specify_mono; rewrite /= /do_lock; work with br_erefl.
+    { case_match; ework with br_erefl. }
+    iExists _, (_, _).
+    ework with br_erefl.
+  Qed.
+
+  Lemma unlock_spec_alt_equiv_unlock_spec_alt' :
+    unlock_spec_alt -|- unlock_spec_alt'.
+  Proof.
+    iSplit; iApply specify_mono; rewrite /= /do_unlock; work with br_erefl.
+    { case_match; ework with br_erefl. }
+    iExists _, (_, _). ework with br_erefl.
+  Qed.
 
   (*
   #[global,program] Instance mutex_basic_lockable : BasicLockable (T := gname * Qp * mpred) "std::mutex" (λ q '(thr, γ, q', P), R γ q$m P) :=
