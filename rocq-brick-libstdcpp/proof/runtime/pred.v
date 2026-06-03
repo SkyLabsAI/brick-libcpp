@@ -7,7 +7,7 @@ Require Import skylabs.auto.cpp.prelude.pred.
 Require Import skylabs.auto.cpp.prelude.proof.
 
 Require Import skylabs.auto.core.hints.cancelx_notation.
-Require Import iris.proofmode.tactics.
+Require Import skylabs.iris.extra.proofmode.proofmode.
 
 Parameter thread_idT : Type.
 #[global] Declare Instance thread_idT_inh : Inhabited thread_idT.
