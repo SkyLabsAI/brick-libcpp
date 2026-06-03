@@ -38,7 +38,7 @@ outRule() {
 	if [ "$system" = 1 ]; then
 		universe=" (universe)"
 	fi
-        local cpp2v="%{script} -v %{input} -o ${module} --no-elaborate"
+	local cpp2v="%{script} -v %{input} -o ${module} --no-elaborate"
 	if [ "$gen_names" = 1 ]; then
 		local names="${name}_${ext}_names.v"
 		targ="${targ} ${names}"
@@ -50,8 +50,8 @@ outRule() {
 		cpp2v="${cpp2v} --templates=${templates}"
 		targ="$targ ${templates}"
 	fi
-        local REALPATH="$(which grealpath || which realpath)"
-        local wrapper="$($REALPATH "$docker_script" --relative-to "$path")"
+	local REALPATH="$(which grealpath || which realpath)"
+	local wrapper="$($REALPATH "$docker_script" --relative-to "$path")"
 	action="(run ${cpp2v} ${1+ $@} ${clang_options})"
 	sed "s/^/${indent}/" <<-EOF
 		(rule
