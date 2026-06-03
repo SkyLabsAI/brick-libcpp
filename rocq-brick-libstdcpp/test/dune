@@ -31,7 +31,7 @@
   tactic_classes
   skylabs.brick.libstdcpp
   ; transitive dependencies
-  Corelib Flocq elpi.apps.NES.elpi elpi.apps.derive elpi.apps.derive.elpi
+  Flocq elpi.apps.NES.elpi elpi.apps.derive elpi.apps.derive.elpi
   elpi.apps.locker.elpi
  ))
 (include dune.inc)
