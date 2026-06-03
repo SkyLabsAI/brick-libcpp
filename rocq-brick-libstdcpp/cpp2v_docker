@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-REL_PATH="$(grealpath `pwd` --relative-to "$DUNE_SOURCEROOT")"
+REALPATH=$(which grealpath || which realpath)
+REL_PATH="$($REALPATH `pwd` --relative-to "$DUNE_SOURCEROOT")"
 
 if [[ -n "$CPP2V_DOCKER_IMAGE" ]]; then
 	OPAM_ENV='$(opam env)'
