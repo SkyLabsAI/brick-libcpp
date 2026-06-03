@@ -4,7 +4,6 @@ REALPATH=$(which grealpath || which realpath)
 REL_PATH="$($REALPATH `pwd` --relative-to "$DUNE_SOURCEROOT")"
 
 if [[ -n "$CPP2V_DOCKER_IMAGE" ]]; then
-	OPAM_ENV='$(opam env)'
 	BRICK_LIBCPP=/home/coq/worktree
 	ARGS=()
 	ARGS+=( "--platform" "linux/amd64" )
@@ -13,7 +12,8 @@ if [[ -n "$CPP2V_DOCKER_IMAGE" ]]; then
 	ARGS+=( "--workdir" "$BRICK_LIBCPP/$REL_PATH" )
 
 	CMD="$( printf '"%q" ' "$@" )" # ensure each argument is quoted as a whole.
-	docker run "${ARGS[@]}" "$CPP2V_DOCKER_IMAGE" /bin/bash -c "eval ${OPAM_ENV} ; cpp2v $CMD "
+	docker run "${ARGS[@]}" "$CPP2V_DOCKER_IMAGE" \
+		/bin/bash -c 'eval $(opam env)'"; cpp2v $CMD"
 else
 	next=$DUNE_SOURCEROOT/_build/install/default/bin/cpp2v
 	[ -e $next ] || next='opam exec -- cpp2v'
