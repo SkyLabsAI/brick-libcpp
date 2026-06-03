@@ -17,6 +17,16 @@ usage() {
 	exit 1
 }
 
+set_gen_opts() {
+	universe=""
+	if [ "$system" = 1 ]; then
+		universe=" (universe)"
+	fi
+
+	local cpp2v_gen_extra_opts="--no-elaborate"
+        cpp2v_gen_extra_opts="${cpp2v_gen_extra_opts} ${1+ $@}"
+}
+
 outRule() {
 	local indent fullName name ext
 	indent="$1"
@@ -31,28 +41,26 @@ outRule() {
 	fi
 	ext="${fullName##*.}"
 
-	local module="${name}_${ext}.v"
-	local targ="${module}"
-	local clang_options=""
 	local universe=""
 	if [ "$system" = 1 ]; then
 		universe=" (universe)"
 	fi
-	local cpp2v="%{script} -v %{input} -o ${module} --no-elaborate"
-	if [ "$gen_names" = 1 ]; then
-		local names="${name}_${ext}_names.v"
-		targ="${targ} ${names}"
-		cpp2v="${cpp2v} -names ${names}"
-	fi
+
+	local cpp2v_extra_opts="--no-elaborate"
+
+	local module="${name}_${ext}.v"
+	local targ="${module}"
 
 	if [ "$templates" = 1 ]; then
 		local templates="${name}_${ext}_templates.v"
-		cpp2v="${cpp2v} --templates=${templates}"
+		cpp2v_extra_opts="${cpp2v_extra_opts} --templates=${templates}"
 		targ="$targ ${templates}"
 	fi
+
+        cpp2v_extra_opts="${cpp2v_extra_opts} ${1+ $@}"
+
 	local REALPATH="$(which grealpath || which realpath)"
 	local wrapper="$($REALPATH "$docker_script" --relative-to "$path")"
-	action="(run ${cpp2v} ${1+ $@} ${clang_options})"
 	sed "s/^/${indent}/" <<-EOF
 		(rule
 		 (targets ${module}.stderr ${targ})
@@ -63,7 +71,8 @@ outRule() {
                   (:input ${name}.${ext})
                   (glob_files_rec ${prefix}*.hpp)${universe})
 		 (action
-                  (with-stderr-to ${module}.stderr ${action})))
+                  (with-stderr-to ${module}.stderr
+                   (run %{script} -v %{input} -o ${module} ${cpp2v_extra_opts}))))
 		(alias (name srcs) (deps ${name}.${ext}))
 	EOF
 	# TODO: maybe drop @srcs alias, seems leftover from !2613
@@ -130,6 +139,8 @@ done
 
 path="$1"
 shift
+
+set_gen_opts "$@"
 
 traverse "" "$path" "$@"
 
