@@ -58,12 +58,12 @@ outRule() {
 		 (targets ${module}.stderr ${targ})
 		 (alias test_ast)
 		 (deps
-			 (env_var CPP2V_DOCKER_IMAGE)
-			 (:script ${wrapper})
-			 (:input ${name}.${ext})
-			 (glob_files_rec ${prefix}*.hpp)${universe})
+                  (env_var CPP2V_DOCKER_IMAGE)
+                  (:script ${wrapper})
+                  (:input ${name}.${ext})
+                  (glob_files_rec ${prefix}*.hpp)${universe})
 		 (action
-			 (with-stderr-to ${module}.stderr ${action})))
+                  (with-stderr-to ${module}.stderr ${action})))
 		(alias (name srcs) (deps ${name}.${ext}))
 	EOF
 	# TODO: maybe drop @srcs alias, seems leftover from !2613
