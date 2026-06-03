@@ -14,5 +14,7 @@ if [[ -n "$CPP2V_DOCKER_IMAGE" ]]; then
 	CMD=$@
 	docker run "${ARGS[@]}" "$CPP2V_DOCKER_IMAGE" /bin/bash -c "eval ${OPAM_ENV} ; cpp2v $CMD "
 else
-	cpp2v "$@"
+	next=$DUNE_SOURCEROOT/_build/install/default/bin/cpp2v
+	[ -e $next ] || next='opam exec -- cpp2v'
+	$next "$@"
 fi
