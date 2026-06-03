@@ -11,9 +11,9 @@ if [[ -n "$CPP2V_DOCKER_IMAGE" ]]; then
 	ARGS+=( "--volume" "$DUNE_SOURCEROOT:$BRICK_LIBCPP" )
 	ARGS+=( "--workdir" "$BRICK_LIBCPP/$REL_PATH" )
 
-	CMD="$( printf '"%q" ' "$@" )" # ensure each argument is quoted as a whole.
+	cpp2v_args="$( printf '"%q" ' "$@" )" # ensure each argument is quoted as a whole.
 	docker run "${ARGS[@]}" "$CPP2V_DOCKER_IMAGE" \
-		/bin/bash -c 'eval $(opam env)'"; cpp2v $CMD"
+		/bin/bash -c 'eval $(opam env)'"; cpp2v $cpp2v_args"
 else
 	next=$DUNE_SOURCEROOT/_build/install/default/bin/cpp2v
 	[ -e $next ] || next='opam exec -- cpp2v'
