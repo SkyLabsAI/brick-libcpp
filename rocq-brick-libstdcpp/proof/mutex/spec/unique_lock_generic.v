@@ -57,12 +57,12 @@ Section with_cpp.
 
   Section with_threads.
     Context {σ : genv}.
-
     Context `{HAS_THREADS : !HasStdThreads Σ}.
-    Context ty {mutexT} mutexR `{!BasicLockable ty (T:=mutexT) mutexR}.
 
-    #[global] Instance: LearnEqF1 (R ty mutexR) := ltac:(solve_learnable).
+    Context ty {mutexT} mutexR `{!BasicLockable ty (T:=mutexT) mutexR}.
     #[local] Notation R := (R ty (T:=mutexT) mutexR).
+
+    #[global] Instance: LearnEqF1 R := ltac:(solve_learnable).
 
     (* TODO: all the following specs should be generalized over the lock type, except for [lock_spec] and [unlock_spec]. *)
 
