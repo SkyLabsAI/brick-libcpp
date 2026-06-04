@@ -16,16 +16,19 @@ Section with_cpp.
     verify_spec; go.
     iExists emp.
     go.
-    iExists _. go.
-    learn_exist.
-    iExists (pair _ _).
-    progress learn_exist.
+    rename t into γ.
+    iExists ?[q]. go.
+    Fail progress learn_exist.
+    iExists (pair ?[γ] ?[P]).
     Set SL Debug "@default=1".
-    with_log! learn_exist.
+    with_log! progress learn_exist.
+    (* Instantiates both ?γ and ?P ! *)
+
+    Succeed solve [go; iExists _, (pair _ _); go].
+    Fail progress learn_exist.
     (* progress with_log! learn_exist. *)
     with_log! step.
-    go.
-    iExists _, (pair _ _).
+    Set SL Debug "@default=0".
     go.
     iExists _, (pair _ _).
     go.
