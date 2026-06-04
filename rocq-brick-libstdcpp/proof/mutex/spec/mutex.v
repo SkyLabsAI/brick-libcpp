@@ -73,6 +73,7 @@ Section with_cpp.
         (* ▷ *)
         (token g q -* Q)
       end.
+  #[global] Arguments do_unlock /.
 
   Definition do_lock (lk : gname * mpred) (K: mpred) : mpred :=
       match lk with
@@ -82,6 +83,7 @@ Section with_cpp.
         (* ▷ *)
         (locked g thr q ** ▷P -* K)
       end.
+  #[global] Arguments do_lock /.
 
   cpp.spec "std::mutex::mutex()" as ctor_spec with
       (\this this
@@ -135,7 +137,6 @@ Section with_cpp.
   Lemma lock_spec_entails_lock_spec_alt : lock_spec |-- lock_spec_alt.
   Proof.
     apply specify_mono.
-    rewrite /do_lock.
     ework with br_erefl.
   Qed.
 
@@ -143,7 +144,6 @@ Section with_cpp.
   Lemma unlock_spec_entails_unlock_spec_alt : unlock_spec |-- unlock_spec_alt.
   Proof.
     apply specify_mono.
-    rewrite /do_unlock.
     ework with br_erefl.
   Qed.
 
@@ -163,7 +163,7 @@ Section with_cpp.
   Lemma lock_spec_alt_equiv_lock_spec_alt' :
     lock_spec_alt -|- lock_spec_alt'.
   Proof.
-    iSplit; iApply specify_mono; rewrite /= /do_lock; work with br_erefl.
+    iSplit; iApply specify_mono; work with br_erefl.
     { case_match; ework with br_erefl. }
     iExists _, (_, _).
     ework with br_erefl.
@@ -172,7 +172,7 @@ Section with_cpp.
   Lemma unlock_spec_alt_equiv_unlock_spec_alt' :
     unlock_spec_alt -|- unlock_spec_alt'.
   Proof.
-    iSplit; iApply specify_mono; rewrite /= /do_unlock; work with br_erefl.
+    iSplit; iApply specify_mono; work with br_erefl.
     { case_match; ework with br_erefl. }
     iExists _, (_, _). ework with br_erefl.
   Qed.
