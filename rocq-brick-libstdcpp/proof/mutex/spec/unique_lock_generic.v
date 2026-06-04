@@ -75,7 +75,7 @@ Section with_cpp.
     Definition mutex_ctor_spec_body : ptr -> WpSpec mpred val val :=
       \this this
       \arg{mp} "" (Vptr mp)
-      \pre{q m} mp |-> mutexR q$m m
+      \pre{q m} mp |-> mutexR q m
       \pre{K} do_lock mp m K
       \post
         this |-> R 1$m (Some {| is_held := true ; mutex_ptr := mp ; mutex_q := q ; mutex_m := m |}) **
