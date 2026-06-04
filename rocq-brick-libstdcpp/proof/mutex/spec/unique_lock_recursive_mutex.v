@@ -2,7 +2,7 @@ Require Import skylabs.auto.cpp.prelude.proof.
 Require Import skylabs.brick.libstdcpp.mutex.inc_hpp.
 
 Require Export skylabs.brick.libstdcpp.runtime.pred.
-Require Import skylabs.brick.libstdcpp.mutex.spec.mutex.
+Require Import skylabs.brick.libstdcpp.mutex.spec.recursive_mutex.
 Require Import skylabs.brick.libstdcpp.mutex.requirements.
 
 
@@ -59,7 +59,20 @@ Section with_cpp.
     Context {σ : genv}.
     Context `{HAS_THREADS : !HasStdThreads Σ}.
 
+    (* abstract over BasicLockable instance. TODO: readd *)
+    (*
     Context ty {mutexT} mutexR `{!BasicLockable ty (T:=mutexT) mutexR}.
+    *)
+
+    (* specialize to recursive mutex START. TODO: drop*)
+    Context `{!recursive_mutex.lockedG Σ}.
+    Context `{!HasOwn (iPropI _) recursive_mutex.cmraR}.
+
+    Notation ty := "std::recursive_mutex"%cpp_type (only parsing).
+    Notation mutexT := recursive_mutex.rmutex_gname (only parsing).
+    Notation mutexR := (λ q γ, recursive_mutex.R γ.(recursive_mutex.lock_gname) q)  (only parsing).
+    (* specialize to recursive mutex END. TODO: drop*)
+
     #[local] Notation R := (R ty (T:=mutexT) mutexR).
 
     #[global] Instance: LearnEqF1 R := ltac:(solve_learnable).
@@ -110,9 +123,9 @@ Section with_cpp.
       | Some {| is_held := is_held ; mutex_ptr := mp ; mutex_q := q ; mutex_m := m |} =>
         if is_held then
           letI* := do_unlock mp m in
-          mp |-> mutexR q$m m -* Q
+          mp |-> mutexR q$m%cQp m -* Q
         else
-          ▷ (mp |-> mutexR q$m m -* Q)
+          ▷ (mp |-> mutexR q$m%cQp m -* Q)
       | _ =>
       (* TODO should this be [bi_later Q]? *)
         Q
@@ -139,7 +152,7 @@ Section with_cpp.
         end
       \post K **
         match om with
-        | Some m => m.(mutex_ptr) |-> mutexR m.(mutex_q)$m m.(mutex_m)
+        | Some m => m.(mutex_ptr) |-> mutexR m.(mutex_q)$m%cQp m.(mutex_m)
         | None => emp
         end.
 
@@ -180,7 +193,7 @@ Section with_cpp.
         other |-> R 1$m None **
         K **
         match om1 with
-        | Some m => m.(mutex_ptr) |-> mutexR m.(mutex_q)$m m.(mutex_m)
+        | Some m => m.(mutex_ptr) |-> mutexR m.(mutex_q)$m%cQp m.(mutex_m)
         | None => emp
         end
       ).
