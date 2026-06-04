@@ -150,22 +150,24 @@ Section with_cpp.
   (** <<std::mutex>> implements [BasicLockable] *)
   Definition T : Type := gname * mpred.
 
-  #[global,program] Instance mutex_basic_lockable : BasicLockable (T:=T) "std::mutex" (λ q '(γ, P), R γ q P) :=
+  (* TODO UPSTREAM. *)
+  #[global] Instance SplitRecord_prod A B : SplitRecord (@prod A B) := {}.
+
+  #[global,program] Instance mutex_basic_lockable : BasicLockable (T:=T) "std::mutex" (λ q γP, R γP.1 q γP.2) :=
   { do_lock := fun this => do_lock
   ; do_unlock := fun this => do_unlock }.
 
   cpp.spec "std::mutex::lock()" as lock_spec_alt' with
-  (\exact Reduce (lock_basic_lockable "std::mutex" (λ q '(γ, P), R γ q P))).
+  (\exact Reduce (lock_basic_lockable "std::mutex" (λ q γP, R γP.1 q γP.2))).
 
   cpp.spec "std::mutex::unlock()" as unlock_spec_alt' with
-  (\exact Reduce (unlock_basic_lockable "std::mutex" (λ q '(γ, P), R γ q P))).
+  (\exact Reduce (unlock_basic_lockable "std::mutex" (λ q γP, R γP.1 q γP.2))).
 
   Lemma lock_spec_alt_equiv_lock_spec_alt' :
     lock_spec_alt -|- lock_spec_alt'.
   Proof.
     iSplit; iApply specify_mono; work with br_erefl.
     { case_match; ework with br_erefl. }
-    iExists _, (_, _).
     ework with br_erefl.
   Qed.
 
@@ -174,7 +176,7 @@ Section with_cpp.
   Proof.
     iSplit; iApply specify_mono; work with br_erefl.
     { case_match; ework with br_erefl. }
-    iExists _, (_, _). ework with br_erefl.
+    ework with br_erefl.
   Qed.
 
   (*
