@@ -7,10 +7,28 @@ Section with_cpp.
 
   cpp.spec "test_mutex()" as test_mutex_spec from source with (\post emp).
 
+  Arguments mutex.do_lock /.
+  Arguments mutex.do_unlock /.
+
+  #[global] Instance SplitRecord_prod A B : SplitRecord (@prod A B) := {}.
   Theorem test_mutex_ok : verify[source] "test_mutex()".
   Proof.
     verify_spec; go.
-    iExists emp; go.
+    iExists emp.
+    go.
+    iExists _. go.
+    learn_exist.
+    iExists (pair _ _).
+    progress learn_exist.
+    Set SL Debug "@default=1".
+    with_log! learn_exist.
+    (* progress with_log! learn_exist. *)
+    with_log! step.
+    go.
+    iExists _, (pair _ _).
+    go.
+    iExists _, (pair _ _).
+    go.
   Qed.
 
   cpp.spec "test_lock_guard()" as test_lock_guard_spec from source with (\post emp).
