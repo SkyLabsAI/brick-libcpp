@@ -64,10 +64,22 @@ Section with_cpp.
   #[global] Instance locked_learn : Cbn (Learn (req_eq ==> learn_eq ==> learn_eq ==> learn_hints.fin) locked).
   Proof. solve_learnable. Qed.
 
+Require Import skylabs.upoly.upoly.
+Import skylabs.upoly.prod.
+
+  (** <<std::mutex>> implements [BasicLockable] *)
+  Definition T : Type := gname * mpred.
+  Set Printing All.
+  Print T.
+  About prod.
+  About UTypes.prod.
+  Unset Printing All.
+
+  (* TODO UPSTREAM. *)
+  #[global] Instance SplitRecord_prod A B : SplitRecord (@UTypes.prod A B) := {}.
 
   Definition do_unlock (lk : gname * mpred) (Q : mpred) : mpred :=
-    let g := lk.1 in
-    let P := lk.2 in
+    let (g, P) := lk in
     Exists q thr, current_thread thr ** locked g thr q ** ▷P **
     (* TODO readd *)
     (* ▷ *)
@@ -75,8 +87,7 @@ Section with_cpp.
   #[global] Arguments do_unlock /.
 
   Definition do_lock (lk : gname * mpred) (K: mpred) : mpred :=
-    let g := lk.1 in
-    let P := lk.2 in
+    let (g, P) := lk in
     ∃ q thr, current_thread thr ∗ token g q ∗
     (* TODO readd *)
     (* ▷ *)
@@ -145,13 +156,10 @@ Section with_cpp.
     ework with br_erefl.
   Qed.
 
-  (** <<std::mutex>> implements [BasicLockable] *)
-  Definition T : Type := gname * mpred.
-
-  (* TODO UPSTREAM. *)
-  #[global] Instance SplitRecord_prod A B : SplitRecord (@prod A B) := {}.
-
-  #[global,program] Instance mutex_basic_lockable : BasicLockable (T:=T) "std::mutex" (λ q γP, R γP.1 q γP.2) :=
+  #[global,program] Instance mutex_basic_lockable :
+    BasicLockable (T:=T) "std::mutex"
+    (λ q γP, let (γ, P) := γP in R γ q P)
+  :=
   { do_lock := fun this => do_lock
   ; do_unlock := fun this => do_unlock }.
 
@@ -163,6 +171,10 @@ Section with_cpp.
 
   Lemma lock_spec_alt_equiv_lock_spec_alt' :
     lock_spec_alt -|- lock_spec_alt'.
+  Proof.
+    iSplit; iApply specify_mono; work.
+    ework.
+    ework with br_erefl. Qed.
   Proof. iSplit; iApply specify_mono; ework with br_erefl. Qed.
 
   Lemma unlock_spec_alt_equiv_unlock_spec_alt' :
