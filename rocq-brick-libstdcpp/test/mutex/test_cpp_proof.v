@@ -7,9 +7,6 @@ Section with_cpp.
 
   cpp.spec "test_mutex()" as test_mutex_spec from source with (\post emp).
 
-  Arguments mutex.do_lock /.
-  Arguments mutex.do_unlock /.
-
   (* TODO UPSTREAM. But it's not helping yet? *)
   #[global] Instance SplitRecord_prod A B : SplitRecord (@prod A B) := {}.
 
