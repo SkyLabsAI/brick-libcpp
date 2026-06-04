@@ -72,15 +72,20 @@ Section with_cpp.
       \post this |-> R 1$m None
     ).
 
-    cpp.spec "std::unique_lock<std::mutex>::unique_lock(std::mutex&)" as mutex_ctor_spec_alt from source with (
+    Definition mutex_ctor_spec_body : ptr -> WpSpec mpred val val :=
       \this this
       \arg{mp} "" (Vptr mp)
       \pre{q m} mp |-> mutexR q$m m
       \pre{K} do_lock mp m K
       \post
         this |-> R 1$m (Some {| is_held := true ; mutex_ptr := mp ; mutex_q := q ; mutex_m := m |}) **
-        K
-    ).
+        K.
+
+    cpp.spec "std::unique_lock<std::mutex>::unique_lock(std::mutex&)" as
+      mutex_ctor_spec_alt from source with ( mutex_ctor_spec_body ).
+
+    cpp.spec "std::unique_lock<std::recursive_mutex>::unique_lock(std::recursive_mutex&)" as
+      mutex_ctor_spec_recursive_mutex from source with ( mutex_ctor_spec_body ).
 
     cpp.spec "std::unique_lock<std::mutex>::unique_lock(std::mutex&, std::defer_lock_t)" as mutex_defer_ctor_spec from source with (
       \this this
@@ -122,7 +127,7 @@ Section with_cpp.
       \post K
       ).
 
-    cpp.spec "std::unique_lock<std::mutex>::~unique_lock()" as dtor_spec from source with (
+    Definition dtor_spec_body : ptr -> WpSpec mpred val val :=
       \this this
       \pre{om} this |-> R 1$m om
       \pre{K}
@@ -136,8 +141,12 @@ Section with_cpp.
         match om with
         | Some m => m.(mutex_ptr) |-> mutexR m.(mutex_q)$m m.(mutex_m)
         | None => emp
-        end
-      ).
+        end.
+
+    cpp.spec "std::unique_lock<std::mutex>::~unique_lock()" as dtor_spec from source with ( dtor_spec_body ).
+
+    (* have to duplicate dtor_spec for all the template argument for now *)
+    cpp.spec "std::unique_lock<std::recursive_mutex>::~unique_lock()" as dtor_spec_recursive_mutex from source with ( dtor_spec_body ).
 
     (* unlock the associated mutex, if any, and set input as the associated mutex.
     Should be equivalent to move_assign_spec. *)
