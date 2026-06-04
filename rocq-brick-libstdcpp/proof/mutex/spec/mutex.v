@@ -69,23 +69,21 @@ Section with_cpp.
 
 
   Definition do_unlock (lk : gname * mpred) (Q : mpred) : mpred :=
-      match lk with
-      | (g, P) =>
-        Exists q thr, current_thread thr ** locked g thr q ** ▷P **
-        (* TODO readd *)
-        (* ▷ *)
-        (token g q -* Q)
-      end.
+    let g := lk.1 in
+    let P := lk.2 in
+    Exists q thr, current_thread thr ** locked g thr q ** ▷P **
+    (* TODO readd *)
+    (* ▷ *)
+    (token g q -* Q).
   #[global] Arguments do_unlock /.
 
   Definition do_lock (lk : gname * mpred) (K: mpred) : mpred :=
-      match lk with
-      | (g, P) =>
-        ∃ q thr, current_thread thr ∗ token g q ∗
-        (* TODO readd *)
-        (* ▷ *)
-        (locked g thr q ** ▷P -* K)
-      end.
+    let g := lk.1 in
+    let P := lk.2 in
+    ∃ q thr, current_thread thr ∗ token g q ∗
+    (* TODO readd *)
+    (* ▷ *)
+    (locked g thr q ** ▷P -* K).
   #[global] Arguments do_lock /.
 
   cpp.spec "std::mutex::mutex()" as ctor_spec with
@@ -165,17 +163,11 @@ Section with_cpp.
 
   Lemma lock_spec_alt_equiv_lock_spec_alt' :
     lock_spec_alt -|- lock_spec_alt'.
-  Proof.
-    iSplit; iApply specify_mono; work with br_erefl;
-      try case_match; ework with br_erefl.
-  Qed.
+  Proof. iSplit; iApply specify_mono; ework with br_erefl. Qed.
 
   Lemma unlock_spec_alt_equiv_unlock_spec_alt' :
     unlock_spec_alt -|- unlock_spec_alt'.
-  Proof.
-    iSplit; iApply specify_mono; work with br_erefl;
-      try case_match; ework with br_erefl.
-  Qed.
+  Proof. iSplit; iApply specify_mono; ework with br_erefl. Qed.
 
   (*
   #[global,program] Instance mutex_basic_lockable : BasicLockable (T := gname * Qp * mpred) "std::mutex" (λ q '(thr, γ, q', P), R γ q$m P) :=
