@@ -11,7 +11,7 @@ struct C {
 
   void inc() {
     std::unique_lock<std::recursive_mutex> lk(m);
-    value = 42;
+    value++;
   }
   void other_answer() {
     std::unique_lock<std::recursive_mutex> lk(m);
