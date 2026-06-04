@@ -66,7 +66,7 @@ Section with_cpp.
 
     (* TODO: all the following specs should be generalized over the lock type, except for [lock_spec] and [unlock_spec]. *)
 
-    cpp.spec "std::unique_lock<std::mutex>::unique_lock()"
+    cpp.spec "std::unique_lock<std::recursive_mutex>::unique_lock()"
       as default_ctor_spec from source with (
       \this this
       \post this |-> R 1$m None
@@ -81,13 +81,13 @@ Section with_cpp.
         this |-> R 1$m (Some {| is_held := true ; mutex_ptr := mp ; mutex_q := q ; mutex_m := m |}) **
         K.
 
-    cpp.spec "std::unique_lock<std::mutex>::unique_lock(std::mutex&)" as
-      mutex_ctor_spec_alt from source with ( mutex_ctor_spec_body ).
+    (* cpp.spec "std::unique_lock<std::recursive_mutex>::unique_lock(std::recursive_mutex&)" as
+      mutex_ctor_spec_alt from source with ( mutex_ctor_spec_body ). *)
 
     cpp.spec "std::unique_lock<std::recursive_mutex>::unique_lock(std::recursive_mutex&)" as
       mutex_ctor_spec_recursive_mutex from source with ( mutex_ctor_spec_body ).
 
-    cpp.spec "std::unique_lock<std::mutex>::unique_lock(std::mutex&, std::defer_lock_t)" as mutex_defer_ctor_spec from source with (
+    cpp.spec "std::unique_lock<std::recursive_mutex>::unique_lock(std::recursive_mutex&, std::defer_lock_t)" as mutex_defer_ctor_spec from source with (
       \this this
       \arg{mp} "" (Vptr mp)
       \pre{q m} mp |-> mutexR q$m m
@@ -95,7 +95,7 @@ Section with_cpp.
       \post this |-> R 1$m (Some {| is_held := false ; mutex_ptr := mp ; mutex_q := q ; mutex_m := m |})
     ).
 
-    cpp.spec "std::unique_lock<std::mutex>::unique_lock(std::unique_lock<std::mutex> &&)" as move_ctor_spec from source with (
+    cpp.spec "std::unique_lock<std::recursive_mutex>::unique_lock(std::unique_lock<std::recursive_mutex> &&)" as move_ctor_spec from source with (
       \this this
       \arg{other} "" (Vptr other)
       \pre{om} other |-> R 1$m om
@@ -120,7 +120,7 @@ Section with_cpp.
 
     (* spec for dtor written with do_unlock.
     Should be equivalent to dtor_spec. *)
-    cpp.spec "std::unique_lock<std::mutex>::~unique_lock()" as dtor_spec_alt from source with (
+    cpp.spec "std::unique_lock<std::recursive_mutex>::~unique_lock()" as dtor_spec_alt from source with (
       \this this
       \pre{om} this |-> R 1$m om
       \pre{K} ensure_unlock om K
@@ -143,14 +143,14 @@ Section with_cpp.
         | None => emp
         end.
 
-    cpp.spec "std::unique_lock<std::mutex>::~unique_lock()" as dtor_spec from source with ( dtor_spec_body ).
+    cpp.spec "std::unique_lock<std::recursive_mutex>::~unique_lock()" as dtor_spec from source with ( dtor_spec_body ).
 
     (* have to duplicate dtor_spec for all the template argument for now *)
     cpp.spec "std::unique_lock<std::recursive_mutex>::~unique_lock()" as dtor_spec_recursive_mutex from source with ( dtor_spec_body ).
 
     (* unlock the associated mutex, if any, and set input as the associated mutex.
     Should be equivalent to move_assign_spec. *)
-    cpp.spec "std::unique_lock<std::mutex>::operator=(std::unique_lock<std::mutex> &&)" as move_assign_spec_alt from source with (
+    cpp.spec "std::unique_lock<std::recursive_mutex>::operator=(std::unique_lock<std::recursive_mutex> &&)" as move_assign_spec_alt from source with (
       \this this
       \arg{other} "" (Vptr other)
       \pre{om1} this |-> R 1$m om1
@@ -162,7 +162,7 @@ Section with_cpp.
         K
       ).
 
-    cpp.spec "std::unique_lock<std::mutex>::operator=(std::unique_lock<std::mutex> &&)" as move_assign_spec from source with (
+    cpp.spec "std::unique_lock<std::recursive_mutex>::operator=(std::unique_lock<std::recursive_mutex> &&)" as move_assign_spec from source with (
       \this this
       \arg{other} "" (Vptr other)
       \pre{om1} this |-> R 1$m om1
@@ -190,13 +190,13 @@ Section with_cpp.
       \prepost{om q} this |-> R q om
       \post [Vbool (owned om)] emp) (only parsing).
 
-    cpp.spec "std::unique_lock<std::mutex>::owns_lock() const" as owns_lock_spec
+    cpp.spec "std::unique_lock<std::recursive_mutex>::owns_lock() const" as owns_lock_spec
       from source with (owns_lock_spec_body).
 
-    cpp.spec "std::unique_lock<std::mutex>::operator bool() const" as operator_bool_spec
+    cpp.spec "std::unique_lock<std::recursive_mutex>::operator bool() const" as operator_bool_spec
       from source with (owns_lock_spec_body).
 
-    cpp.spec "std::unique_lock<std::mutex>::mutex() const" as mutex_spec from source with (
+    cpp.spec "std::unique_lock<std::recursive_mutex>::mutex() const" as mutex_spec from source with (
       \this this
       \prepost{om q} this |-> R q om
       \post[Vptr (mutex om)] emp
@@ -207,7 +207,7 @@ Section with_cpp.
     (* these preconditions statically rule out cases that throw exceptions, such as:
     - If there is no associated mutex, std::system_error with an error code of std::errc::operation_not_permitted.
     - If the mutex is already locked by this unique_lock (in other words, owns_lock() is true), std::system_error with an error code of std::errc::resource_deadlock_would_occur. *)
-    cpp.spec "std::unique_lock<std::mutex>::lock()" as lock_spec from source with (
+    cpp.spec "std::unique_lock<std::recursive_mutex>::lock()" as lock_spec from source with (
       \this this
       \pre{mm} this |-> R 1$m (Some mm)
       \require ~~ mm.(is_held)
@@ -216,7 +216,7 @@ Section with_cpp.
         this |-> R 1$m (Some (mm &: _is_held .= true)%lens) **
         K).
 
-    cpp.spec "std::unique_lock<std::mutex>::unlock()" as unlock_spec from source with (
+    cpp.spec "std::unique_lock<std::recursive_mutex>::unlock()" as unlock_spec from source with (
       \this this
       \pre{mm} this |-> R 1$m (Some mm)
       \require mm.(is_held)
