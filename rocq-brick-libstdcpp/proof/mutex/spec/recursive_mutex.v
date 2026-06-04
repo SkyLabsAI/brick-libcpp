@@ -397,6 +397,7 @@ cinv (
     Context `{Σ : cpp_logic} `{MOD : source ⊧ σ}.
     Context {HAS_THREADS : HasStdThreads Σ}.
     Context `{!lockedG Σ}.
+    Context `{!HasOwn (iPropI _) cmraR}.
 
     (* Alternative style:
        <<
@@ -421,8 +422,6 @@ cinv (
       - exists 0. naive_solver.
       - exists (S n). naive_solver.
     Qed.
-
-    Context `{!HasOwn (iPropI _) cmraR}.
 
     #[program]
     Definition acquireable_is_acquired_C {TT} g th t t' P
@@ -563,7 +562,7 @@ cinv (
         K).
     #[global] Arguments do_unlock /.
 
-    #[global,program] Instance recursive_mutex_basic_lockable : BasicLockable (T:=rmutex_gname) "std::recursive_mutex" (λ q γ, R γ.(lock_gname) q) :=
+    #[global] Instance recursive_mutex_basic_lockable : BasicLockable (T:=rmutex_gname) "std::recursive_mutex" (λ q γ, R γ.(lock_gname) q) :=
     { do_lock := fun this => do_lock
     ; do_unlock := fun this => do_unlock }.
 
