@@ -65,10 +65,10 @@ Section with_cpp.
   Proof. solve_learnable. Qed.
 
 Require Import skylabs.upoly.upoly.
-Import skylabs.upoly.prod.
+(* Import skylabs.upoly.prod. *)
 
   (** <<std::mutex>> implements [BasicLockable] *)
-  Definition T : Type := gname * mpred.
+  Definition T : Type := UTypes.prod gname mpred.
   Set Printing All.
   Print T.
   About prod.
@@ -78,15 +78,15 @@ Import skylabs.upoly.prod.
   (* TODO UPSTREAM. *)
   #[global] Instance SplitRecord_prod A B : SplitRecord (@UTypes.prod A B) := {}.
 
-  Definition do_unlock (lk : gname * mpred) (Q : mpred) : mpred :=
+  Definition do_unlock (lk : T) (Q : mpred) : mpred :=
     let (g, P) := lk in
     Exists q thr, current_thread thr ** locked g thr q ** ▷P **
     (* TODO readd *)
     (* ▷ *)
     (token g q -* Q).
   #[global] Arguments do_unlock /.
-
-  Definition do_lock (lk : gname * mpred) (K: mpred) : mpred :=
+Print do_unlock .
+  Definition do_lock (lk : T) (K: mpred) : mpred :=
     let (g, P) := lk in
     ∃ q thr, current_thread thr ∗ token g q ∗
     (* TODO readd *)
@@ -156,6 +156,7 @@ Import skylabs.upoly.prod.
     ework with br_erefl.
   Qed.
 
+Import skylabs.upoly.prod.
   #[global,program] Instance mutex_basic_lockable :
     BasicLockable (T:=T) "std::mutex"
     (λ q γP, let (γ, P) := γP in R γ q P)
