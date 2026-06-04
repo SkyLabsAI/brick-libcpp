@@ -160,10 +160,6 @@ Section with_cpp.
   cpp.spec "std::mutex::unlock()" as unlock_spec_alt' with
   (\exact Reduce (unlock_basic_lockable "std::mutex" (λ q '(γ, P), R γ q P))).
 
-  Import observe2_fwd.
-  Definition current_thread_agree_F := ltac:(mk_obs2_fwd current_thread_agree).
-  #[local] Hint Resolve current_thread_agree_F : br_hints.
-
   Lemma lock_spec_alt_equiv_lock_spec_alt' :
     lock_spec_alt -|- lock_spec_alt'.
   Proof.
