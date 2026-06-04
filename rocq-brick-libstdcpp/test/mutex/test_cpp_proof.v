@@ -7,15 +7,10 @@ Section with_cpp.
 
   cpp.spec "test_mutex()" as test_mutex_spec from source with (\post emp).
 
-  (* TODO UPSTREAM. But it's not helping yet? *)
-  #[global] Instance SplitRecord_prod A B : SplitRecord (@prod A B) := {}.
-
   Theorem test_mutex_ok : verify[source] "test_mutex()".
   Proof.
     verify_spec; go.
     iExists emp. go.
-    iExists _, (pair _ _). go.
-    iExists _, (pair _ _). go.
   Qed.
 
   cpp.spec "test_lock_guard()" as test_lock_guard_spec from source with (\post emp).
