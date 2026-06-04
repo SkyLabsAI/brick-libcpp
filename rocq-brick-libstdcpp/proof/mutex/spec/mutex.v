@@ -166,17 +166,15 @@ Section with_cpp.
   Lemma lock_spec_alt_equiv_lock_spec_alt' :
     lock_spec_alt -|- lock_spec_alt'.
   Proof.
-    iSplit; iApply specify_mono; work with br_erefl.
-    { case_match; ework with br_erefl. }
-    ework with br_erefl.
+    iSplit; iApply specify_mono; work with br_erefl;
+      try case_match; ework with br_erefl.
   Qed.
 
   Lemma unlock_spec_alt_equiv_unlock_spec_alt' :
     unlock_spec_alt -|- unlock_spec_alt'.
   Proof.
-    iSplit; iApply specify_mono; work with br_erefl.
-    { case_match; ework with br_erefl. }
-    ework with br_erefl.
+    iSplit; iApply specify_mono; work with br_erefl;
+      try case_match; ework with br_erefl.
   Qed.
 
   (*
