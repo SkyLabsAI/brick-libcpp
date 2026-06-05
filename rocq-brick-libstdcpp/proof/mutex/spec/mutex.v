@@ -68,6 +68,41 @@ Section with_cpp.
   Proof. solve_learnable. Qed.
 
 
+  cpp.spec "std::mutex::mutex()" as ctor_spec with (
+    \this this
+    \pre{P} ▷P
+    \post Exists g, this |-> R g 1$m P ** token g 1).
+
+  cpp.spec "std::mutex::~mutex()" as dtor_spec with (
+    \this this
+    \pre{g P} this |-> R g 1$m P ** token g 1
+    \post P).
+
+  (* "Inline" version of these specs. *)
+  cpp.spec "std::mutex::lock()" as lock_spec_alt with (
+    \this this
+    \prepost{q P g} this |-> R g q P
+    \persist{thr} current_thread thr
+    \pre{q'} token g q'
+    \post P ** locked g thr q').
+
+  Definition do_lock (lk : gname * mpred) (K: mpred) : mpred :=
+    let g := lk.1 in
+    let P := lk.2 in
+    ∃ q thr, current_thread thr ∗ token g q ∗
+    (* TODO readd *)
+    (* ▷ *)
+    (locked g thr q ** P -* K).
+  #[global] Arguments do_lock /.
+
+  cpp.spec "std::mutex::unlock()" as unlock_spec_alt with (
+    \this this
+    \prepost{q P g} this |-> R g q P
+    \persist{thr} current_thread thr
+    \pre{q'} locked g thr q'
+    \pre ▷P
+    \post token g q').
+
   Definition do_unlock (lk : gname * mpred) (Q : mpred) : mpred :=
     let g := lk.1 in
     let P := lk.2 in
@@ -77,77 +112,14 @@ Section with_cpp.
     (token g q -* Q).
   #[global] Arguments do_unlock /.
 
-  Definition do_lock (lk : gname * mpred) (K: mpred) : mpred :=
-    let g := lk.1 in
-    let P := lk.2 in
-    ∃ q thr, current_thread thr ∗ token g q ∗
-    (* TODO readd *)
-    (* ▷ *)
-    (locked g thr q ** ▷P -* K).
-  #[global] Arguments do_lock /.
+  cpp.spec "std::mutex::try_lock()" as try_lock_spec_alt with (
+    \this this
+    \prepost{q P g} this |-> R g q P
+    \persist{th} current_thread th
+    \pre{q'} token g q'
+    \post{b}[Vbool b] if b then P ** locked g th q' else token g q').
 
-  cpp.spec "std::mutex::mutex()" as ctor_spec with
-      (\this this
-      \pre{P} ▷P
-      \post Exists g, this |-> R g 1$m P ** token g 1).
-
-  (*
-  Note: An alternative spec would take unrelated fractions for [R] and [token].
-  That spec would be more expressive, but that expressiveness appears useless.
-  See [recursive_mutex.lock_spec] for an example of the alternative. *)
-  cpp.spec "std::mutex::lock()" as lock_spec with
-      (\this this
-      \prepost{q P g} this |-> R g q P (* part of both pre and post *)
-      \persist{thr} current_thread thr
-      \pre{q'} token g q'
-      \post P ** locked g thr q').
-
-  cpp.spec "std::mutex::lock()" as lock_spec_alt with
-      (\this this
-      \prepost{q P g} this |-> R g q P (* part of both pre and post *)
-      \pre{K} do_lock (g, P) K
-      \post K
-      ).
-
-  cpp.spec "std::mutex::try_lock()" as try_lock_spec with
-      (\this this
-      \prepost{q P g} this |-> R g q P (* part of both pre and post *)
-      \persist{th} current_thread th
-      \pre token g q
-      \post{b}[Vbool b] if b then P ** locked g th q else token g q).
-
-  cpp.spec "std::mutex::unlock()" as unlock_spec with
-      (\this this
-      \prepost{q P g} this |-> R g q P (* part of both pre and post *)
-      \persist{thr} current_thread thr
-      \pre{q'} locked g thr q'
-      \pre ▷P
-      \post token g q').
-
-  cpp.spec "std::mutex::unlock()" as unlock_spec_alt with
-      (\this this
-      \prepost{q P g} this |-> R g q P (* part of both pre and post *)
-      \pre{K} do_unlock (g, P) K
-      \post K).
-
-  cpp.spec "std::mutex::~mutex()" as dtor_spec with
-      (\this this
-      \pre{g P} this |-> R g 1$m P ** token g 1
-      \post P).
-
-  Lemma lock_spec_entails_lock_spec_alt : lock_spec |-- lock_spec_alt.
-  Proof.
-    apply specify_mono.
-    ework with br_erefl.
-  Qed.
-
-
-  Lemma unlock_spec_entails_unlock_spec_alt : unlock_spec |-- unlock_spec_alt.
-  Proof.
-    apply specify_mono.
-    ework with br_erefl.
-  Qed.
-
+  (* Obtain same specs from (Basic)Lockable. *)
   (** <<std::mutex>> implements [BasicLockable] *)
   Definition T : Type := gname * mpred.
 
@@ -155,25 +127,21 @@ Section with_cpp.
   { do_lock := fun this => do_lock
   ; do_unlock := fun this => do_unlock }.
 
-  cpp.spec "std::mutex::lock()" as lock_spec_alt' with
+  cpp.spec "std::mutex::lock()" as lock_spec with
   (\exact Reduce (lock_basic_lockable "std::mutex" (λ q γP, R γP.1 q γP.2))).
 
-  cpp.spec "std::mutex::unlock()" as unlock_spec_alt' with
+  cpp.spec "std::mutex::unlock()" as unlock_spec with
   (\exact Reduce (unlock_basic_lockable "std::mutex" (λ q γP, R γP.1 q γP.2))).
 
-  Lemma lock_spec_alt_equiv_lock_spec_alt' :
-    lock_spec_alt -|- lock_spec_alt'.
-  Proof. iSplit; iApply specify_mono; ework with br_erefl. Qed.
+  Lemma lock_spec_entails_lock_spec_alt : lock_spec -|- lock_spec_alt.
+  Proof.
+    iSplit; iApply specify_mono; ework with br_erefl.
+  Qed.
 
-  Lemma unlock_spec_alt_equiv_unlock_spec_alt' :
-    unlock_spec_alt -|- unlock_spec_alt'.
-  Proof. iSplit; iApply specify_mono; ework with br_erefl. Qed.
-
-  (*
-  #[global,program] Instance mutex_basic_lockable : BasicLockable (T := gname * Qp * mpred) "std::mutex" (λ q '(thr, γ, q', P), R γ q$m P) :=
-  { do_lock := fun this '(γ, q', P) K => do_lock thr (γ, q', P) K
-  ; do_unlock := fun this '(γ, q', P) K => do_unlock thr (γ, q', P) K }.
-  *)
+  Lemma unlock_spec_entails_unlock_spec_alt : unlock_spec -|- unlock_spec_alt.
+  Proof.
+    iSplit; iApply specify_mono; ework with br_erefl.
+  Qed.
 End with_cpp.
 End mutex.
 
