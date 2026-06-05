@@ -328,7 +328,6 @@ Section with_cpp.
     rewrite arrayR_charR_arrayR_anyR.
     normalize_ptrs.
     work.
-    by rewrite replicateZ_lengthZ_eq_replicateN_lengthN lengthN_replicateN.
   Qed.
 
   #[local] Lemma cstring_arrayLR s tail q bytes m (p : ptr) :
