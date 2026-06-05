@@ -1,4 +1,5 @@
 Require Import skylabs.auto.cpp.proof.
+Require Import skylabs.brick.libstdcpp.mutex.spec.mutex.
 Require Import skylabs.brick.libstdcpp.mutex.spec.lock_guard.
 
 Require Import skylabs.brick.libstdcpp.mutex.inc_hpp.
@@ -11,11 +12,20 @@ Section with_cpp.
 
   Import lock_guard.
 
+  (* TODO: not ideal *)
+  #[global] Instance UNSAFE_R_learnable : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv},
+      Cbn (Learn (learn_eq ==> learn_eq ==> learn_eq ==> fin_at) mutex.R).
+  Proof. solve_learnable. Qed.
+
+  #[global] Instance UNSAFE_token_learn : Cbn (Learn (req_eq ==> learn_eq ==> learn_hints.fin) mutex.token).
+  Proof. solve_learnable. Qed.
+
+  #[local] Hint Resolve fractional.UNSAFE_read_prim_learn : sl_opacity.
+
   Lemma ctor_ok : verify[source] ctor_spec.
   Proof.
     verify_spec.
-    go; try by ego.
-    iExists _; go.
+    go.
     by rewrite left_id_L.
   Qed.
 
@@ -23,10 +33,8 @@ Section with_cpp.
   Proof.
     verify_spec.
     rewrite !R.unlock.
-    go; try by ego.
-    iExists _; go.
-    rewrite !left_id_L.
     go.
+    by rewrite !left_id_L.
   Qed.
 
 End with_cpp.

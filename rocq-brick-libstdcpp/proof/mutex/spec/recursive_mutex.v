@@ -10,6 +10,7 @@ Require Import skylabs.auto.cpp.proof.
 Require Import skylabs.brick.libstdcpp.mutex.spec.mutex.
 Require Export skylabs.brick.libstdcpp.runtime.pred.
 
+Require Import skylabs.brick.libstdcpp.mutex.requirements.
 Require Import skylabs.brick.libstdcpp.mutex.inc_hpp.
 
 Import linearity.
@@ -396,6 +397,7 @@ cinv (
     Context `{Σ : cpp_logic} `{MOD : source ⊧ σ}.
     Context {HAS_THREADS : HasStdThreads Σ}.
     Context `{!lockedG Σ}.
+    Context `{!HasOwn (iPropI _) cmraR}.
 
     (* Alternative style:
        <<
@@ -420,8 +422,6 @@ cinv (
       - exists 0. naive_solver.
       - exists (S n). naive_solver.
     Qed.
-
-    Context `{!HasOwn (iPropI _) cmraR}.
 
     #[program]
     Definition acquireable_is_acquired_C {TT} g th t t' P
@@ -538,6 +538,47 @@ cinv (
       \pre{th n args} acquireable g th (Held n args) P
       \pre{q'} given_token g.(lock_gname) q'
       \post token g.(lock_gname) q' ** ▷ acquireable g th (release $ Held n args) P).
+
+    Definition do_lock g K : mpred := ∃ TT P th n q',
+      inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
+      ** acquireable g th n P
+      ** token g.(lock_gname) q'
+      ** (
+        (* TODO readd *)
+        (* ▷ *)
+        (given_token g.(lock_gname) q' **
+        Exists n', [| acquire n n' |] ** ▷ acquireable g th n' P) -*
+        K).
+    #[global] Arguments do_lock /.
+
+    Definition do_unlock g K : mpred := ∃ TT P th n args q',
+      inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
+      ** acquireable g th (Held n args) P
+      ** given_token g.(lock_gname) q'
+      ** (
+        (* TODO readd *)
+        (* ▷ *)
+        (token g.(lock_gname) q' ** ▷ acquireable g th (release $ Held n args) P) -*
+        K).
+    #[global] Arguments do_unlock /.
+
+    #[global] Instance recursive_mutex_basic_lockable : BasicLockable (T:=rmutex_gname) "std::recursive_mutex" (λ q γ, R γ.(lock_gname) q) :=
+    { do_lock := fun this => do_lock
+    ; do_unlock := fun this => do_unlock }.
+
+    cpp.spec "std::recursive_mutex::lock()" as lock_spec_alt' with
+    (\exact Reduce (lock_basic_lockable "std::recursive_mutex" (λ q γ, R γ.(lock_gname) q))).
+
+    cpp.spec "std::recursive_mutex::unlock()" as unlock_spec_alt' with
+    (\exact Reduce (unlock_basic_lockable "std::recursive_mutex" (λ q γ, R γ.(lock_gname) q))).
+
+    Lemma lock_spec'_equiv_lock_spec_alt' :
+      lock_spec' -|- lock_spec_alt'.
+    Proof. iSplit; iApply specify_mono; ework with br_erefl. Qed.
+
+    Lemma unlock_spec'_equiv_unlock_spec_alt' :
+      unlock_spec' -|- unlock_spec_alt'.
+    Proof. iSplit; iApply specify_mono; ework with br_erefl. Qed.
 
     Definition acquireable_current_thread_F :=
       ltac:(mk_obs_fwd acquireable_current_thread).

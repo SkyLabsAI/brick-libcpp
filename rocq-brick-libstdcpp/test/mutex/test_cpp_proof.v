@@ -2,6 +2,15 @@ Require Import skylabs.auto.cpp.prelude.proof.
 Require Import skylabs.brick.libstdcpp.mutex.spec.
 Require Import skylabs.brick.libstdcpp.test.mutex.test_cpp.
 
+Import linearity.
+
+(* TODO UPSTREAM *)
+(* Get rid of [▷ emp] goals. *)
+Lemma bi_later_emp_2 {PROP} : emp ⊢@{PROP} ▷ emp.
+Proof. by iIntros "_ !>". Qed.
+Definition bi_later_emp_2_B := [BWD<-] @bi_later_emp_2.
+Hint Resolve bi_later_emp_2_B : br_hints.
+
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv} {HAS_THREADS : HasStdThreads Σ}.
 
@@ -10,7 +19,7 @@ Section with_cpp.
   Theorem test_mutex_ok : verify[source] "test_mutex()".
   Proof.
     verify_spec; go.
-    iExists emp; go.
+    iExists emp. go.
   Qed.
 
   cpp.spec "test_lock_guard()" as test_lock_guard_spec from source with (\post emp).
@@ -35,8 +44,10 @@ Section with_cpp.
   Lemma test_unique_lock_ok : verify[source] "test_unique_lock()".
   Proof.
     verify_spec; go.
+
     iExists emp; go.
   Qed.
+
 
   cpp.spec "test_unique_lock_defer()" as test_unique_lock_defer_spec from source with (
     \prepost{q} _global "std::defer_lock" |-> defer_lock_t.R q
