@@ -46,8 +46,6 @@ Section with_cpp.
     verify_spec; go.
 
     iExists emp; go.
-    iExists _. wfocus (_ -∗ _ -∗ _)%I "". { iIntros; iAccu. }
-    go.
   Qed.
 
 
@@ -59,8 +57,6 @@ Section with_cpp.
   Proof.
     verify_spec; go.
     iExists emp; go.
-    iExists _. wfocus (▷ (_ -∗ _))%I "". { iNext. iIntros. iAccu. }
-    go.
   Qed.
 
   cpp.spec "std::move<std::unique_lock<std::mutex>&>(std::unique_lock<std::mutex>&)" from source inline.
@@ -72,7 +68,5 @@ Section with_cpp.
   Proof.
     verify_spec; go.
     iExists emp; go.
-    iExists _. wfocus (_ -∗ _ -∗ _)%I "". { iIntros; iAccu. }
-    go.
   Qed.
 End with_cpp.

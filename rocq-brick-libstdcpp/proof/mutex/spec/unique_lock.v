@@ -111,27 +111,58 @@ Section with_cpp.
       ).
 
       (** Ensures the associated mutex is unlocked and the ownership
-      is returned to the continuation <Q>. *)
+      is returned to the continuation <Q>.
+      XXX: creates more wands than we'd like and hinders client proofs. *)
       Definition ensure_unlock (thr : thread_idT) (om : option (bool * (ptr * gname * Qp * mpred))) (Q : mpred) : mpred :=
         match om with
         | Some (true, (mp, g, q, P)) =>
           letI* := do_unlock thr (mp, g, q, P) in
+          (* ▷ *)
           mp |-> mutex.R g q$m P -* Q
         | Some (false, (mp, g, q, P)) =>
-          ▷ (mp |-> mutex.R g q$m P -* Q)
+          (* ▷  *)
+          (mp |-> mutex.R g q$m P -* Q)
         | _ =>
-        (* TODO should this be [bi_later Q]? *)
+          (* ▷ *)
           Q
         end.
       #[global] Arguments ensure_unlock /.
 
-      cpp.spec "std::unique_lock<std::mutex>::~unique_lock()" as dtor_spec_alt from source with (
+      cpp.spec "std::unique_lock<std::mutex>::~unique_lock()" as dtor_spec from source with (
         \this this
         \persist{thr} current_thread thr
         \pre{om} this |-> R 1$m om
         \pre{K}
           ensure_unlock thr om K
         \post K).
+
+      (** Duplicates [ensure_unlock], but proven equivalent and easier to apply, so
+      comes after to be the default. *)
+      cpp.spec "std::unique_lock<std::mutex>::~unique_lock()" as dtor_spec_alt from source with (
+        \this this
+        \persist{thr} current_thread thr
+        \pre{om} this |-> R 1$m om
+        \pre
+          match om with
+          | Some (true, (mp, g, q, P)) => mutex.locked g thr q ** ▷P
+          | _ => emp
+          end
+        \post
+          match om with
+          | Some (true, (mp, g, q, P)) => mp |-> mutex.R g q$m P ** mutex.token g q
+          | Some (false, (mp, g, q, P)) => mp |-> mutex.R g q$m P
+          | None => emp
+          end
+        ).
+
+      Lemma dtor_spec_alt_entails_dtor_spec : dtor_spec_alt -|- dtor_spec.
+      Proof.
+        iSplit; iApply specify_mono; work with br_erefl; repeat case_match; subst;
+          try (exfalso; congruence);
+          ework with br_erefl.
+        wname [bi_wand] "W".
+        iApply ("W" with "[$] [$]").
+      Qed.
 
       (* unlock the associated mutex, if any, and set input as the associated mutex.
       Should be equivalent to move_assign_spec. *)

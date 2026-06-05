@@ -116,7 +116,8 @@ Section with_cpp.
     ).
 
     (** Ensures the associated mutex is unlocked and the ownership
-    is returned to the continuation <Q>. *)
+    is returned to the continuation <Q>.
+    XXX: creates more wands than we'd like and hinders client proofs. *)
     Definition ensure_unlock (om : option (M mutexT)) (Q : mpred) : mpred :=
       match om with
       | Some {| is_held := is_held ; mutex_ptr := mp ; mutex_q := q ; mutex_m := m |} =>
@@ -134,6 +135,14 @@ Section with_cpp.
 
     #[global] Arguments ensure_unlock /.
 
+    cpp.spec "std::unique_lock<std::recursive_mutex>::~unique_lock()" as dtor_spec from source with (
+      \this this
+      \pre{om} this |-> R 1$m om
+      \pre{K} ensure_unlock om K
+      \post K).
+
+    (** Duplicates [ensure_unlock], but proven equivalent and easier to apply, so
+    comes after to be the default. *)
     cpp.spec "std::unique_lock<std::recursive_mutex>::~unique_lock()" as dtor_spec_alt from source with (
       \this this
       \pre{om} this |-> R 1$m om
@@ -149,14 +158,6 @@ Section with_cpp.
         | Some m => m.(mutex_ptr) |-> mutexR m.(mutex_q)$m m.(mutex_m)
         | None => emp
         end).
-
-    (* spec for dtor written with do_unlock.
-    Should be equivalent to dtor_spec. *)
-    cpp.spec "std::unique_lock<std::recursive_mutex>::~unique_lock()" as dtor_spec from source with (
-      \this this
-      \pre{om} this |-> R 1$m om
-      \pre{K} ensure_unlock om K
-      \post K).
 
     Lemma dtor_spec_alt_entails_dtor_spec : dtor_spec_alt -|- dtor_spec.
     Proof.
