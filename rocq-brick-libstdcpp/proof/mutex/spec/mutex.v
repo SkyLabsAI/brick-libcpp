@@ -133,12 +133,31 @@ Section with_cpp.
   cpp.spec "std::mutex::unlock()" as unlock_spec with
   (\exact Reduce (unlock_basic_lockable "std::mutex" (λ q γP, R γP.1 q γP.2))).
 
+  Definition do_try_lock (lk : gname * mpred) (Q : bool -> mpred) : mpred :=
+    let g := lk.1 in
+    let P := lk.2 in
+    ∃ q thr, current_thread thr ∗ token g q ∗
+    ∀ b : bool,
+    (if b then P ** locked g thr q else token g q) -∗ Q b.
+  #[global] Arguments do_try_lock /.
+
+  #[global,program] Instance mutex_lockable : Lockable (T:=T) "std::mutex" (λ q γP, R γP.1 q γP.2) :=
+  { do_try_lock := fun this => do_try_lock }.
+
+  cpp.spec "std::mutex::try_lock()" as try_lock_spec with
+  (\exact Reduce (try_lock_lockable "std::mutex" (λ q γP, R γP.1 q γP.2))).
+
   Lemma lock_spec_entails_lock_spec_alt : lock_spec -|- lock_spec_alt.
   Proof.
     iSplit; iApply specify_mono; ework with br_erefl.
   Qed.
 
   Lemma unlock_spec_entails_unlock_spec_alt : unlock_spec -|- unlock_spec_alt.
+  Proof.
+    iSplit; iApply specify_mono; ework with br_erefl.
+  Qed.
+
+  Lemma try_lock_spec_entails_try_lock_spec_alt : try_lock_spec -|- try_lock_spec_alt.
   Proof.
     iSplit; iApply specify_mono; ework with br_erefl.
   Qed.
