@@ -110,7 +110,8 @@ Section with_cpp.
           other |-> R 1$m None
       ).
 
-      (** Ensures the associated mutex is unlocked and released. *)
+      (** Ensures the associated mutex is unlocked and the ownership
+      is returned to the continuation <Q>. *)
       Definition ensure_unlock (thr : thread_idT) (om : option (bool * (ptr * gname * Qp * mpred))) (Q : mpred) : mpred :=
         match om with
         | Some (true, (mp, g, q, P)) =>

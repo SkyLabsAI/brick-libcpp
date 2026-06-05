@@ -118,7 +118,8 @@ Section with_cpp.
         other |-> R 1$m None
     ).
 
-    (** Ensures the associated mutex is unlocked and released. *)
+    (** Ensures the associated mutex is unlocked and the ownership
+    is returned to the continuation <Q>. *)
     Definition ensure_unlock (om : option (M mutexT)) (Q : mpred) : mpred :=
       match om with
       | Some {| is_held := is_held ; mutex_ptr := mp ; mutex_q := q ; mutex_m := m |} =>
@@ -215,8 +216,6 @@ Section with_cpp.
       \prepost{om q} this |-> R q om
       \post[Vptr (mutex om)] emp
     ).
-
-    (* TODO: these specs seem mutex-specific. unlock_spec doesn't seem good for recursive mutexes. *)
 
     (* these preconditions statically rule out cases that throw exceptions, such as:
     - If there is no associated mutex, std::system_error with an error code of std::errc::operation_not_permitted.
