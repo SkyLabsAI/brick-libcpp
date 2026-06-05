@@ -18,6 +18,9 @@ Section with_cpp.
   #[global] Arguments M _ : clear implicits.
   #[only(lens)] derive M.
 
+  (* To fix warnings on unreduced uses of [mutex_ptr] *)
+  #[global] Hint Opaque mutex_ptr : sl_opacity.
+
   (* a unique_lock may have an associated mutex, if so it holds
       (Some (b * mutex_state)) where b indicates whether the unique_lock
       has acquired the associated mutex. *)
@@ -155,6 +158,15 @@ Section with_cpp.
       \pre{K} ensure_unlock om K
       \post K).
 
+    Lemma dtor_spec_alt_entails_dtor_spec : dtor_spec_alt -|- dtor_spec.
+    Proof.
+      iSplit; iApply specify_mono; work with br_erefl; repeat case_match;
+        try (exfalso; congruence);
+        ework with br_erefl.
+      wname [bi_wand] "W".
+      iApply ("W" with "[$] [$]").
+    Qed.
+
     cpp.spec "std::unique_lock<std::recursive_mutex>::operator=(std::unique_lock<std::recursive_mutex> &&)" as move_assign_spec_alt from source with (
       \this this
       \arg{other} "" (Vptr other)
@@ -191,6 +203,15 @@ Section with_cpp.
         other |-> R 1$m None **
         K
       ).
+
+    Lemma move_assign_spec_alt_entails_move_assign_spec : move_assign_spec_alt -|- move_assign_spec.
+    Proof.
+      iSplit; iApply specify_mono; work with br_erefl; repeat case_match;
+        try (exfalso; congruence);
+        ework with br_erefl.
+      wname [bi_wand] "W".
+      iApply ("W" with "[$] [$]").
+    Qed.
 
     Notation owns_lock_spec_body := (
       \this this
