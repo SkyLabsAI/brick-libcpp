@@ -4,6 +4,9 @@ Require Import skylabs.brick.libstdcpp.mutex.inc_hpp.
 Require Export skylabs.brick.libstdcpp.runtime.pred.
 Require Import skylabs.brick.libstdcpp.mutex.spec.mutex.
 
+(* Specs for "unique_lock<std::mutex>".
+TODO: to be replaced by generic specs + instantiations.
+ *)
 Module unique_lock.
 Section with_cpp.
   Context `{Σ : cpp_logic}.
@@ -42,17 +45,6 @@ Section with_cpp.
          and invariant styles).
       *)
 
-      (*
-      TODO: could we write something like this?
-      Definition do_unlock_spec_body (thr : thread_idT) (lk : ptr * gname * Qp * mpred) (Q : mpred) : WpSpec_cpp :=
-        match lk with
-        | (mp, g, q, P) =>
-        \pre mutex.locked g thr q
-        \pre ▷P
-        \post mutex.token g q
-        end.
-        *)
-
       Definition do_unlock (thr : thread_idT) (lk : ptr * gname * Qp * mpred) (Q : mpred) : mpred :=
         match lk with
         | (mp, g, q, P) =>
@@ -61,6 +53,7 @@ Section with_cpp.
           (* ▷ *)
           (mutex.token g q -* Q)
         end.
+      #[global] Arguments do_unlock /.
 
       Definition do_lock (thr : thread_idT) (lk : ptr * gname * Qp * mpred) (Q : mpred) : mpred :=
         match lk with
@@ -70,6 +63,7 @@ Section with_cpp.
           (* ▷ *)
           (mutex.locked g thr q ** ▷P -* Q)
         end.
+      #[global] Arguments do_lock /.
 
       cpp.spec "std::unique_lock<std::mutex>::unique_lock()"
         as default_ctor_spec from source with (
@@ -128,38 +122,19 @@ Section with_cpp.
         (* TODO should this be [bi_later Q]? *)
           Q
         end.
+      #[global] Arguments ensure_unlock /.
 
-      (* spec for dtor written with do_unlock.
-      Should be equivalent to dtor_spec. *)
       cpp.spec "std::unique_lock<std::mutex>::~unique_lock()" as dtor_spec_alt from source with (
         \this this
         \persist{thr} current_thread thr
         \pre{om} this |-> R 1$m om
         \pre{K}
           ensure_unlock thr om K
-        \post K
-        ).
-
-      cpp.spec "std::unique_lock<std::mutex>::~unique_lock()" as dtor_spec from source with (
-        \this this
-        \persist{thr} current_thread thr
-        \pre{om} this |-> R 1$m om
-        \pre
-          match om with
-          | Some (true, (mp, g, q, P)) => mutex.locked g thr q ** ▷P
-          | _ => emp
-          end
-        \post
-          match om with
-          | Some (true, (mp, g, q, P)) => mp |-> mutex.R g q$m P ** mutex.token g q
-          | Some (false, (mp, g, q, P)) => mp |-> mutex.R g q$m P
-          | None => emp
-          end
-        ).
+        \post K).
 
       (* unlock the associated mutex, if any, and set input as the associated mutex.
       Should be equivalent to move_assign_spec. *)
-      cpp.spec "std::unique_lock<std::mutex>::operator=(std::unique_lock<std::mutex> &&)" as move_assign_spec_alt from source with (
+      cpp.spec "std::unique_lock<std::mutex>::operator=(std::unique_lock<std::mutex> &&)" as move_assign_spec from source with (
         \this this
         \arg{other} "" (Vptr other)
         \pre{om1} this |-> R 1$m om1
@@ -171,27 +146,6 @@ Section with_cpp.
           this |-> R 1$m om2 **
           other |-> R 1$m None **
           K
-        ).
-
-      cpp.spec "std::unique_lock<std::mutex>::operator=(std::unique_lock<std::mutex> &&)" as move_assign_spec from source with (
-        \this this
-        \arg{other} "" (Vptr other)
-        \pre{om1} this |-> R 1$m om1
-        \pre{om2} other |-> R 1$m om2
-        \persist{thr} current_thread thr
-        \pre
-          match om1 with
-          | Some (true, (mp, g, q, P)) => mutex.locked g thr q ** ▷P
-          | _ => emp
-          end
-        \post
-          this |-> R 1$m om2 **
-          other |-> R 1$m None **
-          match om1 with
-          | Some (true, (mp, g, q, P)) => mp |-> mutex.R g q$m P ** mutex.token g q
-          | Some (false, (mp, g, q, P)) => mp |-> mutex.R g q$m P
-          | None => emp
-          end
         ).
 
       Notation owns_lock_spec_body := (
@@ -256,7 +210,6 @@ Section with_cpp.
       Lemma lock_spec_entails_lock_spec_alt : lock_spec |-- lock_spec_alt.
       Proof.
         apply specify_mono.
-        rewrite /do_lock.
         go.
         (* XXX needs removing later in do_lock, or a stronger specify_mono offering a later. *)
         repeat case_match; go.
@@ -265,7 +218,6 @@ Section with_cpp.
       Lemma unlock_spec_entails_unlock_spec_alt : unlock_spec |-- unlock_spec_alt.
       Proof.
         apply specify_mono.
-        rewrite /do_unlock.
         go.
         (* XXX needs removing later in do_unlock, or a stronger specify_mono offering a later. *)
         repeat case_match; go.
@@ -274,7 +226,6 @@ Section with_cpp.
       Lemma lock_spec_alt_entails_lock_spec : lock_spec_alt |-- lock_spec.
       Proof.
         apply specify_mono.
-        rewrite /do_lock.
         go.
         (* failed goal: ▷ P -∗ P. This might work with a stronger specify_mono offering a later. *)
         admit.
@@ -284,7 +235,6 @@ Section with_cpp.
       Lemma unlock_spec_alt_entails_unlock_spec : unlock_spec_alt |-- unlock_spec.
       Proof.
         apply specify_mono.
-        rewrite /do_unlock.
         go.
       Qed.
 
