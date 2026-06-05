@@ -86,7 +86,7 @@ Section with_cpp.
       \post this |-> R 1$m None
     ).
 
-    cpp.spec "std::unique_lock<std::recursive_mutex>::unique_lock(std::recursive_mutex&)" as mutex_ctor_spec from source with (
+    cpp.spec "std::unique_lock<std::recursive_mutex>::unique_lock(std::recursive_mutex&)" as lock_ctor_spec from source with (
       \this this
       \arg{mp} "" (Vptr mp)
       \pre{q m} mp |-> mutexR q m
@@ -95,7 +95,7 @@ Section with_cpp.
         this |-> R 1$m (Some {| is_held := true ; mutex_ptr := mp ; mutex_q := q ; mutex_m := m |}) **
         K).
 
-    cpp.spec "std::unique_lock<std::recursive_mutex>::unique_lock(std::recursive_mutex&, std::defer_lock_t)" as mutex_defer_ctor_spec from source with (
+    cpp.spec "std::unique_lock<std::recursive_mutex>::unique_lock(std::recursive_mutex&, std::defer_lock_t)" as lock_defer_ctor_spec from source with (
       \this this
       \arg{mp} "" (Vptr mp)
       \pre{q m} mp |-> mutexR q$m m
