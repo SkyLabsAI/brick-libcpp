@@ -1,12 +1,16 @@
-Require Import skylabs.auto.cpp.prelude.proof.
+Require Import skylabs.auto.cpp.proof.
 Require Import skylabs.brick.libstdcpp.mutex.inc_hpp.
 
 Require Export skylabs.brick.libstdcpp.runtime.pred.
+Require Import skylabs.brick.libstdcpp.mutex.spec.prelude.
 Require Import skylabs.brick.libstdcpp.mutex.spec.recursive_mutex.
 Require Import skylabs.brick.libstdcpp.mutex.requirements.
 
-
-Module unique_lock.
+(* Generic specs for "unique_lock<T>"
++ instantiation for "std::recursive_mutex"
+TODO: to be replaced with proper template specs.
+ *)
+NES.Begin unique_lock.
   Record M {T : Type} : Type := Mk
   { is_held : bool
   ; mutex_ptr : ptr
@@ -32,8 +36,24 @@ Module unique_lock.
     end.
 
   (* [om] is [Some _] if a mutex is associated. *)
-  Parameter R : forall `{Σ : cpp_logic} {σ : genv} ty {T} mutexR `{!BasicLockable ty (T:=T) mutexR},
-    cQp.t -> option (M T) -> Rep.
+  sl.lock
+  Definition R
+      `{Σ : cpp_logic} {σ : genv} ty {T} mutexR `{!BasicLockable ty (T:=T) mutexR}
+      (q : cQp.t) (om : option (M T)) : Rep :=
+    let ulty := "std::unique_lock" .<< Atype ty >> in
+    structR ulty q **
+    (* _M_owns stores whether the mutex is locked. *)
+    _field (ulty .:: Nid "_M_owns") |-> boolR q (owned om) **
+    _field (ulty .:: Nid "_M_device") |-> ptrR<ty> q (mutex om) **
+    match om with
+    | None => emp
+    | Some m =>
+      pureR (m.(mutex_ptr) |-> mutexR (cQp.scale m.(mutex_q) q) m.(mutex_m))
+    end.
+
+  Module R_unfold.
+    #[only(lazy_unfold(export))] derive R.
+  End R_unfold.
 
   Section with_cpp.
     Context `{Σ : cpp_logic}.
@@ -42,7 +62,8 @@ Module unique_lock.
     Section with_basic_lockable.
       Context `{!BasicLockable ty (T:=T) mutexR}.
 
-      #[global] Declare Instance R_cfrac : CFractional1 mutexR -> CFractional1 (R ty mutexR).
+      #[global] Instance R_cfrac : CFractional1 mutexR -> CFractional1 (R ty mutexR).
+      Proof. rewrite R.unlock. apply _. Qed.
 
       #[global] Instance R_as_cfrac : CFractional1 mutexR -> AsCFractional1 (R ty mutexR).
       Proof. solve_as_cfrac. Qed.
@@ -53,8 +74,9 @@ Module unique_lock.
       (*   Timeless2 mutexR -> *)
       (*   Timeless2 (R ty mutexR). *)
 
-      #[global] Declare Instance R_type_ptr q om :
+      #[global] Instance R_type_ptr q om :
         Typed ("std::unique_lock" .<< Atype ty >>) (R ty mutexR q om).
+      Proof. rewrite R.unlock. apply _. Qed.
     End with_basic_lockable.
 
     Section with_threads.
@@ -253,4 +275,4 @@ Module unique_lock.
 
     End with_threads.
   End with_cpp.
-End unique_lock.
+NES.End unique_lock.

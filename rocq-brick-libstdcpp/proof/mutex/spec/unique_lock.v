@@ -2,12 +2,13 @@ Require Import skylabs.auto.cpp.prelude.proof.
 Require Import skylabs.brick.libstdcpp.mutex.inc_hpp.
 
 Require Export skylabs.brick.libstdcpp.runtime.pred.
+Require Import skylabs.brick.libstdcpp.mutex.spec.prelude.
 Require Import skylabs.brick.libstdcpp.mutex.spec.mutex.
 
 (* Specs for "unique_lock<std::mutex>".
 TODO: to be replaced by generic specs + instantiations.
  *)
-Module unique_lock.
+NES.Begin unique_lock.
 
   Definition owned {T} (om : option (bool * (ptr * gname * Qp * T))) : bool :=
     match om with
@@ -21,13 +22,25 @@ Module unique_lock.
     | None => nullptr
     end.
 
-  (* a unique_lock may have an associated mutex, if so it holds
-    (Some (b * mutex_state)) where b indicates whether the unique_lock
-    has acquired the associated mutex. *)
-  Parameter R : forall `{Σ : cpp_logic} {HAS_THREADS : HasStdThreads Σ} {σ : genv},
-    cQp.t -> option (bool * (ptr * gname * Qp * mpred)) -> Rep.
+  sl.lock
+  Definition R
+      `{Σ : cpp_logic} {σ : genv} `{HAS_THREADS : !HasStdThreads Σ}
+      (q : cQp.t) (om : option (bool * (ptr * gname * Qp * mpred))) : Rep :=
+    structR "std::unique_lock<std::mutex>" q **
+    (* _M_owns stores whether the mutex is locked. *)
+    _field "std::unique_lock<std::mutex>::_M_owns" |-> boolR q (owned om) **
+    _field "std::unique_lock<std::mutex>::_M_device" |-> ptrR<"std::mutex"> q (mutex om) **
+    match om with
+    | None => emp
+    | Some (b, (mp, g, q', P)) =>
+      pureR (mp |-> mutex.R g (cQp.scale q' q) P)
+    end.
 
   #[only(cfractional,cfracvalid,ascfractional,type_ptr="std::unique_lock<std::mutex>")] derive R.
+
+  Module R_unfold.
+    #[only(lazy_unfold(export))] derive R.
+  End R_unfold.
 
   Section with_cpp.
     Context `{Σ : cpp_logic} {σ : genv}.
@@ -269,4 +282,4 @@ Module unique_lock.
     Qed.
 
   End with_cpp.
-End unique_lock.
+NES.End unique_lock.
