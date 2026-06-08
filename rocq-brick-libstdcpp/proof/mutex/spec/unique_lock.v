@@ -8,29 +8,30 @@ Require Import skylabs.brick.libstdcpp.mutex.spec.mutex.
 TODO: to be replaced by generic specs + instantiations.
  *)
 Module unique_lock.
+
+  Definition owned {T} (om : option (bool * (ptr * gname * Qp * T))) : bool :=
+    match om with
+    | Some (own, _) => own
+    | None => false
+    end.
+
+  Definition mutex {T} (om : option (bool * (ptr * gname * Qp * T))) : ptr :=
+    match om with
+    | Some (_, (mp, g, q, P)) => mp
+    | None => nullptr
+    end.
+
+  (* a unique_lock may have an associated mutex, if so it holds
+    (Some (b * mutex_state)) where b indicates whether the unique_lock
+    has acquired the associated mutex. *)
+  Parameter R : forall `{Σ : cpp_logic} {HAS_THREADS : HasStdThreads Σ} {σ : genv},
+    cQp.t -> option (bool * (ptr * gname * Qp * mpred)) -> Rep.
+
+  #[only(cfractional,cfracvalid,ascfractional,type_ptr="std::unique_lock<std::mutex>")] derive R.
+
   Section with_cpp.
     Context `{Σ : cpp_logic} {σ : genv}.
     Context `{HAS_THREADS : !HasStdThreads Σ}.
-
-    (* a unique_lock may have an associated mutex, if so it holds
-      (Some (b * mutex_state)) where b indicates whether the unique_lock
-      has acquired the associated mutex. *)
-    Parameter R : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv},
-      cQp.t -> option (bool * (ptr * gname * Qp * mpred)) -> Rep.
-
-    Definition owned (om : option (bool * (ptr * gname * Qp * mpred))) : bool :=
-      match om with
-      | Some (own, _) => own
-      | None => false
-      end.
-
-    Definition mutex (om : option (bool * (ptr * gname * Qp * mpred))) : ptr :=
-      match om with
-      | Some (_, (mp, g, q, P)) => mp
-      | None => nullptr
-      end.
-
-    #[only(cfracsplittable,type_ptr="std::unique_lock<std::mutex>")] derive R.
 
     #[global] Instance: LearnEqF1 R := ltac:(solve_learnable).
 

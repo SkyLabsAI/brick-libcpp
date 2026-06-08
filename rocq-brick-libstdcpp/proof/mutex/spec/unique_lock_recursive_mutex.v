@@ -7,59 +7,57 @@ Require Import skylabs.brick.libstdcpp.mutex.requirements.
 
 
 Module unique_lock.
+  Record M {T : Type} : Type := Mk
+  { is_held : bool
+  ; mutex_ptr : ptr
+  ; mutex_q : Qp
+  ; mutex_m : T }.
+  #[global] Arguments M _ : clear implicits.
+  #[only(lens)] derive M.
+
+  (* To fix warnings on unreduced uses of [mutex_ptr] *)
+  #[global] Hint Opaque mutex_ptr : sl_opacity.
+
+  Definition mutex {T} (om : option (M T)) : ptr :=
+    match om with
+    | Some m => m.(mutex_ptr)
+    | None => nullptr
+    end.
+
+  (* Whether the mutex has been locked. *)
+  Definition owned {T} (om : option (M T)) : bool :=
+    match om with
+    | Some m => m.(is_held)
+    | None => false
+    end.
+
+  (* [om] is [Some _] if a mutex is associated. *)
+  Parameter R : forall `{Σ : cpp_logic} {σ : genv} ty {T} mutexR `{!BasicLockable ty (T:=T) mutexR},
+    cQp.t -> option (M T) -> Rep.
+
   Section with_cpp.
     Context `{Σ : cpp_logic}.
+    Context {σ : genv}.
 
-    Record M {T : Type} : Type := Mk
-    { is_held : bool
-    ; mutex_ptr : ptr
-    ; mutex_q : Qp
-    ; mutex_m : T }.
-    #[global] Arguments M _ : clear implicits.
-    #[only(lens)] derive M.
+    Section with_basic_lockable.
+      Context `{!BasicLockable ty (T:=T) mutexR}.
 
-    (* To fix warnings on unreduced uses of [mutex_ptr] *)
-    #[global] Hint Opaque mutex_ptr : sl_opacity.
+      #[global] Declare Instance R_cfrac : CFractional1 mutexR -> CFractional1 (R ty mutexR).
 
-    (* a unique_lock may have an associated mutex, if so it holds
-        (Some (b * mutex_state)) where b indicates whether the unique_lock
-        has acquired the associated mutex. *)
-    Parameter R : forall {σ : genv} ty {T} mutexR `{!BasicLockable ty (T:=T) mutexR},
-      cQp.t -> option (M T) -> Rep.
+      #[global] Instance R_as_cfrac : CFractional1 mutexR -> AsCFractional1 (R ty mutexR).
+      Proof. solve_as_cfrac. Qed.
 
-    Definition owned {T} (om : option (M T)) : bool :=
-      match om with
-      | Some m => m.(is_held)
-      | None => false
-      end.
+      #[only(cfracvalid)] derive R.
 
-    Definition mutex {T} (om : option (M T)) : ptr :=
-      match om with
-      | Some m => m.(mutex_ptr)
-      | None => nullptr
-      end.
+      (* #[global] Declare Instance R_timeless : *)
+      (*   Timeless2 mutexR -> *)
+      (*   Timeless2 (R ty mutexR). *)
 
-    #[global] Declare Instance R_cfrac {σ : genv} `{!BasicLockable ty (T:=T) mutexR} :
-      CFractional1 mutexR ->
-      CFractional1 (R ty mutexR).
-
-    #[global] Instance R_as_cfrac {σ : genv} `{!BasicLockable ty (T:=T) mutexR} :
-      CFractional1 mutexR ->
-      AsCFractional1 (R ty mutexR).
-    Proof. solve_as_cfrac. Qed.
-
-    (* #[global] Declare Instance R_timeless {σ : genv} `{!BasicLockable ty (T:=T) mutexR} : *)
-    (*   Timeless2 mutexR -> *)
-    (*   Timeless2 (R ty mutexR). *)
-
-    #[global] Declare Instance R_cfrac_valid {σ : genv} `{!BasicLockable ty (T:=T) mutexR} :
-      CFracValid1 (R ty mutexR).
-
-    #[global] Declare Instance R_type_ptr {σ : genv} `{!BasicLockable ty (T:=T) mutexR} q om :
-      Typed ("std::unique_lock" .<< Atype ty >>) (R ty mutexR q om).
+      #[global] Declare Instance R_type_ptr q om :
+        Typed ("std::unique_lock" .<< Atype ty >>) (R ty mutexR q om).
+    End with_basic_lockable.
 
     Section with_threads.
-      Context {σ : genv}.
       Context `{HAS_THREADS : !HasStdThreads Σ}.
 
       (* abstract over BasicLockable instance. TODO: readd *)
