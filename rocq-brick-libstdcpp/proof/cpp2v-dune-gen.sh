@@ -35,9 +35,9 @@ outRule() {
 	local targ="${module}"
 	local clang_options=""
 	local universe=""
-	if [ "$system" = 1 ]; then
-		universe=" (universe)"
-	fi
+	# if [ "$system" = 1 ]; then
+	# 	universe=" (universe)"
+	# fi
 	local cpp2v="cpp2v -v %{input} -o ${module} --no-elaborate"
 
 	if [ "$gen_names" = 1 ]; then
