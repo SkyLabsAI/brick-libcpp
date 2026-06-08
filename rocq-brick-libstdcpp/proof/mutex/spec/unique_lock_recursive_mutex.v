@@ -10,7 +10,7 @@ Module unique_lock.
 Section with_cpp.
   Context `{Σ : cpp_logic}.
 
-  Record M {T : Type} : Type :=
+  Record M {T : Type} : Type := Mk
   { is_held : bool
   ; mutex_ptr : ptr
   ; mutex_q : Qp
@@ -92,7 +92,7 @@ Section with_cpp.
     cpp.spec "std::unique_lock<std::recursive_mutex>::unique_lock(std::recursive_mutex&)" as lock_ctor_spec from source with (
       \this this
       \arg{mp} "" (Vptr mp)
-      \pre{q m} mp |-> mutexR q m
+      \pre{q m} mp |-> mutexR q$m m
       \pre{K} do_lock mp m K
       \post
         this |-> R 1$m (Some {| is_held := true ; mutex_ptr := mp ; mutex_q := q ; mutex_m := m |}) **
