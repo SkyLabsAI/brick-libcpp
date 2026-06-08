@@ -4,6 +4,7 @@
 (rocq.theory
  (name skylabs.brick.libstdcpp) ; logical path of this library
  (package rocq-brick-libstdcpp)
+ (generate_project_file)
  (theories
   Stdlib
   stdpp
