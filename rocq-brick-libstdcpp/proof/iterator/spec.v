@@ -699,7 +699,7 @@ Section code_snippets.
     ; itp     |-> objR iter_ty 1$m (c, elemp)
     ; range iter_ty c qr begp ps0 elemp
     ; range iter_ty c qr elemp (elemp :: ps1) endp
-    ; [∗ list] p; v ∈ elemp :: ps1; vs, dereference iter_ty c p |-> objR ty q v ]%I.
+    ; [∗ list] p; v ∈ (elemp :: ps1); vs, dereference iter_ty c p |-> objR ty q v ]%I.
 
   Context {nextp : Iter}.
 
@@ -709,7 +709,7 @@ Section code_snippets.
    ; itp     |-> objR iter_ty 1$m (c, nextp)
    ; range iter_ty c qr begp (ps0 ++ [elemp]) nextp
    ; range iter_ty c qr nextp ps1 endp
-   ; [∗ list] p; v ∈ elemp :: ps1; vs, dereference iter_ty c p |-> objR ty q v ]%I.
+   ; [∗ list] p; v ∈ (elemp :: ps1); vs, dereference iter_ty c p |-> objR ty q v ]%I.
 
   Context {basep : ptr} (i j : Z) (R : A -> Rep).
 
