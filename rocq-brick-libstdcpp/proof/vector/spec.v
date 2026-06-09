@@ -18,8 +18,8 @@ NES.Begin std.
   #[local] Open Scope Z_scope.
 
   NES.Begin vector.
-    #[global] Notation N ty alloc_ty := (Ninst "std::vector" [Atype ty;Atype alloc_ty]) (only parsing).
-    #[global] Notation T ty alloc_ty := (Tnamed (N ty alloc_ty)) (only parsing).
+    #[global] Abbreviation N ty alloc_ty := (Ninst "std::vector" [Atype ty;Atype alloc_ty]) (only parsing).
+    #[global] Abbreviation T ty alloc_ty := (Tnamed (N ty alloc_ty)) (only parsing).
 
     (**
      *  NOTE(Simon):
@@ -148,19 +148,19 @@ NES.Begin std.
     (** Question(Simon): Should we take a predicate as a parameter instead of using [objR]? That would allow varying the
         representation of the contents of the vector of the course of a single proof. That's also enabled by manipulating
         [spineR] and [arrayLR] separately. *)
-    #[global] Notation R_alloc_cap ty alloc_ty q size st xs :=
+    #[global] Abbreviation R_alloc_cap ty alloc_ty q size st xs :=
       ( spineR ty alloc_ty q size st **
         pureR (base_pointer st |-> arrayLR ty 0 size (objR ty q) xs) )%I
       (q in scope cQp_scope, basep in scope bi_scope, size, cap in scope Z_scope ).
 
-    #[global] Notation R_alloc ty alloc_ty q xs :=
+    #[global] Abbreviation R_alloc ty alloc_ty q xs :=
       (∃ size st, R_alloc_cap ty alloc_ty q size st xs )%I
         (q in scope cQp_scope).
 
-    #[global] Notation R_cap ty q size st xs :=
+    #[global] Abbreviation R_cap ty q size st xs :=
       (R_alloc_cap ty (std.allocator.T ty) q size st xs).
 
-    #[global] Notation R ty q xs :=
+    #[global] Abbreviation R ty q xs :=
       (R_alloc ty (std.allocator.T ty) q xs).
 
     (** [R_alloc_resized ty alloc_ty q size st xs] is a vector whose payloads can be proven (on
@@ -170,28 +170,28 @@ NES.Begin std.
         Reference:
           - https://en.cppreference.com/w/cpp/container/vector, section Iterator invalidation
      *)
-    #[global] Notation R_alloc_resized ty alloc_ty q size st xs :=
+    #[global] Abbreviation R_alloc_resized ty alloc_ty q size st xs :=
       (∃ st',
          resizedR size st st' **
          R_alloc_cap ty alloc_ty q size st' xs)%I
         (size in scope Z_scope).
 
       (** See [R_alloc_resized] above *)
-    #[global] Notation R_resized ty q size st xs :=
+    #[global] Abbreviation R_resized ty q size st xs :=
       (R_alloc_resized ty (std.allocator.T ty) q size st xs).
 
-    #[global] Notation null_state := ({| base_pointer := nullptr; capacity := 0 |}).
+    #[global] Abbreviation null_state := ({| base_pointer := nullptr; capacity := 0 |}).
     (** [R_null q] allows us to specify an empty vector without using a [Rep] predicate for [ty].
 
         NOTE: Making [nullptr] the unique representation of an empty vector may prevent us from
         proving that iterator [v.begin()] remains valid after we popped the last element of the
         vector *)
-    #[global] Notation R_null ty alloc_ty q := (spineR ty alloc_ty q 0 null_state).
+    #[global] Abbreviation R_null ty alloc_ty q := (spineR ty alloc_ty q 0 null_state).
 
     Section spineR_props.
       Context `{Σ : cpp_logic} {σ : genv}.
       Context (ty alloc_ty : type).
-      #[local] Notation spineR := (spineR ty alloc_ty).
+      #[local] Abbreviation spineR := (spineR ty alloc_ty).
 
       #[global] Declare Instance spineR_cfrac : CFractional2 spineR.
       #[global] Declare Instance spineR_ascfrac : AsCFractional2 spineR.
@@ -212,29 +212,29 @@ NES.Begin std.
     Module iterator.
       Import skylabs.brick.libstdcpp.iterator.spec.
 
-      #[global] Notation NS := "__gnu_cxx"%cpp_name.
-      #[global] Notation N_base const ty alloc_ty :=
+      #[global] Abbreviation NS := "__gnu_cxx"%cpp_name.
+      #[global] Abbreviation N_base const ty alloc_ty :=
         (NS .:: Nid "__normal_iterator" .<< Atype (Tptr (Tconst_if const ty)), Atype (vector.T ty alloc_ty) >> ).
-      #[global] Notation T_base const ty alloc_ty := (Tnamed (N_base const ty alloc_ty)).
+      #[global] Abbreviation T_base const ty alloc_ty := (Tnamed (N_base const ty alloc_ty)).
       sl.lock
       Definition R_base `{Σ : cpp_logic, σ : genv} (const : bool) (ty alloc_ty : type) (q : cQp.t) (basep : ptr) (i : Z) : Rep :=
         _field (N_base const ty alloc_ty .:: Nid "__i_") |-> ptrR<ty> q (basep .[ ty ! i]) **
         structR (N_base const ty alloc_ty) q.
       #[only(type_ptr,ascfractional)] derive R_base.
 
-      #[global] Notation N_alloc ty alloc_ty       := (N_base false ty alloc_ty).
-      #[global] Notation N_alloc_const ty alloc_ty := (N_base true ty alloc_ty).
-      #[global] Notation T_alloc ty alloc_ty       := (T_base false ty alloc_ty).
-      #[global] Notation T_alloc_const ty alloc_ty := (T_base true ty alloc_ty).
-      #[global] Notation R_alloc ty alloc_ty       := (R_base false ty alloc_ty).
-      #[global] Notation R_alloc_const ty alloc_ty := (R_base true ty alloc_ty).
+      #[global] Abbreviation N_alloc ty alloc_ty       := (N_base false ty alloc_ty).
+      #[global] Abbreviation N_alloc_const ty alloc_ty := (N_base true ty alloc_ty).
+      #[global] Abbreviation T_alloc ty alloc_ty       := (T_base false ty alloc_ty).
+      #[global] Abbreviation T_alloc_const ty alloc_ty := (T_base true ty alloc_ty).
+      #[global] Abbreviation R_alloc ty alloc_ty       := (R_base false ty alloc_ty).
+      #[global] Abbreviation R_alloc_const ty alloc_ty := (R_base true ty alloc_ty).
 
-      #[global] Notation N ty       := (N_base false ty (std.allocator.T ty)).
-      #[global] Notation N_const ty := (N_base true ty (std.allocator.T ty)).
-      #[global] Notation T ty       := (T_base false ty (std.allocator.T ty)).
-      #[global] Notation T_const ty := (T_base true ty (std.allocator.T ty)).
-      #[global] Notation R ty       := (R_base false ty (std.allocator.T ty)).
-      #[global] Notation R_const ty := (R_base true ty (std.allocator.T ty)).
+      #[global] Abbreviation N ty       := (N_base false ty (std.allocator.T ty)).
+      #[global] Abbreviation N_const ty := (N_base true ty (std.allocator.T ty)).
+      #[global] Abbreviation T ty       := (T_base false ty (std.allocator.T ty)).
+      #[global] Abbreviation T_const ty := (T_base true ty (std.allocator.T ty)).
+      #[global] Abbreviation R ty       := (R_base false ty (std.allocator.T ty)).
+      #[global] Abbreviation R_const ty := (R_base true ty (std.allocator.T ty)).
 
       Section iter.
         Context `{Σ : cpp_logic, σ : genv}.
@@ -383,13 +383,13 @@ NES.Begin std.
 
     End iterator.
 
-    #[global] Notation range_base const ty alloc_ty := (std.range (iterator.T_base const ty alloc_ty)).
-    #[global] Notation range ty alloc_ty            := (std.range (iterator.T_alloc ty alloc_ty)).
-    #[global] Notation range_const ty alloc_ty      := (std.range (iterator.T_alloc_const ty alloc_ty)).
+    #[global] Abbreviation range_base const ty alloc_ty := (std.range (iterator.T_base const ty alloc_ty)).
+    #[global] Abbreviation range ty alloc_ty            := (std.range (iterator.T_alloc ty alloc_ty)).
+    #[global] Abbreviation range_const ty alloc_ty      := (std.range (iterator.T_alloc_const ty alloc_ty)).
 
-    #[global] Notation payload_base const ty alloc_ty := (std.payload (iterator.T_base const ty alloc_ty)).
-    #[global] Notation payload ty alloc_ty            := (std.payload (iterator.T_alloc ty alloc_ty)).
-    #[global] Notation payload_const ty alloc_ty      := (std.payload (iterator.T_alloc_const ty alloc_ty)).
+    #[global] Abbreviation payload_base const ty alloc_ty := (std.payload (iterator.T_base const ty alloc_ty)).
+    #[global] Abbreviation payload ty alloc_ty            := (std.payload (iterator.T_alloc ty alloc_ty)).
+    #[global] Abbreviation payload_const ty alloc_ty      := (std.payload (iterator.T_alloc_const ty alloc_ty)).
 
     Section with_cpp.
       Context `{Σ : cpp_logic, σ : genv}.
@@ -397,18 +397,18 @@ NES.Begin std.
 
       NES.Open allocator_traits.
 
-      #[local] Notation vector := (N ty alloc_ty) (only parsing).	(** [vector<ty, alloc_ty>] *)
-      #[local] Notation vectorT := (Tnamed vector) (only parsing).
+      #[local] Abbreviation vector := (N ty alloc_ty) (only parsing).	(** [vector<ty, alloc_ty>] *)
+      #[local] Abbreviation vectorT := (Tnamed vector) (only parsing).
 
-      #[local] Notation R_null q := (spineR ty alloc_ty q 0 null_state).
-      #[local] Notation R q xs := (R_alloc ty alloc_ty q xs).
-      #[local] Notation R_cap q size st xs := (R_alloc_cap ty alloc_ty q size st xs).
+      #[local] Abbreviation R_null q := (spineR ty alloc_ty q 0 null_state).
+      #[local] Abbreviation R q xs := (R_alloc ty alloc_ty q xs).
+      #[local] Abbreviation R_cap q size st xs := (R_alloc_cap ty alloc_ty q size st xs).
 
       (** See [R_resized] and [R_alloc_resized] above *)
-      #[local] Notation R_resized q size s xs := (R_alloc_resized ty alloc_ty q size s xs).
+      #[local] Abbreviation R_resized q size s xs := (R_alloc_resized ty alloc_ty q size s xs).
 
-      #[local] Notation spineR q size st := (spineR ty alloc_ty q size st).
-      #[local] Notation size_type := (allocator_traits.size_type alloc_ty).
+      #[local] Abbreviation spineR q size st := (spineR ty alloc_ty q size st).
+      #[local] Abbreviation size_type := (allocator_traits.size_type alloc_ty).
 
       Definition default_ctor :=
         specify.template.ctor vector [] $
@@ -743,7 +743,7 @@ NES.Begin std.
         Context `{!DefaultValue ty V}.
         Context `{!MovedValue ty V}.
 
-        #[local] Notation MaybeConst spec := (spec true ** spec false).
+        #[local] Abbreviation MaybeConst spec := (spec true ** spec false).
 
         Definition specs :=
           default_ctor **

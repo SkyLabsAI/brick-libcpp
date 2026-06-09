@@ -23,8 +23,8 @@ NES.End std.allocator_traits.
 NES.Begin std.allocator.
   NES.Open allocator_traits.
 
-  #[global] Notation N ty := (Ninst "std::allocator" [Atype ty]).
-  #[global] Notation T ty := (Tnamed (Ninst "std::allocator" [Atype ty])).
+  #[global] Abbreviation N ty := (Ninst "std::allocator" [Atype ty]).
+  #[global] Abbreviation T ty := (Tnamed (Ninst "std::allocator" [Atype ty])).
   sl.lock Definition R `{Σ : cpp_logic,σ : genv} (ty : type) (q : cQp.t) (_ : ()) : Rep :=
     structR (N ty) q.
   #[only(ascfractional,cfractional,cfracvalid,type_ptr)] derive R.
