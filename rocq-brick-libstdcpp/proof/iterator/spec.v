@@ -220,7 +220,7 @@ NES.Begin std.
   Section array.
     #[local] Open Scope Z_scope.
     Context `{Σ : cpp_logic, σ : genv}.
-    #[local] Notation IterState := Z (only parsing).
+    #[local] Abbreviation IterState := Z (only parsing).
 
     (**
        [array_spine ty basep q pi xs pj]
@@ -302,8 +302,8 @@ NES.Begin std.
       Context {ty : type}.
       Context {basep : ptr}.
 
-      #[local] Notation deref s := ( (basep : ptr) .[ ty ! s ]  ).
-      #[local] Notation array_spine := (array_spine ty basep).
+      #[local] Abbreviation deref s := ( (basep : ptr) .[ ty ! s ]  ).
+      #[local] Abbreviation array_spine := (array_spine ty basep).
 
       #[global] Instance array_spine_CFractional3 : CFractional3 array_spine.
       Proof.
@@ -659,7 +659,7 @@ NES.End std.
 Module Type CODE_SNIPPETS (U : common.UNIT).
 Section code_snippets.
   Context `{Σ : cpp_logic,σ : genv}.
-  #[local] Notation WpSpec := (WpSpec mpred val val).
+  #[local] Abbreviation WpSpec := (WpSpec mpred val val).
   NES.Open std.
 
   Definition reverse_spec {A} (ty iter_ty : type)
