@@ -49,7 +49,7 @@ NES.Begin std.
      *  A vector together with its payload can be specified as:
      *  <<
      *     p |-> std.vector.spineR ty alloc_ty q size st **
-     *     base_pointer st |-> arrayLR ty 0 size Rpayload xs
+     *     base_pointer st |-> array_sliceR ty 0 size Rpayload xs
      *  >>
      *
      *  [p |-> std.vector.R ty q xs].
@@ -64,11 +64,11 @@ NES.Begin std.
      *  Various notations other than [std.vector.R] are provided so that the ownership of a vector can
      *  be expressed at various levels of abstractions. Because all those shorthands are defined as
      *  notations, whatever the level of abstraction chosen will result in the use of
-     *  [std.vector.spineR] for the shape of the vector and [arrayLR] for the payload. Any automation
+     *  [std.vector.spineR] for the shape of the vector and [array_sliceR] for the payload. Any automation
      *  that manipulates either will be usable with any use of vectors.
      *
      *  # Rationale
-     *  The value of leaning heavily on [spineR] and [arrayLR] the specify the shape of vectors is
+     *  The value of leaning heavily on [spineR] and [array_sliceR] the specify the shape of vectors is
      *  threefold:
      *
      *   1. We can use basic array automation to reason about random access to elements of a vector as
@@ -80,16 +80,16 @@ NES.Begin std.
      *      over the elements of a vector to change their representation from [p .[ ty ! i] |-> RA q x]
      *      to [p .[ ty ! i] |-> RB q x]. We can specify the loop invariant as
      *      <<
-     *        basep |-> arrayLR ty 0 i (RA 1$m) xs0 **
-     *        basep |-> arrayLR ty i size (RB 1$m) xs1
+     *        basep |-> array_sliceR ty 0 i (RA 1$m) xs0 **
+     *        basep |-> array_sliceR ty i size (RB 1$m) xs1
      *      >>
      *      whenever we call [v.size()], only [spineR] is required and there is no need to repackage
-     *      the [arrayLR] terms into a more homogeneous shape, such as [arrayLR ty 0 size objR (xs0 ++ xs1)],
+     *      the [array_sliceR] terms into a more homogeneous shape, such as [array_sliceR ty 0 size objR (xs0 ++ xs1)],
      *      which would be needed by a wider footprint characterization of <<std::vector>>.
      *
      *   2. The standard makes strong guarantees about the validity of references and iterators within
      *      a vector and about when storage gets realocated. By focusing our definitions around
-     *      [spineR] and [arrayLR], we can write strong specifications for the <<std::vector>> functions
+     *      [spineR] and [array_sliceR], we can write strong specifications for the <<std::vector>> functions
      *      and use the same strong specifications whether the specifications of the client code
      *      references the internal state of <<std::vector>> or uses more abstract terms to specify
      *      <<std::vector>> objects.
@@ -107,15 +107,15 @@ NES.Begin std.
      *        vp |-> std.vector.R_cap ty q size st (xs0 ++ xs1 ++ xs2)
      *      >>
      *
-     *   C) Low-level and detailed, allows us to use our favorite features of [arrayLR]:
+     *   C) Low-level and detailed, allows us to use our favorite features of [array_sliceR]:
      *      <<
      *        vp |-> std.vector.spineR ty alloc_ty q size st **   (* NOTE: should this be called [R_spine] instead? Or
      *                                                                     [std.vector.internals.R_spine]? *)
-     *        base_pointer st |-> arrayLR ty 0 i (RA q) xs0 **
+     *        base_pointer st |-> array_sliceR ty 0 i (RA q) xs0 **
      *        [| xs1 = x :: xs1' |] **
      *        base_pointer st .[ ty ! i ] |-> RB q x **
-     *        base_pointer st |-> arrayLR ty (i + 1) j (RC q) xs1' **
-     *        base_pointer st |-> arrayLR ty j size (RD q) xs2
+     *        base_pointer st |-> array_sliceR ty (i + 1) j (RC q) xs1' **
+     *        base_pointer st |-> array_sliceR ty j size (RD q) xs2
      *      >>
      *
      *  When verifying a piece of code, assertions can alternate between B) and C) when we need
@@ -124,7 +124,7 @@ NES.Begin std.
      *
      *  LIMITATION: this specification applies to the libc++ vectors and does not support
      *    <<std::vector<bool> >>. To support <<std::vector<bool> >>, we need a different
-     *    construction from [arrayLR] so that we can track invidividual bits separately.
+     *    construction from [array_sliceR] so that we can track invidividual bits separately.
      *
      *  LIMITATION: the specification does not discuss exceptions. If allocation fails in
      *    <<std::vector::reserve>> and callers (i.e. <<std::vector::push_back>>,
@@ -147,10 +147,10 @@ NES.Begin std.
 
     (** Question(Simon): Should we take a predicate as a parameter instead of using [objR]? That would allow varying the
         representation of the contents of the vector of the course of a single proof. That's also enabled by manipulating
-        [spineR] and [arrayLR] separately. *)
-    #[global] Abbreviation R_alloc_cap ty alloc_ty q size st xs :=
+        [spineR] and [array_sliceR] separately. *)
+    #[global] Notation R_alloc_cap ty alloc_ty q size st xs :=
       ( spineR ty alloc_ty q size st **
-        pureR (base_pointer st |-> arrayLR ty 0 size (objR ty q) xs) )%I
+        pureR (base_pointer st |-> array_sliceR ty 0 size (objR ty q) xs) )%I
       (q in scope cQp_scope, basep in scope bi_scope, size, cap in scope Z_scope ).
 
     #[global] Abbreviation R_alloc ty alloc_ty q xs :=
@@ -815,11 +815,11 @@ NES.Begin std.
         \proving std.array_spine ty  basep q' i (rangeZ i j) j
         \bound A (R : A -> Rep)
         \proving{(vs : list A)} payload ty alloc_ty basep R (rangeZ i j) vs
-        \through basep |-> arrayLR ty i j R vs
+        \through basep |-> array_sliceR ty i j R vs
         \end.
       Next Obligation.
         intros. iIntros "$" (???) "A".
-        iDestruct (arrayLR_eqv_spine_payload_rangeZ with "A") as "[$ $]".
+        iDestruct (array_sliceR_eqv_spine_payload_rangeZ with "A") as "[$ $]".
       Qed.
 
       #[program]
@@ -829,7 +829,7 @@ NES.Begin std.
         \let basep := vector.base_pointer st
         \with A (R : A -> Rep)
         \using{(vs : list A)} payload ty alloc_ty basep R (rangeZ i j) vs
-        \deduce basep |-> arrayLR ty i j R vs
+        \deduce basep |-> array_sliceR ty i j R vs
         \end.
       Next Obligation.
         intros; case: Harith => [[] Hi0 [] Hij Hj_size].
@@ -839,7 +839,7 @@ NES.Begin std.
         have ? : 0 ≤ j by lia.
         rewrite (array_spine_rangeZ_split j) // (array_spine_rangeZ_split i) //.
         iDestruct "C" as "([_ C] & _)".
-        rewrite arrayLR_eqv_spine_payload_rangeZ.
+        rewrite array_sliceR_eqv_spine_payload_rangeZ.
         iFrame "B C".
       Qed.
 
