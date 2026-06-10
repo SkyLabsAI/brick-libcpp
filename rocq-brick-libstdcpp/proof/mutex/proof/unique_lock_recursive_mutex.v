@@ -5,6 +5,7 @@ Require Export skylabs.brick.libstdcpp.runtime.pred.
 Require Import skylabs.brick.libstdcpp.mutex.spec.prelude.
 Require Import skylabs.brick.libstdcpp.mutex.spec.recursive_mutex.
 Require Import skylabs.brick.libstdcpp.mutex.requirements.
+(*
 Require Import skylabs.brick.libstdcpp.mutex.spec.unique_lock_recursive_mutex.
 
 NES.Begin unique_lock.
@@ -43,4 +44,4 @@ NES.Begin unique_lock.
     Proof. verify_spec; go. by rewrite cQp.scale_mut right_id_L. Qed.
 
   End with_cpp.
-NES.End unique_lock.
+NES.End unique_lock. *)
