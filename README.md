@@ -21,3 +21,11 @@ To this end, go to `workspace` and run
 ```
 cd fmdeps/brick-libcpp; cp dune.disabled dune
 ```
+
+Hotfix: edit ``rocq-brick-libstdcpp/dune` and comment in
+```
+  ;; Enable locally if using this
+  ; (binaries
+  ;  (cpp2v_docker as cpp2v))
+```
+We will re-enable this by default after we fix a regression.
