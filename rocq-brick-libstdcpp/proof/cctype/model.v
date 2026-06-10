@@ -9,7 +9,7 @@ Require Import skylabs.prelude.base.
 #[local] Set Primitive Projections.
 #[local] Open Scope Z_scope.
 
-#[local]  Notation ord c := (Evaluate (Z.of_N (Byte.to_N c))) (only parsing).
+#[local]  Abbreviation ord c := (Evaluate (Z.of_N (Byte.to_N c))) (only parsing).
 
 Definition islower (c : Z) : bool :=
   bool_decide (ord "a" <= c <= ord "z").

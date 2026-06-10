@@ -192,9 +192,9 @@ Section with_cpp.
 
   Section proofs.
     Context `{MOD : test_cpp.source ⊧ σ}.
-    #[local] Notation alloc_int := (std.allocator.T "int").
-    #[local] Notation alloc_uint := (std.allocator.T "unsigned").
-    #[local] Notation alloc_agg := (std.allocator.T "Aggregate").
+    #[local] Abbreviation alloc_int := (std.allocator.T "int").
+    #[local] Abbreviation alloc_uint := (std.allocator.T "unsigned").
+    #[local] Abbreviation alloc_agg := (std.allocator.T "Aggregate").
     Implicit Type p : ptr.
 
     Import linearity.

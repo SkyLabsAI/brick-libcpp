@@ -19,7 +19,7 @@ Section with_cpp.
   Definition side1 := 5.
   Definition side2 := 6.
 
-  #[local] Notation APP := (output_app (eq $ behavior side1 side2)).
+  #[local] Abbreviation APP := (output_app (eq $ behavior side1 side2)).
 
   Context `{SPECTRA : !appG APP _Σ}.
 

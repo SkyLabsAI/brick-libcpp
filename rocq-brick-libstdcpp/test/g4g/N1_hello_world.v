@@ -10,7 +10,7 @@ Import linearity.
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
 
-  #[local] Notation APP := (output_app (eq "Hello World"%bs)).
+  #[local] Abbreviation APP := (output_app (eq "Hello World"%bs)).
 
   Context `{SPECTRA : !appG APP _Σ}.
 

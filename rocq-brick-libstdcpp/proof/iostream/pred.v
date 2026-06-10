@@ -31,8 +31,8 @@ Variant input_event : Set :=
   | Read (_ : N).
 
 (** The behavior of an [ostream] is described by a handler of an [output_event]  *)
-Notation Ostream := (SepHandler mpred output_event).
-Notation Istream := (SepHandler mpred input_event).
+Abbreviation Ostream := (SepHandler mpred output_event).
+Abbreviation Istream := (SepHandler mpred input_event).
 
 Module ostream.
   Parameter gname : Set.

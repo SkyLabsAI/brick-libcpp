@@ -43,7 +43,7 @@ Section lists.
 
 End lists.
 
-#[global] Notation list_findZ P := (list_findZ_from P 0).
+#[global] Abbreviation list_findZ P := (list_findZ_from P 0).
 
 NES.Begin std.
 

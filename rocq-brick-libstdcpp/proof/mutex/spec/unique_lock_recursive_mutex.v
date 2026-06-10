@@ -91,13 +91,13 @@ NES.Begin unique_lock.
       Context `{!recursive_mutex.lockedG Σ}.
       Context `{!HasOwn (iPropI _) recursive_mutex.cmraR}.
 
-      Notation ty := "std::recursive_mutex"%cpp_type (only parsing).
-      Notation mutexT := recursive_mutex.rmutex_gname (only parsing).
-      Notation mutexR' := (λ q γ, recursive_mutex.R γ.(recursive_mutex.lock_gname) q)  (only parsing).
-      Notation mutexR q γ := (recursive_mutex.R γ.(recursive_mutex.lock_gname) q)  (only parsing).
+      Abbreviation ty := "std::recursive_mutex"%cpp_type (only parsing).
+      Abbreviation mutexT := recursive_mutex.rmutex_gname (only parsing).
+      Abbreviation mutexR' := (λ q γ, recursive_mutex.R γ.(recursive_mutex.lock_gname) q)  (only parsing).
+      Abbreviation mutexR q γ := (recursive_mutex.R γ.(recursive_mutex.lock_gname) q)  (only parsing).
       (* specialize to recursive mutex END. TODO: drop*)
 
-      #[local] Notation R := (R ty (T:=mutexT) mutexR').
+      #[local] Abbreviation R := (R ty (T:=mutexT) mutexR').
 
       #[global] Instance: LearnEqF1 R := ltac:(solve_learnable).
 
@@ -234,7 +234,7 @@ NES.Begin unique_lock.
         iApply ("W" with "[$] [$]").
       Qed.
 
-      Notation owns_lock_spec_body := (
+      Abbreviation owns_lock_spec_body := (
         \this this
         \prepost{om q} this |-> R q om
         \post [Vbool (owned om)] emp) (only parsing).
