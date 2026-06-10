@@ -23,12 +23,10 @@ Section with_cpp.
   ; do_unlock : ptr -> T -> mpred -> mpred
     (* the WP for <ty::unlock()> *)
   }.
-  (** TODO: consider adding a Hint Mode*)
-  (*
-  #[global] Hint Mode BasicLockable ! - ! : typeclass_instances.
-  #[global] Arguments do_lock ty {T} R {BL} _ _ _ : rename.
-  #[global] Arguments do_unlock ty {T} R {BL} _ _ _ : rename.
-  *)
+  #[global] Hint Mode BasicLockable + - - : typeclass_instances.
+  #[global] Hint Mode BasicLockable - - + : typeclass_instances.
+  #[global] Arguments do_lock ty {T R BL} _ _ _ : rename.
+  #[global] Arguments do_unlock ty {T R BL} _ _ _ : rename.
 
   Section with_BasicLockable.
     Context (ty : type) {T: Type} (R : cQp.t -> T -> Rep) {BL : BasicLockable ty R}.
@@ -36,20 +34,22 @@ Section with_cpp.
     Definition lock_basic_lockable : ptr -> WpSpec mpred val val :=
       (\this this
        \prepost{q m} this |-> R q m
-       \pre{K} do_lock this m K
+       \pre{K} do_lock ty this m K
        \post K).
 
     Definition unlock_basic_lockable : ptr -> WpSpec mpred val val :=
       (\this this
        \prepost{q m} this |-> R q m
-       \pre{K} do_unlock this m K
+       \pre{K} do_unlock ty this m K
        \post K).
   End with_BasicLockable.
 
   (** This captures [Lockable](https://cppreference.com/cpp/named_req/Lockable) *)
   Class Lockable (ty : type) {T : Type} (R : cQp.t -> T -> Rep) {BASIC_LOCKABLE : BasicLockable ty R} : Type :=
   { do_try_lock : ptr -> T -> (bool -> mpred) -> mpred }.
-  (* TODO: Hint Mode here too. *)
+  #[global] Hint Mode Lockable + - - - : typeclass_instances.
+  #[global] Hint Mode Lockable - - + - : typeclass_instances.
+  #[global] Arguments do_try_lock ty {T R BL L} _ _ _ : rename.
 
   Section with_Lockable.
     Context (ty : type) {T : Type} (R : cQp.t -> T -> Rep) `{LOCKABLE : Lockable (T:=T) ty R}.
@@ -57,7 +57,7 @@ Section with_cpp.
     Definition try_lock_lockable : ptr -> WpSpec mpred val val :=
       (\this this
        \prepost{q m} this |-> R q m
-       \pre{K} do_try_lock this m K
+       \pre{K} do_try_lock ty this m K
        \post{r}[Vbool r] K r).
   End with_Lockable.
 
