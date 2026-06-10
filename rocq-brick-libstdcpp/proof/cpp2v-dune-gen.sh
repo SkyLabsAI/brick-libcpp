@@ -1,4 +1,5 @@
 #!/bin/bash
+# -*- indent-tabs-mode: t; sh-basic-offset: 8 -*- vim:set noet sw=8:
 
 usage() {
 	cat >&2 <<-EOF
@@ -131,5 +132,3 @@ path="$1"
 shift
 
 traverse "" "$path" "$@"
-
-# vim:set noet sw=8:
