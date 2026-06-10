@@ -58,7 +58,9 @@ outRule() {
 		(rule
 		 (targets ${module}.stderr ${targ})
 		 (alias test_ast)
-		 (deps (:input ${name}.${ext}) (glob_files_rec ${prefix}*.hpp)${universe})
+		 (deps
+		  (:input ${name}.${ext})
+		  (glob_files_rec ${prefix}*.hpp)${universe})
 		 (action
 		 	 (with-stderr-to ${module}.stderr ${action})))
 		(alias (name srcs) (deps ${name}.${ext}))
