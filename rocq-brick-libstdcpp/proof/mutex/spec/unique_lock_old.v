@@ -5,6 +5,7 @@ Require Export skylabs.brick.libstdcpp.runtime.pred.
 Require Import skylabs.brick.libstdcpp.mutex.spec.prelude.
 Require Import skylabs.brick.libstdcpp.mutex.spec.mutex.
 
+(**
 (* Specs for "unique_lock<std::mutex>".
 TODO: to be replaced by generic specs + instantiations.
  *)
@@ -282,3 +283,5 @@ NES.Begin unique_lock.
 
   End with_cpp.
 NES.End unique_lock.
+
+*)
