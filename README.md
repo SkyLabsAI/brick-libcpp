@@ -17,22 +17,7 @@ you'll find a copy of this repository in `fmdeps/brick-libcpp`. Then:
 
 - on Linux, you can build this directly.
 - on any platform, you can route AST generation through our Docker image.
-To this end, edit `rocq-brick-libstdcpp/dune` from
-
+To this end, go to `workspace` and run
 ```
-(env
- (_
-  ; Enable the following setting to build ASTs in container.
-  ; (env-vars
-  ;  (CPP2V_DOCKER_IMAGE "skylabsai/fm-releases:fm-release-nightly"))
-```
-
-to
-
-```
-(env
- (_
-  ; Enable the following setting to build ASTs in container.
-  (env-vars
-   (CPP2V_DOCKER_IMAGE "skylabsai/fm-releases:fm-release-nightly"))
+cd fmdeps/brick-libcpp; cp dune.disabled dune
 ```

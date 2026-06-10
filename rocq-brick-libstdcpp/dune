@@ -1,8 +1,5 @@
 (env
  (_
-  ;; Enable the following setting to build ASTs in container.
-  ; (env-vars
-  ;  (CPP2V_DOCKER_IMAGE "skylabsai/fm-releases:fm-release-nightly"))
   (binaries
    (cpp2v_docker as cpp2v))
   (flags :standard %{read-lines:flags/ocamlc})

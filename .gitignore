@@ -14,3 +14,6 @@ mutexes.pdf
 mutexes.synctex.gz
 comment.cut
 _RocqProject
+
+# Only at the root, since it comes from enabling `dune.disabled` locally
+/dune

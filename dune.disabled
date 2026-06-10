@@ -1,0 +1,15 @@
+; Copy as dune to enable
+
+(subdir rocq-brick-libstdcpp
+ ; hack: we can't add (env) here, so we only add it to subfolders
+ (subdir proof
+  (env
+   (_
+    (env-vars
+     (CPP2V_DOCKER_IMAGE "skylabsai/fm-releases:fm-release-nightly")))))
+
+ (subdir test
+  (env
+   (_
+    (env-vars
+     (CPP2V_DOCKER_IMAGE "skylabsai/fm-releases:fm-release-nightly"))))))
