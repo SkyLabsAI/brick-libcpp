@@ -133,13 +133,13 @@ NES.Begin std.
 
    It is designed to satisfy the equation:
    <<
-        basep |-> arrayLR ty i j R vs
+        basep |-> array_sliceR ty i j R vs
      -|-
         ∃ ps,
           array_spine ty basep 1$m i ps j **
           [∗ list] idx; v ∈ ps; vs, basep .[ ty ! idx ] |-> R v
    >>
-   and thus separate a [arrayLR] term into a term that specifies a list of pointers and a different
+   and thus separate a [array_sliceR] term into a term that specifies a list of pointers and a different
    term to specify the objects that are stored at those pointers.
 
    NOTE: the listings in this comment are type checked in module [code_snippets].
@@ -230,9 +230,9 @@ NES.Begin std.
        compatible with the notion of iterator specified by [HasRanges].
 
        In particular, we ensure that the following equivalence holds (lemma
-       [arrayLR_eqv_array_spine_big_sepL2]):
+       [array_sliceR_eqv_array_spine_big_sepL2]):
        <<
-            basep |-> arrayLR ty i j R vs
+            basep |-> array_sliceR ty i j R vs
          -|-
             ∃ ps,
               array_spine ty basep 1$m (basep .[ ty ! i]) ps (basep .[ ty ! j]) **
@@ -265,7 +265,7 @@ NES.Begin std.
        Idea 1:
          include the ownership of the base pointer. It solves 2.
          Issue 1: this does not allow `std::vector` to preserve the validity of iterators after move.
-         Issue 2: breaks lemma [arrayLR_eqv_array_spine_big_sepL2].
+         Issue 2: breaks lemma [array_sliceR_eqv_array_spine_big_sepL2].
 
        Idea 2:
          To solve 3, [HasRanges] could be reformulated as follows:
@@ -509,13 +509,13 @@ NES.Begin std.
           iFrame.
       Qed.
 
-      Lemma arrayLR_eqv_array_spine_big_sepL2_rangeZ {A} q i j (R : A -> Rep) (vs : list A) :
-        basep |-> arrayLR ty i j R vs
+      Lemma array_sliceR_eqv_array_spine_big_sepL2_rangeZ {A} q i j (R : A -> Rep) (vs : list A) :
+        basep |-> array_sliceR ty i j R vs
           -|-
         array_spine q i (rangeZ i j) j **
         [∗ list] p; v ∈ rangeZ i j; vs, deref p |-> R v.
       Proof.
-        rewrite arrayLR.unlock arrayR_eq/arrayR_def arrR_eq/arrR_def.
+        rewrite array_sliceR.unlock arrayR_eq/arrayR_def arrR_eq/arrR_def.
         rewrite !(_at_sep,_at_only_provable,_at_offsetR,_at_big_sepL,_at_validR).
         split'.
         - iIntros "A".
@@ -554,14 +554,14 @@ NES.Begin std.
           by rewrite _at_offsetR _at_sep _at_type_ptrR o_sub_sub.
       Qed.
 
-      Lemma arrayLR_eqv_array_spine_big_sepL2 {A} q i j (R : A -> Rep) (vs : list A) :
-             basep |-> arrayLR ty i j R vs
+      Lemma array_sliceR_eqv_array_spine_big_sepL2 {A} q i j (R : A -> Rep) (vs : list A) :
+             basep |-> array_sliceR ty i j R vs
           -|-
              ∃ ps,
                array_spine q i ps j **
                [∗ list] p; v ∈ ps; vs, deref p |-> R v.
       Proof.
-        rewrite (arrayLR_eqv_array_spine_big_sepL2_rangeZ q).
+        rewrite (array_sliceR_eqv_array_spine_big_sepL2_rangeZ q).
         split'; first by iIntros "$".
         iIntros "(%ps & A & B)".
         iDestruct (array_spine_obs_fmap_rangeZ with "A") as %->.
@@ -602,13 +602,13 @@ NES.Begin std.
          range_app basep := array_spine_app ;
       |}.
 
-    Lemma arrayLR_eqv_spine_payload_rangeZ ty it_ty q (H := array_ranges ty it_ty)
+    Lemma array_sliceR_eqv_spine_payload_rangeZ ty it_ty q (H := array_ranges ty it_ty)
       {A} (basep : ptr) i j (R : A -> Rep) (vs : list A) :
-      basep |-> arrayLR ty i j R vs
+      basep |-> array_sliceR ty i j R vs
         -|-
           array_spine ty basep q i (rangeZ i j) j **
           payload it_ty basep R (rangeZ i j) vs.
-    Proof. by rewrite arrayLR_eqv_array_spine_big_sepL2_rangeZ payload.unlock. Qed.
+    Proof. by rewrite array_sliceR_eqv_array_spine_big_sepL2_rangeZ payload.unlock. Qed.
   End array.
 
   #[global] Hint Resolve array_spine_collect_F : sl_opacity.
@@ -714,7 +714,7 @@ Section code_snippets.
   Context {basep : ptr} (i j : Z) (R : A -> Rep).
 
   Definition example4 :=
-    basep |-> arrayLR ty i j R vs
+    basep |-> array_sliceR ty i j R vs
       -|-
     ∃ ps,
       array_spine ty basep 1$m i ps j **

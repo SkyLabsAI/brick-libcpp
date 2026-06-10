@@ -234,7 +234,7 @@ Section with_cpp.
         \with basep
         \pre{ib}     beginp |-> std.vector.iterator.R_const "unsigned" 1$m basep ib
         \prepost{ie} endp   |-> std.vector.iterator.R_const "unsigned" 1$m basep ie
-        \prepost{vs} basep |-> arrayLR "unsigned" ib ie (fun v => uintR q v) vs
+        \prepost{vs} basep |-> array_sliceR "unsigned" ib ie (fun v => uintR q v) vs
         \pre{r} r_addr |-> uintR 1$m r
         \post
            r_addr |-> uintR 1$m (trim 32 (r + sum vs)) ∗

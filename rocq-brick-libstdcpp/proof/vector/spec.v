@@ -22,12 +22,12 @@ NES.Begin std.
     #[global] Abbreviation T ty alloc_ty := (Tnamed (N ty alloc_ty)) (only parsing).
 
     (**
-     *  NOTE(Simon):
-     *  This state type does not make reference to the state of the allocator or the [max_size] it can
-     *  accommodate.
-     *
-     *  TODO: support [max_size] and the allocator state (vector::get_allocator gives direct access to
-     *  it).
+        NOTE(Simon):
+        This state type does not make reference to the state of the allocator or the [max_size] it can
+        accommodate.
+
+        TODO: support [max_size] and the allocator state (vector::get_allocator gives direct access to
+        it).
      *)
     Record InternalState :=
       { capacity : Z ;
@@ -36,103 +36,103 @@ NES.Begin std.
     #[global] Hint Opaque base_pointer : sl_opacity.
 
     (**
-     *  Module [std.vector]
-     *  provides a [Rep] predicate for vectors of [ty] using type [alloc_ty] as the allocator. The
-     *  C++ standard library provides <<std::allocator<T> >> as a default choice of allocator and we
-     *  can base a specification on that default using the notations: [std.vector.R],
-     *  [std.vector.R_cap], and [std.vector.R_resized]. [std.vector] provides the [Rep] predicate
-     *  [spineR ty alloc_ty q size st] which specifies the ownership of only the shape of the
-     *  vector, not the payload itself. [size] is the number of elements of the vector whereas
-     *  [st : InternalState] is a record that keeps track of the capacity of the vector and a
-     *  pointer to the memory holding the payloads.
-     *
-     *  A vector together with its payload can be specified as:
-     *  <<
-     *     p |-> std.vector.spineR ty alloc_ty q size st **
-     *     base_pointer st |-> arrayLR ty 0 size Rpayload xs
-     *  >>
-     *
-     *  [p |-> std.vector.R ty q xs].
-     *  We can also use the shorthand [p |-> std.vector.R ty q xs] that allows us to omit the type of
-     *  the allocator, the internal state of the vector, its size and the Rep predicate for each
-     *  payload -- using the [RepFor] type class and its projection [objR] as a default for the
-     *  latter.
-     *
-     *  The specifications of <<std::vector>> rarely use [std.vector.R] in particular to make it easy to
-     *  prove that memory addresses of the payloads remain constant in certain circumstances.
-     *
-     *  Various notations other than [std.vector.R] are provided so that the ownership of a vector can
-     *  be expressed at various levels of abstractions. Because all those shorthands are defined as
-     *  notations, whatever the level of abstraction chosen will result in the use of
-     *  [std.vector.spineR] for the shape of the vector and [arrayLR] for the payload. Any automation
-     *  that manipulates either will be usable with any use of vectors.
-     *
-     *  # Rationale
-     *  The value of leaning heavily on [spineR] and [arrayLR] the specify the shape of vectors is
-     *  threefold:
-     *
-     *   1. We can use basic array automation to reason about random access to elements of a vector as
-     *      well as convenient features such as specifying slices and varying the representation of
-     *      vector elements over time.
-     *
-     *   2. We can write specifications for the <<std::vector>> functions with very tight footprints. As
-     *      an example, let us consider a loop, say [for (i = 0; i < v.size(); ++i)], where we iterate
-     *      over the elements of a vector to change their representation from [p .[ ty ! i] |-> RA q x]
-     *      to [p .[ ty ! i] |-> RB q x]. We can specify the loop invariant as
-     *      <<
-     *        basep |-> arrayLR ty 0 i (RA 1$m) xs0 **
-     *        basep |-> arrayLR ty i size (RB 1$m) xs1
-     *      >>
-     *      whenever we call [v.size()], only [spineR] is required and there is no need to repackage
-     *      the [arrayLR] terms into a more homogeneous shape, such as [arrayLR ty 0 size objR (xs0 ++ xs1)],
-     *      which would be needed by a wider footprint characterization of <<std::vector>>.
-     *
-     *   2. The standard makes strong guarantees about the validity of references and iterators within
-     *      a vector and about when storage gets realocated. By focusing our definitions around
-     *      [spineR] and [arrayLR], we can write strong specifications for the <<std::vector>> functions
-     *      and use the same strong specifications whether the specifications of the client code
-     *      references the internal state of <<std::vector>> or uses more abstract terms to specify
-     *      <<std::vector>> objects.
-     *
-     *  To make the comparison more concrete, here are three formulations of the same vector (in
-     *  different states) that can be mixed and matched without complications:
-     *
-     *   A) The most abstract, no reference to the internal state:
-     *      <<
-     *        vp |-> std.vector.R ty q (xs0 ++ xs1 ++ xs2)
-     *      >>
-     *
-     *   B) Bundled and low-level, concise and allows us to assert that inner references remain valid:
-     *      <<
-     *        vp |-> std.vector.R_cap ty q size st (xs0 ++ xs1 ++ xs2)
-     *      >>
-     *
-     *   C) Low-level and detailed, allows us to use our favorite features of [arrayLR]:
-     *      <<
-     *        vp |-> std.vector.spineR ty alloc_ty q size st **   (* NOTE: should this be called [R_spine] instead? Or
-     *                                                                     [std.vector.internals.R_spine]? *)
-     *        base_pointer st |-> arrayLR ty 0 i (RA q) xs0 **
-     *        [| xs1 = x :: xs1' |] **
-     *        base_pointer st .[ ty ! i ] |-> RB q x **
-     *        base_pointer st |-> arrayLR ty (i + 1) j (RC q) xs1' **
-     *        base_pointer st |-> arrayLR ty j size (RD q) xs2
-     *      >>
-     *
-     *  When verifying a piece of code, assertions can alternate between B) and C) when we need
-     *  references to remain valid and we can use A) at points of discontinuity where we no longer use
-     *  the internal references of our vector.
-     *
-     *  LIMITATION: this specification applies to the libc++ vectors and does not support
-     *    <<std::vector<bool> >>. To support <<std::vector<bool> >>, we need a different
-     *    construction from [arrayLR] so that we can track invidividual bits separately.
-     *
-     *  LIMITATION: the specification does not discuss exceptions. If allocation fails in
-     *    <<std::vector::reserve>> and callers (i.e. <<std::vector::push_back>>,
-     *    <<std::vector::insert>>, <<std::vector::operator=>>, etc), an exception is thrown.
-     *
-     *  NOTE: When printing [spineR] in a goal, because it is a primitive projection, it will be
-     *    printed as [spineR _ _ q x] instead of [spineR ty alloc_ty q x]. Turning on [Printing
-     *    Primitive Projection Parameters] can make this nicer.
+        Module [std.vector]
+        provides a [Rep] predicate for vectors of [ty] using type [alloc_ty] as the allocator. The
+        C++ standard library provides <<std::allocator<T> >> as a default choice of allocator and we
+        can base a specification on that default using the notations: [std.vector.R],
+        [std.vector.R_cap], and [std.vector.R_resized]. [std.vector] provides the [Rep] predicate
+        [spineR ty alloc_ty q size st] which specifies the ownership of only the shape of the
+        vector, not the payload itself. [size] is the number of elements of the vector whereas
+        [st : InternalState] is a record that keeps track of the capacity of the vector and a
+        pointer to the memory holding the payloads.
+
+        A vector together with its payload can be specified as:
+        <<
+           p |-> std.vector.spineR ty alloc_ty q size st **
+           base_pointer st |-> array_sliceR ty 0 size Rpayload xs
+        >>
+
+        [p |-> std.vector.R ty q xs].
+        We can also use the shorthand [p |-> std.vector.R ty q xs] that allows us to omit the type of
+        the allocator, the internal state of the vector, its size and the Rep predicate for each
+        payload -- using the [RepFor] type class and its projection [objR] as a default for the
+        latter.
+
+        The specifications of <<std::vector>> rarely use [std.vector.R] in particular to make it easy to
+        prove that memory addresses of the payloads remain constant in certain circumstances.
+
+        Various notations other than [std.vector.R] are provided so that the ownership of a vector can
+        be expressed at various levels of abstractions. Because all those shorthands are defined as
+        notations, whatever the level of abstraction chosen will result in the use of
+        [std.vector.spineR] for the shape of the vector and [array_sliceR] for the payload. Any automation
+        that manipulates either will be usable with any use of vectors.
+
+        # Rationale
+        The value of leaning heavily on [spineR] and [array_sliceR] the specify the shape of vectors is
+        threefold:
+
+         1. We can use basic array automation to reason about random access to elements of a vector as
+            well as convenient features such as specifying slices and varying the representation of
+            vector elements over time.
+
+         2. We can write specifications for the <<std::vector>> functions with very tight footprints. As
+            an example, let us consider a loop, say [for (i = 0; i < v.size(); ++i)], where we iterate
+            over the elements of a vector to change their representation from [p .[ ty ! i] |-> RA q x]
+            to [p .[ ty ! i] |-> RB q x]. We can specify the loop invariant as
+            <<
+              basep |-> array_sliceR ty 0 i (RA 1$m) xs0 **
+              basep |-> array_sliceR ty i size (RB 1$m) xs1
+            >>
+            whenever we call [v.size()], only [spineR] is required and there is no need to repackage
+            the [array_sliceR] terms into a more homogeneous shape, such as [array_sliceR ty 0 size objR (xs0 ++ xs1)],
+            which would be needed by a wider footprint characterization of <<std::vector>>.
+
+         2. The standard makes strong guarantees about the validity of references and iterators within
+            a vector and about when storage gets realocated. By focusing our definitions around
+            [spineR] and [array_sliceR], we can write strong specifications for the <<std::vector>> functions
+            and use the same strong specifications whether the specifications of the client code
+            references the internal state of <<std::vector>> or uses more abstract terms to specify
+            <<std::vector>> objects.
+
+        To make the comparison more concrete, here are three formulations of the same vector (in
+        different states) that can be mixed and matched without complications:
+
+         A) The most abstract, no reference to the internal state:
+            <<
+              vp |-> std.vector.R ty q (xs0 ++ xs1 ++ xs2)
+            >>
+
+         B) Bundled and low-level, concise and allows us to assert that inner references remain valid:
+            <<
+              vp |-> std.vector.R_cap ty q size st (xs0 ++ xs1 ++ xs2)
+            >>
+
+         C) Low-level and detailed, allows us to use our favorite features of [array_sliceR]:
+            <<
+              vp |-> std.vector.spineR ty alloc_ty q size st **   (* NOTE: should this be called [R_spine] instead? Or
+                                                                           [std.vector.internals.R_spine]? *)
+              base_pointer st |-> array_sliceR ty 0 i (RA q) xs0 **
+              [| xs1 = x :: xs1' |] **
+              base_pointer st .[ ty ! i ] |-> RB q x **
+              base_pointer st |-> array_sliceR ty (i + 1) j (RC q) xs1' **
+              base_pointer st |-> array_sliceR ty j size (RD q) xs2
+            >>
+
+        When verifying a piece of code, assertions can alternate between B) and C) when we need
+        references to remain valid and we can use A) at points of discontinuity where we no longer use
+        the internal references of our vector.
+
+        LIMITATION: this specification applies to the libc++ vectors and does not support
+          <<std::vector<bool> >>. To support <<std::vector<bool> >>, we need a different
+          construction from [array_sliceR] so that we can track invidividual bits separately.
+
+        LIMITATION: the specification does not discuss exceptions. If allocation fails in
+          <<std::vector::reserve>> and callers (i.e. <<std::vector::push_back>>,
+          <<std::vector::insert>>, <<std::vector::operator=>>, etc), an exception is thrown.
+
+        NOTE: When printing [spineR] in a goal, because it is a primitive projection, it will be
+          printed as [spineR _ _ q x] instead of [spineR ty alloc_ty q x]. Turning on [Printing
+          Primitive Projection Parameters] can make this nicer.
      *)
     Parameter spineR :
       forall `{Σ : cpp_logic} {σ : genv} (ty alloc_ty : type)
@@ -147,10 +147,10 @@ NES.Begin std.
 
     (** Question(Simon): Should we take a predicate as a parameter instead of using [objR]? That would allow varying the
         representation of the contents of the vector of the course of a single proof. That's also enabled by manipulating
-        [spineR] and [arrayLR] separately. *)
-    #[global] Abbreviation R_alloc_cap ty alloc_ty q size st xs :=
+        [spineR] and [array_sliceR] separately. *)
+    #[global] Notation R_alloc_cap ty alloc_ty q size st xs :=
       ( spineR ty alloc_ty q size st **
-        pureR (base_pointer st |-> arrayLR ty 0 size (objR ty q) xs) )%I
+        pureR (base_pointer st |-> array_sliceR ty 0 size (objR ty q) xs) )%I
       (q in scope cQp_scope, basep in scope bi_scope, size, cap in scope Z_scope ).
 
     #[global] Abbreviation R_alloc ty alloc_ty q xs :=
@@ -815,11 +815,11 @@ NES.Begin std.
         \proving std.array_spine ty  basep q' i (rangeZ i j) j
         \bound A (R : A -> Rep)
         \proving{(vs : list A)} payload ty alloc_ty basep R (rangeZ i j) vs
-        \through basep |-> arrayLR ty i j R vs
+        \through basep |-> array_sliceR ty i j R vs
         \end.
       Next Obligation.
         intros. iIntros "$" (???) "A".
-        iDestruct (arrayLR_eqv_spine_payload_rangeZ with "A") as "[$ $]".
+        iDestruct (array_sliceR_eqv_spine_payload_rangeZ with "A") as "[$ $]".
       Qed.
 
       #[program]
@@ -829,7 +829,7 @@ NES.Begin std.
         \let basep := vector.base_pointer st
         \with A (R : A -> Rep)
         \using{(vs : list A)} payload ty alloc_ty basep R (rangeZ i j) vs
-        \deduce basep |-> arrayLR ty i j R vs
+        \deduce basep |-> array_sliceR ty i j R vs
         \end.
       Next Obligation.
         intros; case: Harith => [[] Hi0 [] Hij Hj_size].
@@ -839,7 +839,7 @@ NES.Begin std.
         have ? : 0 ≤ j by lia.
         rewrite (array_spine_rangeZ_split j) // (array_spine_rangeZ_split i) //.
         iDestruct "C" as "([_ C] & _)".
-        rewrite arrayLR_eqv_spine_payload_rangeZ.
+        rewrite array_sliceR_eqv_spine_payload_rangeZ.
         iFrame "B C".
       Qed.
 

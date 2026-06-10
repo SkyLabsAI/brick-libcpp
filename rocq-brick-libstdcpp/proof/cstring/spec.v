@@ -123,7 +123,7 @@ Context `{Σ : cpp_logic, module ⊧ σ}.
     (\arg{s_p} "__s" (Vptr s_p)
      \arg{c} "__c" (Vint c)
      \arg{n} "__n" (Vint n)
-     \prepost{q hi bytes} s_p |-> arrayLR Tuchar 0 hi
+     \prepost{q hi bytes} s_p |-> array_sliceR Tuchar 0 hi
        (fun b : Z => ucharR q b) bytes
      \require match memchr bytes c with
               | Some off => True
@@ -137,7 +137,7 @@ Context `{Σ : cpp_logic, module ⊧ σ}.
     (\arg{s_p} "__s" (Vptr s_p)
      \arg{c} "__c" (Vint c)
      \arg{n} "__n" (Vint n)
-     \prepost{q hi bytes} s_p |-> arrayLR Tuchar 0 hi
+     \prepost{q hi bytes} s_p |-> array_sliceR Tuchar 0 hi
        (fun b : Z => ucharR q b) bytes
      \require match memchr bytes c with
               | Some off => True
@@ -153,46 +153,46 @@ Context `{Σ : cpp_logic, module ⊧ σ}.
     (\arg{s_p} "__s" (Vptr s_p)
      \arg{c} "__c" (Vint c)
      \arg{n} "__n" (Vint n)
-     \prepost{q bytes} s_p |-> arrayLR Tuchar 0 n (fun b : Z => ucharR q b) bytes
+     \prepost{q bytes} s_p |-> array_sliceR Tuchar 0 n (fun b : Z => ucharR q b) bytes
      \post[byte_search_result Tuchar s_p (memchr bytes c)] emp).
 
   cpp.spec "memchr(const void*, int, unsigned long)" as memchr_const_simple_spec with
     (\arg{s_p} "__s" (Vptr s_p)
      \arg{c} "__c" (Vint c)
      \arg{n} "__n" (Vint n)
-     \prepost{q bytes} s_p |-> arrayLR Tuchar 0 n (fun b : Z => ucharR q b) bytes
+     \prepost{q bytes} s_p |-> array_sliceR Tuchar 0 n (fun b : Z => ucharR q b) bytes
      \post[byte_search_result Tuchar s_p (memchr bytes c)] emp).
 
   cpp.spec "memcmp" with
     (\arg{s1_p} "__s1" (Vptr s1_p)
      \arg{s2_p} "__s2" (Vptr s2_p)
      \arg{z} "__n" (Vint z)
-     \prepost{q1 bytes1} s1_p |-> arrayLR Tuchar 0 z (fun b : Z => ucharR q1 b) bytes1
-     \prepost{q2 bytes2} s2_p |-> arrayLR Tuchar 0 z (fun b : Z => ucharR q2 b) bytes2
+     \prepost{q1 bytes1} s1_p |-> array_sliceR Tuchar 0 z (fun b : Z => ucharR q1 b) bytes1
+     \prepost{q2 bytes2} s2_p |-> array_sliceR Tuchar 0 z (fun b : Z => ucharR q2 b) bytes2
      \post[Vint (memcmp bytes1 bytes2)] emp).
 
   cpp.spec "memset" with
     (\arg{s_p} "__s" (Vptr s_p)
      \arg{c} "__c" (Vint c)
      \arg{z} "__n" (Vint z)
-     \pre{l} s_p |-> arrayLR Tuchar 0 z (fun _ : unit => anyR Tuchar 1$m) l (*(replicateZ z tt)*)
-     \post[Vptr s_p] s_p |-> arrayLR Tuchar 0 z (fun b : Z => ucharR 1$m b) (memset c z)).
+     \pre{l} s_p |-> array_sliceR Tuchar 0 z (fun _ : unit => anyR Tuchar 1$m) l (*(replicateZ z tt)*)
+     \post[Vptr s_p] s_p |-> array_sliceR Tuchar 0 z (fun b : Z => ucharR 1$m b) (memset c z)).
 
   cpp.spec "memcpy" with
     (\arg{dest_p} "__dest" (Vptr dest_p)
      \arg{src_p} "__src" (Vptr src_p)
      \arg{z} "__n" (Vint z)
-     \prepost{q bytes} src_p |-> arrayLR Tuchar 0 z (fun b : Z => ucharR q b) bytes
-     \pre{l} dest_p |-> arrayLR Tuchar 0 z (fun _ : unit => anyR Tuchar 1$m) l (*(replicateZ z tt)*)
-     \post[Vptr dest_p] dest_p |-> arrayLR Tuchar 0 z (fun b : Z => ucharR 1$m b) bytes).
+     \prepost{q bytes} src_p |-> array_sliceR Tuchar 0 z (fun b : Z => ucharR q b) bytes
+     \pre{l} dest_p |-> array_sliceR Tuchar 0 z (fun _ : unit => anyR Tuchar 1$m) l (*(replicateZ z tt)*)
+     \post[Vptr dest_p] dest_p |-> array_sliceR Tuchar 0 z (fun b : Z => ucharR 1$m b) bytes).
 
   (*Sound but weak: overlapping buffers not supported here*)
   cpp.spec "memmove" with
     (\arg{dest_p} "__dest" (Vptr dest_p)
      \arg{src_p} "__src" (Vptr src_p)
      \arg{z} "__n" (Vint z)
-     \prepost{q bytes} src_p |-> arrayLR Tuchar 0 z (fun b : Z => ucharR q b) bytes
-     \pre{l} dest_p |-> arrayLR Tuchar 0 z (fun _ : unit => anyR Tuchar 1$m) l (*(replicateZ z tt)*)
-     \post[Vptr dest_p] dest_p |-> arrayLR Tuchar 0 z (fun b : Z => ucharR 1$m b) bytes).
+     \prepost{q bytes} src_p |-> array_sliceR Tuchar 0 z (fun b : Z => ucharR q b) bytes
+     \pre{l} dest_p |-> array_sliceR Tuchar 0 z (fun _ : unit => anyR Tuchar 1$m) l (*(replicateZ z tt)*)
+     \post[Vptr dest_p] dest_p |-> array_sliceR Tuchar 0 z (fun b : Z => ucharR 1$m b) bytes).
 
 End with_cpp.
