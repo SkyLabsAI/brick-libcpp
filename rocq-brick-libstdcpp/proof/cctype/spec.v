@@ -12,7 +12,7 @@ Require Import skylabs.brick.libstdcpp.cctype.inc_cctype_cpp.
 #[local] Set Primitive Projections.
 #[local] Open Scope Z_scope.
 
-Notation EOF := (-1%Z) (only parsing).
+Abbreviation EOF := (-1%Z) (only parsing).
 #[local] mlock
 Definition VALID {σ : genv} (c : Z) : Prop :=
   (valid<"unsigned char"> c \/ c = EOF).
@@ -24,7 +24,7 @@ Section with_cpp.
   [cpp.spec "isalpha" with], troubleshoot why this doesn't work on Mac. *)
 
   (** Determine if <i> represents <true> or <false>. *)
-  #[local] Notation int_bool i b := (bool_decide (i <> 0) = b) (only parsing).
+  #[local] Abbreviation int_bool i b := (bool_decide (i <> 0) = b) (only parsing).
 
   cpp.spec (named "isalpha") with
     (\arg{c} "c" (Vint c)

@@ -6,7 +6,7 @@ Import linearity.
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
 
-  #[local] Notation APP := (output_app (eq $ ostream.format_int 20)).
+  #[local] Abbreviation APP := (output_app (eq $ ostream.format_int 20)).
 
   Context `{SPECTRA : !appG APP _Σ}.
 

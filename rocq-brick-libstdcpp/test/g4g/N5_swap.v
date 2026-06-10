@@ -13,7 +13,7 @@ Definition behavior (a b : Z) : bs :=
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
 
-  #[local] Notation APP := (output_app (eq $ behavior 2 3)).
+  #[local] Abbreviation APP := (output_app (eq $ behavior 2 3)).
 
   Context `{SPECTRA : !appG APP _Σ}.
 

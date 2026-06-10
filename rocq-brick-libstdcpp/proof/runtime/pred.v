@@ -33,7 +33,7 @@ Parameter threadTI : forall `{HasStdThreads}, thread_info -ml> thread_idT_bi_ind
 
     For more information on monalities, consult tls_modalities.
   *)
-#[global] Notation current_thread := (monPred_atleast (PROP := iPropI _) threadTI)%I.
+#[global] Abbreviation current_thread := (monPred_atleast (PROP := iPropI _) threadTI)%I.
 
 Section with_cpp.
   Context `{Σ : @cpp_logic thread_info _Σ}.

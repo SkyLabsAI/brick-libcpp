@@ -193,7 +193,7 @@ NES.Begin unique_lock.
         K
       ).
 
-    Notation owns_lock_spec_body := (
+    Abbreviation owns_lock_spec_body := (
       \this this
       \prepost{om q} this |-> R q om
       \post [Vbool (owned om)] emp) (only parsing).
