@@ -1,4 +1,5 @@
 #!/bin/bash
+# -*- indent-tabs-mode: t; sh-basic-offset: 8 -*- vim:set noet sw=8:
 
 usage() {
 	cat >&2 <<-EOF
@@ -58,7 +59,10 @@ outRule() {
 		(rule
 		 (targets ${module}.stderr ${targ})
 		 (alias test_ast)
-		 (deps (:input ${name}.${ext}) (glob_files_rec ${prefix}*.hpp)${universe})
+		 (deps
+		  (:input ${name}.${ext})
+		  (env_var CPP2V_DOCKER_IMAGE)
+		  (glob_files_rec ${prefix}*.hpp)${universe})
 		 (action
 		 	 (with-stderr-to ${module}.stderr ${action})))
 		(alias (name srcs) (deps ${name}.${ext}))
@@ -128,5 +132,3 @@ path="$1"
 shift
 
 traverse "" "$path" "$@"
-
-# vim:set noet sw=8:

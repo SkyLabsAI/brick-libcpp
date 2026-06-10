@@ -3,7 +3,10 @@
  (rule
   (targets inc_algorithms_cpp.v.stderr inc_algorithms_cpp.v inc_algorithms_cpp_templates.v)
   (alias test_ast)
-  (deps (:input inc_algorithms.cpp) (glob_files_rec ../*.hpp))
+  (deps
+   (:input inc_algorithms.cpp)
+   (env_var CPP2V_DOCKER_IMAGE)
+   (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to inc_algorithms_cpp.v.stderr (run cpp2v -v %{input} -o inc_algorithms_cpp.v --no-elaborate --templates=inc_algorithms_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_algorithms.cpp))
@@ -12,7 +15,10 @@
  (rule
   (targets inc_cassert_cpp.v.stderr inc_cassert_cpp.v)
   (alias test_ast)
-  (deps (:input inc_cassert.cpp) (glob_files_rec ../*.hpp))
+  (deps
+   (:input inc_cassert.cpp)
+   (env_var CPP2V_DOCKER_IMAGE)
+   (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to inc_cassert_cpp.v.stderr (run cpp2v -v %{input} -o inc_cassert_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_cassert.cpp))
@@ -21,7 +27,10 @@
  (rule
   (targets inc_cctype_cpp.v.stderr inc_cctype_cpp.v)
   (alias test_ast)
-  (deps (:input inc_cctype.cpp) (glob_files_rec ../*.hpp))
+  (deps
+   (:input inc_cctype.cpp)
+   (env_var CPP2V_DOCKER_IMAGE)
+   (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to inc_cctype_cpp.v.stderr (run cpp2v -v %{input} -o inc_cctype_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_cctype.cpp))
@@ -30,7 +39,10 @@
  (rule
   (targets inc_cstdlib_cpp.v.stderr inc_cstdlib_cpp.v)
   (alias test_ast)
-  (deps (:input inc_cstdlib.cpp) (glob_files_rec ../*.hpp))
+  (deps
+   (:input inc_cstdlib.cpp)
+   (env_var CPP2V_DOCKER_IMAGE)
+   (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to inc_cstdlib_cpp.v.stderr (run cpp2v -v %{input} -o inc_cstdlib_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_cstdlib.cpp))
@@ -39,7 +51,10 @@
  (rule
   (targets inc_cstring_cpp.v.stderr inc_cstring_cpp.v)
   (alias test_ast)
-  (deps (:input inc_cstring.cpp) (glob_files_rec ../*.hpp))
+  (deps
+   (:input inc_cstring.cpp)
+   (env_var CPP2V_DOCKER_IMAGE)
+   (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to inc_cstring_cpp.v.stderr (run cpp2v -v %{input} -o inc_cstring_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_cstring.cpp))
@@ -48,7 +63,10 @@
  (rule
   (targets inc_iostream_cpp.v.stderr inc_iostream_cpp.v)
   (alias test_ast)
-  (deps (:input inc_iostream.cpp) (glob_files_rec ../*.hpp))
+  (deps
+   (:input inc_iostream.cpp)
+   (env_var CPP2V_DOCKER_IMAGE)
+   (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to inc_iostream_cpp.v.stderr (run cpp2v -v %{input} -o inc_iostream_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_iostream.cpp))
@@ -57,7 +75,10 @@
  (rule
   (targets inc_iostream_cpp.v.stderr inc_iostream_cpp.v)
   (alias test_ast)
-  (deps (:input inc_iostream.cpp) (glob_files_rec ../*.hpp))
+  (deps
+   (:input inc_iostream.cpp)
+   (env_var CPP2V_DOCKER_IMAGE)
+   (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to inc_iostream_cpp.v.stderr (run cpp2v -v %{input} -o inc_iostream_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_iostream.cpp))
@@ -66,7 +87,10 @@
  (rule
   (targets demo_cpp.v.stderr demo_cpp.v)
   (alias test_ast)
-  (deps (:input demo.cpp) (glob_files_rec ../*.hpp))
+  (deps
+   (:input demo.cpp)
+   (env_var CPP2V_DOCKER_IMAGE)
+   (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to demo_cpp.v.stderr (run cpp2v -v %{input} -o demo_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps demo.cpp))
@@ -75,7 +99,10 @@
  (rule
   (targets inc_hpp.v.stderr inc_hpp.v)
   (alias test_ast)
-  (deps (:input inc.hpp) (glob_files_rec ../*.hpp))
+  (deps
+   (:input inc.hpp)
+   (env_var CPP2V_DOCKER_IMAGE)
+   (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to inc_hpp.v.stderr (run cpp2v -v %{input} -o inc_hpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc.hpp))
@@ -84,7 +111,10 @@
  (rule
   (targets inc_new_cpp.v.stderr inc_new_cpp.v)
   (alias test_ast)
-  (deps (:input inc_new.cpp) (glob_files_rec ../*.hpp))
+  (deps
+   (:input inc_new.cpp)
+   (env_var CPP2V_DOCKER_IMAGE)
+   (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to inc_new_cpp.v.stderr (run cpp2v -v %{input} -o inc_new_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_new.cpp))
@@ -93,7 +123,10 @@
  (rule
   (targets inc_hpp.v.stderr inc_hpp.v)
   (alias test_ast)
-  (deps (:input inc.hpp) (glob_files_rec ../*.hpp))
+  (deps
+   (:input inc.hpp)
+   (env_var CPP2V_DOCKER_IMAGE)
+   (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to inc_hpp.v.stderr (run cpp2v -v %{input} -o inc_hpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc.hpp))
@@ -102,7 +135,10 @@
  (rule
   (targets test_cpp.v.stderr test_cpp.v)
   (alias test_ast)
-  (deps (:input test.cpp) (glob_files_rec ../*.hpp))
+  (deps
+   (:input test.cpp)
+   (env_var CPP2V_DOCKER_IMAGE)
+   (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
@@ -111,7 +147,10 @@
  (rule
   (targets inc_string_cpp.v.stderr inc_string_cpp.v)
   (alias test_ast)
-  (deps (:input inc_string.cpp) (glob_files_rec ../*.hpp))
+  (deps
+   (:input inc_string.cpp)
+   (env_var CPP2V_DOCKER_IMAGE)
+   (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to inc_string_cpp.v.stderr (run cpp2v -v %{input} -o inc_string_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_string.cpp))
@@ -120,7 +159,10 @@
  (rule
   (targets inc_vector_cpp.v.stderr inc_vector_cpp.v inc_vector_cpp_templates.v)
   (alias test_ast)
-  (deps (:input inc_vector.cpp) (glob_files_rec ../*.hpp))
+  (deps
+   (:input inc_vector.cpp)
+   (env_var CPP2V_DOCKER_IMAGE)
+   (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to inc_vector_cpp.v.stderr (run cpp2v -v %{input} -o inc_vector_cpp.v --no-elaborate --templates=inc_vector_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_vector.cpp))
