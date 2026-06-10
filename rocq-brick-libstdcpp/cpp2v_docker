@@ -3,6 +3,12 @@
 REALPATH=$(which grealpath || which realpath)
 REL_PATH="$($REALPATH `pwd` --relative-to "$DUNE_SOURCEROOT")"
 
+if [ -n "$IN_CPP2V_DOCKER" ]; then
+  echo "Error: recursive invocation of \"cpp2v_docker\" as $0 from outer cpp2v_docker as ${IN_CPP2V_DOCKER}"
+  echo "(PATH is $PATH)."
+  exit 1
+fi
+
 if [[ -n "$CPP2V_DOCKER_IMAGE" ]]; then
   BRICK_LIBCPP=/home/coq/worktree
   ARGS=()
@@ -15,6 +21,7 @@ if [[ -n "$CPP2V_DOCKER_IMAGE" ]]; then
   docker run "${ARGS[@]}" "$CPP2V_DOCKER_IMAGE" \
           /bin/bash -c 'eval $(opam env)'"; cpp2v $cpp2v_args"
 else
+  export IN_CPP2V_DOCKER="$0"
   next=$DUNE_SOURCEROOT/_build/install/default/bin/cpp2v
   [ -e $next ] || next='opam exec -- cpp2v'
   exec $next "$@"
