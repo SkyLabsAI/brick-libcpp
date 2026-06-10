@@ -60,6 +60,7 @@ outRule() {
 		 (alias test_ast)
 		 (deps
 		  (:input ${name}.${ext})
+		  (env_var CPP2V_DOCKER_IMAGE)
 		  (glob_files_rec ${prefix}*.hpp)${universe})
 		 (action
 		 	 (with-stderr-to ${module}.stderr ${action})))
