@@ -17,5 +17,5 @@ if [[ -n "$CPP2V_DOCKER_IMAGE" ]]; then
 else
   next=$DUNE_SOURCEROOT/_build/install/default/bin/cpp2v
   [ -e $next ] || next='opam exec -- cpp2v'
-  $next "$@"
+  exec $next "$@"
 fi
