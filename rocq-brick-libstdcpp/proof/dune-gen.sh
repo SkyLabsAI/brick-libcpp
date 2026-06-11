@@ -24,5 +24,5 @@ while read i; do
   if [[ $i =~ ^./(algorithms|vector)/.* ]]; then
      args+="-t"
   fi
-  ./cpp2v-dune-gen.sh -s ${args} -- $i -- -std=c++20 -stdlib=libstdc++
+  ./cpp2v-dune-gen.sh -t -s ${args} -- $i -- -std=c++20 -stdlib=libstdc++
 done
