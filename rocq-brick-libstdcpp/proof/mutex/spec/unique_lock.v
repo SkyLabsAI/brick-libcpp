@@ -59,21 +59,28 @@ NES.Begin unique_lock.
     Section with_basic_lockable.
       Context `{!BasicLockable ty (T:=T) mutexR}.
 
-      #[global] Instance R_cfrac : CFractional1 mutexR -> CFractional1 (R ty mutexR).
-      Proof. rewrite R.unlock. apply _. Qed.
-
-      #[global] Instance R_as_cfrac : CFractional1 mutexR -> AsCFractional1 (R ty mutexR).
-      Proof. solve_as_cfrac. Qed.
-
+      #[only(type_ptr)] derive R.
       #[only(cfracvalid)] derive R.
 
       (* #[global] Declare Instance R_timeless : *)
       (*   Timeless2 mutexR -> *)
       (*   Timeless2 (R ty mutexR). *)
 
-      #[global] Instance R_type_ptr q om :
-        Typed ("std::unique_lock" .<< Atype ty >>) (R ty mutexR q om).
-      Proof. rewrite R.unlock. apply _. Qed.
+      Section with_cfrac.
+        Context `{CFrac : !CFractional1 mutexR}.
+        #[local] Set Default Proof Using "CFrac".
+
+        Fail #[only(cfractional)] derive R.
+
+        #[global] Instance R_cfrac : CFractional1 (R ty mutexR).
+        Proof. rewrite R.unlock. apply _. Qed.
+
+        Fail #[only(ascfractional)] derive R.
+
+        #[global] Instance R_as_cfrac : AsCFractional1 (R ty mutexR).
+        Proof. solve_as_cfrac. Qed.
+
+      End with_cfrac.
     End with_basic_lockable.
 
     Section with_threads.
