@@ -231,7 +231,7 @@ cinv (
     (* TODO: add here sequential ownership of the lock, and maybe replace I by the lock invariant.
     Something like *)
     (* _mutex_field |-> mutex.R q ... ** *)
-    cinv_own γ.(inv_gname) q.
+    pureR (cinv_own γ.(inv_gname) q).
   #[only(cfractional,ascfractional,timeless,type_ptr="std::recursive_mutex")] derive R.
 
 
@@ -508,11 +508,11 @@ cinv (
     cpp.spec "std::recursive_mutex::recursive_mutex()" as ctor_spec' with
       (\this this
       \persist{th} current_thread th
-      \pre{TT P xs} tele_app (TT := TT) P xs
+      \pre{TT P xs} |> tele_app (TT := TT) P xs
       \require ∀ xs, WeaklyObjective (tele_app P xs)
       \post
         Exists g,
-          this |-> R g.(lock_gname) 1 **
+          this |-> R g.(lock_gname) 1$m **
           token g.(lock_gname) 1 **
           used_threads g.(lock_gname) empty **
           inv_rmutex g (∃ xs, tele_app P xs)).
@@ -532,7 +532,7 @@ cinv (
       \prepost{q} this |-> R g.(lock_gname) q
       \pre{th n args} acquireable g th (Held n args) P
       \pre{q'} given_token g.(lock_gname) q'
-      \post token g.(lock_gname) q' ** ▷ acquireable g th (release $ Held n args) P).
+      \post token g.(lock_gname) q' ** acquireable g th (release $ Held n args) P).
 
     Definition do_lock g K : mpred := ∃ TT P th n q',
       inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
@@ -553,7 +553,7 @@ cinv (
       ** (
         (* TODO readd *)
         (* ▷ *)
-        (token g.(lock_gname) q' ** ▷ acquireable g th (release $ Held n args) P) -*
+        (token g.(lock_gname) q' ** acquireable g th (release $ Held n args) P) -*
         K).
     #[global] Arguments do_unlock /.
 
@@ -656,7 +656,7 @@ cinv (
       unlock_spec |-- unlock_spec'.
     Proof using MOD HOV HOU.
       apply specify_mono; work.
-      iExists _, (▷ acquireable g th (release $ Held n args) P)%I.
+      iExists _, (acquireable g th (release $ Held n args) P)%I.
       work.
       iAcIntro; rewrite /commit_acc/=.
       rewrite inv_rmutex.unlock acquireable.unlock.
