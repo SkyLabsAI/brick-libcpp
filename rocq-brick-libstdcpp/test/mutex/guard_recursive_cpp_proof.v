@@ -157,26 +157,45 @@ Section with_cpp.
 
     iExists ?[K], (mk 42).
     go.
-    iSplitL ""; go.
-    Unset SsrIdents.
-    rename _n_ into n0.
-    Set SsrIdents.
-    (* This step breaks abstractions, but we have taken the lock yet hints don't
-    give us access to the resouce. *)
-    assert (n0 = 0 /\ n = 1)%nat as [-> ->]. {
-      rewrite-> recursive_mutex.release.unlock in *.
-      destruct n0, n; naive_solver.
-    }
-    rewrite recursive_mutex.release.unlock /=.
+    iSplitL ""; first by go.
     go.
-    iExists ?[K], (mk 42); go.
+    have [? [??]] : exists a, n = 1%nat /\ recursive_mutex.acquire a (recursive_mutex.release (recursive_mutex.Held n (mk 42))). {
+      Unset SsrIdents.
+      rename _n_ into n0.
+      Set SsrIdents.
+      (* This step breaks abstractions, but we have taken the lock yet hints don't
+      give us access to the resouce. *)
+      assert (n0 = 0 /\ n = 1)%nat as [-> ->]. {
+        rewrite-> recursive_mutex.release.unlock in *.
+        destruct n0, n; naive_solver.
+      }
+      rewrite recursive_mutex.release.unlock /=.
+      exists recursive_mutex.NotHeld.
+      split; first done.
+      typeclasses eauto with br_hints.
+    }
+    rewrite CR'.unlock.
+    go.
+    destruct args as [a1 []]; go.
+    iExists ?[K], (mk a1); go.
     iSplitL ""; go.
     ego with br_erefl.
-    rewrite P.unlock CR'.unlock.
-    rewrite recursive_mutex.release.unlock /=.
+    rewrite P.unlock CR'.unlock; go.
+    rewrite (_ : recursive_mutex.release (recursive_mutex.Held n (mk a1)) = recursive_mutex.NotHeld).
+    Fail progress go.
     rewrite recursive_mutex.acquireable.unlock /=.
     go.
+
+    wfocus [| _ |] ""; last by go. {
+      iPureIntro.
+      rewrite-> recursive_mutex.release.unlock in *.
+      case_match; naive_solver.
+    }
+    rewrite-> recursive_mutex.release.unlock in *; naive_solver.
   Qed.
+  (* TODO: when we project out equalities about Held and NotHeld, project info
+  about the holding counts; that cancels out better when we repeatedly lock and
+  unlock things. *)
 
   Lemma test_other_answer_ok :
     verify?[source] "test_other_answer()".
