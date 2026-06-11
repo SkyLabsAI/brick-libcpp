@@ -9,7 +9,11 @@ if [ -n "$IN_CPP2V_DOCKER" ]; then
   exit 1
 fi
 
-if [[ -n "$CPP2V_DOCKER_IMAGE" ]]; then
+if [[ -n "$CPP2V_DOCKER_IMAGE" ]] && ! which docker > /dev/null; then
+:
+fi
+
+if [[ -n "$CPP2V_DOCKER_IMAGE" ]] && which docker > /dev/null; then
   BRICK_LIBCPP=/home/coq/worktree
   ARGS=()
   ARGS+=( "--platform" "linux/amd64" )
