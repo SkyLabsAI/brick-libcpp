@@ -5,7 +5,7 @@
   (alias test_ast)
   (deps
    (:input inc_algorithms.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to inc_algorithms_cpp.v.stderr (run cpp2v -v %{input} -o inc_algorithms_cpp.v --no-elaborate --templates=inc_algorithms_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -17,7 +17,7 @@
   (alias test_ast)
   (deps
    (:input inc_cassert.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to inc_cassert_cpp.v.stderr (run cpp2v -v %{input} -o inc_cassert_cpp.v --no-elaborate --templates=inc_cassert_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -29,7 +29,7 @@
   (alias test_ast)
   (deps
    (:input inc_cctype.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to inc_cctype_cpp.v.stderr (run cpp2v -v %{input} -o inc_cctype_cpp.v --no-elaborate --templates=inc_cctype_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -41,7 +41,7 @@
   (alias test_ast)
   (deps
    (:input inc_cstdlib.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to inc_cstdlib_cpp.v.stderr (run cpp2v -v %{input} -o inc_cstdlib_cpp.v --no-elaborate --templates=inc_cstdlib_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -53,7 +53,7 @@
   (alias test_ast)
   (deps
    (:input inc_cstring.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to inc_cstring_cpp.v.stderr (run cpp2v -v %{input} -o inc_cstring_cpp.v --no-elaborate --templates=inc_cstring_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -65,7 +65,7 @@
   (alias test_ast)
   (deps
    (:input inc_iostream.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to inc_iostream_cpp.v.stderr (run cpp2v -v %{input} -o inc_iostream_cpp.v --no-elaborate --templates=inc_iostream_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -77,7 +77,7 @@
   (alias test_ast)
   (deps
    (:input inc_iostream.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to inc_iostream_cpp.v.stderr (run cpp2v -v %{input} -o inc_iostream_cpp.v --no-elaborate --templates=inc_iostream_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -89,7 +89,7 @@
   (alias test_ast)
   (deps
    (:input demo.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to demo_cpp.v.stderr (run cpp2v -v %{input} -o demo_cpp.v --no-elaborate --templates=demo_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -101,7 +101,7 @@
   (alias test_ast)
   (deps
    (:input inc.hpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to inc_hpp.v.stderr (run cpp2v -v %{input} -o inc_hpp.v --no-elaborate --templates=inc_hpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -113,7 +113,7 @@
   (alias test_ast)
   (deps
    (:input inc_new.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to inc_new_cpp.v.stderr (run cpp2v -v %{input} -o inc_new_cpp.v --no-elaborate --templates=inc_new_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -125,7 +125,7 @@
   (alias test_ast)
   (deps
    (:input inc.hpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to inc_hpp.v.stderr (run cpp2v -v %{input} -o inc_hpp.v --no-elaborate --templates=inc_hpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -137,7 +137,7 @@
   (alias test_ast)
   (deps
    (:input test.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate --templates=test_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -149,7 +149,7 @@
   (alias test_ast)
   (deps
    (:input inc_string.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to inc_string_cpp.v.stderr (run cpp2v -v %{input} -o inc_string_cpp.v --no-elaborate --templates=inc_string_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -161,7 +161,7 @@
   (alias test_ast)
   (deps
    (:input inc_vector.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to inc_vector_cpp.v.stderr (run cpp2v -v %{input} -o inc_vector_cpp.v --no-elaborate --templates=inc_vector_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
