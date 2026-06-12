@@ -323,23 +323,22 @@ cinv (
 
   (** [acquire_state] tracks the acquisition state of a recursive_mutex.
    *)
-  Inductive acquire_state {TT : tele} : Type :=
-  | NotHeld                (* not held *)
-  | Held (n : nat) (xs : TT) (* acquired [n + 1] times with quantifiers [xs] *).
-  #[global] Arguments acquire_state _ : clear implicits.
+  Inductive acquire_state {TT : tele} : nat -> Type :=
+  | NotHeld : acquire_state 0                (* not held *)
+  | Held (n : nat) (xs : TT)  : acquire_state (S n) (* acquired [n + 1] times with quantifiers [xs] *).
+  #[global] Arguments acquire_state _ _ : clear implicits.
+
+  Require Import Equations.Prop.Equations.
+
+  Equations get_args {TT n} (a' : acquire_state TT (S n)) : TT :=
+    get_args (Held n' xs) := xs.
 
   sl.lock
-  Definition acquire_count {TT} (a : acquire_state TT) : nat :=
+  Definition acquire {TT n} (a : acquire_state TT n) (a' : acquire_state TT (S n)) : Prop :=
+    exists xs, a' = Held n xs /\
     match a with
-    | NotHeld => 0
-    | Held n _ => S n
-    end.
-
-  sl.lock
-  Definition acquire {TT} (a a' : acquire_state TT) : Prop :=
-    match a with
-    | NotHeld => exists xs, a' = Held 0 xs
-    | Held n xs => a' = Held (S n) xs
+    | NotHeld => True
+    | Held _ xs' => xs = xs'
     end.
 
   Lemma acquire_NotHeld_Held0 TT args :
@@ -348,51 +347,20 @@ cinv (
 
   Lemma acquire_Held_S TT n xs :
     acquire (Held (TT := TT) n xs) (Held (S n) xs).
-  Proof. by rewrite acquire.unlock. Qed.
-
-  Lemma acquire_count_NotHeld TT :
-    acquire_count (NotHeld (TT := TT)) = 0.
-  Proof. by rewrite acquire_count.unlock. Qed.
-
-  Lemma acquire_count_Held TT n xs :
-    acquire_count (Held (TT := TT) n xs) = S n.
-  Proof. by rewrite acquire_count.unlock. Qed.
-
-  Lemma acquire_acquire_count TT (a1 a2 : acquire_state TT) :
-    acquire a1 a2 ->
-    acquire_count a2 = S (acquire_count a1).
-  Proof.
-    rewrite acquire_count.unlock acquire.unlock.
-    destruct a1; naive_solver.
-  Qed.
+  Proof. rewrite acquire.unlock. naive_solver. Qed.
 
   #[global] Hint Resolve acquire_NotHeld_Held0 : br_hints.
   #[global] Hint Resolve acquire_Held_S : br_hints.
 
-  sl.lock
-  Definition release {TT} (a : acquire_state TT) : acquire_state TT :=
-    match a with
-    | NotHeld => NotHeld (* unreachable *)
-    | Held n xs =>
-        match n with
-        | 0 => NotHeld
-        | S n => Held n xs
-        end
-    end.
-
-  Lemma release_acquire_count TT (a1 a2 : acquire_state TT) :
-    a1 <> NotHeld ->
-    a2 = release a1 ->
-    acquire_count a1 = S (acquire_count a2).
-  Proof.
-    rewrite acquire_count.unlock release.unlock.
-    repeat case_match; naive_solver.
-  Qed.
+  (* sl.lock *)
+  Equations release {TT n} (a : acquire_state TT (S n)) : acquire_state TT n :=
+    release (Held 0 xs) := NotHeld;
+    release (Held (S n) xs) := Held n xs.
 
   sl.lock
   Definition acquireable
       `{Σ : cpp_logic, !lockedG Σ, !HasStdThreads Σ, !HasOwn (iPropI _) cmraR}
-      (g : rmutex_gname) (th : thread_idT) {TT: tele} (t : acquire_state TT)
+      (g : rmutex_gname) (th : thread_idT) {TT : tele} (n : nat) (t : acquire_state TT n)
       (P : TT -t> mpred) : mpred :=
     current_thread th **
     match t with
@@ -406,17 +374,17 @@ cinv (
     Context `{!HasOwn (iPropI _) cmraR, !HasStdThreads Σ}.
     Context `{!lockedG Σ}.
 
-    #[global] Instance acquireable_learn γ th TT : LearnEq2 (acquireable γ th (TT := TT)).
+    #[global] Instance acquireable_learn γ th TT n : LearnEq2 (acquireable γ th (TT := TT) n).
     Proof. solve_learnable. Qed.
 
     #[global] Instance acquireable_current_thread :
-      `{Observe (current_thread th) (acquireable g th (TT := TT) t P)}.
+      `{Observe (current_thread th) (acquireable g th (TT := TT) n t P)}.
     Proof. rewrite acquireable.unlock; apply _. Qed.
 
     Lemma use_thread_acquirable {TT} th g m P :
       th ∉ m ->
       current_thread th ** used_threads g.(lock_gname) m |-- (|==>
-      used_threads g.(lock_gname) (m ∪ {[ th ]}) ** acquireable (TT := TT) g th NotHeld P).
+      used_threads g.(lock_gname) (m ∪ {[ th ]}) ** acquireable (TT := TT) g th 0 NotHeld P).
     Proof.
       rewrite acquireable.unlock /=.
       work.
@@ -444,23 +412,20 @@ cinv (
     *)
 
     (* TODO make this into a hint *)
-    Lemma is_held {TT : tele} {t1 t2 : acquire_state TT} :
+    Lemma is_held {TT} n {t1 : acquire_state TT n} t2 :
       acquire t1 t2 ->
-      ∃ n xs, t2 = Held n xs /\
+      ∃ xs, t2 = Held n xs /\
         t1 = release t2.
     Proof.
-      rewrite acquire.unlock release.unlock.
-      intros.
-      destruct t1; simpl in H; eauto.
-      - exists 0. naive_solver.
-      - exists (S n). naive_solver.
+      rewrite acquire.unlock.
+      destruct t1; naive_solver.
     Qed.
 
     #[program]
     Definition acquireable_is_acquired_C {TT} g th t t' P
         (_ : acquire (TT := TT) t t') :=
       \cancelx
-      \consuming acquireable g th t' P
+      \consuming acquireable g th n t' P
       \deduce{args} tele_app P args
       \deduce{n} [| t' = Held n args /\ t = release t' |]
       \deduce own g.(level_gname) (◯E (S n, th))
