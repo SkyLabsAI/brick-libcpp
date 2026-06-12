@@ -1,7 +1,20 @@
+(rule
+ (target cpp2v_docker)
+ (deps
+  (:sha1sum %{bin:sha1sum})
+  (:template cpp2v_docker.in))
+ (action
+  (progn
+   (with-stdout-to
+    %{target}
+    (bash
+     "set -eu
+hash=$(%{sha1sum} %{bin:cpp2v} | cut -d ' ' -f 1)
+sed \"s/@CPP2V_SHA1@/$hash/g\" %{template}"))
+   (run chmod +x %{target}))))
+
 (env
  (_
-  (binaries
-   (../cpp2v-wrapper/cpp2v_docker as cpp2v))
   (flags :standard %{read-lines:flags/ocamlc})
   (ocamlopt_flags :standard -O3 -unbox-closures)
   (rocq
@@ -11,3 +24,15 @@
       %{read-lines:flags/coqc}
       -w +sl-transparent-constants
 )))))
+
+(subdir proof
+ (env
+  (_
+   (binaries
+    (../cpp2v_docker as cpp2v)))))
+
+(subdir test
+ (env
+  (_
+   (binaries
+    (../cpp2v_docker as cpp2v)))))
