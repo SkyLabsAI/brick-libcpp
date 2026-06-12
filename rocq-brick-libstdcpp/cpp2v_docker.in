@@ -12,11 +12,18 @@ if [ -n "$IN_CPP2V_DOCKER" ]; then
   exit 1
 fi
 
-if [[ -n "$CPP2V_DOCKER_IMAGE" ]] && ! which docker > /dev/null; then
-:
+if [ "$CPP2V_DOCKER_ENABLED" = "y" ] && ! which docker > /dev/null; then
+  # Here we could warn
+  :
 fi
 
-if [[ -n "$CPP2V_DOCKER_IMAGE" ]] && which docker > /dev/null; then
+if [ "$CPP2V_DOCKER_ENABLED" = "y" ] && which docker > /dev/null; then
+  if [ -z "$CPP2V_DOCKER_IMAGE" ]; then
+    # We skip the warning if no docker is available
+    echo "Misconfiguration: CPP2V_DOCKER_ENABLED = y and docker available, but CPP2V_DOCKER_IMAGE is empty"
+    exit 2
+  fi
+
   BRICK_LIBCPP=/home/coq/worktree
   ARGS=()
   ARGS+=( "--platform" "linux/amd64" )
