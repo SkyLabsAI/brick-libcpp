@@ -329,6 +329,13 @@ cinv (
   #[global] Arguments acquire_state _ : clear implicits.
 
   sl.lock
+  Definition acquire_count {TT} (a : acquire_state TT) : nat :=
+    match a with
+    | NotHeld => 0
+    | Held n _ => S n
+    end.
+
+  sl.lock
   Definition acquire {TT} (a a' : acquire_state TT) : Prop :=
     match a with
     | NotHeld => exists xs, a' = Held 0 xs
@@ -343,6 +350,22 @@ cinv (
     acquire (Held (TT := TT) n xs) (Held (S n) xs).
   Proof. by rewrite acquire.unlock. Qed.
 
+  Lemma acquire_count_NotHeld TT :
+    acquire_count (NotHeld (TT := TT)) = 0.
+  Proof. by rewrite acquire_count.unlock. Qed.
+
+  Lemma acquire_count_Held TT n xs :
+    acquire_count (Held (TT := TT) n xs) = S n.
+  Proof. by rewrite acquire_count.unlock. Qed.
+
+  Lemma acquire_acquire_count TT (a1 a2 : acquire_state TT) :
+    acquire a1 a2 ->
+    acquire_count a2 = S (acquire_count a1).
+  Proof.
+    rewrite acquire_count.unlock acquire.unlock.
+    destruct a1; naive_solver.
+  Qed.
+
   #[global] Hint Resolve acquire_NotHeld_Held0 : br_hints.
   #[global] Hint Resolve acquire_Held_S : br_hints.
 
@@ -356,6 +379,15 @@ cinv (
         | S n => Held n xs
         end
     end.
+
+  Lemma release_acquire_count TT (a1 a2 : acquire_state TT) :
+    a1 <> NotHeld ->
+    a2 = release a1 ->
+    acquire_count a1 = S (acquire_count a2).
+  Proof.
+    rewrite acquire_count.unlock release.unlock.
+    repeat case_match; naive_solver.
+  Qed.
 
   sl.lock
   Definition acquireable
