@@ -1,6 +1,7 @@
 (rule
  (target cpp2v_docker)
  (deps
+  (universe)
   (:sha1sum %{bin:sha1sum})
   (:template cpp2v_docker.in))
  (action
@@ -10,7 +11,11 @@
     (bash
      "set -eu
 hash=$(%{sha1sum} %{bin:cpp2v} | cut -d ' ' -f 1)
-sed \"s/@CPP2V_SHA1@/$hash/g\" %{template}"))
+image_id=
+if command -v docker >/dev/null 2>&1; then
+  image_id=$(docker inspect --format='{{.Id}}' skylabsai/fm-releases:fm-release-nightly 2>/dev/null || true)
+fi
+sed -e \"s/@CPP2V_SHA1@/$hash/g\" -e \"s/@CPP2V_DOCKER_IMAGE_ID@/$image_id/g\" %{template}"))
    (run chmod +x %{target}))))
 
 (env
