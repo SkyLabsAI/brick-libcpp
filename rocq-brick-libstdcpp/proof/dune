@@ -33,7 +33,7 @@
   skylabs
   ; transitive dependencies
   Flocq elpi.apps.NES.elpi elpi.apps.derive elpi.apps.derive.elpi
-  elpi.apps.locker.elpi
+  elpi.apps.locker.elpi skylabs.plib skylabs.simp
  ))
 (include dune.inc)
 
