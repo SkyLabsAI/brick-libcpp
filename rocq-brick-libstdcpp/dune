@@ -24,15 +24,3 @@ sed \"s/@CPP2V_SHA1@/$hash/g\" %{template}"))
       %{read-lines:flags/coqc}
       -w +sl-transparent-constants
 )))))
-
-(subdir proof
- (env
-  (_
-   (binaries
-    (../cpp2v_docker as cpp2v)))))
-
-(subdir test
- (env
-  (_
-   (binaries
-    (../cpp2v_docker as cpp2v)))))
