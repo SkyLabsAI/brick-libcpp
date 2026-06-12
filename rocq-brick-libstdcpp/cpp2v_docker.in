@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+CPP2V_SHA1="@CPP2V_SHA1@"
+
 REALPATH=$(which grealpath || which realpath)
 REL_PATH="$($REALPATH `pwd` --relative-to "$DUNE_SOURCEROOT")"
 

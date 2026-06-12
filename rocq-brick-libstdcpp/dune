@@ -1,7 +1,7 @@
 (env
  (_
   (binaries
-   (cpp2v_docker as cpp2v))
+   (../cpp2v-wrapper/cpp2v_docker as cpp2v))
   (flags :standard %{read-lines:flags/ocamlc})
   (ocamlopt_flags :standard -O3 -unbox-closures)
   (rocq
