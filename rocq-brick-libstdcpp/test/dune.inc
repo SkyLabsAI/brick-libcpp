@@ -203,6 +203,18 @@
   	 (with-stderr-to N6_print_sizeof_cpp.v.stderr (run cpp2v -v %{input} -o N6_print_sizeof_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N6_print_sizeof.cpp))
 )
+(subdir memory
+ (rule
+  (targets test_cpp.v.stderr test_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input test.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps test.cpp))
+)
 (subdir mutex
  (rule
   (targets guard_recursive_cpp.v.stderr guard_recursive_cpp.v)
