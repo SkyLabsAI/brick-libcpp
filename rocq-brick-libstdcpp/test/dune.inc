@@ -5,7 +5,7 @@
   (alias test_ast)
   (deps
    (:input test.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -17,7 +17,7 @@
   (alias test_ast)
   (deps
    (:input test.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -29,7 +29,7 @@
   (alias test_ast)
   (deps
    (:input test.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -41,7 +41,7 @@
   (alias test_ast)
   (deps
    (:input N12_area.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to N12_area_cpp.v.stderr (run cpp2v -v %{input} -o N12_area_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -53,7 +53,7 @@
   (alias test_ast)
   (deps
    (:input N1_hello_world.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to N1_hello_world_cpp.v.stderr (run cpp2v -v %{input} -o N1_hello_world_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -65,7 +65,7 @@
   (alias test_ast)
   (deps
    (:input N4_sum.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to N4_sum_cpp.v.stderr (run cpp2v -v %{input} -o N4_sum_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -77,7 +77,7 @@
   (alias test_ast)
   (deps
    (:input N4_sum_a.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to N4_sum_a_cpp.v.stderr (run cpp2v -v %{input} -o N4_sum_a_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -89,7 +89,7 @@
   (alias test_ast)
   (deps
    (:input N5_swap.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to N5_swap_cpp.v.stderr (run cpp2v -v %{input} -o N5_swap_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -101,7 +101,7 @@
   (alias test_ast)
   (deps
    (:input N5_swap_a.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to N5_swap_a_cpp.v.stderr (run cpp2v -v %{input} -o N5_swap_a_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -113,7 +113,7 @@
   (alias test_ast)
   (deps
    (:input N6_print_sizeof.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to N6_print_sizeof_cpp.v.stderr (run cpp2v -v %{input} -o N6_print_sizeof_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -125,7 +125,7 @@
   (alias test_ast)
   (deps
    (:input N12_area.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to N12_area_cpp.v.stderr (run cpp2v -v %{input} -o N12_area_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -137,7 +137,7 @@
   (alias test_ast)
   (deps
    (:input N1_hello_world.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to N1_hello_world_cpp.v.stderr (run cpp2v -v %{input} -o N1_hello_world_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -149,7 +149,7 @@
   (alias test_ast)
   (deps
    (:input N4_sum.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to N4_sum_cpp.v.stderr (run cpp2v -v %{input} -o N4_sum_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -161,7 +161,7 @@
   (alias test_ast)
   (deps
    (:input N4_sum_a.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to N4_sum_a_cpp.v.stderr (run cpp2v -v %{input} -o N4_sum_a_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -173,7 +173,7 @@
   (alias test_ast)
   (deps
    (:input N5_swap.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to N5_swap_cpp.v.stderr (run cpp2v -v %{input} -o N5_swap_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -185,7 +185,7 @@
   (alias test_ast)
   (deps
    (:input N5_swap_a.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to N5_swap_a_cpp.v.stderr (run cpp2v -v %{input} -o N5_swap_a_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -197,7 +197,7 @@
   (alias test_ast)
   (deps
    (:input N6_print_sizeof.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to N6_print_sizeof_cpp.v.stderr (run cpp2v -v %{input} -o N6_print_sizeof_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -209,7 +209,7 @@
   (alias test_ast)
   (deps
    (:input guard_recursive.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to guard_recursive_cpp.v.stderr (run cpp2v -v %{input} -o guard_recursive_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -221,7 +221,7 @@
   (alias test_ast)
   (deps
    (:input test.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -233,7 +233,7 @@
   (alias test_ast)
   (deps
    (:input demo.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to demo_cpp.v.stderr (run cpp2v -v %{input} -o demo_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
@@ -245,7 +245,7 @@
   (alias test_ast)
   (deps
    (:input test.cpp)
-   (env_var CPP2V_DOCKER_IMAGE)
+   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
