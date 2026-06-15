@@ -15,7 +15,8 @@ If you have access to our automation sources, you can check this out as part of
 https://github.com/SkyLabsAI/workspace. After `make vendored-pull fmdeps-pull`,
 you'll find a copy of this repository in `fmdeps/brick-libcpp`. Then:
 
-- on Linux, you can build this directly.
+- on Linux with a suitable clang + GNU C++ library toolchain, you can build this
+  directly.
 - on any platform, you can route AST generation through our Docker image.
 To this end, go to `workspace` and run
 ```
