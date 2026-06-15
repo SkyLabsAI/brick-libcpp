@@ -5,7 +5,7 @@ Specifications of the C++ standard library in BRiCk.
 ## Development
 
 To develop on these specifications, contact Skylabs AI for access to our
-verification toolchain, and you a clang toolchain using the GNU C++ library (not
+verification toolchain, and use a clang toolchain with the GNU C++ library (not
 clang's own version).
 
 With access to our release image, you can:
