@@ -10,15 +10,11 @@ NES.Begin memory.
 
     Lemma addressof_ok : __addressof_spec "C" source |-- verify?[source] "std::addressof<C>(C&)".
     Proof.
-      work; iStopProof; untemplate_goal.
-
       verify_spec; go.
     Qed.
 
     Lemma __addressof_ok : verify?[source] "std::__addressof<C>(C&)".
     Proof.
-      work; iStopProof; untemplate_goal.
-
       verify_spec; go.
     Abort.
   End with_cpp.
