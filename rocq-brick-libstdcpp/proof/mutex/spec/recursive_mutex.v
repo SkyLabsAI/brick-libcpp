@@ -70,6 +70,8 @@ Module recursive_mutex.
         end)).
   #[only(timeless)] derive locked.
 
+  (* TODO: we should abstract this over the ownership that is produced and
+     then it can be used more generally. *)
   sl.lock
   Definition used_threads
     `{Σ : cpp_logic, !lockedG Σ, !HasStdThreads Σ}
