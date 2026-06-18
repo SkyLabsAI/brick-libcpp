@@ -83,6 +83,18 @@
   	 (with-stderr-to inc_iostream_cpp.v.stderr (run cpp2v -v %{input} -o inc_iostream_cpp.v --no-elaborate --templates=inc_iostream_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_iostream.cpp))
 )
+(subdir memory
+ (rule
+  (targets inc_hpp.v.stderr inc_hpp.v inc_hpp_templates.v)
+  (alias test_ast)
+  (deps
+   (:input inc.hpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to inc_hpp.v.stderr (run cpp2v -v %{input} -o inc_hpp.v --no-elaborate --templates=inc_hpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps inc.hpp))
+)
 (subdir mutex
  (rule
   (targets demo_cpp.v.stderr demo_cpp.v demo_cpp_templates.v)
