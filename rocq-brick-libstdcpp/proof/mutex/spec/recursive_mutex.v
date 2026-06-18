@@ -89,11 +89,11 @@ Module recursive_mutex.
 
     Lemma use_thread th g s :
       th ∉ s ->
-      current_thread th ** used_threads g s |--
+      used_threads g s |--
       |==> used_threads g (s ∪ {[ th ]}) ** locked g th 0.
     Proof.
       rewrite used_threads.unlock locked.unlock => Hni.
-      iIntros "[#CT (% & A)]".
+      iIntros "(%n & A)".
       destruct n.
       {
         iDestruct "A" as "(A & ?)".
