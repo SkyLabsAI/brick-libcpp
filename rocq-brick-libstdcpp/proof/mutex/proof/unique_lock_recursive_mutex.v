@@ -20,7 +20,6 @@ NES.Begin unique_lock.
     Lemma default_ctor_spec_ok :
       verify[source] "std::unique_lock<std::recursive_mutex>::unique_lock()".
     Proof.
-      untemplate_goal.
       verify_spec; go.
     Qed.
 
@@ -36,9 +35,6 @@ NES.Begin unique_lock.
       verify[source]
         "std::unique_lock<std::recursive_mutex>::unique_lock(std::recursive_mutex&, std::defer_lock_t)".
     Proof.
-      work; iStopProof; untemplate_goal.
-      (* untemplate_spec (lock_defer_ctor_spec "std::recursive_mutex" source). *)
-
       verify_spec; go.
       by rewrite cQp.scale_mut (right_id_L 1%Qp Qp.mul).
     Qed.
@@ -51,8 +47,6 @@ NES.Begin unique_lock.
       verify[source]
         "std::unique_lock<std::recursive_mutex>::unique_lock(std::recursive_mutex&)".
     Proof.
-      work; iStopProof; untemplate_goal.
-      (* untemplate_spec (lock_ctor_spec "std::recursive_mutex" source). *)
       verify_spec; go.
       iExists K.
       (* Time Succeed solve [setoid_rewrite cQp.scale_mut; setoid_rewrite (right_id_L 1%Qp Qp.mul); ego with br_erefl]. *)
