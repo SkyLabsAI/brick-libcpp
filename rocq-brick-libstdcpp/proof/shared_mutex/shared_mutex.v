@@ -46,17 +46,52 @@ Section with_cpp.
     inv_gname : iprop.gname;
   }.
 
-  Definition borrow `{Σ : cpp_logic, !lockedG Σ}
+  Definition reader_borrow `{Σ : cpp_logic, !lockedG Σ}
     (γ : gname) (th : thread_idT) (q : Qp) : mpred :=
     own γ.(phys_state_gname) (◯ {[ th := q ]}).
 
+  (** Adapted from https://gitlab.mpi-sws.org/iris/iris/-/blob/master/iris_heap_lang/lib/rw_spin_lock.v?ref_type=heads
+
+    Allows to prove writer_writer_exclusive and writer_reader_exclusive.
+    Unlike them, we can't just use ∅ for the reader map, because when the
+    writer unlocks, the cinv stores its `user γ th`, but `th` is existentially
+    quanified in cinv and it needs some way to recover that `th` matches with
+    itself. Note that we still lose writer_reader_exclusiveness for the same,
+    thread, but that should be fine with the current cinv.
+  *)
   Definition writer_borrow `{Σ : cpp_logic, !lockedG Σ}
     (γ : gname) (th : thread_idT) : mpred :=
-    borrow γ th 1%Qp.
+    own γ.(phys_state_gname) (●{# 3/4} {[ th := 1%Qp ]}).
 
-  Definition borrow_state `{Σ : cpp_logic, !lockedG Σ}
-    (γ : gname) (borrowers : gmap thread_idT Qp) : mpred :=
-    own γ.(phys_state_gname) (● borrowers).
+  Local Lemma writer_writer_exclusive `{Σ : cpp_logic, !lockedG Σ}
+      γ th1 th2 :
+    writer_borrow γ th1 -∗ writer_borrow γ th2 -∗ False.
+  Proof.
+    iIntros "H1 H2".
+    iDestruct (own_valid_2 with "H1 H2") as "%Hvalid".
+    exfalso.
+    rewrite
+      auth_auth_dfrac_op_valid
+      dfrac_op_own
+      dfrac_valid_own in Hvalid.
+    by destruct Hvalid as [? _].
+  Qed.
+
+  Local Lemma reader_writer_exclusive `{Σ : cpp_logic, !lockedG Σ}
+      γ th1 th2 q:
+    th1 <> th2 ->
+    reader_borrow γ th1 q -∗ writer_borrow γ th2 -∗ False.
+  Proof.
+    iIntros (Hneq) "H1 H2".
+    iDestruct (own_valid_2 with "H2 H1") as "%Hvalid".
+    exfalso.
+    apply auth_both_dfrac_valid in Hvalid as (_ & Hvalid & _).
+    generalize (Hvalid 0)=> H.
+    apply singleton_includedN_l in H as (? & ? & ?).
+    rewrite lookup_singleton in H.
+    destruct decide in H; try done.
+    inv H.
+  Qed.
 
   Definition used_threads
       `{Σ : cpp_logic, !lockedG Σ, !HasStdThreads Σ}
@@ -79,7 +114,7 @@ Section with_cpp.
 
   #[global] Instance
       reader_borrow_WeaklyObjective γ thr n :
-      WeaklyObjective (PROP := iPropI _) (borrow γ thr n).
+      WeaklyObjective (PROP := iPropI _) (reader_borrow γ thr n).
   Proof. (* locked.unlock. *) apply _. Qed.
 
 
@@ -173,34 +208,48 @@ Section with_cpp.
       P qP **
       (* the set of borrowers *)
       users γ ths **
-      borrow_state γ borrow_map **
+      (* writer mode: cinv keeps ●{# 1/4} of the borrow map and the frac so
+          writer can't call shared_unlock(). writer has ●{# 3/4}.
+         reader mode: cinv keeps the full borrow map, readers has the fracs. *)
+      ((
+        own γ.(phys_state_gname) (●{# 1/4} borrow_map) ∗
+        own γ.(phys_state_gname) (◯ borrow_map) ∧
+        ∃ th, [| borrow_map = {[ th := 1%Qp ]} |]
+       ) ∨
+       own γ.(phys_state_gname) (● borrow_map)) **
       (* the permission borrowed and the permission left in the inv sums to 1 *)
       [| map_fold (λ _ qi q, Qp.add qi q) qP borrow_map = 1%Qp |] **
       (* all borrowers have to turn in their `user` handle *)
       [| ∀ th, th ∈ ths ↔ th ∈ dom borrow_map |].
-
 
   (** Convention:
     qi: fraction of the invariant
     qP: fraction of P 
   *)
   Definition reader_locked (γ : gname) (th : thread_idT) qi qP : mpred :=
-    borrow γ th qP ∗ cinv_own γ.(inv_gname) qi.
+    reader_borrow γ th qP ∗ cinv_own γ.(inv_gname) qi.
 
-  (* (writer) locked is just reader_locked with full permission *)
   Definition locked (γ : gname) (th : thread_idT) qi : mpred :=
-    reader_locked γ th qi 1%Qp.
+    writer_borrow γ th ∗ cinv_own γ.(inv_gname) qi.
   
   Definition not_locked (γ : gname) (th : thread_idT) qi : mpred :=
     user γ th ** cinv_own γ.(inv_gname) qi.
 
-  (* this does not hold! *)
-  Lemma reader_writer_excl g th1 th2 qir qiw qP :
+  Local Lemma writer_reader_excl g th1 th2 qir qiw qP :
+    th1 ≠ th2 ->
     reader_locked g th1 qir qP ** locked g th2 qiw |-- False.
   Proof.
+    iIntros (?) "[[H1 _] [H2 _]]".
+    iDestruct (reader_writer_exclusive with "H1 H2") as %[]; done.
+  Qed.
+
+  Local Lemma writer_writer_excl g th1 th2 qi1 qi2 :
+    locked g th1 qi1 ** locked g th2 qi2 |-- False.
+  Proof.
     iIntros "[[H1 _] [H2 _]]".
-    iCombine "H1" "H2" as "H".
-  Abort.
+    iDestruct (writer_writer_exclusive with "H1 H2") as %[]; done.
+  Qed.
+
 
   (* FIXME why does this not type check? *)
   (* Definition R γ (q : cQp.t) (P : Qp -> mpred) : Rep :=
@@ -264,6 +313,9 @@ Section with_cpp.
       Assume we have `used_threads g s`.
       dtor requires s=∅, but `lock()` puts the unique `user γ th` in inv, so we
       can't deallocate that piece, therefore th ∈ s.
+    3. `lock(); unlock_shared()` should fail.
+      This is prevented because locked can't be transformed into reader_locked,
+      and writer is not given one.
   *)
 
   (*
