@@ -202,66 +202,75 @@ Section with_cpp.
   Definition users
       (γ : gname) (ths : gset thread_idT) : mpred :=
     own γ.(login_gname) (◯ GSet ths).
-  
-  Definition smutex_inv γ (P : Qp -> mpred) : mpred :=
-    ∃ qP ths borrow_map,
-      P qP **
-      (* the set of borrowers *)
-      users γ ths **
-      (* writer mode: cinv keeps ●{# 1/4} of the borrow map and the frac so
-          writer can't call shared_unlock(). writer has ●{# 3/4}.
-         reader mode: cinv keeps the full borrow map, readers has the fracs. *)
-      ((
-        own γ.(phys_state_gname) (●{# 1/4} borrow_map) ∗
-        own γ.(phys_state_gname) (◯ borrow_map) ∧
-        ∃ th, [| borrow_map = {[ th := 1%Qp ]} |]
-       ) ∨
-       own γ.(phys_state_gname) (● borrow_map)) **
-      (* the permission borrowed and the permission left in the inv sums to 1 *)
-      [| map_fold (λ _ qi q, Qp.add qi q) qP borrow_map = 1%Qp |] **
-      (* all borrowers have to turn in their `user` handle *)
-      [| ∀ th, th ∈ ths ↔ th ∈ dom borrow_map |].
 
+  Section with_Qcanon.
+    Import Qcanon.
+
+    Definition oqp_to_qc (oqp : option Qp) : Qc :=
+      match oqp with
+      | Some qP => Qp_to_Qc qP
+      | None => 0%Qc
+      end.
+
+    Definition smutex_inv γ (P : Qp -> mpred) : mpred :=
+      ∃ (oqP : option Qp) ths borrow_map,
+        match oqP with
+        | Some qP => P qP
+        | None => emp
+        end **
+        (* the set of borrowers *)
+        users γ ths **
+        (* writer mode: cinv keeps ●{# 1/4} of the borrow map and the frac so
+            writer can't call shared_unlock(). writer has ●{# 3/4}.
+          reader mode: cinv keeps the full borrow map, readers has the fracs. *)
+        ((
+          own γ.(phys_state_gname) (●{# 1/4} borrow_map) ∗
+          own γ.(phys_state_gname) (◯ borrow_map) ∧
+          ∃ th, [| borrow_map = {[ th := 1%Qp ]} |]
+        ) ∨
+        own γ.(phys_state_gname) (● borrow_map)) **
+        (* the permission borrowed and the permission left in the inv sums to 1 *)
+        [| map_fold (λ _ qi q, (Qp_to_Qc qi) + q) (oqp_to_qc oqP) borrow_map = 1%Qc |] **
+        (* all borrowers have to turn in their `user` handle *)
+        [| ∀ th, th ∈ ths ↔ th ∈ dom borrow_map |].
+  End with_Qcanon.
+      
   (** Convention:
     qi: fraction of the invariant
     qP: fraction of P 
   *)
-  Definition reader_locked (γ : gname) (th : thread_idT) qi qP : mpred :=
-    reader_borrow γ th qP ∗ cinv_own γ.(inv_gname) qi.
+  Definition reader_locked (γ : gname) (th : thread_idT) qP : mpred :=
+    reader_borrow γ th qP.
 
-  Definition locked (γ : gname) (th : thread_idT) qi : mpred :=
-    writer_borrow γ th ∗ cinv_own γ.(inv_gname) qi.
-  
-  Definition not_locked (γ : gname) (th : thread_idT) qi : mpred :=
-    user γ th ** cinv_own γ.(inv_gname) qi.
+  Definition locked (γ : gname) (th : thread_idT) : mpred :=
+    writer_borrow γ th.
 
-  Local Lemma writer_reader_excl g th1 th2 qir qiw qP :
+  Definition not_locked (γ : gname) (th : thread_idT) : mpred :=
+    user γ th.
+
+  Local Lemma writer_reader_excl g th1 th2 qP :
     th1 ≠ th2 ->
-    reader_locked g th1 qir qP ** locked g th2 qiw |-- False.
+    reader_locked g th1 qP ** locked g th2 |-- False.
   Proof.
-    iIntros (?) "[[H1 _] [H2 _]]".
+    iIntros (?) "[H1 H2]".
     iDestruct (reader_writer_exclusive with "H1 H2") as %[]; done.
   Qed.
 
-  Local Lemma writer_writer_excl g th1 th2 qi1 qi2 :
-    locked g th1 qi1 ** locked g th2 qi2 |-- False.
+  Local Lemma writer_writer_excl g th1 th2 :
+    locked g th1 ** locked g th2 |-- False.
   Proof.
-    iIntros "[[H1 _] [H2 _]]".
+    iIntros "[H1 H2]".
     iDestruct (writer_writer_exclusive with "H1 H2") as %[]; done.
   Qed.
 
-
-  (* FIXME why does this not type check? *)
-  (* Definition R γ (q : cQp.t) (P : Qp -> mpred) : Rep :=
-    type_ptrR "std::shared_mutex" **
-    cinv smutex_N γ.(inv_gname) (smutex_inv γ P) **
-    (* if we have cinv_own, is some RA redundant? *)
-    cinv_own γ.(inv_gname) q. *)
-    
   (** Fractional ownership of a <<std::shared_mutex>> guarding the predicate <<P>>. *)
-  Parameter R : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv}, gname -> cQp.t -> (Qp -> mpred) -> Rep.
+  Definition R γ (q : cQp.t) (P : Qp -> mpred) : Rep :=
+    structR "std::shared_mutex" q **
+    (* should also have ownership of the underlying fields *)
+    pureR (cinv smutex_N γ.(inv_gname) (smutex_inv γ P) **
+           cinv_own γ.(inv_gname) q).
   #[only(cfractional,cfracvalid,ascfractional,type_ptr="std::shared_mutex")] derive R.
-  #[global] Declare Instance R_learnable : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv},
+  #[global] Declare Instance R_learnable : forall {σ : genv},
       Cbn (Learn (learn_eq ==> any ==> learn_eq ==> learn_hints.fin) R).
 
   cpp.spec "std::shared_mutex::shared_mutex()" as ctor_spec with (
@@ -280,31 +289,31 @@ Section with_cpp.
     \this this
     \prepost{qi P g} this |-> R g qi P
     \persist{thr} current_thread thr
-    \pre not_locked g thr qi
-    \post P 1%Qp ** locked g thr qi).
+    \pre not_locked g thr
+    \post P 1%Qp ** locked g thr).
 
   cpp.spec "std::shared_mutex::unlock()" as unlock_spec_alt with (
     \this this
     \prepost{qi P g} this |-> R g qi P
     \persist{thr} current_thread thr
-    \pre locked g thr qi
+    \pre locked g thr
     \pre ▷ P 1%Qp
-    \post not_locked g thr qi).
+    \post not_locked g thr).
 
   cpp.spec "std::shared_mutex::lock_shared()" as lock_shared_spec_alt with (
     \this this
     \prepost{qi P g} this |-> R g qi P
     \persist{thr} current_thread thr
-    \pre not_locked g thr qi
-    \post ∃ qP, P qP ** reader_locked g thr qi qP).
+    \pre not_locked g thr
+    \post ∃ qP, P qP ** reader_locked g thr qP).
 
   cpp.spec "std::shared_mutex::unlock_shared()" as unlock_shared_spec_alt with (
     \this this
     \prepost{qi P g} this |-> R g qi P
     \persist{thr} current_thread thr
-    \pre locked g thr qi
-    \pre ▷P 1%Qp
-    \post not_locked g thr qi).
+    \pre{qP} reader_locked g thr qP
+    \pre ▷P qP
+    \post not_locked g thr).
 
   (** Safety Properties:
     1. a thread calling lock() or shared_lock() twice should fail.
