@@ -1,5 +1,4 @@
 Require Import iris.algebra.gset.
-Require Import iris.algebra.lib.excl_auth.
 
 Require Import skylabs.bi.tls_modalities.
 Require Import skylabs.bi.tls_modalities_rep.
@@ -20,21 +19,124 @@ Import linearity.
 
 Module shared_mutex.
 Section with_cpp.
+
+  Canonical Structure lock_ghostUR : ucmra :=
+    gset_disjR thread_idTO.
+  Canonical Structure lock_cmraR := authR lock_ghostUR.
+
+  (* maps th:thread_idT to the fraction of permission thaborrowed. *)
+  Canonical Structure phys_stateUR := authR (gmapR thread_idT Qp).
+
+
+  Class lockedG `{Σ : cpp_logic} := {
+    #[local] has_locked :: HasOwn (iPropI _Σ) lock_cmraR;
+    #[local] has_locked_upd :: HasOwnUpd (iPropI _Σ) lock_cmraR;
+    #[local] has_locked_valid :: HasOwnValid (iPropI _Σ) lock_cmraR;
+
+    #[local] has_phys_state :: HasOwn (iPropI _Σ) phys_stateUR;
+    #[local] has_phys_state_upd :: HasOwnUpd (iPropI _Σ) phys_stateUR;
+    #[local] has_phys_state_valid :: HasOwnValid (iPropI _Σ) phys_stateUR;
+  }.
+
+  #[global] Arguments lockedG {_ _} Σ : assert.
+
+  Record gname : Set := MkGname
+  { phys_state_gname : iprop.gname;
+    login_gname : iprop.gname;
+    inv_gname : iprop.gname;
+  }.
+
+  Definition borrow `{Σ : cpp_logic, !lockedG Σ}
+    (γ : gname) (th : thread_idT) (q : Qp) : mpred :=
+    own γ.(phys_state_gname) (◯ {[ th := q ]}).
+
+  Definition writer_borrow `{Σ : cpp_logic, !lockedG Σ}
+    (γ : gname) (th : thread_idT) : mpred :=
+    borrow γ th 1%Qp.
+
+  Definition borrow_state `{Σ : cpp_logic, !lockedG Σ}
+    (γ : gname) (borrowers : gmap thread_idT Qp) : mpred :=
+    own γ.(phys_state_gname) (● borrowers).
+
+  Definition used_threads
+      `{Σ : cpp_logic, !lockedG Σ, !HasStdThreads Σ}
+      (γ : gname) (s : gset thread_idT) : mpred :=
+      own γ.(login_gname) (● GSet s).
+
+  (* user is the handle to call lock functions *)
+  Definition user `{Σ : cpp_logic, !lockedG Σ}
+      (γ : gname) (th : thread_idT) : mpred :=
+    own γ.(login_gname) (◯ GSet {[ th ]}).
+  
   Context `{Σ : cpp_logic}.
+  Context `{!lockedG Σ}.
+  Context `{!HasStdThreads Σ}.
+  
+  #[global] Instance
+      writer_borrow_WeaklyObjective γ thr :
+      WeaklyObjective (PROP := iPropI _) (writer_borrow γ thr).
+  Proof. (* locked.unlock. *) apply _. Qed.
 
-  (** Fractional ownership of a <<std::shared_mutex>> guarding the predicate <<P>>. *)
-  Parameter R : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv}, gname -> cQp.t -> (Qp -> mpred) -> Rep.
-  #[only(cfractional,cfracvalid,ascfractional,type_ptr="std::shared_mutex")] derive R.
-  #[global] Declare Instance R_learnable : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv},
-      Cbn (Learn (learn_eq ==> any ==> learn_eq ==> learn_hints.fin) R).
+  #[global] Instance
+      reader_borrow_WeaklyObjective γ thr n :
+      WeaklyObjective (PROP := iPropI _) (borrow γ thr n).
+  Proof. (* locked.unlock. *) apply _. Qed.
 
-  (** Owning [token γ 1] proves that the shared_mutex is not locked, and
-  therefore can be safely destroyed: the standard specifies that calling
-  <std::shared_mutex::~shared_mutex()> while holding the lock results in
-  undefined behavior.
-  *)
-  Parameter token : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv}, gname -> Qp -> mpred.
-  #[only(fractional,fracvalid,asfractional,timeless)] derive token.
+
+  Lemma user_unique g th :
+    user g th ** user g th |-- False.
+  Proof.
+    (* rewrite locked.unlock. *)
+    iIntros "[A B]".
+    iDestruct (own_valid_2 with "A B") as "%".
+    rewrite -auth_frag_op auth_frag_valid gset_disj_valid_op in H.
+    set_solver.
+  Qed.
+
+  Lemma login th g s :
+    th ∉ s ->
+    used_threads g s |--
+    |==> used_threads g ({[ th ]} ∪ s) ** user g th.
+  Proof.
+    intros Hni.
+    iIntros "A".
+    iMod (own_update with "A") as "[● $]"; last iModIntro.
+    {
+      rewrite cmra_comm.
+      apply (auth_update_alloc _ (GSet ({[th]} ∪ s)) (GSet {[th]})).
+      apply gset_disj_alloc_empty_local_update. set_solver. 
+    }
+    by iFrame.
+  Qed.
+
+  Lemma logout th g s :
+    th ∉ s ->
+    used_threads g ({[ th ]} ∪ s) ** user g th |--
+    |==> used_threads g s.
+  Proof.
+    intros Hni.
+
+    iIntros "[A B]".
+    iCombine "A" "B" as "A".
+    iMod (own_update with "A") as "?".
+    {
+      apply (auth_update_dealloc _ _ (GSet s)).
+      rewrite -gset_disj_union; last set_solver.
+      apply gset_disj_dealloc_empty_local_update.
+    }
+    by iFrame.
+  Qed.
+
+  Lemma used_threads_empty_no_user g th :
+    used_threads g ∅ ** user g th |-- False.
+  Proof.
+    rewrite /user /used_threads.
+    iIntros "[A B]".
+    iDestruct (own_valid_2 with "A B") as "%Hvalid".
+    apply auth_both_valid_discrete in Hvalid.
+    destruct Hvalid as [Hvalid _].
+    rewrite gset_disj_included in Hvalid. set_solver.
+  Qed.
 
   (** A resource enforcing that the thread calling unlock must be the same thread
       that owns the lock
@@ -55,69 +157,114 @@ Section with_cpp.
     same test_unlock
     >>
    *)
-  Parameter locked : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv},
-      gname -> thread_idT -> option (Qp * option Qp) -> mpred.
-  #[only(timeless)] derive locked.
-
-  (** locked takes a [Qp] but _cannot_ be split. *)
-  #[only(exclusive)] derive locked.
 
   Context `{MOD : source ⊧ σ}.
   Context {HAS_THREADS : HasStdThreads Σ}.
 
-  #[global] Instance locked_learn : Cbn (Learn (req_eq ==> learn_eq ==> learn_eq ==> learn_hints.fin) locked).
-  Proof. solve_learnable. Qed.
+  Definition smutex_N : namespace :=
+    nroot .@@ "std" .@@ "shared_mutex" .@ "raw_inv".
 
-  Parameter used_threads : gname -> gset thread_idT -> mpred.
+  Definition users
+      (γ : gname) (ths : gset thread_idT) : mpred :=
+    own γ.(login_gname) (◯ GSet ths).
+  
+  Definition smutex_inv γ (P : Qp -> mpred) : mpred :=
+    ∃ qP ths borrow_map,
+      P qP **
+      (* the set of borrowers *)
+      users γ ths **
+      borrow_state γ borrow_map **
+      (* the permission borrowed and the permission left in the inv sums to 1 *)
+      [| map_fold (λ _ qi q, Qp.add qi q) qP borrow_map = 1%Qp |] **
+      (* all borrowers have to turn in their `user` handle *)
+      [| ∀ th, th ∈ ths ↔ th ∈ dom borrow_map |].
 
-  Lemma use_thread th g s :
-    th ∉ s ->
-     used_threads g s |--
-    |==> used_threads g (s ∪ {[ th ]}) ** locked g th None.
-  Proof. Abort.
+
+  (** Convention:
+    qi: fraction of the invariant
+    qP: fraction of P 
+  *)
+  Definition reader_locked (γ : gname) (th : thread_idT) qi qP : mpred :=
+    borrow γ th qP ∗ cinv_own γ.(inv_gname) qi.
+
+  (* (writer) locked is just reader_locked with full permission *)
+  Definition locked (γ : gname) (th : thread_idT) qi : mpred :=
+    reader_locked γ th qi 1%Qp.
+  
+  Definition not_locked (γ : gname) (th : thread_idT) qi : mpred :=
+    user γ th ** cinv_own γ.(inv_gname) qi.
+
+  (* this does not hold! *)
+  Lemma reader_writer_excl g th1 th2 qir qiw qP :
+    reader_locked g th1 qir qP ** locked g th2 qiw |-- False.
+  Proof.
+    iIntros "[[H1 _] [H2 _]]".
+    iCombine "H1" "H2" as "H".
+  Abort.
+
+  (* FIXME why does this not type check? *)
+  (* Definition R γ (q : cQp.t) (P : Qp -> mpred) : Rep :=
+    type_ptrR "std::shared_mutex" **
+    cinv smutex_N γ.(inv_gname) (smutex_inv γ P) **
+    (* if we have cinv_own, is some RA redundant? *)
+    cinv_own γ.(inv_gname) q. *)
+    
+  (** Fractional ownership of a <<std::shared_mutex>> guarding the predicate <<P>>. *)
+  Parameter R : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv}, gname -> cQp.t -> (Qp -> mpred) -> Rep.
+  #[only(cfractional,cfracvalid,ascfractional,type_ptr="std::shared_mutex")] derive R.
+  #[global] Declare Instance R_learnable : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv},
+      Cbn (Learn (learn_eq ==> any ==> learn_eq ==> learn_hints.fin) R).
 
   cpp.spec "std::shared_mutex::shared_mutex()" as ctor_spec with (
     \this this
     \pre{P} ▷P 1%Qp
-    \post Exists g, this |-> R g 1$m P ** token g 1 ** used_threads g ∅).
+    \post Exists g, this |-> R g 1$m P ** used_threads g ∅).
 
   cpp.spec "std::shared_mutex::~shared_mutex()" as dtor_spec with (
     \this this
-    \pre{g P} this |-> R g 1$m P ** token g 1
+    (** the "user" set being ∅ enforces that there is no reader or write *)
+    \pre{g P} this |-> R g 1$m P ** used_threads g ∅
     \post P 1%Qp).
 
   (* "Inline" version of these specs. *)
   cpp.spec "std::shared_mutex::lock()" as lock_spec_alt with (
     \this this
-    \prepost{q P g} this |-> R g q P
+    \prepost{qi P g} this |-> R g qi P
     \persist{thr} current_thread thr
-    \pre{q'} token g q'
-    \pre locked g thr None
-    \post P 1%Qp ** locked g thr (Some (q', None))).
+    \pre not_locked g thr qi
+    \post P 1%Qp ** locked g thr qi).
 
   cpp.spec "std::shared_mutex::unlock()" as unlock_spec_alt with (
     \this this
-    \prepost{q P g} this |-> R g q P
+    \prepost{qi P g} this |-> R g qi P
     \persist{thr} current_thread thr
-    \pre{q'} locked g thr (Some (q', None))
+    \pre locked g thr qi
     \pre ▷ P 1%Qp
-    \post locked g thr None ** token g q').
+    \post not_locked g thr qi).
 
   cpp.spec "std::shared_mutex::lock_shared()" as lock_shared_spec_alt with (
     \this this
-    \prepost{q P g} this |-> R g q P
+    \prepost{qi P g} this |-> R g qi P
     \persist{thr} current_thread thr
-    \pre locked g thr None
-    \pre{q'} token g q'
-    \post ∃ qP, P qP ** locked g thr (Some (q', Some qP))).
+    \pre not_locked g thr qi
+    \post ∃ qP, P qP ** reader_locked g thr qi qP).
 
   cpp.spec "std::shared_mutex::unlock_shared()" as unlock_shared_spec_alt with (
     \this this
-    \prepost{q P g} this |-> R g q P
+    \prepost{qi P g} this |-> R g qi P
     \persist{thr} current_thread thr
-    \pre{q' qP} locked g thr (Some (q', Some qP))
-    \pre{qP} ▷P qP
-    \post locked g thr None ** token g q').
+    \pre locked g thr qi
+    \pre ▷P 1%Qp
+    \post not_locked g thr qi).
+
+  (** Safety Properties:
+    1. a thread calling lock() or shared_lock() twice should fail.
+      This is prevented by having a unique `user`, and turn in user in the inv.
+    2. `lock(); ~shared_mutex()` should fail.
+      Assume we have `used_threads g s`.
+      dtor requires s=∅, but `lock()` puts the unique `user γ th` in inv, so we
+      can't deallocate that piece, therefore th ∈ s.
+  *)
 
   (*
   Definition do_lock (lk : gname * (Qp -> mpred)) (K: mpred) : mpred :=
