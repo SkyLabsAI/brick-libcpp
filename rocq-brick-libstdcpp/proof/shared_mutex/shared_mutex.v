@@ -292,6 +292,13 @@ Section with_cpp.
     \pre not_locked g thr
     \post P 1%Qp ** locked g thr).
 
+  cpp.spec "std::shared_mutex::try_lock()" as try_lock_spec_alt with (
+    \this this
+    \prepost{qi P g} this |-> R g qi P
+    \persist{thr} current_thread thr
+    \pre not_locked g thr
+    \post{b}[Vbool b] if b then P 1%Qp ** locked g thr else not_locked g thr).
+
   cpp.spec "std::shared_mutex::unlock()" as unlock_spec_alt with (
     \this this
     \prepost{qi P g} this |-> R g qi P
@@ -306,6 +313,13 @@ Section with_cpp.
     \persist{thr} current_thread thr
     \pre not_locked g thr
     \post ∃ qP, P qP ** reader_locked g thr qP).
+
+  cpp.spec "std::shared_mutex::lock_shared()" as try_lock_shared_spec_alt with (
+    \this this
+    \prepost{qi P g} this |-> R g qi P
+    \persist{thr} current_thread thr
+    \pre not_locked g thr
+    \post{b}[Vbool b] if b then ∃ qP, P qP ** reader_locked g thr qP else not_locked g thr).
 
   cpp.spec "std::shared_mutex::unlock_shared()" as unlock_shared_spec_alt with (
     \this this
