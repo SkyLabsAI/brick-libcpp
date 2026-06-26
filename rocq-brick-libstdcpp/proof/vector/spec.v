@@ -368,6 +368,8 @@ NES.Begin std.
           iter_op_pre_inc const ty alloc_ty **
           iter_op_eq const ty alloc_ty **
           iter_op_ne const ty alloc_ty.
+        #[global] Hint Opaque specs : typeclass_instances sl_opacity.
+        #[only(knowledge)] derive specs.
 
       End iter.
       #[global] Existing Instance iterator_has_rep.
@@ -767,6 +769,8 @@ NES.Begin std.
           size **
           MaybeConst begin_spec **
           MaybeConst end_spec.
+        #[global] Hint Opaque specs : typeclass_instances sl_opacity.
+        #[only(knowledge)] derive specs.
 
       End specs.
 

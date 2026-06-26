@@ -33,6 +33,8 @@ Section with_cpp.
 
   Definition specs :=
     assert_fail_spec ** assert_rtn_spec.
+  #[global] Hint Opaque specs : typeclass_instances sl_opacity.
+  #[only(knowledge)] derive specs.
 End with_cpp.
 
 NES.End std.cassert.
