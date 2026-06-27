@@ -4,13 +4,6 @@ Require Import skylabs.brick.libstdcpp.test.mutex.test_cpp.
 
 Import linearity.
 
-(* TODO UPSTREAM *)
-(* Get rid of [▷ emp] goals. *)
-Lemma bi_later_emp_2 {PROP} : emp ⊢@{PROP} ▷ emp.
-Proof. by iIntros "_ !>". Qed.
-Definition bi_later_emp_2_B := [BWD<-] @bi_later_emp_2.
-Hint Resolve bi_later_emp_2_B : br_hints.
-
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv} {HAS_THREADS : HasStdThreads Σ}.
 
