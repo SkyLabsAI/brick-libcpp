@@ -13,10 +13,32 @@ map_absolute_paths () {
     done
 }
 
+check_lib_cpp_flag () {
+    while [[ $# -gt 0 ]]; do
+        if [[ $1 == -stdlib=libstdc++ ]]; then
+            return 0
+        fi
+        shift
+    done
+    return 1
+}
+
 if [ -n "$IN_CPP2V_DOCKER" ]; then
   echo "Error: recursive invocation of \"cpp2v_docker\" as $0 from outer cpp2v_docker as ${IN_CPP2V_DOCKER}"
   echo "(PATH is $PATH)."
   exit 1
+fi
+
+ENABLED_VALUES="y|n|if-libstdc\+\+"
+if ! [[ $CPP2V_DOCKER_ENABLED =~ $ENABLED_VALUES ]]; then
+    echo "Misconfiguration: CPP2V_DOCKER_ENABLED'$CPP2V_DOCKER_ENABLED'"
+    echo "It should have one of '$ENABLED_VALUES'"
+    exit 2
+fi
+
+if [ "$CPP2V_DOCKER_ENABLED" = "if-libstdc++" ] \
+   && check_lib_cpp_flag "$@" ; then
+    CPP2V_DOCKER_ENABLED=y
 fi
 
 if [ "$CPP2V_DOCKER_ENABLED" = "y" ] && ! which docker > /dev/null; then

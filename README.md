@@ -21,3 +21,7 @@ To this end, go to `workspace` and run
 ```
 cd fmdeps/brick-libcpp; cp dune.disabled dune
 ```
+The setup can be especially useful when one needs to use `libstdc++`
+which is not available on all platforms. To reduce demands on the
+docker virtual machines, one can enable its use selectively. See
+`rocq-brick-libstdcpp/cpp2v_docker.in` for more details.
