@@ -46,7 +46,7 @@ Section with_cpp.
     inv_gname : iprop.gname;
   }.
 
-  Definition reader_borrow `{Σ : cpp_logic, !lockedG Σ}
+  Definition reader_locked `{Σ : cpp_logic, !lockedG Σ}
     (γ : gname) (th : thread_idT) (q : Qp) : mpred :=
     own γ.(phys_state_gname) (◯ {[ th := q ]}).
 
@@ -54,18 +54,18 @@ Section with_cpp.
 
     Allows to prove writer_writer_exclusive and writer_reader_exclusive.
     Unlike them, we can't just use ∅ for the reader map, because when the
-    writer unlocks, the cinv stores its `user γ th`, but `th` is existentially
+    writer unlocks, the cinv stores its `not_locked γ th`, but `th` is existentially
     quanified in cinv and it needs some way to recover that `th` matches with
     itself. Note that we still lose writer_reader_exclusiveness for the same,
     thread, but that should be fine with the current cinv.
   *)
-  Definition writer_borrow `{Σ : cpp_logic, !lockedG Σ}
+  Definition locked `{Σ : cpp_logic, !lockedG Σ}
     (γ : gname) (th : thread_idT) : mpred :=
     own γ.(phys_state_gname) (●{# 3/4} {[ th := 1%Qp ]}).
 
   Local Lemma writer_writer_exclusive `{Σ : cpp_logic, !lockedG Σ}
       γ th1 th2 :
-    writer_borrow γ th1 -∗ writer_borrow γ th2 -∗ False.
+    locked γ th1 -∗ locked γ th2 -∗ False.
   Proof.
     iIntros "H1 H2".
     iDestruct (own_valid_2 with "H1 H2") as "%Hvalid".
@@ -80,7 +80,7 @@ Section with_cpp.
   Local Lemma reader_writer_exclusive `{Σ : cpp_logic, !lockedG Σ}
       γ th1 th2 q:
     th1 <> th2 ->
-    reader_borrow γ th1 q -∗ writer_borrow γ th2 -∗ False.
+    reader_locked γ th1 q -∗ locked γ th2 -∗ False.
   Proof.
     iIntros (Hneq) "H1 H2".
     iDestruct (own_valid_2 with "H2 H1") as "%Hvalid".
@@ -94,32 +94,41 @@ Section with_cpp.
   Qed.
 
   Definition used_threads
-      `{Σ : cpp_logic, !lockedG Σ, !HasStdThreads Σ}
+      `{Σ : cpp_logic, !lockedG Σ}
       (γ : gname) (s : gset thread_idT) : mpred :=
       own γ.(login_gname) (● GSet s).
 
-  (* user is the handle to call lock functions *)
-  Definition user `{Σ : cpp_logic, !lockedG Σ}
-      (γ : gname) (th : thread_idT) : mpred :=
-    own γ.(login_gname) (◯ GSet {[ th ]}).
-  
+  Definition users
+      `{Σ : cpp_logic, !lockedG Σ}
+      (γ : gname) (ths : gset thread_idT) : mpred :=
+    own γ.(login_gname) (◯ GSet ths).
+  #[global] Hint Opaque users : sl_opacity typeclass_instances.
+
+  (* not_locked is the handle to call lock functions *)
+  Abbreviation not_locked γ th :=
+    (users γ {[ th ]}).
+
   Context `{Σ : cpp_logic}.
   Context `{!lockedG Σ}.
   Context `{!HasStdThreads Σ}.
-  
-  #[global] Instance
-      writer_borrow_WeaklyObjective γ thr :
-      WeaklyObjective (PROP := iPropI _) (writer_borrow γ thr).
-  Proof. (* locked.unlock. *) apply _. Qed.
 
   #[global] Instance
-      reader_borrow_WeaklyObjective γ thr n :
-      WeaklyObjective (PROP := iPropI _) (reader_borrow γ thr n).
+      locked_WeaklyObjective γ thr :
+      WeaklyObjective (PROP := iPropI _) (locked γ thr).
   Proof. (* locked.unlock. *) apply _. Qed.
 
+  #[global] Hint Opaque locked : sl_opacity typeclass_instances.
 
-  Lemma user_unique g th :
-    user g th ** user g th |-- False.
+  #[global] Instance
+      reader_locked_WeaklyObjective γ thr n :
+      WeaklyObjective (PROP := iPropI _) (reader_locked γ thr n).
+  Proof. (* locked.unlock. *) apply _. Qed.
+
+  #[global] Hint Opaque reader_locked : sl_opacity typeclass_instances.
+
+
+  Lemma not_locked_unique g th :
+    not_locked g th ** not_locked g th |-- False.
   Proof.
     (* rewrite locked.unlock. *)
     iIntros "[A B]".
@@ -131,7 +140,7 @@ Section with_cpp.
   Lemma login th g s :
     th ∉ s ->
     used_threads g s |--
-    |==> used_threads g ({[ th ]} ∪ s) ** user g th.
+    (|==> used_threads g ({[ th ]} ∪ s) ** not_locked g th).
   Proof.
     intros Hni.
     iIntros "A".
@@ -139,16 +148,18 @@ Section with_cpp.
     {
       rewrite cmra_comm.
       apply (auth_update_alloc _ (GSet ({[th]} ∪ s)) (GSet {[th]})).
-      apply gset_disj_alloc_empty_local_update. set_solver. 
+      apply gset_disj_alloc_empty_local_update. set_solver.
     }
     by iFrame.
   Qed.
 
   Lemma logout th g s :
     th ∉ s ->
-    used_threads g ({[ th ]} ∪ s) ** user g th |--
-    |==> used_threads g s.
+    used_threads g ({[ th ]} ∪ s) ** not_locked g th |--
+    (|==> used_threads g s).
   Proof.
+    rewrite /users /used_threads.
+
     intros Hni.
 
     iIntros "[A B]".
@@ -162,10 +173,10 @@ Section with_cpp.
     by iFrame.
   Qed.
 
-  Lemma used_threads_empty_no_user g th :
-    used_threads g ∅ ** user g th |-- False.
+  Lemma used_threads_empty_no_not_locked g th :
+    used_threads g ∅ ** not_locked g th |-- False.
   Proof.
-    rewrite /user /used_threads.
+    rewrite /users /used_threads.
     iIntros "[A B]".
     iDestruct (own_valid_2 with "A B") as "%Hvalid".
     apply auth_both_valid_discrete in Hvalid.
@@ -194,14 +205,9 @@ Section with_cpp.
    *)
 
   Context `{MOD : source ⊧ σ}.
-  Context {HAS_THREADS : HasStdThreads Σ}.
 
   Definition smutex_N : namespace :=
     nroot .@@ "std" .@@ "shared_mutex" .@ "raw_inv".
-
-  Definition users
-      (γ : gname) (ths : gset thread_idT) : mpred :=
-    own γ.(login_gname) (◯ GSet ths).
 
   Section with_Qcanon.
     Import Qcanon.
@@ -231,22 +237,15 @@ Section with_cpp.
         own γ.(phys_state_gname) (● borrow_map)) **
         (* the permission borrowed and the permission left in the inv sums to 1 *)
         [| map_fold (λ _ qi q, (Qp_to_Qc qi) + q) (oqp_to_qc oqP) borrow_map = 1%Qc |] **
-        (* all borrowers have to turn in their `user` handle *)
+        (* all borrowers have to turn in their `not_locked` handle *)
         [| ∀ th, th ∈ ths ↔ th ∈ dom borrow_map |].
   End with_Qcanon.
-      
+
   (** Convention:
     qi: fraction of the invariant
-    qP: fraction of P 
+    qP: fraction of P
+    TODO: still relevant?
   *)
-  Definition reader_locked (γ : gname) (th : thread_idT) qP : mpred :=
-    reader_borrow γ th qP.
-
-  Definition locked (γ : gname) (th : thread_idT) : mpred :=
-    writer_borrow γ th.
-
-  Definition not_locked (γ : gname) (th : thread_idT) : mpred :=
-    user γ th.
 
   Local Lemma writer_reader_excl g th1 th2 qP :
     th1 ≠ th2 ->
@@ -269,6 +268,7 @@ Section with_cpp.
     (* should also have ownership of the underlying fields *)
     pureR (cinv smutex_N γ.(inv_gname) (smutex_inv γ P) **
            cinv_own γ.(inv_gname) q).
+  #[global] Hint Opaque R : sl_opacity typeclass_instances.
   #[only(cfractional,cfracvalid,ascfractional,type_ptr="std::shared_mutex")] derive R.
   #[global] Declare Instance R_learnable : forall {σ : genv},
       Cbn (Learn (learn_eq ==> any ==> learn_eq ==> learn_hints.fin) R).
@@ -331,10 +331,10 @@ Section with_cpp.
 
   (** Safety Properties (we model violation of these properties as stuckness):
     1. a thread calling lock() or shared_lock() twice should fail.
-      This is prevented by having a unique `user`, and turn in user in the inv.
+      This is prevented by having a unique `not_locked`, and turn in not_locked in the inv.
     2. `lock(); ~shared_mutex()` should fail.
       Assume we have `used_threads g s`.
-      dtor requires s=∅, but `lock()` puts the unique `user γ th` in inv, so we
+      dtor requires s=∅, but `lock()` puts the unique `not_locked γ th` in inv, so we
       can't deallocate that piece, therefore th ∈ s.
     3. `lock(); unlock_shared()` should fail.
       This is prevented because locked can't be transformed into reader_locked,
@@ -387,7 +387,6 @@ Section with_cpp.
   cpp.spec "std::shared_mutex::try_lock()" as try_lock_spec with
   (\exact Reduce (try_lock_lockable "std::shared_mutex" (λ q γP, R γP.1 q γP.2))).
 
-  (*
   Lemma lock_spec_entails_lock_spec_alt : lock_spec -|- lock_spec_alt.
   Proof.
     iSplit; iApply specify_mono; ework with br_erefl.
@@ -402,6 +401,5 @@ Section with_cpp.
   Proof.
     iSplit; iApply specify_mono; ework with br_erefl.
   Qed.
-  *)
 End with_cpp.
 End shared_mutex.
