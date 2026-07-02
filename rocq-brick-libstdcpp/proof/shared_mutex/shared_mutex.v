@@ -144,13 +144,10 @@ Section with_cpp.
   Proof.
     intros Hni.
     iIntros "A".
-    iMod (own_update with "A") as "[● $]"; last iModIntro.
-    {
-      rewrite cmra_comm.
-      apply (auth_update_alloc _ (GSet ({[th]} ∪ s)) (GSet {[th]})).
-      apply gset_disj_alloc_empty_local_update. set_solver.
-    }
-    by iFrame.
+    iMod (own_update with "A") as "[● $]"; last by iModIntro; iFrame.
+    rewrite cmra_comm.
+    apply (auth_update_alloc _ (GSet ({[th]} ∪ s)) (GSet {[th]})).
+    apply gset_disj_alloc_empty_local_update. set_solver.
   Qed.
 
   Lemma logout th g s :
@@ -164,13 +161,10 @@ Section with_cpp.
 
     iIntros "[A B]".
     iCombine "A" "B" as "A".
-    iMod (own_update with "A") as "?".
-    {
-      apply (auth_update_dealloc _ _ (GSet s)).
-      rewrite -gset_disj_union; last set_solver.
-      apply gset_disj_dealloc_empty_local_update.
-    }
-    by iFrame.
+    iMod (own_update with "A") as "?"; last by iFrame.
+    apply (auth_update_dealloc _ _ (GSet s)).
+    rewrite -gset_disj_union; last set_solver.
+    apply gset_disj_dealloc_empty_local_update.
   Qed.
 
   Lemma used_threads_empty_no_not_locked g th :
