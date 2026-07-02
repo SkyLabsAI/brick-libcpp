@@ -137,6 +137,7 @@ Section with_cpp.
     set_solver.
   Qed.
 
+  (* TODO rename to use_thread *)
   Lemma login th g s :
     th ∉ s ->
     used_threads g s |--
