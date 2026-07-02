@@ -314,7 +314,7 @@ Section with_cpp.
     \pre not_locked g thr
     \post ∃ qP, P qP ** reader_locked g thr qP).
 
-  cpp.spec "std::shared_mutex::lock_shared()" as try_lock_shared_spec_alt with (
+  cpp.spec "std::shared_mutex::try_lock_shared()" as try_lock_shared_spec_alt with (
     \this this
     \prepost{qi P g} this |-> R g qi P
     \persist{thr} current_thread thr
@@ -329,7 +329,7 @@ Section with_cpp.
     \pre ▷P qP
     \post not_locked g thr).
 
-  (** Safety Properties:
+  (** Safety Properties (we model violation of these properties as stuckness):
     1. a thread calling lock() or shared_lock() twice should fail.
       This is prevented by having a unique `user`, and turn in user in the inv.
     2. `lock(); ~shared_mutex()` should fail.
@@ -341,37 +341,27 @@ Section with_cpp.
       and writer is not given one.
   *)
 
-  (*
   Definition do_lock (lk : gname * (Qp -> mpred)) (K: mpred) : mpred :=
     let g := lk.1 in
     let P := lk.2 in
-    ∃ q thr, current_thread thr ∗ token g q ∗
+    ∃ thr, current_thread thr ∗ not_locked g thr ∗
                (* TODO readd *)
                (* ▷ *)
-               (locked g thr q ** P -* K).
+               (locked g thr ** P 1%Qp -* K).
   #[global] Arguments do_lock /.
 
-
-
-  Definition do_unlock (lk : gname * mpred) (Q : mpred) : mpred :=
+  Definition do_unlock (lk : gname * (Qp -> mpred)) (Q : mpred) : mpred :=
     let g := lk.1 in
     let P := lk.2 in
-    Exists q thr, current_thread thr ** locked g thr q ** ▷P **
+    ∃ thr, current_thread thr ** locked g thr ** ▷P 1%Qp **
     (* TODO readd *)
     (* ▷ *)
-    (token g q -* Q).
+    (not_locked g thr -* Q).
   #[global] Arguments do_unlock /.
-
-  cpp.spec "std::shared_mutex::try_lock()" as try_lock_spec_alt with (
-    \this this
-    \prepost{q P g} this |-> R g q P
-    \persist{th} current_thread th
-    \pre{q'} token g q'
-    \post{b}[Vbool b] if b then P ** locked g th q' else token g q').
 
   (* Obtain same specs from (Basic)Lockable. *)
   (** <<std::shared_mutex>> implements [BasicLockable] *)
-  Definition T : Type := gname * mpred.
+  Definition T : Type := gname * (Qp -> mpred).
 
   #[global] Instance shared_mutex_basic_lockable : BasicLockable (T:=T) "std::shared_mutex" (λ q γP, R γP.1 q γP.2) :=
   { do_lock := fun this => do_lock
@@ -383,20 +373,21 @@ Section with_cpp.
   cpp.spec "std::shared_mutex::unlock()" as unlock_spec with
   (\exact Reduce (unlock_basic_lockable "std::shared_mutex" (λ q γP, R γP.1 q γP.2))).
 
-  Definition do_try_lock (lk : gname * mpred) (Q : bool -> mpred) : mpred :=
+  Definition do_try_lock (lk : gname * (Qp -> mpred)) (Q : bool -> mpred) : mpred :=
     let g := lk.1 in
     let P := lk.2 in
-    ∃ q thr, current_thread thr ∗ token g q ∗
+    ∃ thr, current_thread thr ∗ not_locked g thr ∗
     ∀ b : bool,
-    (if b then P ** locked g thr q else token g q) -∗ Q b.
+    (if b then P 1%Qp ** locked g thr else not_locked g thr) -∗ Q b.
   #[global] Arguments do_try_lock /.
 
   #[global,program] Instance shared_mutex_lockable : Lockable (T:=T) "std::shared_mutex" (λ q γP, R γP.1 q γP.2) :=
   { do_try_lock := fun this => do_try_lock }.
 
   cpp.spec "std::shared_mutex::try_lock()" as try_lock_spec with
-  (\exact Reduce (try_lock_lockable "std::mutex" (λ q γP, R γP.1 q γP.2))).
+  (\exact Reduce (try_lock_lockable "std::shared_mutex" (λ q γP, R γP.1 q γP.2))).
 
+  (*
   Lemma lock_spec_entails_lock_spec_alt : lock_spec -|- lock_spec_alt.
   Proof.
     iSplit; iApply specify_mono; ework with br_erefl.
@@ -411,6 +402,6 @@ Section with_cpp.
   Proof.
     iSplit; iApply specify_mono; ework with br_erefl.
   Qed.
-   *)
+  *)
 End with_cpp.
 End shared_mutex.
