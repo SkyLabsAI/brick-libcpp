@@ -33,7 +33,7 @@
   skylabs.brick.libstdcpp
   ; transitive dependencies
   Flocq elpi.apps.NES.elpi elpi.apps.derive elpi.apps.derive.elpi
-  elpi.apps.locker.elpi skylabs.plib skylabs.simp
+  elpi.apps.locker.elpi skylabs.plib skylabs.prog.cpp skylabs.simp
  ))
 (include dune.inc)
 
