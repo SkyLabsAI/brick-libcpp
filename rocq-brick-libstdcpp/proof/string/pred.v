@@ -15,7 +15,7 @@ NOTE: the type `bs` is only suitable for the `char` and `char8` specializations.
 To support wider character types, we need to generalize this to something like `list N` or
 `list PrimInt63`.
 *)
-#[global] Notation string_type := bs (only parsing).
+#[global] Abbreviation string_type := bs (only parsing).
 
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.

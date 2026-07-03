@@ -1,10 +1,5 @@
 #!/bin/bash
-#
-# Copyright (C) 2020-2025 BlueRock Security, Inc.
-#
-# This software is distributed under the terms of the BedRock Open-Source License.
-# See the LICENSE-BedRock file in the repository root for details.
-#
+# -*- indent-tabs-mode: t; sh-basic-offset: 8 -*- vim:set noet sw=8:
 
 usage() {
 	cat >&2 <<-EOF
@@ -41,9 +36,9 @@ outRule() {
 	local targ="${module}"
 	local clang_options=""
 	local universe=""
-	if [ "$system" = 1 ]; then
-		universe=" (universe)"
-	fi
+	# if [ "$system" = 1 ]; then
+	# 	universe=" (universe)"
+	# fi
 	local cpp2v="cpp2v -v %{input} -o ${module} --no-elaborate"
 
 	if [ "$gen_names" = 1 ]; then
@@ -64,7 +59,10 @@ outRule() {
 		(rule
 		 (targets ${module}.stderr ${targ})
 		 (alias test_ast)
-		 (deps (:input ${name}.${ext}) (glob_files_rec ${prefix}*.hpp)${universe})
+		 (deps
+		  (:input ${name}.${ext})
+		  (env_var CPP2V_DOCKER_ENABLED)
+		  (glob_files_rec ${prefix}*.hpp)${universe})
 		 (action
 		 	 (with-stderr-to ${module}.stderr ${action})))
 		(alias (name srcs) (deps ${name}.${ext}))
@@ -134,5 +132,3 @@ path="$1"
 shift
 
 traverse "" "$path" "$@"
-
-# vim:set noet sw=8:

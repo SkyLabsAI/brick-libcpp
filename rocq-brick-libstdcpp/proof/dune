@@ -1,35 +1,41 @@
-; Copyright © 2022-2025 BlueRock Security, Inc.
-;
-; This file is CONFIDENTIAL AND PROPRIETARY to BlueRock. All rights reserved.
-;
-; Use of this file is only permitted subject to a separate written license agreement with BlueRock.
+; Copyright © 2022-2026 SkyLabs AI, Inc.
 
 (include_subdirs qualified)
 (rocq.theory
  (name skylabs.brick.libstdcpp) ; logical path of this library
  (package rocq-brick-libstdcpp)
+ (generate_project_file)
  (theories
-  ; skylabs deps
   Stdlib
   stdpp
   skylabs.upoly
-  elpi elpi_elpi elpi.apps.locker elpi.apps.NES
-  Lens Lens.Elpi
-  Ltac2 skylabs.ltac2.extra
+  elpi
+  elpi_elpi
+  elpi.apps.locker
+  elpi.apps.NES
+  Lens
+  Lens.Elpi
+  Ltac2
+  skylabs.ltac2.extra
   skylabs.prelude
   iris
   skylabs.iris.extra
-  Equations Equations.Prop Equations.Type
+  Equations
+  Equations.Prop
+  Equations.Type
   skylabs.lang.cpp
   skylabs.cpp.stdlib
   skylabs.ltac2.logger
   skylabs.auto.core
-  ;
   ExtLib
   skylabs.elpi.extra
   skylabs.elpi.cpp
-  ; skylabs deps end
-  skylabs))
+  tactic_classes
+  skylabs
+  ; transitive dependencies
+  Flocq elpi.apps.NES.elpi elpi.apps.derive elpi.apps.derive.elpi
+  elpi.apps.locker.elpi skylabs.plib skylabs.simp
+ ))
 (include dune.inc)
 
 (rule

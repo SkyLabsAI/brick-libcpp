@@ -71,7 +71,7 @@ End with_cpp.
 NES.Begin alloc.
 
   (* TODO: fix this *)
-  Notation interface := (operator_new_nothrow ** operator_delete ** valid_ptr (_global "nothrow")).
+  Abbreviation interface := (operator_new_nothrow ** operator_delete ** valid_ptr (_global "nothrow")).
 NES.End alloc.
 
 #[global] Hint Extern 1000 (SpecFor "operator new(unsigned long)"%cpp_name _) =>

@@ -1,7 +1,7 @@
 Require Import skylabs.auto.cpp.prelude.proof.
-Require Import skylabs.brick.libstdcpp.iostream.spec.
+Require Import skylabs.brick.libstdcpp.iostream_trace.spec.
 
-Require Import skylabs.brick.libstdcpp.test.geeks_for_geeks_examples.N5_swap_cpp.
+Require Import skylabs.brick.libstdcpp.test.g4g_trace.N5_swap_a_cpp.
 
 Import linearity.
 
@@ -32,3 +32,4 @@ Section with_cpp.
     by rewrite -!(assoc_L BS.append).
   Qed.
 End with_cpp.
+

@@ -37,7 +37,7 @@ Section with_cpp.
     \end.
   Next Obligation.
     intros; iIntros "X".
-    iDestruct (observe [| exists sz, size_of _ _ = _ |] with "X") as "%".
+    iDestruct (observe [| exists sz, size_of _ _ = _ |] with "X") as "%"; first apply _.
     destruct H; simpl in *.
     rewrite alloc.tokenR.unlock. iDestruct "X" as "?"; work.
   Qed.
@@ -66,7 +66,7 @@ Section with_cpp.
     \end.
   Next Obligation.
     intros; iIntros "X".
-    iDestruct (observe [| exists sz, size_of _ _ = _ |] with "X") as "%".
+    iDestruct (observe [| exists sz, size_of _ _ = _ |] with "X") as "%"; first apply _.
     destruct H; simpl in *.
     rewrite alloc.tokenR.unlock. iDestruct "X" as "?"; work.
     normalize_ptrs. iStopProof; f_equiv; f_equiv; lia.

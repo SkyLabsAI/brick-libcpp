@@ -36,13 +36,13 @@ Section with_cpp.
 
   cpp.spec "test_new_array()" from demo_cpp.source with
     (\post{p}[Vptr p]
-      p |-> (arrayLR "int" 0 2 (fun z => intR 1$m z) [1; 2]%Z **
+      p |-> (array_sliceR "int" 0 2 (fun z => intR 1$m z) [1; 2]%Z **
       alloc.tokenR "int[2]" 1)
     ).
 
   cpp.spec "test_delete_array(int* )" from demo_cpp.source with
     (\arg{p} "p" (Vptr p)
-     \pre p |-> (arrayLR "int" 0 2 (fun z => intR 1$m z) [1; 2]%Z **
+     \pre p |-> (array_sliceR "int" 0 2 (fun z => intR 1$m z) [1; 2]%Z **
                  alloc.tokenR "int[2]" 1)
      \post emp
     ).

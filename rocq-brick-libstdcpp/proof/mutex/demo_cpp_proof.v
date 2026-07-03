@@ -157,7 +157,7 @@ Section with_cpp.
 
   Lemma partial_transfer_link :
     denoteModule source ∗
-      recursive_mutex.lock_spec' ∗ recursive_mutex.unlock_spec'
+      recursive_mutex.lock_spec_alt' ∗ recursive_mutex.unlock_spec_alt'
       ⊢ C_transfer_int.
   Proof.
     work.

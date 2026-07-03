@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+
+REALPATH=$(which grealpath || which realpath)
+REL_PATH="$($REALPATH `pwd` --relative-to "$DUNE_SOURCEROOT")"
+
+map_absolute_paths () {
+    while [[ $# -gt 0 ]]; do
+        if [[ $1 =~ /.*\.(v|cpp|hpp|h|c) ]] && [[ -f "$1" ]]; then
+            local dir="$(dirname "$1")"
+            echo "--volume" "$dir:$dir"
+        fi
+        shift
+    done
+}
+
+if [ -n "$IN_CPP2V_DOCKER" ]; then
+  echo "Error: recursive invocation of \"cpp2v_docker\" as $0 from outer cpp2v_docker as ${IN_CPP2V_DOCKER}"
+  echo "(PATH is $PATH)."
+  exit 1
+fi
+
+if [ "$CPP2V_DOCKER_ENABLED" = "y" ] && ! which docker > /dev/null; then
+  # Here we could warn
+  :
+fi
+
+if [ "$CPP2V_DOCKER_ENABLED" = "y" ] && which docker > /dev/null; then
+  if [ -z "$CPP2V_DOCKER_IMAGE" ]; then
+    # We skip the warning if no docker is available
+    echo "Misconfiguration: CPP2V_DOCKER_ENABLED = y and docker available, but CPP2V_DOCKER_IMAGE is empty"
+    exit 2
+  fi
+
+  BRICK_LIBCPP=/home/coq/worktree
+  ARGS=()
+  ARGS+=( "--platform" "linux/amd64" )
+  ARGS+=( "--volume" "${HOME}/.cache/remote_dune:/home/coq/.cache/dune:cached" )
+  ARGS+=( "--volume" "$DUNE_SOURCEROOT:$BRICK_LIBCPP" )
+  ARGS+=( "--workdir" "$BRICK_LIBCPP/$REL_PATH" )
+  ARGS+=( $(map_absolute_paths "$@") )
+
+  cpp2v_args="$( printf '"%q" ' "$@" )" # ensure each argument is quoted as a whole.
+  docker run "${ARGS[@]}" "$CPP2V_DOCKER_IMAGE" \
+          /bin/bash -c 'eval $(opam env)'"; cpp2v $cpp2v_args"
+else
+  export IN_CPP2V_DOCKER="$0"
+  next=$DUNE_SOURCEROOT/_build/install/default/bin/cpp2v
+  [ -e $next ] || next='opam exec -- cpp2v'
+  exec $next "$@"
+fi
+
+# We embed these hashes just to track dependencies.
+# CPP2V_SHA1="@CPP2V_SHA1@"
+# CPP2V_DOCKER_IMAGE_ID="@CPP2V_DOCKER_IMAGE_ID@"

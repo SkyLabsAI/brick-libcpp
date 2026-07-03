@@ -3,7 +3,10 @@
  (rule
   (targets test_cpp.v.stderr test_cpp.v)
   (alias test_ast)
-  (deps (:input test.cpp) (glob_files_rec ../*.hpp) (universe))
+  (deps
+   (:input test.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
@@ -12,80 +15,251 @@
  (rule
   (targets test_cpp.v.stderr test_cpp.v)
   (alias test_ast)
-  (deps (:input test.cpp) (glob_files_rec ../*.hpp) (universe))
+  (deps
+   (:input test.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
-(subdir geeks_for_geeks_examples
+(subdir cstring
+ (rule
+  (targets test_cpp.v.stderr test_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input test.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps test.cpp))
+)
+(subdir g4g
  (rule
   (targets N12_area_cpp.v.stderr N12_area_cpp.v)
   (alias test_ast)
-  (deps (:input N12_area.cpp) (glob_files_rec ../*.hpp) (universe))
+  (deps
+   (:input N12_area.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to N12_area_cpp.v.stderr (run cpp2v -v %{input} -o N12_area_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N12_area.cpp))
 )
-(subdir geeks_for_geeks_examples
+(subdir g4g
  (rule
   (targets N1_hello_world_cpp.v.stderr N1_hello_world_cpp.v)
   (alias test_ast)
-  (deps (:input N1_hello_world.cpp) (glob_files_rec ../*.hpp) (universe))
+  (deps
+   (:input N1_hello_world.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to N1_hello_world_cpp.v.stderr (run cpp2v -v %{input} -o N1_hello_world_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N1_hello_world.cpp))
 )
-(subdir geeks_for_geeks_examples
+(subdir g4g
  (rule
   (targets N4_sum_cpp.v.stderr N4_sum_cpp.v)
   (alias test_ast)
-  (deps (:input N4_sum.cpp) (glob_files_rec ../*.hpp) (universe))
+  (deps
+   (:input N4_sum.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to N4_sum_cpp.v.stderr (run cpp2v -v %{input} -o N4_sum_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N4_sum.cpp))
 )
-(subdir geeks_for_geeks_examples
+(subdir g4g
  (rule
   (targets N4_sum_a_cpp.v.stderr N4_sum_a_cpp.v)
   (alias test_ast)
-  (deps (:input N4_sum_a.cpp) (glob_files_rec ../*.hpp) (universe))
+  (deps
+   (:input N4_sum_a.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to N4_sum_a_cpp.v.stderr (run cpp2v -v %{input} -o N4_sum_a_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N4_sum_a.cpp))
 )
-(subdir geeks_for_geeks_examples
+(subdir g4g
  (rule
   (targets N5_swap_cpp.v.stderr N5_swap_cpp.v)
   (alias test_ast)
-  (deps (:input N5_swap.cpp) (glob_files_rec ../*.hpp) (universe))
+  (deps
+   (:input N5_swap.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to N5_swap_cpp.v.stderr (run cpp2v -v %{input} -o N5_swap_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N5_swap.cpp))
 )
-(subdir geeks_for_geeks_examples
+(subdir g4g
  (rule
   (targets N5_swap_a_cpp.v.stderr N5_swap_a_cpp.v)
   (alias test_ast)
-  (deps (:input N5_swap_a.cpp) (glob_files_rec ../*.hpp) (universe))
+  (deps
+   (:input N5_swap_a.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to N5_swap_a_cpp.v.stderr (run cpp2v -v %{input} -o N5_swap_a_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N5_swap_a.cpp))
 )
-(subdir geeks_for_geeks_examples
+(subdir g4g
  (rule
   (targets N6_print_sizeof_cpp.v.stderr N6_print_sizeof_cpp.v)
   (alias test_ast)
-  (deps (:input N6_print_sizeof.cpp) (glob_files_rec ../*.hpp) (universe))
+  (deps
+   (:input N6_print_sizeof.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to N6_print_sizeof_cpp.v.stderr (run cpp2v -v %{input} -o N6_print_sizeof_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N6_print_sizeof.cpp))
+)
+(subdir g4g_trace
+ (rule
+  (targets N12_area_cpp.v.stderr N12_area_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input N12_area.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to N12_area_cpp.v.stderr (run cpp2v -v %{input} -o N12_area_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps N12_area.cpp))
+)
+(subdir g4g_trace
+ (rule
+  (targets N1_hello_world_cpp.v.stderr N1_hello_world_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input N1_hello_world.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to N1_hello_world_cpp.v.stderr (run cpp2v -v %{input} -o N1_hello_world_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps N1_hello_world.cpp))
+)
+(subdir g4g_trace
+ (rule
+  (targets N4_sum_cpp.v.stderr N4_sum_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input N4_sum.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to N4_sum_cpp.v.stderr (run cpp2v -v %{input} -o N4_sum_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps N4_sum.cpp))
+)
+(subdir g4g_trace
+ (rule
+  (targets N4_sum_a_cpp.v.stderr N4_sum_a_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input N4_sum_a.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to N4_sum_a_cpp.v.stderr (run cpp2v -v %{input} -o N4_sum_a_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps N4_sum_a.cpp))
+)
+(subdir g4g_trace
+ (rule
+  (targets N5_swap_cpp.v.stderr N5_swap_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input N5_swap.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to N5_swap_cpp.v.stderr (run cpp2v -v %{input} -o N5_swap_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps N5_swap.cpp))
+)
+(subdir g4g_trace
+ (rule
+  (targets N5_swap_a_cpp.v.stderr N5_swap_a_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input N5_swap_a.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to N5_swap_a_cpp.v.stderr (run cpp2v -v %{input} -o N5_swap_a_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps N5_swap_a.cpp))
+)
+(subdir g4g_trace
+ (rule
+  (targets N6_print_sizeof_cpp.v.stderr N6_print_sizeof_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input N6_print_sizeof.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to N6_print_sizeof_cpp.v.stderr (run cpp2v -v %{input} -o N6_print_sizeof_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps N6_print_sizeof.cpp))
+)
+(subdir memory
+ (rule
+  (targets test_cpp.v.stderr test_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input test.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps test.cpp))
+)
+(subdir mutex
+ (rule
+  (targets guard_recursive_cpp.v.stderr guard_recursive_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input guard_recursive.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to guard_recursive_cpp.v.stderr (run cpp2v -v %{input} -o guard_recursive_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps guard_recursive.cpp))
+)
+(subdir mutex
+ (rule
+  (targets test_cpp.v.stderr test_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input test.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps test.cpp))
 )
 (subdir new
  (rule
   (targets demo_cpp.v.stderr demo_cpp.v)
   (alias test_ast)
-  (deps (:input demo.cpp) (glob_files_rec ../*.hpp) (universe))
+  (deps
+   (:input demo.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
   (action
   	 (with-stderr-to demo_cpp.v.stderr (run cpp2v -v %{input} -o demo_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps demo.cpp))
+)
+(subdir vector
+ (rule
+  (targets test_cpp.v.stderr test_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input test.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps test.cpp))
 )

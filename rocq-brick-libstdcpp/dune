@@ -1,11 +1,27 @@
-; Copyright © 2022-2025 BlueRock Security, Inc.
-;
-; This file is CONFIDENTIAL AND PROPRIETARY to BlueRock. All rights reserved.
-;
-; Use of this file is only permitted subject to a separate written license agreement with BlueRock.
+(rule
+ (target cpp2v_docker)
+ (deps
+  (universe)
+  (:sha1sum %{bin:sha1sum})
+  (:template cpp2v_docker.in))
+ (action
+  (progn
+   (with-stdout-to
+    %{target}
+    (bash
+     "set -eu
+hash=$(%{sha1sum} %{bin:cpp2v} | cut -d ' ' -f 1)
+image_id=
+if command -v docker >/dev/null 2>&1; then
+  image_id=$(docker inspect --format='{{.Id}}' %{env:CPP2V_DOCKER_IMAGE=} 2>/dev/null || true)
+fi
+sed -e \"s/@CPP2V_SHA1@/$hash/g\" -e \"s/@CPP2V_DOCKER_IMAGE_ID@/$image_id/g\" %{template}"))
+   (run chmod +x %{target}))))
 
 (env
  (_
+  (env-vars
+   (CPP2V_DOCKER_IMAGE "skylabsai/fm-releases:fm-release-nightly"))
   (flags :standard %{read-lines:flags/ocamlc})
   (ocamlopt_flags :standard -O3 -unbox-closures)
   (rocq

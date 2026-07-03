@@ -7,7 +7,7 @@ Require Import skylabs.auto.cpp.prelude.pred.
 Require Import skylabs.auto.cpp.prelude.proof.
 
 Require Import skylabs.auto.core.hints.cancelx_notation.
-Require Import iris.proofmode.tactics.
+Require Import skylabs.iris.extra.proofmode.proofmode.
 
 Parameter thread_idT : Type.
 #[global] Declare Instance thread_idT_inh : Inhabited thread_idT.
@@ -33,7 +33,7 @@ Parameter threadTI : forall `{HasStdThreads}, thread_info -ml> thread_idT_bi_ind
 
     For more information on monalities, consult tls_modalities.
   *)
-#[global] Notation current_thread := (monPred_atleast (PROP := iPropI _) threadTI)%I.
+#[global] Abbreviation current_thread := (monPred_atleast (PROP := iPropI _) threadTI)%I.
 
 Section with_cpp.
   Context `{Σ : @cpp_logic thread_info _Σ}.
@@ -50,6 +50,8 @@ Section with_cpp.
     rewrite /sqsubseteq /bi_index_rel /= in H1, H2; subst.
     exact: (mlens_get_mono threadTI _ _ HE).
   Qed.
+  Import observe2_fwd.
+  Definition current_thread_agree_F := ltac:(mk_obs2_fwd current_thread_agree).
 
   #[global] Instance thread_id_learnable : LearnEq1 current_thread := ltac:(solve_learnable).
 
@@ -96,3 +98,4 @@ End with_cpp.
 
 #[global] Hint Resolve learn_current_thread_from_context_C | 999 : sl_opacity.
 #[global] Hint Resolve learn_current_thread_C | 1000 : sl_opacity.
+#[global] Hint Resolve current_thread_agree_F : sl_opacity.

@@ -1,0 +1,19 @@
+; Copy as dune to enable
+
+(subdir rocq-brick-libstdcpp
+ ; hack: we can't add (env) here, so we only add it to subfolders
+ (subdir proof
+  (env
+   (_
+    (binaries
+     (../cpp2v_docker as cpp2v))
+    (env-vars
+     (CPP2V_DOCKER_ENABLED "y")))))
+
+ (subdir test
+  (env
+   (_
+    (binaries
+     (../cpp2v_docker as cpp2v))
+    (env-vars
+     (CPP2V_DOCKER_ENABLED "y"))))))
