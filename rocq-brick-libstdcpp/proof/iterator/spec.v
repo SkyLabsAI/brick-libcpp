@@ -612,7 +612,7 @@ NES.Begin std.
   End array.
 
   #[global] Hint Resolve array_spine_collect_F : sl_opacity.
-  #[global] Hint Resolve congr_array_spine : tc_opaque.
+  #[global] Hint Resolve congr_array_spine : sl_strong_opacity.
 
   Section lookup_result.
 
