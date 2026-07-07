@@ -47,22 +47,40 @@ if [ "$CPP2V_DOCKER_ENABLED" = "y" ] && ! which docker > /dev/null; then
 fi
 
 if [ "$CPP2V_DOCKER_ENABLED" = "y" ] && which docker > /dev/null; then
+  if [ -z "$CPP2V_DOCKER_CONTAINER_NAME" ]; then
+    # We assign one container per workspace because we map the workspace's directory into its file system
+    CPP2V_DOCKER_CONTAINER_NAME="$(basename "$DUNE_SOURCEROOT")-cpp2v"
+  fi
   if [ -z "$CPP2V_DOCKER_IMAGE" ]; then
     # We skip the warning if no docker is available
     echo "Misconfiguration: CPP2V_DOCKER_ENABLED = y and docker available, but CPP2V_DOCKER_IMAGE is empty"
     exit 2
   fi
 
+  CONTAINER_NAME="$CPP2V_DOCKER_CONTAINER_NAME"
   BRICK_LIBCPP=/home/coq/worktree
   ARGS=()
   ARGS+=( "--platform" "linux/amd64" )
+  ARGS+=( "--platform" "linux/amd64" )
+  ARGS+=( "--volume" "/tmp:/tmp" )
+  ARGS+=( "--volume" "/tmp:/var" )
   ARGS+=( "--volume" "${HOME}/.cache/remote_dune:/home/coq/.cache/dune:cached" )
   ARGS+=( "--volume" "$DUNE_SOURCEROOT:$BRICK_LIBCPP" )
-  ARGS+=( "--workdir" "$BRICK_LIBCPP/$REL_PATH" )
-  ARGS+=( $(map_absolute_paths "$@") )
+  WORKDIR=( "--workdir" "$BRICK_LIBCPP/$REL_PATH" )
+  if ! docker container ls --all | grep "$CPP2V_DOCKER_CONTAINER_NAME" 2&>1 > /dev/null ; then
+      docker container create "${ARGS[@]}" --name "$CPP2V_DOCKER_CONTAINER_NAME" "$CPP2V_DOCKER_IMAGE" 1>&2 || true
+  fi
+  if ! docker container top "$CPP2V_DOCKER_CONTAINER_NAME" > /dev/null 2&>1 ; then
+      docker start "$CPP2V_DOCKER_CONTAINER_NAME" || true
+      if ! docker container top "$CPP2V_DOCKER_CONTAINER_NAME" 2&>1 > /dev/null ; then
+          echo "> Cannot start container $CPP2V_DOCKER_CONTAINER_NAME"
+          exit 3
+      fi
+  fi
+
 
   cpp2v_args="$( printf '"%q" ' "$@" )" # ensure each argument is quoted as a whole.
-  docker run "${ARGS[@]}" "$CPP2V_DOCKER_IMAGE" \
+  docker exec "${WORKDIR[@]}" "$CPP2V_DOCKER_CONTAINER_NAME" \
           /bin/bash -c 'eval $(opam env)'"; cpp2v $cpp2v_args"
 else
   export IN_CPP2V_DOCKER="$0"
