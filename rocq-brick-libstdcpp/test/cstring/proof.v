@@ -21,18 +21,18 @@ Import expr_join.
 #[only(cfracsplittable)] derive cstring.R. (*Upstream into auto*)
 
 Section with_cpp.
-  Context `{Σ : cpp_logic} {σ:genv} . (*`{MOD : module ⊧ σ}.*)
+  Context `{Σ : cpp_logic} {σ:genv} . (*`{MOD : source ⊧ σ}.*)
 
-  cpp.spec "test_strlen()" from module default.
-  Lemma test_strlen_ok : verify[module] "test_strlen()".
+  cpp.spec "test_strlen()" from source default.
+  Lemma test_strlen_ok : verify[source] "test_strlen()".
   Proof. verify_spec; go. Qed.
 
-  cpp.spec "test_strcmp()" from module default.
-  Lemma test_strcmp_ok : verify[module] "test_strcmp()".
+  cpp.spec "test_strcmp()" from source default.
+  Lemma test_strcmp_ok : verify[source] "test_strcmp()".
   Proof. verify_spec; go. Qed.
 
-  cpp.spec "test_strncmp()" from module default.
-  Lemma test_strncmp_ok : verify[module] "test_strncmp()".
+  cpp.spec "test_strncmp()" from source default.
+  Lemma test_strncmp_ok : verify[source] "test_strncmp()".
   Proof. verify_spec; go. Qed.
 
   #[local] Fixpoint split_bytes_at_null (bytes : list N) :
@@ -368,69 +368,69 @@ Section with_cpp.
   Qed.
   #[local] Hint Resolve array_sliceR_close_cstring_C : sl_opacity.
 
-  cpp.spec "test_strlen_array_buffer()" from module default.
+  cpp.spec "test_strlen_array_buffer()" from source default.
   Lemma test_strlen_array_buffer_ok :
-    verify[module] "test_strlen_array_buffer()".
+    verify[source] "test_strlen_array_buffer()".
   Proof.
     verify_spec; go.
   Qed.
 
-  cpp.spec "test_strcmp_array_buffer()" from module default.
+  cpp.spec "test_strcmp_array_buffer()" from source default.
   Lemma test_strcmp_array_buffer_ok :
-    verify[module] "test_strcmp_array_buffer()".
+    verify[source] "test_strcmp_array_buffer()".
   Proof.
     verify_spec; go.
   Qed.
 
-  cpp.spec "test_strncmp_array_buffer()" from module default.
+  cpp.spec "test_strncmp_array_buffer()" from source default.
   Lemma test_strncmp_array_buffer_ok :
-    verify[module] "test_strncmp_array_buffer()".
+    verify[source] "test_strncmp_array_buffer()".
   Proof.
     verify_spec; go.
   Qed.
 
-  cpp.spec "test_strchr()" from module default.
-  Lemma test_strchr_ok : verify[module] "test_strchr()".
-  Proof.
-    verify_spec; go.
-    all: exfalso.
-    all: by normalize_ptrs.
-  Qed.
-
-  cpp.spec "test_strrchr()" from module default.
-  Lemma test_strrchr_ok : verify[module] "test_strrchr()".
+  cpp.spec "test_strchr()" from source default.
+  Lemma test_strchr_ok : verify[source] "test_strchr()".
   Proof.
     verify_spec; go.
     all: exfalso.
     all: by normalize_ptrs.
   Qed.
 
-  cpp.spec "test_strspn()" from module default.
-  Lemma test_strspn_ok : verify[module] "test_strspn()".
+  cpp.spec "test_strrchr()" from source default.
+  Lemma test_strrchr_ok : verify[source] "test_strrchr()".
+  Proof.
+    verify_spec; go.
+    all: exfalso.
+    all: by normalize_ptrs.
+  Qed.
+
+  cpp.spec "test_strspn()" from source default.
+  Lemma test_strspn_ok : verify[source] "test_strspn()".
   Proof. verify_spec; go. Qed.
 
-  cpp.spec "test_strcspn()" from module default.
-  Lemma test_strcspn_ok : verify[module] "test_strcspn()".
+  cpp.spec "test_strcspn()" from source default.
+  Lemma test_strcspn_ok : verify[source] "test_strcspn()".
   Proof. verify_spec; go. Qed.
 
-  cpp.spec "test_strpbrk()" from module default.
-  Lemma test_strpbrk_ok : verify[module] "test_strpbrk()".
+  cpp.spec "test_strpbrk()" from source default.
+  Lemma test_strpbrk_ok : verify[source] "test_strpbrk()".
   Proof.
     verify_spec; go.
     exfalso.
     by normalize_ptrs.
   Qed.
 
-  cpp.spec "test_strstr()" from module default.
-  Lemma test_strstr_ok : verify[module] "test_strstr()".
+  cpp.spec "test_strstr()" from source default.
+  Lemma test_strstr_ok : verify[source] "test_strstr()".
   Proof.
     verify_spec; go.
     all: exfalso.
     all: by normalize_ptrs.
   Qed.
 
-  cpp.spec "test_cstring_slice1()" from module default.
-  Lemma test_cstring_slice1_ok : verify[module] "test_cstring_slice1()".
+  cpp.spec "test_cstring_slice1()" from source default.
+  Lemma test_cstring_slice1_ok : verify[source] "test_cstring_slice1()".
   Proof. verify_spec; go. Qed.
 
 End with_cpp.

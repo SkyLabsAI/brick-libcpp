@@ -130,13 +130,13 @@ Section with_cpp.
       like [TrivialOnNull function_name] which would allow us to generalize these proofs.
    *)
   #[program]
-  Definition wp_delete_null_operator_delete_size_C module cls Q
-    (Hdelete : delete_operator.delete_for module "operator delete(void*, unsigned long)" cls =[Vm]=> Some ("operator delete(void*, unsigned long)"%cpp_name, delete_operator.mk None true false))
-    {sz} (Hsizeof : sizeof._size_of module cls =[Vm]=> Some sz)
+  Definition wp_delete_null_operator_delete_size_C source cls Q
+    (Hdelete : delete_operator.delete_for source "operator delete(void*, unsigned long)" cls =[Vm]=> Some ("operator delete(void*, unsigned long)"%cpp_name, delete_operator.mk None true false))
+    {sz} (Hsizeof : sizeof._size_of source cls =[Vm]=> Some sz)
     :=
     \cancelx
     \using operator_delete_size
-    \using denoteModule module
+    \using denoteModule source
     \proving wp_delete_null "operator delete(void*, unsigned long)" cls Q
     \through Q
     \end.
@@ -159,13 +159,13 @@ Section with_cpp.
   Qed.
 
   #[program]
-  Definition wp_delete_null_operator_delete_C module cls Q
-    (Hdelete : delete_operator.delete_for module "operator delete(void* )" cls =[Vm]=> Some ("operator delete(void* )"%cpp_name, delete_operator.mk None false false))
-    {sz} (Hsizeof : sizeof._size_of module cls =[Vm]=> Some sz)
+  Definition wp_delete_null_operator_delete_C source cls Q
+    (Hdelete : delete_operator.delete_for source "operator delete(void* )" cls =[Vm]=> Some ("operator delete(void* )"%cpp_name, delete_operator.mk None false false))
+    {sz} (Hsizeof : sizeof._size_of source cls =[Vm]=> Some sz)
     :=
     \cancelx
     \using operator_delete
-    \using denoteModule module
+    \using denoteModule source
     \proving wp_delete_null "operator delete(void* )" cls Q
     \through Q
     \end.
@@ -188,13 +188,13 @@ Section with_cpp.
   Qed.
 
   #[program]
-  Definition wp_delete_null_operator_delete_array_size_C module cls Q
-    (Hdelete : delete_operator.delete_for module "operator delete[](void*, unsigned long)" (Tincomplete_array cls) =[Vm]=> Some ("operator delete[](void*, unsigned long)"%cpp_name, delete_operator.mk None true false))
-    {sz} (Hsizeof : sizeof._size_of module cls =[Vm]=> Some sz)
+  Definition wp_delete_null_operator_delete_array_size_C source cls Q
+    (Hdelete : delete_operator.delete_for source "operator delete[](void*, unsigned long)" (Tincomplete_array cls) =[Vm]=> Some ("operator delete[](void*, unsigned long)"%cpp_name, delete_operator.mk None true false))
+    {sz} (Hsizeof : sizeof._size_of source cls =[Vm]=> Some sz)
     :=
     \cancelx
     \using operator_delete_array_size
-    \using denoteModule module
+    \using denoteModule source
     \proving wp_delete_null "operator delete[](void*, unsigned long)" (Tincomplete_array cls) Q
     \through Q
     \end.
@@ -215,13 +215,13 @@ Section with_cpp.
   Qed.
 
   #[program]
-  Definition wp_delete_null_operator_delete_array_C module cls Q
-    (Hdelete : delete_operator.delete_for module "operator delete[](void* )" (Tincomplete_array cls) =[Vm]=> Some ("operator delete[](void* )"%cpp_name, delete_operator.mk None false false))
-    {sz} (Hsizeof : sizeof._size_of module cls =[Vm]=> Some sz)
+  Definition wp_delete_null_operator_delete_array_C source cls Q
+    (Hdelete : delete_operator.delete_for source "operator delete[](void* )" (Tincomplete_array cls) =[Vm]=> Some ("operator delete[](void* )"%cpp_name, delete_operator.mk None false false))
+    {sz} (Hsizeof : sizeof._size_of source cls =[Vm]=> Some sz)
     :=
     \cancelx
     \using operator_delete_array
-    \using denoteModule module
+    \using denoteModule source
     \proving wp_delete_null "operator delete[](void* )" (Tincomplete_array cls) Q
     \through Q
     \end.
@@ -242,13 +242,13 @@ Section with_cpp.
   Qed.
 
   #[program]
-  Definition wp_delete_null_operator_delete_fixed_array_C module cls array_size Q
-    (Hdelete : delete_operator.delete_for module "operator delete[](void*, unsigned long)" (Tarray cls array_size) =[Vm]=> Some ("operator delete[](void*, unsigned long)"%cpp_name, delete_operator.mk None true false))
-    {sz} (Hsizeof : sizeof._size_of module cls =[Vm]=> Some sz)
+  Definition wp_delete_null_operator_delete_fixed_array_C source cls array_size Q
+    (Hdelete : delete_operator.delete_for source "operator delete[](void*, unsigned long)" (Tarray cls array_size) =[Vm]=> Some ("operator delete[](void*, unsigned long)"%cpp_name, delete_operator.mk None true false))
+    {sz} (Hsizeof : sizeof._size_of source cls =[Vm]=> Some sz)
     :=
     \cancelx
     \using operator_delete_array_size
-    \using denoteModule module
+    \using denoteModule source
     \proving wp_delete_null "operator delete[](void*, unsigned long)" (Tarray cls array_size) Q
     \through Q
     \end.
