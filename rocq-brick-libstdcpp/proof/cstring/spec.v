@@ -23,7 +23,7 @@ Abbreviation search_result := (fun p found =>
   (byte_search_result Tchar p found)) (only parsing).
 
 Section with_cpp.
-Context `{Σ : cpp_logic, module ⊧ σ}.
+Context `{Σ : cpp_logic, source ⊧ σ}.
 
   cpp.spec "strlen" with
     (\arg{s_p} "__s" (Vptr s_p)

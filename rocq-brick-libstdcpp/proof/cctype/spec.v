@@ -18,7 +18,7 @@ Definition VALID {σ : genv} (c : Z) : Prop :=
   (valid<"unsigned char"> c \/ c = EOF).
 
 Section with_cpp.
-  Context `{Σ : cpp_logic, module ⊧ σ}.
+  Context `{Σ : cpp_logic, source ⊧ σ}.
 
   (* TODO: these functions should be [extern "C"] and specified with
   [cpp.spec "isalpha" with], troubleshoot why this doesn't work on Mac. *)

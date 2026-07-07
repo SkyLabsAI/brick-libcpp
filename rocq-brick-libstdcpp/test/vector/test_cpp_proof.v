@@ -14,7 +14,7 @@ Require Import skylabs.auto.cpp.prelude.test.
 Module Aggregate.
   Import concepts.
 
-   cpp.class "Aggregate" prefix "" from module
+   cpp.class "Aggregate" prefix "" from source
     dataclass { copyable ; movable ; destructible }.
   #[only(eq_dec)] derive T.
 
@@ -42,7 +42,7 @@ Module Aggregate.
   Section with_cpp.
     Context `{Σ : cpp_logic, σ : genv}.
     Section specs.
-      Context `{MOD : test_cpp.module ⊧ σ}.
+      Context `{MOD : test_cpp.source ⊧ σ}.
 
       cpp.spec "Aggregate::Aggregate(int)" as ctor_spec with
           (\this this
@@ -77,26 +77,26 @@ Module Aggregate.
     End specs.
 
     Section proofs.
-      Context `{MOD : test_cpp.module ⊧ σ}.
+      Context `{MOD : test_cpp.source ⊧ σ}.
       Import linearity.
 
       Lemma copy_ctor_ok :
-        denoteModule module |-- copy_ctor_spec.
+        denoteModule source |-- copy_ctor_spec.
       Proof using MOD. verify_spec. go. Qed.
       Definition copy_ctor_B := [LINK] copy_ctor_ok.
 
       Lemma move_ctor_ok :
-        denoteModule module |-- move_ctor_spec.
+        denoteModule source |-- move_ctor_spec.
       Proof using MOD. verify_spec. go. Qed.
       Definition move_ctor_B := [LINK] move_ctor_ok.
 
       Lemma ctor_ok :
-        denoteModule module |-- ctor_spec.
+        denoteModule source |-- ctor_spec.
       Proof using MOD. verify_spec. go. Qed.
       Definition ctor_B := [LINK] ctor_ok.
 
       Lemma dtor_ok :
-        denoteModule module |-- dtor_spec.
+        denoteModule source |-- dtor_spec.
       Proof using MOD. verify_spec. go. Qed.
       Definition dtor_B := [LINK] dtor_ok.
 
@@ -112,7 +112,7 @@ Module Aggregate.
       Qed.
 
       Lemma op_eq_ok :
-        denoteModule module |-- op_eq_spec.
+        denoteModule source |-- op_eq_spec.
       Proof using MOD.
         verify_spec.
         case: (bool_decide_reflect (a = b)) => Hab.
@@ -128,7 +128,7 @@ Module Aggregate.
       Definition op_eq_B := [LINK] op_eq_ok.
 
       Lemma op_neq_ok :
-        denoteModule module |-- op_neq_spec.
+        denoteModule source |-- op_neq_spec.
       Proof using MOD.
         verify_spec. wapply op_eq_ok.
         go using prim.primR_aggressiveC.

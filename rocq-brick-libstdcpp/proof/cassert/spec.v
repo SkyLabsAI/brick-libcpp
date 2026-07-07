@@ -11,7 +11,7 @@ Require Import skylabs.brick.libstdcpp.cassert.inc_cassert_cpp.
 
 NES.Begin std.cassert.
 Section with_cpp.
-  Context `{Σ : cpp_logic, module ⊧ σ}.
+  Context `{Σ : cpp_logic, source ⊧ σ}.
 
   Definition assert_fail_wpp : WpSpec_cpp :=
     (\arg{assertion_p} "assertion" (Vptr assertion_p)

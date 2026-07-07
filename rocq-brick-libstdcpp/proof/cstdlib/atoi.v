@@ -13,7 +13,7 @@ Require Import skylabs.brick.libstdcpp.cstdlib.inc_cstdlib_cpp.
 #[local] Set Primitive Projections.
 
 Section with_cpp.
-  Context `{Σ : cpp_logic, module ⊧ σ}.
+  Context `{Σ : cpp_logic, source ⊧ σ}.
 
   #[local] Open Scope Z_scope.
 
