@@ -379,7 +379,7 @@ NES.Begin std.
 
         Definition congr_iterator_R_base := normalize.NormCongr4 iterator.R_base.
       End hints.
-      #[global] Hint Resolve congr_iterator_R_base : sl_strong_opacity.
+      #[global] Hint Resolve congr_iterator_R_base : tc_strong_opacity.
 
     End iterator.
 
@@ -852,8 +852,8 @@ NES.Begin std.
     #[global] Hint Resolve vector_spine_elim_CF : sl_opacity.
     #[global] Hint Resolve vector_spine_intro_CB : sl_opacity.
 
-    #[global] Hint Resolve congr_spineR : sl_strong_opacity.
-    #[global] Hint Resolve congr_resizedR : sl_strong_opacity.
+    #[global] Hint Resolve congr_spineR : tc_strong_opacity.
+    #[global] Hint Resolve congr_resizedR : tc_strong_opacity.
 
   NES.End vector.
 
