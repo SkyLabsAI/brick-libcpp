@@ -163,6 +163,16 @@ NES.Begin std.
     #[global] Abbreviation R ty q xs :=
       (R_alloc ty (std.allocator.T ty) q xs).
 
+    Section with_RepFor.
+      Import rep.RepFor.
+      Import RepScheme.
+
+      #[global] Instance repfor `{Σ : cpp_logic} {σ : genv} ty aty `(_ : BundledRep ty M) :
+        rep.RepFor.C (T ty aty)
+          [ArgType.CFrac; ArgType.Model _]
+          (λ q xs, R ty q xs) := {}.
+    End with_RepFor.
+
     (** [R_alloc_resized ty alloc_ty q size st xs] is a vector whose payloads can be proven (on
         demand) to be stored in memory specified by [st] if that memory can accommodate [size] elements.
         Otherwise, the memory location of the payloads is unspecified.
