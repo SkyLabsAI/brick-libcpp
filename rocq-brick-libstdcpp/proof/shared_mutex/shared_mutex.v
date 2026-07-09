@@ -268,6 +268,7 @@ Section with_cpp.
   #[global] Declare Instance R_learnable : forall {σ : genv},
       Cbn (Learn (learn_eq ==> any ==> learn_eq ==> learn_hints.fin) R).
 
+  (* TODO prove that we can allocate used_threads ** the invariant in R *)
   cpp.spec "std::shared_mutex::shared_mutex()" as ctor_spec with (
     \this this
     \pre{P} ▷P 1%Qp
