@@ -16,6 +16,15 @@ Require Import skylabs.brick.libstdcpp.mutex.inc_hpp.
 Import linearity.
 
 Module recursive_mutex.
+
+  
+    (**
+      1. split locked_ghostUR, reuse the same locked_ghostUR theory in shared_mutex
+      2. redefine locked as a phys_stateUR and shared_mutex.users
+      -1. do not remove token & given_token as they enforce that lock is not held before dtor
+    *)
+
+
   Canonical Structure locked_ghostUR : ucmra :=
     prodR (gset_disjR thread_idTO) (optionR (exclR (prodO thread_idTO natO))).
   (* Not prodO thread_idTO natO. *)
@@ -63,7 +72,7 @@ Module recursive_mutex.
   sl.lock
   Definition locked `{Σ : cpp_logic, !lockedG Σ}
       (γ : gname) (th : thread_idT) (n : nat) : mpred :=
-      own γ.(locked_gname) (◯ (GSet {[ th ]},
+      own γ.(owned_count_id) (◯ (GSet {[ th ]},
         match n with
         | 0 => None
         | S n => Excl' (th, n)
@@ -269,7 +278,6 @@ cinv (
     #[global]
     Instance given_token_learn γ : LearnEq1 (given_token γ) :=
       ltac:(solve_learnable).
-
 
     cpp.spec "std::recursive_mutex::recursive_mutex()" as ctor_spec with
       (\this this
