@@ -148,7 +148,7 @@ NES.Begin std.
     (** Question(Simon): Should we take a predicate as a parameter instead of using [objR]? That would allow varying the
         representation of the contents of the vector of the course of a single proof. That's also enabled by manipulating
         [spineR] and [array_sliceR] separately. *)
-    #[global] Notation R_alloc_cap ty alloc_ty q size st xs :=
+    #[global] Abbreviation R_alloc_cap ty alloc_ty q size st xs :=
       ( spineR ty alloc_ty q size st **
         pureR (base_pointer st |-> array_sliceR ty 0 size (objR ty q) xs) )%I
       (q in scope cQp_scope, basep in scope bi_scope, size, cap in scope Z_scope ).
