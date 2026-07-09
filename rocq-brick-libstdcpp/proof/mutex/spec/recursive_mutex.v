@@ -70,6 +70,8 @@ Module recursive_mutex.
         end)).
   #[only(timeless)] derive locked.
 
+  (* TODO: we should abstract this over the ownership that is produced and
+     then it can be used more generally. *)
   sl.lock
   Definition used_threads
     `{Σ : cpp_logic, !lockedG Σ, !HasStdThreads Σ}
@@ -89,11 +91,11 @@ Module recursive_mutex.
 
     Lemma use_thread th g s :
       th ∉ s ->
-      current_thread th ** used_threads g s |--
+      used_threads g s |--
       |==> used_threads g (s ∪ {[ th ]}) ** locked g th 0.
     Proof.
       rewrite used_threads.unlock locked.unlock => Hni.
-      iIntros "[#CT (% & A)]".
+      iIntros "(%n & A)".
       destruct n.
       {
         iDestruct "A" as "(A & ?)".
