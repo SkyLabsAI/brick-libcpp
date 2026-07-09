@@ -1,8 +1,6 @@
 Require Import skylabs.auto.cpp.prelude.proof.
-(* Require Import skylabs.brick.libstdcpp.mutex.spec. *)
 Require Import skylabs.brick.libstdcpp.shared_mutex.shared_mutex. (* XXX *)
 Require Import skylabs.brick.libstdcpp.test.shared_mutex.test_cpp.
-Import Verbose.
 
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv} {HAS_THREADS : HasStdThreads Σ}.
