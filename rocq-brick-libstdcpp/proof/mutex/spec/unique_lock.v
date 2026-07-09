@@ -198,7 +198,7 @@ NES.Begin unique_lock.
               else K
           | _ => K
           end
-        \post
+        \post[Vref this]
           this |-> R 1$m om2 **
           other |-> R 1$m None **
           K **
@@ -217,7 +217,7 @@ NES.Begin unique_lock.
         \pre{om1} this |-> R 1$m om1
         \pre{om2} other |-> R 1$m om2
         \pre{K} ensure_unlock om1 K
-        \post
+        \post[Vref this]
           this |-> R 1$m om2 **
           other |-> R 1$m None **
           K
