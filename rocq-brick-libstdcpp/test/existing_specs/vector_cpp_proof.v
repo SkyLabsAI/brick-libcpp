@@ -26,6 +26,88 @@ Proof using MOD _Σ thread_info Σ σ.
   Qed.
 
   Require Import skylabs.brick.libstdcpp.allocator.spec.
+  cpp.spec "allocator_construction_oracle()" as allocator_construction_oracle_spec from vector_cpp.source with (
+    \post[Vbool true] emp).
+
+  Lemma allocator_construction_oracle_ok : verify[vector_cpp.source] "allocator_construction_oracle()".
+  Proof using MOD _Σ thread_info Σ σ.
+    verify_spec.
+    go $usenamed=true.
+    iExists ().
+    go $usenamed=true.
+    iExists (nullptr, 0), (nullptr, 0).
+    go $usenamed=true.
+  Qed.
+
+  cpp.spec "copy_with_allocator_oracle()" as copy_with_allocator_oracle_spec from vector_cpp.source with (
+    \post[Vbool true] emp).
+
+  Lemma copy_with_allocator_oracle_ok : verify[vector_cpp.source] "copy_with_allocator_oracle()".
+  Proof using MOD _Σ thread_info Σ σ.
+    verify_spec.
+    go $usenamed=true.
+    iExists ().
+    go $usenamed=true.
+  Qed.
+
+  cpp.spec "move_with_allocator_oracle()" as move_with_allocator_oracle_spec from vector_cpp.source with (
+    \post[Vbool true] emp).
+
+  Lemma move_with_allocator_oracle_ok : verify[vector_cpp.source] "move_with_allocator_oracle()".
+  Proof using MOD _Σ thread_info Σ σ.
+    verify_spec.
+    go $usenamed=true.
+    iExists ().
+    go $usenamed=true.
+  Qed.
+
+  cpp.spec "sized_and_fill_construction_oracle()" as sized_and_fill_construction_oracle_spec from vector_cpp.source with (
+    \post[Vbool true] emp).
+
+  Lemma sized_and_fill_construction_oracle_ok : verify[vector_cpp.source] "sized_and_fill_construction_oracle()".
+  Proof using MOD _Σ thread_info Σ σ.
+    verify_spec.
+    go $usenamed=true.
+    iExists ().
+    go $usenamed=true.
+    iExists ().
+    go $usenamed=true.
+    cbn in _H_0, H.
+    cbv [replicateZ replicateN] in _H_0, H.
+    cbv in _H_0, H.
+    cbn in _H_0, H.
+    match goal with
+    | Hn : (0 <= ?n)%Z |- _ =>
+        pose proof Hn as Hnonnegative
+    end.
+    change (3%N = Z.to_N (size0 - 0))%N in H.
+    rewrite Z.sub_0_r in H.
+    apply (f_equal Z.of_N) in H.
+    rewrite (Z2N.id size0 Hnonnegative) in H.
+    cbn in H.
+    subst size0.
+    match goal with
+    | Hn : (0 <= ?n)%Z, Hlen : _ |- _ =>
+        is_var n;
+        change (3%N = Z.to_N (n - 0))%N in Hlen;
+        rewrite Z.sub_0_r in Hlen;
+        apply (f_equal Z.of_N) in Hlen;
+        rewrite (Z2N.id n Hn) in Hlen;
+        cbn in Hlen;
+        subst n
+    end.
+    go $usenamed=true.
+    cbv [replicateZ replicateN] in H.
+    cbn in H.
+    cbv in H.
+    inversion H.
+    go $usenamed=true.
+    cbv [replicateZ replicateN] in H.
+    cbv in H.
+    inversion H.
+    done.
+  Qed.
+
 
 cpp.spec "modifier_oracle()" as modifier_oracle_spec from vector_cpp.source with (
     \post[Vbool true] emp).

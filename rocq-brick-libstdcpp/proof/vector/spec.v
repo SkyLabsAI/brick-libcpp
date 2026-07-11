@@ -418,16 +418,17 @@ NES.Begin std.
       #[global] Arguments default_ctor : simpl never.
       Definition SpecFor_default_ctor := RegisterSpec default_ctor.
       #[global] Existing Instance SpecFor_default_ctor.
-
       Definition ctor_with_alloc `{!BundledRep alloc_ty AllocT} :=
-        specify.template.ctor vector [alloc_ty] $
+        specify.template.ctor vector [Tref (Tconst alloc_ty)] $
           \this this
           \arg{allocp} "alloc" (Vptr allocp)
           \prepost{a} allocp |-> objR alloc_ty (cQp.m 1) a
           \post this |-> R_null (cQp.m 1).
+
       #[global] Hint Opaque ctor_with_alloc : sl_opacity.
       #[global] Arguments ctor_with_alloc : simpl never.
-      Definition SpecFor_ctor_with_alloc := RegisterSpec default_ctor.
+      Definition SpecFor_ctor_with_alloc := RegisterSpec (@ctor_with_alloc).
+
       #[global] Existing Instance SpecFor_ctor_with_alloc.
 
       Section allocator.
@@ -436,22 +437,22 @@ NES.Begin std.
 
         Section default_ctor.
           Context `{!DefaultValue ty V}.
-
           Definition sized_ctor :=
-            specify.template.ctor vector [size_type; alloc_ty] $
+            specify.template.ctor vector [size_type; Tref (Tconst alloc_ty)] $
               \this this
               \arg{size} "size" (Vint size)
               \arg{allocp} "alloc" (Vptr allocp)
               \prepost{a} allocp |-> objR alloc_ty (cQp.m 1) a
               \post this |-> R (cQp.m 1) (replicateZ size (default_val ty)).
+
           #[global] Hint Opaque sized_ctor : sl_opacity.
           #[global] Arguments sized_ctor : simpl never.
           Definition SpecFor_sized_ctor := RegisterSpec sized_ctor.
           #[global] Existing Instance SpecFor_sized_ctor.
         End default_ctor.
-
         Definition init_ctor :=
-          specify.template.ctor vector [size_type; Tref (Tconst ty); alloc_ty] $
+          specify.template.ctor vector
+            [size_type; Tref (Tconst ty); Tref (Tconst alloc_ty)] $
             \this this
             \arg{size} "size" (Vint size)
             \arg{vp}   "v0"   (Vref vp)
@@ -459,6 +460,7 @@ NES.Begin std.
             \prepost{v0 vq} vp |-> objR ty vq v0
             \prepost{a}  allocp |-> objR alloc_ty (cQp.m 1) a
             \post this |-> R (cQp.m 1) (replicateZ size v0).
+
         #[global] Hint Opaque init_ctor : sl_opacity.
         #[global] Arguments init_ctor : simpl never.
         Definition SpecFor_init_ctor := RegisterSpec init_ctor.
@@ -771,6 +773,20 @@ NES.Begin std.
       End specs.
 
     End with_cpp.
+    Section std_allocator_int_registrations.
+      Context `{Σ : cpp_logic, σ : genv}.
+
+      #[global] Instance SpecFor_sized_ctor_std_allocator_int (tu : translation_unit) :
+        SpecFor tu "std::vector<int, std::allocator<int>>::vector(unsigned long, const std::allocator<int>&)" :=
+        SpecFor_sized_ctor "int" (std.allocator.T "int") "unsigned long"
+          (RedEq_refl "unsigned long"%cpp_type) tu.
+
+      #[global] Instance SpecFor_init_ctor_std_allocator_int (tu : translation_unit) :
+        SpecFor tu "std::vector<int, std::allocator<int>>::vector(unsigned long, const int&, const std::allocator<int>&)" :=
+        SpecFor_init_ctor "int" (std.allocator.T "int") "unsigned long"
+          (RedEq_refl "unsigned long"%cpp_type) tu.
+    End std_allocator_int_registrations.
+
 
     Section instances_hints.
       Context `{Σ : cpp_logic} {σ : genv} (ty alloc_ty : type).

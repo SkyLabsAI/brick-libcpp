@@ -38,4 +38,28 @@ NES.Begin std.allocator.
     {| size_type := "unsigned long" ;
        alloc_state := () |}.
 
+
+  Section lifecycle.
+    Context `{Σ : cpp_logic, σ : genv}.
+    Context (ty : type).
+
+    Definition default_ctor :=
+      specify.template.ctor (N ty) [] $
+        \this this
+        \post this |-> R ty (cQp.m 1) ().
+    #[global] Hint Opaque default_ctor : sl_opacity.
+    #[global] Arguments default_ctor : simpl never.
+    Definition SpecFor_default_ctor := RegisterSpec default_ctor.
+    #[global] Existing Instance SpecFor_default_ctor.
+
+    Definition dtor :=
+      specify.template.dtor (N ty) $
+        \this this
+        \pre this |-> R ty (cQp.m 1) ()
+        \post emp.
+    #[global] Hint Opaque dtor : sl_opacity.
+    #[global] Arguments dtor : simpl never.
+    Definition SpecFor_dtor := RegisterSpec dtor.
+    #[global] Existing Instance SpecFor_dtor.
+  End lifecycle.
 NES.End std.allocator.
