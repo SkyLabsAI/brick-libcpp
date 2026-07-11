@@ -9,18 +9,24 @@ NES.Begin memory.
 
     Section with_ty.
       Context (ty : type).
+      Definition __addressof_spec :=
+        specify.template.func "std::__addressof" [Atype ty] (Tptr ty) [Tref ty] $
+          \arg{mp} "" (Vref mp)
+          \post[Vptr mp] emp.
+      #[global] Hint Opaque __addressof_spec : sl_opacity.
+      #[global] Arguments __addressof_spec : simpl never.
+      Definition __addressof_SpecFor := RegisterSpec __addressof_spec.
+      #[global] Existing Instance __addressof_SpecFor.
 
-      cpp.spec "std::__addressof<$ty>($ty&)" as __addressof_spec from inc_hpp.source templates inc_hpp_templates.templates (
-        \\with
-        \arg{mp} "" (Vref mp)
-        \post[Vptr mp] emp
-      ).
+      Definition addressof_spec :=
+        specify.template.func "std::addressof" [Atype ty] (Tptr ty) [Tref ty] $
+          \arg{mp} "" (Vref mp)
+          \post[Vptr mp] emp.
+      #[global] Hint Opaque addressof_spec : sl_opacity.
+      #[global] Arguments addressof_spec : simpl never.
+      Definition addressof_SpecFor := RegisterSpec addressof_spec.
+      #[global] Existing Instance addressof_SpecFor.
 
-      cpp.spec "std::addressof<$ty>($ty&)" as addressof_spec from inc_hpp.source templates inc_hpp_templates.templates (
-        \\with
-        \arg{mp} "" (Vref mp)
-        \post[Vptr mp] emp
-      ).
 
     End with_ty.
   End with_cpp.

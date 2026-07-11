@@ -121,6 +121,18 @@
 )
 (subdir existing_specs
  (rule
+  (targets memory_addressof_cpp.v.stderr memory_addressof_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input memory_addressof.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to memory_addressof_cpp.v.stderr (run cpp2v -v %{input} -o memory_addressof_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps memory_addressof.cpp))
+)
+(subdir existing_specs
+ (rule
   (targets mutex_core_cpp.v.stderr mutex_core_cpp.v)
   (alias test_ast)
   (deps
