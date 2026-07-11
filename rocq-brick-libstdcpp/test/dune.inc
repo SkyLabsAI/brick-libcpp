@@ -181,6 +181,30 @@
 )
 (subdir existing_specs
  (rule
+  (targets shared_mutex_cpp.v.stderr shared_mutex_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input shared_mutex.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to shared_mutex_cpp.v.stderr (run cpp2v -v %{input} -o shared_mutex_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps shared_mutex.cpp))
+)
+(subdir existing_specs
+ (rule
+  (targets shared_mutex_try_oracles_cpp.v.stderr shared_mutex_try_oracles_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input shared_mutex_try_oracles.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to shared_mutex_try_oracles_cpp.v.stderr (run cpp2v -v %{input} -o shared_mutex_try_oracles_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps shared_mutex_try_oracles.cpp))
+)
+(subdir existing_specs
+ (rule
   (targets vector_cpp.v.stderr vector_cpp.v)
   (alias test_ast)
   (deps
