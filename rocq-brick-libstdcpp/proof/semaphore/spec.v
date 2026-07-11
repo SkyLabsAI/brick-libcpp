@@ -33,10 +33,14 @@ Section with_cpp.
   #[global] Hint Opaque acquire_ac : sl_opacity.
 
   (* write this as a logically atomic triple *)
+
   cpp.spec "std::counting_semaphore<1l>::counting_semaphore(long)" as ctor_spec with
       (\this this
        \arg{desired} "desired" (Vnat desired)
+       \require desired <= 1
        \post Exists g, this |-> semaphoreR g 1$m ** semaphore_Val g desired).
+
+
   (* note that technically mutex needs to know which thread holds it *)
 
   cpp.spec "std::counting_semaphore<1l>::acquire()" as acquire_spec with
@@ -46,17 +50,22 @@ Section with_cpp.
        \post Q).
 
   Definition try_acquire_ac g Q : mpred :=
-    AU <{ ∃∃ n, semaphore_Val g n }> @ top, empty
-       <{ semaphore_Val g (if bool_decide (n = 0) then n else n-1), COMM Q $ bool_decide (n = 0) }>.
+    (AU <{ ∃∃ n, semaphore_Val g n }> @ top, empty
+        <{ ∀∀ b,
+           [| b = true -> (0 < n)%nat |] ∗
+           semaphore_Val g (if b then n - 1 else n),
+           COMM Q b }>)%I.
+
+
   #[global] Hint Opaque try_acquire_ac : sl_opacity.
 
   cpp.spec "std::counting_semaphore<1l>::try_acquire()" as try_lock_spec with
       (\this this
-         \prepost{q g} this |-> semaphoreR g q (* part of both pre and post *)
-         \pre{Q} try_acquire_ac g Q
-         (* AU <{ ∃∃ n, semaphore_Val g n }> @ top, empty
-                  <{ semaphore_Val g (if bool_decide (n = 0) then n else n-1), COMM Q $ bool_decide (n = 0) }> *)
-        \post{b}[Vbool b] (Q b)).
+       \prepost{q g} this |-> semaphoreR g q
+       \pre{Q} try_acquire_ac g Q
+       \post{b}[Vbool b] (Q b)).
+
+
 
   Definition release_ac g Q update : mpred :=
     AC << ∀ n, semaphore_Val g n ∗ [| n+update <= 1 |] >> @ top, empty

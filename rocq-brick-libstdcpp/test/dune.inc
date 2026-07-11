@@ -181,6 +181,18 @@
 )
 (subdir existing_specs
  (rule
+  (targets semaphore_cpp.v.stderr semaphore_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input semaphore.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to semaphore_cpp.v.stderr (run cpp2v -v %{input} -o semaphore_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps semaphore.cpp))
+)
+(subdir existing_specs
+ (rule
   (targets shared_mutex_cpp.v.stderr shared_mutex_cpp.v)
   (alias test_ast)
   (deps
