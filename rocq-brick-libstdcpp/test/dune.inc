@@ -35,6 +35,162 @@
   	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
+(subdir existing_specs
+ (rule
+  (targets algorithms_find_cpp.v.stderr algorithms_find_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input algorithms_find.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to algorithms_find_cpp.v.stderr (run cpp2v -v %{input} -o algorithms_find_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps algorithms_find.cpp))
+)
+(subdir existing_specs
+ (rule
+  (targets cassert_cpp.v.stderr cassert_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input cassert.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to cassert_cpp.v.stderr (run cpp2v -v %{input} -o cassert_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps cassert.cpp))
+)
+(subdir existing_specs
+ (rule
+  (targets cctype_cpp.v.stderr cctype_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input cctype.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to cctype_cpp.v.stderr (run cpp2v -v %{input} -o cctype_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps cctype.cpp))
+)
+(subdir existing_specs
+ (rule
+  (targets cstring_cpp.v.stderr cstring_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input cstring.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to cstring_cpp.v.stderr (run cpp2v -v %{input} -o cstring_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps cstring.cpp))
+)
+(subdir existing_specs
+ (rule
+  (targets iostream_cpp.v.stderr iostream_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input iostream.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to iostream_cpp.v.stderr (run cpp2v -v %{input} -o iostream_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps iostream.cpp))
+)
+(subdir existing_specs
+ (rule
+  (targets iostream_trace_cpp.v.stderr iostream_trace_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input iostream_trace.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to iostream_trace_cpp.v.stderr (run cpp2v -v %{input} -o iostream_trace_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps iostream_trace.cpp))
+)
+(subdir existing_specs
+ (rule
+  (targets mutex_core_cpp.v.stderr mutex_core_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input mutex_core.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to mutex_core_cpp.v.stderr (run cpp2v -v %{input} -o mutex_core_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps mutex_core.cpp))
+)
+(subdir existing_specs
+ (rule
+  (targets mutex_defer_lock_cpp.v.stderr mutex_defer_lock_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input mutex_defer_lock.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to mutex_defer_lock_cpp.v.stderr (run cpp2v -v %{input} -o mutex_defer_lock_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps mutex_defer_lock.cpp))
+)
+(subdir existing_specs
+ (rule
+  (targets mutex_lock_guard_cpp.v.stderr mutex_lock_guard_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input mutex_lock_guard.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to mutex_lock_guard_cpp.v.stderr (run cpp2v -v %{input} -o mutex_lock_guard_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps mutex_lock_guard.cpp))
+)
+(subdir existing_specs
+ (rule
+  (targets mutex_recursive_cpp.v.stderr mutex_recursive_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input mutex_recursive.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to mutex_recursive_cpp.v.stderr (run cpp2v -v %{input} -o mutex_recursive_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps mutex_recursive.cpp))
+)
+(subdir existing_specs
+ (rule
+  (targets mutex_scoped_lock_cpp.v.stderr mutex_scoped_lock_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input mutex_scoped_lock.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to mutex_scoped_lock_cpp.v.stderr (run cpp2v -v %{input} -o mutex_scoped_lock_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps mutex_scoped_lock.cpp))
+)
+(subdir existing_specs
+ (rule
+  (targets mutex_unique_lock_cpp.v.stderr mutex_unique_lock_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input mutex_unique_lock.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to mutex_unique_lock_cpp.v.stderr (run cpp2v -v %{input} -o mutex_unique_lock_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps mutex_unique_lock.cpp))
+)
+(subdir existing_specs
+ (rule
+  (targets vector_cpp.v.stderr vector_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input vector.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to vector_cpp.v.stderr (run cpp2v -v %{input} -o vector_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps vector.cpp))
+)
 (subdir g4g
  (rule
   (targets N12_area_cpp.v.stderr N12_area_cpp.v)
