@@ -16,25 +16,26 @@ Section with_cpp.
   Context `{Σ : cpp_logic, source ⊧ σ}.
 
   #[local] Open Scope Z_scope.
-
   (* These functions require that their results are in-bounds to prevent UB. *)
+
   cpp.spec "atoi" with
     (\arg{buf} "str" (Vptr buf)
      \prepost{q str} buf |-> cstring.R q str
      \require valid<"int"> (atoi str)
-     \post{n}[Vint n] emp).
+     \post[Vint (atoi str)] emp).
 
   cpp.spec "atol" with
     (\arg{buf} "str" (Vptr buf)
      \prepost{q str} buf |-> cstring.R q str
      \require valid<"long"> (atoi str)
-     \post{n}[Vint n] emp).
+     \post[Vint (atoi str)] emp).
 
   cpp.spec "atoll" with
     (\arg{buf} "str" (Vptr buf)
      \prepost{q str} buf |-> cstring.R q str
      \require valid<"long long"> (atoi str)
-     \post{n}[Vint n] emp).
+     \post[Vint (atoi str)] emp).
+
 
 End with_cpp.
 

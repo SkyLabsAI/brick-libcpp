@@ -73,6 +73,18 @@
 )
 (subdir existing_specs
  (rule
+  (targets cstdlib_atoi_cpp.v.stderr cstdlib_atoi_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input cstdlib_atoi.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to cstdlib_atoi_cpp.v.stderr (run cpp2v -v %{input} -o cstdlib_atoi_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps cstdlib_atoi.cpp))
+)
+(subdir existing_specs
+ (rule
   (targets cstring_cpp.v.stderr cstring_cpp.v)
   (alias test_ast)
   (deps
