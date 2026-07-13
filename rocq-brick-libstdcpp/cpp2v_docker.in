@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 REALPATH=$(which grealpath || which realpath)
+SED=$(which gsed || which sed)
 REL_PATH="$($REALPATH `pwd` --relative-to "$DUNE_SOURCEROOT")"
 
 map_absolute_paths () {
@@ -46,6 +47,15 @@ if [ "$CPP2V_DOCKER_ENABLED" = "y" ] && ! which docker > /dev/null; then
   :
 fi
 
+units () {
+    local pat='s/G/000M/;s/M/000K/;s/K/000B/;s/B//g'
+    if [[ $# -eq 1 ]]; then
+      echo "$1" | $SED $pat
+    else
+      $SED $pat
+    fi
+}
+
 if [ "$CPP2V_DOCKER_ENABLED" = "y" ] && which docker > /dev/null; then
   if [ -z "$CPP2V_DOCKER_IMAGE" ]; then
     # We skip the warning if no docker is available
@@ -60,6 +70,21 @@ if [ "$CPP2V_DOCKER_ENABLED" = "y" ] && which docker > /dev/null; then
   ARGS+=( "--volume" "$DUNE_SOURCEROOT:$BRICK_LIBCPP" )
   ARGS+=( "--workdir" "$BRICK_LIBCPP/$REL_PATH" )
   ARGS+=( $(map_absolute_paths "$@") )
+
+  if [[ -n "$CPP2V_DOCKER_MEM_CAP" ]]; then
+    MEM_CAP=$(units $CPP2V_DOCKER_MEM_CAP)
+    if ! [[ $MEM_CAP =~ [0-9]+ ]]; then
+      echo "Misconfiguration: CPP2V_DOCKER_MEM_CAP = '$CPP2V_DOCKER_MEM_CAP', invalid memory amount"
+      exit 2
+    fi
+    while true; do
+        used_mem=$(docker stats --no-stream --format "{{.MemUsage}}" | awk '{print $1}' | head -n 1 | units)
+        if [[ "$used_mem" -lt $MEM_CAP ]]; then
+            break
+        fi
+        sleep 0.01
+    done
+  fi
 
   cpp2v_args="$( printf '"%q" ' "$@" )" # ensure each argument is quoted as a whole.
   docker run "${ARGS[@]}" "$CPP2V_DOCKER_IMAGE" \
