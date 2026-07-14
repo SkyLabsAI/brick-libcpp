@@ -427,7 +427,7 @@ NES.Begin std.
           \post this |-> R_null (cQp.m 1).
       #[global] Hint Opaque ctor_with_alloc : sl_opacity.
       #[global] Arguments ctor_with_alloc : simpl never.
-      Definition SpecFor_ctor_with_alloc := RegisterSpec default_ctor.
+      Definition SpecFor_ctor_with_alloc := RegisterSpec (@ctor_with_alloc).
       #[global] Existing Instance SpecFor_ctor_with_alloc.
 
       Section allocator.
