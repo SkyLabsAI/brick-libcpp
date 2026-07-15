@@ -11,6 +11,18 @@
   	 (with-stderr-to inc_algorithms_cpp.v.stderr (run cpp2v -v %{input} -o inc_algorithms_cpp.v --no-elaborate --templates=inc_algorithms_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_algorithms.cpp))
 )
+(subdir bit
+ (rule
+  (targets inc_bit_cpp.v.stderr inc_bit_cpp.v inc_bit_cpp_templates.v)
+  (alias test_ast)
+  (deps
+   (:input inc_bit.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to inc_bit_cpp.v.stderr (run cpp2v -v %{input} -o inc_bit_cpp.v --no-elaborate --templates=inc_bit_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps inc_bit.cpp))
+)
 (subdir cassert
  (rule
   (targets inc_cassert_cpp.v.stderr inc_cassert_cpp.v inc_cassert_cpp_templates.v)
@@ -47,6 +59,18 @@
   	 (with-stderr-to inc_cstdlib_cpp.v.stderr (run cpp2v -v %{input} -o inc_cstdlib_cpp.v --no-elaborate --templates=inc_cstdlib_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_cstdlib.cpp))
 )
+(subdir cstdlib_intmath
+ (rule
+  (targets inc_cstdlib_intmath_cpp.v.stderr inc_cstdlib_intmath_cpp.v inc_cstdlib_intmath_cpp_templates.v)
+  (alias test_ast)
+  (deps
+   (:input inc_cstdlib_intmath.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to inc_cstdlib_intmath_cpp.v.stderr (run cpp2v -v %{input} -o inc_cstdlib_intmath_cpp.v --no-elaborate --templates=inc_cstdlib_intmath_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps inc_cstdlib_intmath.cpp))
+)
 (subdir cstring
  (rule
   (targets inc_cstring_cpp.v.stderr inc_cstring_cpp.v inc_cstring_cpp_templates.v)
@@ -58,6 +82,42 @@
   (action
   	 (with-stderr-to inc_cstring_cpp.v.stderr (run cpp2v -v %{input} -o inc_cstring_cpp.v --no-elaborate --templates=inc_cstring_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_cstring.cpp))
+)
+(subdir cwchar
+ (rule
+  (targets inc_cwchar_cpp.v.stderr inc_cwchar_cpp.v inc_cwchar_cpp_templates.v)
+  (alias test_ast)
+  (deps
+   (:input inc_cwchar.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to inc_cwchar_cpp.v.stderr (run cpp2v -v %{input} -o inc_cwchar_cpp.v --no-elaborate --templates=inc_cwchar_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps inc_cwchar.cpp))
+)
+(subdir cwchar_copy
+ (rule
+  (targets inc_cwchar_copy_cpp.v.stderr inc_cwchar_copy_cpp.v inc_cwchar_copy_cpp_templates.v)
+  (alias test_ast)
+  (deps
+   (:input inc_cwchar_copy.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to inc_cwchar_copy_cpp.v.stderr (run cpp2v -v %{input} -o inc_cwchar_copy_cpp.v --no-elaborate --templates=inc_cwchar_copy_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps inc_cwchar_copy.cpp))
+)
+(subdir cwctype
+ (rule
+  (targets inc_cwctype_cpp.v.stderr inc_cwctype_cpp.v inc_cwctype_cpp_templates.v)
+  (alias test_ast)
+  (deps
+   (:input inc_cwctype.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to inc_cwctype_cpp.v.stderr (run cpp2v -v %{input} -o inc_cwctype_cpp.v --no-elaborate --templates=inc_cwctype_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps inc_cwctype.cpp))
 )
 (subdir iostream
  (rule
@@ -95,6 +155,18 @@
   	 (with-stderr-to inc_hpp.v.stderr (run cpp2v -v %{input} -o inc_hpp.v --no-elaborate --templates=inc_hpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc.hpp))
 )
+(subdir memory_align
+ (rule
+  (targets inc_memory_align_cpp.v.stderr inc_memory_align_cpp.v inc_memory_align_cpp_templates.v)
+  (alias test_ast)
+  (deps
+   (:input inc_memory_align.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to inc_memory_align_cpp.v.stderr (run cpp2v -v %{input} -o inc_memory_align_cpp.v --no-elaborate --templates=inc_memory_align_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps inc_memory_align.cpp))
+)
 (subdir mutex
  (rule
   (targets demo_cpp.v.stderr demo_cpp.v demo_cpp_templates.v)
@@ -130,6 +202,18 @@
   (action
   	 (with-stderr-to inc_new_cpp.v.stderr (run cpp2v -v %{input} -o inc_new_cpp.v --no-elaborate --templates=inc_new_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_new.cpp))
+)
+(subdir numeric
+ (rule
+  (targets inc_numeric_cpp.v.stderr inc_numeric_cpp.v inc_numeric_cpp_templates.v)
+  (alias test_ast)
+  (deps
+   (:input inc_numeric.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to inc_numeric_cpp.v.stderr (run cpp2v -v %{input} -o inc_numeric_cpp.v --no-elaborate --templates=inc_numeric_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps inc_numeric.cpp))
 )
 (subdir semaphore
  (rule
