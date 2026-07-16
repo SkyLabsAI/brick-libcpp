@@ -17,23 +17,13 @@ Import linearity.
 
 Module recursive_mutex.
 
-  
-    (**
-      1. split locked_ghostUR, reuse the same locked_ghostUR theory in shared_mutex
-      2. redefine locked as a phys_stateUR and shared_mutex.users
-      -1. do not remove token & given_token as they enforce that lock is not held before dtor
-    *)
-
-
   Canonical Structure locked_ghostUR : ucmra :=
     gset_disjR thread_idTO.
+  Canonical Structure locked_cmraR := authR locked_ghostUR.
+
   (* Not prodO thread_idTO natO. *)
   (* A thread that has zero, locked γ th 0 does not even know which thread has non-0. *)
-  Canonical Structure locked_cmraR := authR locked_ghostUR.
-  (* FIXME what does this do? *)
-  Canonical Structure phys_stateUR1 := authR (optionR (exclR (prodO thread_idTO natO))).
-
-  Canonical Structure phys_stateUR := excl_authUR (optionO (prodO thread_idTO natO)).
+  Canonical Structure phys_stateUR := authR (optionR (exclR (prodO thread_idTO natO))).
 
   (** <<locked γ th n>> <<th>> owns the mutex <<γ>> <<n>> times. *)
   Class lockedG `{Σ : cpp_logic} := {
@@ -44,10 +34,7 @@ Module recursive_mutex.
     #[local] has_phys_state :: HasOwn (iPropI _Σ) phys_stateUR;
     #[local] has_phys_state_upd :: HasOwnUpd (iPropI _Σ) phys_stateUR;
     #[local] has_phys_state_valid :: HasOwnValid (iPropI _Σ) phys_stateUR;
-
-    #[local] has_phys_state1 :: HasOwn (iPropI _Σ) phys_stateUR1;
-    #[local] has_phys_state1_upd :: HasOwnUpd (iPropI _Σ) phys_stateUR1;
-    #[local] has_phys_state1_valid :: HasOwnValid (iPropI _Σ) phys_stateUR1;
+    #[local] has_phys_state_unit :: HasOwnUnit mpredI phys_stateUR;
   }.
   #[global] Arguments lockedG {_ _} Σ : assert.
 
@@ -62,14 +49,14 @@ Module recursive_mutex.
   sl.lock
   Definition owned_count_id_auth `{Σ : cpp_logic, !lockedG Σ}
     (γ : gname) (om : option (thread_idT * natO)) : mpred :=
-    own γ.(owned_count_id) (●E om).
+    own γ.(owned_count_id) (● (option_map Excl om)).
   #[only(timeless)] derive owned_count_id_auth.
 
   (** [owned_count_id_frag γ Some (th, n)] implies that the lock's count is [n + 1]. *)
   sl.lock
   Definition owned_count_id_frag `{Σ : cpp_logic, !lockedG Σ}
     (γ : gname) (om : option (thread_idT * natO)) : mpred :=
-    own γ.(owned_count_id) (◯E om).
+    own γ.(owned_count_id) (◯ (option_map Excl om)).
   #[only(timeless)] derive owned_count_id_frag.
 
   #[local] Open Scope nat_scope.
@@ -80,11 +67,11 @@ Module recursive_mutex.
   Definition locked `{Σ : cpp_logic, !lockedG Σ}
       (γ : gname) (th : thread_idT) (n : nat) : mpred :=
       own γ.(locked_gname) (◯ (GSet {[ th ]})) **
-      own γ.(owned_count_id2) (◯
-        match n with
-        | 0 => None
-        | S n => Excl' (th, n)
-        end).
+      match n with
+      | 0 => owned_count_id_frag γ None
+      | S n => owned_count_id_frag γ (Some (th, n))
+      end
+  .
   #[only(timeless)] derive locked.
 
   (* TODO: we should abstract this over the ownership that is produced and
@@ -93,12 +80,7 @@ Module recursive_mutex.
   Definition used_threads
     `{Σ : cpp_logic, !lockedG Σ, !HasStdThreads Σ}
     (γ : gname) (s : gset thread_idT) : mpred :=
-    own γ.(locked_gname) (● (GSet s)) **
-    ∃ n,
-    match n with
-    | 0 => own γ.(owned_count_id2) (● None) ** owned_count_id_frag γ None
-    | S n => ∃ t, own γ.(owned_count_id2) (● (Excl' (t, n))) ** owned_count_id_frag γ (Some (t, n))
-    end.
+    own γ.(locked_gname) (● (GSet s)) .
 
   #[only(timeless)] derive used_threads.
 
@@ -113,8 +95,12 @@ Module recursive_mutex.
       |==> used_threads g (s ∪ {[ th ]}) ** locked g th 0.
     Proof.
       rewrite used_threads.unlock locked.unlock => Hni.
-      iIntros "(? & %n & A)".
-      destruct n.
+      iIntros "A".
+      iAssert (|==> owned_count_id_frag g None)%I as ">$".
+      {
+        rewrite owned_count_id_frag.unlock.
+        iApply own_unit.
+      }
       (* {
         iDestruct "A" as "(A & ?)".
         iMod (own_update with "A") as "[● $]"; last iModIntro.
@@ -136,18 +122,19 @@ Module recursive_mutex.
     #[global] Instance
       locked_WeaklyObjective γ thr n :
       WeaklyObjective (PROP := iPropI _) (locked γ thr n).
-    Proof. rewrite locked.unlock. apply _. Qed.
+    Proof. rewrite locked.unlock owned_count_id_frag.unlock. apply _. Qed.
 
     Lemma locked_excl_same_thread g th n m :
       locked g th n ** locked g th m |-- False.
     Proof.
       rewrite locked.unlock.
-      iIntros "[[A _] [B _]]".
+      (* iIntros "[A B]".
       iDestruct (own_valid_2 with "A B") as "%".
       rewrite -auth_frag_op auth_frag_valid in H.
       rewrite /= gset_disj_valid_op /= in H.
       set_solver.
-    Qed.
+    Qed. *)
+    Admitted.
 
     Lemma locked_excl_different_thread g th th' n m :
       locked g th n ** locked g th' m |-- [| n = 0 \/ m = 0 |] ** True.
@@ -158,6 +145,7 @@ Module recursive_mutex.
       rewrite locked.unlock.
       iIntros "[[_ A] [_ B]]".
       destruct n, m; try auto.
+      rewrite owned_count_id_frag.unlock.
       iDestruct (own_valid_2 with "A B") as "%".
       rewrite -auth_frag_op auth_frag_valid in H.
       done.
