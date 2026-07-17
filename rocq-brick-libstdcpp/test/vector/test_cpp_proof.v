@@ -294,6 +294,7 @@ Section with_cpp.
     Proof using MOD.
       rewrite /std.vector.specs.
       rewrite /std.vector.iterator.specs.
+      rewrite /std.cassert.specs.
       work.
     Qed.
 
