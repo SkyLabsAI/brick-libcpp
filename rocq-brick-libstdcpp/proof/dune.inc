@@ -35,6 +35,18 @@
   	 (with-stderr-to inc_cctype_cpp.v.stderr (run cpp2v -v %{input} -o inc_cctype_cpp.v --no-elaborate --templates=inc_cctype_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_cctype.cpp))
 )
+(subdir compare
+ (rule
+  (targets inc_compare_cpp.v.stderr inc_compare_cpp.v inc_compare_cpp_templates.v)
+  (alias test_ast)
+  (deps
+   (:input inc_compare.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to inc_compare_cpp.v.stderr (run cpp2v -v %{input} -o inc_compare_cpp.v --no-elaborate --templates=inc_compare_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps inc_compare.cpp))
+)
 (subdir cstdlib
  (rule
   (targets inc_cstdlib_cpp.v.stderr inc_cstdlib_cpp.v inc_cstdlib_cpp_templates.v)
