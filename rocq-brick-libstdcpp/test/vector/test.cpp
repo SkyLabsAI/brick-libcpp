@@ -5,6 +5,7 @@
  */
 #include <algorithm>
 #include <cassert>
+#include <memory>
 #include <vector>
 
 using namespace std;
@@ -90,11 +91,19 @@ TestAggregate() {
     test(v.size() == 3);
 }
 
+void
+TestAllocCtor() {
+    allocator<int> a;
+    vector<int> v(a);
+    test(v.size() == 0);
+}
+
 int
 main() {
     TestBasic();
     TestAggregate();
     TestIntIter();
     TestForEach();
+    TestAllocCtor();
     return 0;
 }

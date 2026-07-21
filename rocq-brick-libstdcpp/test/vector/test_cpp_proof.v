@@ -179,6 +179,9 @@ Section with_cpp.
     cpp.spec "TestForEach()" as test_for_each with
         (\post emp).
 
+    cpp.spec "TestAllocCtor()" as test_alloc_ctor with
+        (\post emp).
+
     cpp.spec "TestAggregate()" as test_aggregate with
         (\post emp).
 
@@ -255,6 +258,15 @@ Section with_cpp.
     Definition test_basic_B := [LINK] test_basic_ok.
     #[local] Hint Resolve test_basic_B : sl_opacity.
 
+    Lemma test_alloc_ctor_ok : verify[ source ] test_alloc_ctor.
+    Proof using MOD.
+      verify_spec.
+      go.
+      iExists (). iFrame. iIntros "?". go.
+    Qed.
+    Definition test_alloc_ctor_B := [LINK] test_alloc_ctor_ok.
+    #[local] Hint Resolve test_alloc_ctor_B : sl_opacity.
+
     Lemma test_aggregate_ok : verify[ source ] test_aggregate.
     Proof using MOD.
       verify_spec.
@@ -289,12 +301,14 @@ Section with_cpp.
           std.vector.iterator.specs true "unsigned" alloc_uint **
           std.vector.iterator.specs false "int" alloc_int **
           std.find_spec (std.vector.iterator.T "int") "int" source **
+          std.allocator.specs "int" **
           std.cassert.specs)
       |-- main.
     Proof using MOD.
       rewrite /std.vector.specs.
       rewrite /std.vector.iterator.specs.
       rewrite /std.cassert.specs.
+      rewrite /std.allocator.specs.
       work.
     Qed.
 

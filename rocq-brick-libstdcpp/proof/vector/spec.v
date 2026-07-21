@@ -422,7 +422,7 @@ NES.Begin std.
       #[global] Existing Instance SpecFor_default_ctor.
 
       Definition ctor_with_alloc `{!BundledRep alloc_ty AllocT} :=
-        specify.template.ctor vector [alloc_ty] $
+        specify.template.ctor vector [Tref (Tconst alloc_ty)] $
           \this this
           \arg{allocp} "alloc" (Vptr allocp)
           \prepost{a} allocp |-> objR alloc_ty (cQp.m 1) a
