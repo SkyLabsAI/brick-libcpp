@@ -12,14 +12,11 @@ Require Export skylabs.brick.libstdcpp.runtime.pred.
 
 Require Import skylabs.brick.libstdcpp.mutex.requirements.
 Require Import skylabs.brick.libstdcpp.mutex.inc_hpp.
+Require Import skylabs.brick.libstdcpp.lib.lock_ghost.
 
 Import linearity.
 
 Module recursive_mutex.
-
-  Canonical Structure locked_ghostUR : ucmra :=
-    gset_disjR thread_idTO.
-  Canonical Structure locked_cmraR := authR locked_ghostUR.
 
   (* Not prodO thread_idTO natO. *)
   (* A thread that has zero, locked γ th 0 does not even know which thread has non-0. *)
@@ -27,9 +24,7 @@ Module recursive_mutex.
 
   (** <<locked γ th n>> <<th>> owns the mutex <<γ>> <<n>> times. *)
   Class lockedG `{Σ : cpp_logic} := {
-    #[local] has_locked :: HasOwn (iPropI _Σ) locked_cmraR;
-    #[local] has_locked_upd :: HasOwnUpd (iPropI _Σ) locked_cmraR;
-    #[local] has_locked_valid :: HasOwnValid (iPropI _Σ) locked_cmraR;
+    #[local] has_lock_ghost :: lock_ghost.lockG Σ;
 
     #[local] has_phys_state :: HasOwn (iPropI _Σ) phys_stateUR;
     #[local] has_phys_state_upd :: HasOwnUpd (iPropI _Σ) phys_stateUR;
@@ -80,7 +75,7 @@ Module recursive_mutex.
   Definition used_threads
     `{Σ : cpp_logic, !lockedG Σ, !HasStdThreads Σ}
     (γ : gname) (s : gset thread_idT) : mpred :=
-    own γ.(locked_gname) (● (GSet s)) .
+    lock_ghost.used_threads γ.(locked_gname) s.
 
   #[only(timeless)] derive used_threads.
 
@@ -92,32 +87,22 @@ Module recursive_mutex.
     Lemma use_thread th g s :
       th ∉ s ->
       used_threads g s |--
-      |==> used_threads g (s ∪ {[ th ]}) ** locked g th 0.
+      (|==> used_threads g (s ∪ {[ th ]}) ** locked g th 0).
     Proof.
-      rewrite used_threads.unlock locked.unlock => Hni.
+      intros Hni.
+      replace (s ∪ {[ th ]}) with ({[ th ]} ∪ s) by set_solver.
+      rewrite used_threads.unlock locked.unlock.
       iIntros "A".
+      iMod (lock_ghost.login th g.(locked_gname) s with "A") as "[A $]".
+      { done. }
       iAssert (|==> owned_count_id_frag g None)%I as ">$".
       {
         rewrite owned_count_id_frag.unlock.
         iApply own_unit.
       }
-      (* {
-        iDestruct "A" as "(A & ?)".
-        iMod (own_update with "A") as "[● $]"; last iModIntro.
-        { apply (auth_update_alloc _ (GSet ({[th]} ∪ s), None) (GSet ({[th]}), None)).
-          apply prod_local_update_1, gset_disj_alloc_empty_local_update. set_solver. }
-        rewrite comm_L. iExists 0. iFrame.
-      }
-      {
-        iDestruct "A" as "(%t & A & ?)".
-        iMod (own_update with "A") as "[● $]"; last iModIntro.
-        { apply (auth_update_alloc _ (GSet ({[th]} ∪ s), Excl' (t, n)) (GSet {[th]}, None)).
-          apply prod_local_update_1, gset_disj_alloc_empty_local_update. set_solver.
-        }
-        rewrite comm_L. iExists (S n). iFrame.
-      }
-    Qed. *)
-    Admitted.
+      iModIntro.
+      iFrame.
+    Qed.
 
     #[global] Instance
       locked_WeaklyObjective γ thr n :

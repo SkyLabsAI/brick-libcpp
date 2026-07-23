@@ -1,5 +1,3 @@
-Require Import iris.algebra.gset.
-
 Require Import skylabs.bi.tls_modalities.
 Require Import skylabs.bi.tls_modalities_rep.
 Require Import skylabs.bi.weakly_objective.
@@ -11,8 +9,10 @@ Require Export skylabs.brick.libstdcpp.runtime.pred.
 
 Require Import skylabs.brick.libstdcpp.shared_mutex.inc_hpp.
 Require Import skylabs.brick.libstdcpp.mutex.requirements.
+Require Import skylabs.brick.libstdcpp.lib.lock_ghost.
 
 Import linearity.
+Import lock_ghost.
 
 (* TODO UPSTREAM. *)
 #[global] Instance SplitRecord_prod A B : SplitRecord (@prod A B) := {}.
@@ -20,18 +20,12 @@ Import linearity.
 Module shared_mutex.
 Section with_cpp.
 
-  Canonical Structure lock_ghostUR : ucmra :=
-    gset_disjR thread_idTO.
-  Canonical Structure lock_cmraR := authR lock_ghostUR.
-
-  (* maps th:thread_idT to the fraction of permission thaborrowed. *)
+  (* maps th:thread_idT to the fraction of permission borrowed. *)
   Canonical Structure phys_stateUR := authR (gmapR thread_idT Qp).
 
 
   Class lockedG `{Σ : cpp_logic} := {
-    #[local] has_locked :: HasOwn (iPropI _Σ) lock_cmraR;
-    #[local] has_locked_upd :: HasOwnUpd (iPropI _Σ) lock_cmraR;
-    #[local] has_locked_valid :: HasOwnValid (iPropI _Σ) lock_cmraR;
+    #[local] has_lock_ghost :: lock_ghost.lockG Σ;
 
     #[local] has_phys_state :: HasOwn (iPropI _Σ) phys_stateUR;
     #[local] has_phys_state_upd :: HasOwnUpd (iPropI _Σ) phys_stateUR;
@@ -93,20 +87,13 @@ Section with_cpp.
     inv H.
   Qed.
 
-  Definition used_threads
-      `{Σ : cpp_logic, !lockedG Σ}
-      (γ : gname) (s : gset thread_idT) : mpred :=
-      own γ.(login_gname) (● GSet s).
+  Abbreviation used_threads γ s :=
+    (lock_ghost.used_threads γ.(login_gname) s).
 
-  Definition users
-      `{Σ : cpp_logic, !lockedG Σ}
-      (γ : gname) (ths : gset thread_idT) : mpred :=
-    own γ.(login_gname) (◯ GSet ths).
-  #[global] Hint Opaque users : sl_opacity typeclass_instances.
+  Abbreviation users γ ths :=
+    (lock_ghost.users γ.(login_gname) ths).
 
-  (* not_locked is the handle to call lock functions *)
-  Abbreviation not_locked γ th :=
-    (users γ {[ th ]}).
+  Abbreviation not_locked γ th := (users γ {[ th ]}).
 
   Context `{Σ : cpp_logic}.
   Context `{!lockedG Σ}.
@@ -125,59 +112,6 @@ Section with_cpp.
   Proof. (* locked.unlock. *) apply _. Qed.
 
   #[global] Hint Opaque reader_locked : sl_opacity typeclass_instances.
-
-
-  Lemma not_locked_unique g th :
-    not_locked g th ** not_locked g th |-- False.
-  Proof.
-    (* rewrite locked.unlock. *)
-    iIntros "[A B]".
-    iDestruct (own_valid_2 with "A B") as "%".
-    rewrite -auth_frag_op auth_frag_valid gset_disj_valid_op in H.
-    set_solver.
-  Qed.
-
-  (* TODO rename to use_thread *)
-  Lemma login th g s :
-    th ∉ s ->
-    used_threads g s |--
-    (|==> used_threads g ({[ th ]} ∪ s) ** not_locked g th).
-  Proof.
-    intros Hni.
-    iIntros "A".
-    iMod (own_update with "A") as "[● $]"; last by iModIntro; iFrame.
-    rewrite cmra_comm.
-    apply (auth_update_alloc _ (GSet ({[th]} ∪ s)) (GSet {[th]})).
-    apply gset_disj_alloc_empty_local_update. set_solver.
-  Qed.
-
-  Lemma logout th g s :
-    th ∉ s ->
-    used_threads g ({[ th ]} ∪ s) ** not_locked g th |--
-    (|==> used_threads g s).
-  Proof.
-    rewrite /users /used_threads.
-
-    intros Hni.
-
-    iIntros "[A B]".
-    iCombine "A" "B" as "A".
-    iMod (own_update with "A") as "?"; last by iFrame.
-    apply (auth_update_dealloc _ _ (GSet s)).
-    rewrite -gset_disj_union; last set_solver.
-    apply gset_disj_dealloc_empty_local_update.
-  Qed.
-
-  Lemma used_threads_empty_no_not_locked g th :
-    used_threads g ∅ ** not_locked g th |-- False.
-  Proof.
-    rewrite /users /used_threads.
-    iIntros "[A B]".
-    iDestruct (own_valid_2 with "A B") as "%Hvalid".
-    apply auth_both_valid_discrete in Hvalid.
-    destruct Hvalid as [Hvalid _].
-    rewrite gset_disj_included in Hvalid. set_solver.
-  Qed.
 
   (** A resource enforcing that the thread calling unlock must be the same thread
       that owns the lock
