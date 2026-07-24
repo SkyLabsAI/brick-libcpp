@@ -61,7 +61,7 @@ Module recursive_mutex.
   sl.lock
   Definition locked `{Σ : cpp_logic, !lockedG Σ}
       (γ : gname) (th : thread_idT) (n : nat) : mpred :=
-      own γ.(locked_gname) (◯ (GSet {[ th ]})) **
+      users γ.(locked_gname) {[ th ]} **
       match n with
       | 0 => owned_count_id_frag γ None
       | S n => owned_count_id_frag γ (Some (th, n))

@@ -15,15 +15,17 @@ Class lockG `{Σ : cpp_logic} := {
 }.
 #[global] Arguments lockG {_ _} Σ : assert.
 
+sl.lock
 Definition used_threads `{Σ : cpp_logic, !lockG Σ}
     (γ : iprop.gname) (s : gset thread_idT) : mpred :=
   own γ (● GSet s).
-#[global] Hint Opaque used_threads : sl_opacity.
+#[only(timeless)] derive used_threads.
 
+sl.lock
 Definition users `{Σ : cpp_logic, !lockG Σ}
     (γ : iprop.gname) (ths : gset thread_idT) : mpred :=
   own γ (◯ GSet ths).
-#[global] Hint Opaque users : sl_opacity typeclass_instances.
+#[only(timeless)] derive users.
 
 (* not_locked is the handle to call lock functions *)
 Abbreviation not_locked γ th := (users γ {[ th ]}).
@@ -32,13 +34,18 @@ Section with_cpp.
   Context `{Σ : cpp_logic}.
   Context `{!lockG Σ}.
 
+  #[global] Instance
+    locked_WeaklyObjective γ thr :
+    WeaklyObjective (PROP := iPropI _) (users γ thr).
+  Proof. rewrite users.unlock. apply _. Qed.
+
   Lemma not_locked_unique g th :
     not_locked g th ** not_locked g th |-- False.
-  Proof using Type*.
-    rewrite /not_locked.
+  Proof.
+    rewrite users.unlock.
     iIntros "[A B]".
-    iDestruct (own_valid_2 with "A B") as "%".
-    rewrite -auth_frag_op auth_frag_valid gset_disj_valid_op in H.
+    iDestruct (own_valid_2 with "A B") as %Hv.
+    rewrite -auth_frag_op auth_frag_valid gset_disj_valid_op in Hv.
     set_solver.
   Qed.
 
@@ -47,7 +54,8 @@ Section with_cpp.
     th ∉ s ->
     used_threads g s |--
     (|==> used_threads g ({[ th ]} ∪ s) ** not_locked g th).
-  Proof using Type*.
+  Proof.
+    rewrite users.unlock used_threads.unlock.
     intros Hni.
     iIntros "A".
     iMod (own_update with "A") as "[● $]"; last by iModIntro; iFrame.
@@ -60,12 +68,11 @@ Section with_cpp.
     th ∉ s ->
     used_threads g ({[ th ]} ∪ s) ** not_locked g th |--
     (|==> used_threads g s).
-  Proof using Type*.
-    rewrite /not_locked /users /used_threads.
+  Proof.
+    rewrite users.unlock used_threads.unlock.
     intros Hni.
     iIntros "[A B]".
-    iCombine "A" "B" as "A".
-    iMod (own_update with "A") as "?"; last by iFrame.
+    iApply (own_update_2 with "A B").
     apply (auth_update_dealloc _ _ (GSet s)).
     rewrite -gset_disj_union; last set_solver.
     apply gset_disj_dealloc_empty_local_update.
@@ -73,12 +80,11 @@ Section with_cpp.
 
   Lemma used_threads_empty_no_not_locked g th :
     used_threads g ∅ ** not_locked g th |-- False.
-  Proof using Type*.
-    rewrite /not_locked /users /used_threads.
+  Proof.
+    rewrite users.unlock used_threads.unlock.
     iIntros "[A B]".
-    iDestruct (own_valid_2 with "A B") as "%Hvalid".
-    apply auth_both_valid_discrete in Hvalid.
-    destruct Hvalid as [Hvalid _].
-    rewrite gset_disj_included in Hvalid. set_solver.
+    iDestruct (own_valid_2 with "A B") as
+      %[Hvalid%gset_disj_included _]%auth_both_valid_discrete.
+    set_solver.
   Qed.
 End with_cpp.
