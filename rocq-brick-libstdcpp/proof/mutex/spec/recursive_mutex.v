@@ -374,8 +374,8 @@ cinv (
 
     Lemma use_thread_acquirable {TT} th g m P :
       th ∉ m ->
-      current_thread th ** used_threads g.(lock_gname) m |-- |==>
-      used_threads g.(lock_gname) (m ∪ {[ th ]}) ** acquireable (TT := TT) g th NotHeld P.
+      current_thread th ** used_threads g.(lock_gname) m |-- (|==>
+      used_threads g.(lock_gname) (m ∪ {[ th ]}) ** acquireable (TT := TT) g th NotHeld P).
     Proof.
       rewrite acquireable.unlock /=.
       work.
@@ -520,7 +520,7 @@ cinv (
       \prepost{q} this |-> R g.(lock_gname) q
       \pre{th n} acquireable g th n P
       \pre{q'} token g.(lock_gname) q'
-      \post given_token g.(lock_gname) q' ** Exists n', [| acquire n n' |] ** ▷ acquireable g th n' P).
+      \post given_token g.(lock_gname) q' ** (Exists n', [| acquire n n' |] ** ▷ acquireable g th n' P)).
     (* to prove: this is derivable from lock_spec *)
 
     cpp.spec "std::recursive_mutex::unlock()" as unlock_spec' with
@@ -539,7 +539,7 @@ cinv (
         (* TODO readd *)
         (* ▷ *)
         (given_token g.(lock_gname) q' **
-        Exists n', [| acquire n n' |] ** ▷ acquireable g th n' P) -*
+        (Exists n', [| acquire n n' |] ** ▷ acquireable g th n' P)) -*
         K).
     #[global] Arguments do_lock /.
 
