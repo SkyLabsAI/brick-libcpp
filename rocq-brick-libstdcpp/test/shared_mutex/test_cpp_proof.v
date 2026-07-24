@@ -21,11 +21,12 @@ Section with_cpp.
     iSplit; first work.
     iIntros "[% [? H]]".
     iMod (lock_ghost.login thr _ empty with "H") as "[??]"; first set_solver.
-    wuntil Kfree go. (* FIXME does not expose Kfree? *)
+    progress unfold not_locked.
+    wuntil Kfree go.
     rewrite /Kfree/=.
     iMod (lock_ghost.logout thr _ empty with "[$]") as "?"; first set_solver.
     go.
-  Admitted.
+  Qed.
 
   (* TODO prove the rest of the tests *)
 End with_cpp.
