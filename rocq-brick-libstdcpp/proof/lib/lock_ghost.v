@@ -15,18 +15,18 @@ Class lockG `{Σ : cpp_logic} := {
 }.
 #[global] Arguments lockG {_ _} Σ : assert.
 
-Definition used_threads `{Σ : cpp_logic, !HasOwn (iPropI _Σ) lock_cmraR}
+Definition used_threads `{Σ : cpp_logic, !lockG Σ}
     (γ : iprop.gname) (s : gset thread_idT) : mpred :=
   own γ (● GSet s).
 #[global] Hint Opaque used_threads : sl_opacity.
 
-Definition users `{Σ : cpp_logic, !HasOwn (iPropI _Σ) lock_cmraR}
+Definition users `{Σ : cpp_logic, !lockG Σ}
     (γ : iprop.gname) (ths : gset thread_idT) : mpred :=
   own γ (◯ GSet ths).
 #[global] Hint Opaque users : sl_opacity typeclass_instances.
 
 (* not_locked is the handle to call lock functions *)
-Definition not_locked `{Σ : cpp_logic, !HasOwn (iPropI _Σ) lock_cmraR}
+Definition not_locked `{Σ : cpp_logic, !lockG Σ}
     (γ : iprop.gname) (th : thread_idT) : mpred :=
   users γ {[ th ]}.
 #[global] Hint Opaque not_locked : sl_opacity.
