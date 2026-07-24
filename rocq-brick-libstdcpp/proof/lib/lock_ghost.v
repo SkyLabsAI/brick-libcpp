@@ -26,10 +26,7 @@ Definition users `{Σ : cpp_logic, !lockG Σ}
 #[global] Hint Opaque users : sl_opacity typeclass_instances.
 
 (* not_locked is the handle to call lock functions *)
-Definition not_locked `{Σ : cpp_logic, !lockG Σ}
-    (γ : iprop.gname) (th : thread_idT) : mpred :=
-  users γ {[ th ]}.
-#[global] Hint Opaque not_locked : sl_opacity.
+Abbreviation not_locked γ th := (users γ {[ th ]}).
 
 Section with_cpp.
   Context `{Σ : cpp_logic}.
