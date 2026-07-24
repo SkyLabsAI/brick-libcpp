@@ -9,9 +9,9 @@ Canonical Structure lock_ghostUR : ucmra :=
 Canonical Structure lock_cmraR := authR lock_ghostUR.
 
 Class lockG `{Σ : cpp_logic} := {
-  #[global] has_lock :: HasOwn (iPropI _Σ) lock_cmraR;
-  #[global] has_lock_upd :: HasOwnUpd (iPropI _Σ) lock_cmraR;
-  #[global] has_lock_valid :: HasOwnValid (iPropI _Σ) lock_cmraR;
+  #[local] has_lock :: HasOwn (iPropI _Σ) lock_cmraR;
+  #[local] has_lock_upd :: HasOwnUpd (iPropI _Σ) lock_cmraR;
+  #[local] has_lock_valid :: HasOwnValid (iPropI _Σ) lock_cmraR;
 }.
 #[global] Arguments lockG {_ _} Σ : assert.
 
