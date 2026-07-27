@@ -26,11 +26,11 @@ A common pattern where this can be useful is when the thread that calls new need
 *)
 
 Require Import skylabs.auto.cpp.proof.
-Require Import skylabs.cpp.stdlib.allocator.spec.
-Require Import skylabs.cpp.stdlib.cassert.spec.
-Require Import skylabs.cpp.stdlib.vector.spec.
+Require Import skylabs.brick.libstdcpp.allocator.spec.
+Require Import skylabs.brick.libstdcpp.cassert.spec.
+Require Import skylabs.brick.libstdcpp.vector.spec.
 Require Import skylabs.cpp.stdlib.atomic.spec.
-Require Import skylabs.cpp.stdlib.algorithms.spec.
+Require Import skylabs.brick.libstdcpp.algorithms.spec.
 Require Import skylabs.brick.libstdcpp.new.pred.
 Require Import skylabs.brick.libstdcpp.new.hints.
 Require Import skylabs.cpp.spec.concepts.
