@@ -37,32 +37,26 @@ Section with_cpp.
       \post emp
     ).
 
-  Lemma empty_construct_has_value_false_proof :
-    verify[clients_cpp.module] "empty_construct_has_value_false()".
-  Proof using MOD.
-    rewrite /optional_uint8_nullopt_ctor_spec
-      /optional_uint8_has_value_spec
-      /optional_uint8_destructor_spec
-      /assert_fail_unreachable_spec
-      /nullopt_copy_ctor_spec
-      /nullopt_destructor_spec.
-    verify_spec.
+  
+Lemma empty_construct_has_value_false_proof :
+  verify[clients_cpp.module] "empty_construct_has_value_false()".
+Proof using MOD.
+  rewrite /optional_uint8_nullopt_ctor_spec
+    /optional_uint8_has_value_spec
+    /optional_uint8_destructor_spec
+    /assert_fail_unreachable_spec
+    /nullopt_copy_ctor_spec
+    /nullopt_destructor_spec.
+  verify_spec; go.
+  Unshelve.
+  all: eauto.
 
-    (* Goal-shape-conditional instead of positional: each alternative only
-       fires on the shape it targets (existential / bare wand / a resource
-       stranded beside `wp_block`), so it doesn't matter exactly where a
-       given `go` version stops. The bare [iFrame] is what re-absorbs a
-       resource automation left dangling next to `▷ wp_block ...`, which is
-       what lets the next `go` continue instead of getting stuck. *)
-    repeat first
-      [ progress go
-      | iExists _; iFrame
-      | iIntros "?"
-      | iFrame ].
+  ego; go.
 
-    Unshelve.
-    all: try exact p.
-    all: try done.
-  Qed.
+  Unshelve.
+
+  exact p.
+Qed.
+
 End with_cpp.
 

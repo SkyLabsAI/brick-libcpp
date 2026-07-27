@@ -46,29 +46,42 @@ Section with_cpp.
   cpp.spec "const_ref_parameter_read()" from clients_cpp.source
     as const_ref_parameter_read_spec with (\post emp).
   
-  Lemma const_ref_parameter_read_proof :
-    verify[clients_cpp.module] "const_ref_parameter_read()".
-    try rewrite /optional_uint8_nullopt_ctor_template_spec.
-    try rewrite /optional_uint8_has_value_template_spec.
-    try rewrite /optional_uint8_deref_const_lvalue_template_spec.
-    try rewrite /optional_uint8_destructor_template_spec.
-    try rewrite /nullopt_copy_ctor_spec.
-    try rewrite /nullopt_destructor_spec.
-    try rewrite /check_present_by_const_ref_helper_spec.
-    try rewrite /check_empty_by_const_ref_helper_spec.
-
-  Proof using MOD.
-    rewrite /optional_uint8_nullopt_ctor_spec
-      /optional_uint8_value_rvalue_ctor_spec
-      /optional_uint8_has_value_spec
-      /optional_uint8_deref_const_lvalue_spec
-      /optional_uint8_destructor_spec.
-    verify_spec.
-repeat first [ progress (go) | iExists _; iFrame | rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ _ _ _)) | (iApply wp_invoke_O_inline; [exact (InlineMe _) | go |]) | (iApply wp_init_constructor_inline; [exact (InlineMe _) | go |]) | (iApply destroy_val_named_inline; [exact (InlineMe _) | go |]) ].
-
-    
-Unshelve.
-
-exact t.
+  
+#[program] Definition optional_uint8_R_engaged_byte_C
+    (o p : ptr) (q : cQp.t) (b : Z) :=
+  \cancelx
+  \consuming o |-> optional_uint8.R q (Some b) (Some p)
+  \proving p |-> ucharR q b
+  \end.
+Next Obligation.
+  intros.
+  rewrite optional_uint8.R.unlock.
+  rewrite _at_sep _at_pureR.
+  go.
 Qed.
+#[local] Hint Resolve optional_uint8_R_engaged_byte_C : br_hints.
+
+#[local] Hint Resolve fractional.UNSAFE_read_prim_learn : sl_opacity.
+#[local] Instance optional_uint8_R_read_learn :
+  AtLearnEq3 optional_uint8.R := ltac:(solve_learnable).
+
+Lemma const_ref_parameter_read_proof :
+  verify[clients_cpp.module] "const_ref_parameter_read()".
+Proof using MOD.
+  rewrite /optional_uint8_nullopt_ctor_spec
+    /optional_uint8_value_rvalue_ctor_spec
+    /optional_uint8_has_value_spec
+    /optional_uint8_deref_const_lvalue_spec
+    /optional_uint8_destructor_spec
+    /nullopt_copy_ctor_spec
+    /nullopt_destructor_spec
+    /check_present_by_const_ref_helper_spec
+    /check_empty_by_const_ref_helper_spec.
+  verify_spec; go.
+  Unshelve.
+  all: ego; go.
+  Unshelve.
+  exact t.
+Qed.
+
 End with_cpp.

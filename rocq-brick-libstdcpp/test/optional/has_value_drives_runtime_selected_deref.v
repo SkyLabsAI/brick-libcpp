@@ -16,29 +16,19 @@ Section with_cpp.
     from clients_cpp.source
     as has_value_drives_runtime_selected_deref_spec with (\post emp).
   
+
 Lemma has_value_drives_runtime_selected_deref_proof :
-    verify[clients_cpp.module] "has_value_drives_runtime_selected_deref()".
+  verify[clients_cpp.module] "has_value_drives_runtime_selected_deref()".
+Proof using MOD.
+  rewrite /check_runtime_selected_optional_helper_spec.
+  verify_spec; go.
+  all: ego; go.
 
-  Proof using MOD.
+Unshelve.
 
-    verify_spec.
+  - exact true.
+  - exact false.
+Qed.
 
-    go.
-
-    iExists _.
-
-    go.
-
-    iExists _.
-
-    go.
-
-  Unshelve.
-
-  1: exact true.
-
-  exact false.
-
-  Qed.
 
 End with_cpp.

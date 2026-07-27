@@ -39,58 +39,35 @@ cpp.spec "value_construct_read_five()" from clients_cpp.source
   
   
   
-  Lemma value_construct_read_five_proof :
-    verify[clients_cpp.module] "value_construct_read_five()".
+  
+Lemma optional_uint8_R_engaged_byte
+    (o p : ptr) (q : cQp.t) (b : Z) :
+  o |-> optional_uint8.R q (Some b) (Some p) |--
+    p |-> ucharR q b ** True.
+Proof.
+  rewrite optional_uint8.R.unlock !_at_sep !_at_pureR.
+  go.
+Qed.
 
+#[local] Hint Resolve
+  fractional.UNSAFE_read_prim_learn : sl_opacity.
+#[local] Instance optional_uint8_R_read_learn :
+  AtLearnEq3 optional_uint8.R := ltac:(solve_learnable).
 
-
-  Proof.
-
-    
-    
-
-
-    
-
-    
-    
-    rewrite /optional_uint8_value_rvalue_ctor_spec
-      /optional_uint8_deref_const_lvalue_template_spec
-      /optional_uint8_destructor_template_spec
-      /optional_uint8_has_value_template_spec
-      /assert_fail_unreachable_spec.
-
-verify_spec.
-
-    go.
-
-    
-    
-iExists _. iFrame.
-
-    go.
-iExists _. iFrame.
-
-go.
-
-iExists _. iFrame.
-
-go.
-
-(* Expose the engaged byte returned by operator*. *) 
-rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ _ _ _)).
-
-
-go.
-
-iExists _. iFrame.
-
-iExists (Some 5%Z), (Some t).
-
-
-
-go.
-
+Lemma value_construct_read_five_proof :
+  verify[clients_cpp.module] "value_construct_read_five()".
+Proof using MOD.
+  rewrite /optional_uint8_value_rvalue_ctor_spec
+    /optional_uint8_has_value_spec
+    /optional_uint8_deref_const_lvalue_spec
+    /optional_uint8_destructor_spec
+    /assert_fail_unreachable_spec.
+  verify_spec; go.
+  Unshelve.
+  ego.
+  - wapply (optional_uint8_R_engaged_byte o_addr t 1$c 5); go.
+  - go.
 Qed.
 End with_cpp.
+
 

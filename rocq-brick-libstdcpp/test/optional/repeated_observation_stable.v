@@ -43,37 +43,42 @@ Section with_cpp.
   cpp.spec "repeated_observation_stable()" from clients_cpp.source
     as repeated_observation_stable_spec with (\post emp).
   
-  Lemma repeated_observation_stable_proof :
-    verify[clients_cpp.module] "repeated_observation_stable()".
-    try rewrite /optional_uint8_nullopt_ctor_template_spec.
-    try rewrite /optional_uint8_has_value_template_spec.
-    try rewrite /optional_uint8_deref_const_lvalue_template_spec.
-    try rewrite /optional_uint8_destructor_template_spec.
-    try rewrite /assert_fail_unreachable_spec.
-    try rewrite /nullopt_copy_ctor_spec.
-    try rewrite /nullopt_destructor_spec.
+  
+#[program] Definition optional_uint8_R_engaged_byte_C
+    (o p : ptr) (q : cQp.t) (b : Z) :=
+  \cancelx
+  \consuming o |-> optional_uint8.R q (Some b) (Some p)
+  \proving p |-> ucharR q b
+  \end.
+Next Obligation.
+  intros.
+  rewrite optional_uint8.R.unlock.
+  rewrite _at_sep _at_pureR.
+  go.
+Qed.
+#[local] Hint Resolve optional_uint8_R_engaged_byte_C : br_hints.
 
-  Proof using MOD.
-    rewrite /optional_uint8_nullopt_ctor_spec
-      /optional_uint8_value_rvalue_ctor_spec
-      /optional_uint8_has_value_spec
-      /optional_uint8_deref_const_lvalue_spec
-      /optional_uint8_destructor_spec.
-    verify_spec.
-repeat first [ progress (go) | iExists _; iFrame | rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ _ _ _)) | (iApply wp_init_constructor_inline; [exact (InlineMe _) | go |]) | (iApply destroy_val_named_inline; [exact (InlineMe _) | go |]) ].
+#[local] Hint Resolve fractional.UNSAFE_read_prim_learn : sl_opacity.
+#[local] Instance optional_uint8_R_read_learn :
+  AtLearnEq3 optional_uint8.R := ltac:(solve_learnable).
 
-    
+Lemma repeated_observation_stable_proof :
+  verify[clients_cpp.module] "repeated_observation_stable()".
+Proof using MOD.
+  rewrite /optional_uint8_nullopt_ctor_spec
+    /optional_uint8_value_rvalue_ctor_spec
+    /optional_uint8_has_value_spec
+    /optional_uint8_deref_const_lvalue_spec
+    /optional_uint8_destructor_spec
+    /assert_fail_unreachable_spec
+    /nullopt_copy_ctor_spec
+    /nullopt_destructor_spec.
+  verify_spec; go.
+  Unshelve.
+  all: ego; go.
+  Unshelve.
+  exact t.
+Qed.
 
-all: rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ (1$c)%cQp (Some 5%Z) (Some t))). all: go.
-
-iExists (1$c)%cQp, 5%Z, t. rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ (1$c)%cQp (Some 5%Z) (Some t))). iFrame. go.
-
-all: iExists (1$c)%cQp; iFrame. all: go.
-
-repeat first [ progress (go) | (iExists (1$c)%cQp; iFrame) ].
-
-iExists (Some 5%Z), (Some t). rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ (1$m)%cQp (Some 5%Z) (Some t))). iFrame. go. Unshelve.
-
-exact t. Qed.
 
 End with_cpp.

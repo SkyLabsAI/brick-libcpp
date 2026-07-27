@@ -24,22 +24,30 @@ Section with_cpp.
       \post emp
     ).
   
+
+#[program] Definition optional_uint8_R_engaged_byte_C
+    (o p : ptr) (q : cQp.t) (b : Z) :=
+  \cancelx
+  \consuming o |-> optional_uint8.R q (Some b) (Some p)
+  \proving p |-> ucharR q b
+  \end.
+Next Obligation.
+  intros.
+  rewrite optional_uint8.R.unlock.
+  rewrite _at_sep _at_pureR.
+  go.
+Qed.
+#[local] Hint Resolve optional_uint8_R_engaged_byte_C : br_hints.
+
 Lemma check_present_by_const_ref_proof :
-    verify[clients_cpp.module]
-      "check_present_by_const_ref(const std::optional<unsigned char>&)".
+  verify[clients_cpp.module]
+    "check_present_by_const_ref(const std::optional<unsigned char>&)".
+Proof using MOD.
+  rewrite /optional_uint8_has_value_spec
+    /optional_uint8_deref_const_lvalue_spec.
+  verify_spec; go.
+  Unshelve.
+  all: ego; go.
+Qed.
 
-  Proof using MOD.
-    rewrite /optional_uint8_has_value_spec
-      /optional_uint8_deref_const_lvalue_spec.
-    verify_spec.
-    
-repeat first [ progress (go) | iExists _; iFrame ].
-
-rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ q (Some 5%Z) (Some p))).
-
-go.
-
-go.
-
-  Qed.
 End with_cpp.

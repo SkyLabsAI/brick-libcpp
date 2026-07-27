@@ -28,29 +28,45 @@ Section with_cpp.
   cpp.spec "lvalue_source_alias_rejected()"
     from lvalue_source_alias_rejected_cpp.source
     as lvalue_source_alias_rejected_spec with (\post emp).
-  Lemma lvalue_source_alias_rejected_proof :
-    denoteModule lvalue_source_alias_rejected_cpp.source |--
-      (▷ optional_uint8_value_lvalue_ctor_spec **
-       ▷ optional_uint8_has_value_spec **
-       ▷ optional_uint8_deref_const_lvalue_spec **
-       ▷ optional_uint8_destructor_spec -*
-       lvalue_source_alias_rejected_spec).
-  Proof using MOD.
-    rewrite /optional_uint8_value_lvalue_ctor_spec
-      /optional_uint8_has_value_spec
-      /optional_uint8_deref_const_lvalue_spec
-      /optional_uint8_destructor_spec.
-    verify_spec.
-    
+  
+#[program] Definition optional_uint8_R_engaged_byte_C
+    (o p : ptr) (q : cQp.t) (b : Z) :=
+  \cancelx
+  \consuming o |-> optional_uint8.R q (Some b) (Some p)
+  \proving p |-> ucharR q b
+  \end.
+Next Obligation.
+  intros.
+  rewrite optional_uint8.R.unlock.
+  rewrite _at_sep _at_pureR.
+  go.
+Qed.
+#[local] Hint Resolve optional_uint8_R_engaged_byte_C : br_hints.
 
+#[local] Hint Resolve fractional.UNSAFE_read_prim_learn : sl_opacity.
+#[local] Instance optional_uint8_R_read_learn :
+  AtLearnEq3 optional_uint8.R := ltac:(solve_learnable).
 
-repeat first
-      [ progress (go)
-      | iExists _; iFrame
-      | rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ _ _ _))
-      ].
+Lemma lvalue_source_alias_rejected_proof :
+  denoteModule lvalue_source_alias_rejected_cpp.source |--
+    (▷ optional_uint8_value_lvalue_ctor_spec **
+     ▷ optional_uint8_has_value_spec **
+     ▷ optional_uint8_deref_const_lvalue_spec **
+     ▷ optional_uint8_destructor_spec -*
+     lvalue_source_alias_rejected_spec).
+Proof using MOD.
+  rewrite /optional_uint8_value_lvalue_ctor_spec
+    /optional_uint8_has_value_spec
+    /optional_uint8_deref_const_lvalue_spec
+    /optional_uint8_destructor_spec.
+  verify_spec; go.
+  Unshelve.
+  all: ego; go.
+
+all: try (wname [ (source_addr |-> ucharR _x_1 _x_2) ] "Hcopy"; wname [ (source_addr |-> ucharR 1$m 91) ] "Hnew"; iDestruct (observe_2 [| _x_2 = 91%Z |] with "Hcopy Hnew") as %Hsame; case_bool_decide; go; iDestruct "Hcopy" as "?"; iDestruct "Hnew" as "?"; go).
 Fail Qed.
 Abort.
+
 
 
     

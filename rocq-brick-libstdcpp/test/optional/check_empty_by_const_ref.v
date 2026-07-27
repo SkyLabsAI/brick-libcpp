@@ -23,21 +23,17 @@ Section with_cpp.
       \post emp
     ).
   
+
 Lemma check_empty_by_const_ref_proof :
-    verify[clients_cpp.module]
-      "check_empty_by_const_ref(const std::optional<unsigned char>&)".
+  verify[clients_cpp.module]
+    "check_empty_by_const_ref(const std::optional<unsigned char>&)".
+Proof using MOD.
+  rewrite /optional_uint8_has_value_spec.
+  verify_spec; go.
+  Unshelve.
 
-  Proof using MOD.
-    rewrite /optional_uint8_has_value_spec.
-    verify_spec.
-    
-go.
+all: ego; go.
 
-repeat first [ progress (go) | iExists _; iFrame ].
-
-iExists _. iFrame.
-
-go.
-
-  Qed.
+Qed.
 End with_cpp.
+
