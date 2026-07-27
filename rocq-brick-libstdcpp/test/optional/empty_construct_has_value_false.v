@@ -48,19 +48,21 @@ Section with_cpp.
       /nullopt_destructor_spec.
     verify_spec.
 
-    go.
-
-    iExists _. iFrame.
-
-    iIntros "Hnullopt".
-    go.
-
-    iExists _. iFrame.
-    go.
+    (* Goal-shape-conditional instead of positional: each alternative only
+       fires on the shape it targets (existential / bare wand / a resource
+       stranded beside `wp_block`), so it doesn't matter exactly where a
+       given `go` version stops. The bare [iFrame] is what re-absorbs a
+       resource automation left dangling next to `▷ wp_block ...`, which is
+       what lets the next `go` continue instead of getting stuck. *)
+    repeat first
+      [ progress go
+      | iExists _; iFrame
+      | iIntros "?"
+      | iFrame ].
 
     Unshelve.
-
-    exact p.
+    all: try exact p.
+    all: try done.
   Qed.
 End with_cpp.
 
