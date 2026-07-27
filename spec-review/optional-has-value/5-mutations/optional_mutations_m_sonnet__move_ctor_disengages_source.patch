@@ -1,0 +1,14 @@
+diff --git a/proof/optional/spec.v b/proof/optional/spec.v
+--- a/proof/optional/spec.v
++++ b/proof/optional/spec.v
+@@ -74,8 +74,8 @@ Section with_cpp.
+     specify.template.ctor optionalN [Trv_ref optionalT] $
+       \this this
+       \arg{otherp} "" (Vref otherp)
+-      \prepost{state} otherp |-> optionalR 1$m state
+-      \post this |-> optionalR 1$m state.
++      \pre{state} otherp |-> optionalR 1$m state
++      \post this |-> optionalR 1$m state ** otherp |-> optionalR 1$m None.
+   #[global] Hint Opaque move_ctor_spec : sl_opacity.
+   #[global] Arguments move_ctor_spec : simpl never.
+   Definition move_ctor_spec_instance := RegisterSpec move_ctor_spec.

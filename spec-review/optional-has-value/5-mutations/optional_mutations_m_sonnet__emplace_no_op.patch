@@ -1,0 +1,12 @@
+diff --git a/proof/optional/spec.v b/proof/optional/spec.v
+--- a/proof/optional/spec.v
++++ b/proof/optional/spec.v
+@@ -166,7 +166,7 @@ Section with_cpp.
+       \arg{valuep} "__args" (Vref valuep)
+       \prepost{q value} valuep |-> intR q value
+       \pre{state} this |-> optionalR 1$m state
+-      \post{result}[Vref result] this |-> optionalR 1$m (Some value)).
++      \post{result}[Vref result] this |-> optionalR 1$m state).
+   #[global] Hint Opaque emplace_spec : sl_opacity.
+   #[global] Arguments emplace_spec : simpl never.
+   Definition emplace_spec_instance := RegisterSpec emplace_spec.

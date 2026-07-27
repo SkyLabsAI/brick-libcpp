@@ -1,0 +1,12 @@
+diff --git a/proof/optional/spec.v b/proof/optional/spec.v
+--- a/proof/optional/spec.v
++++ b/proof/optional/spec.v
+@@ -97,7 +97,7 @@ Section with_cpp.
+       \this this
+       \arg{tagp} "" (Vptr tagp)
+       \pre{state} this |-> optionalR 1$m state
+-      \post[Vref this] this |-> optionalR 1$m None.
++      \post[Vref this] this |-> optionalR 1$m state.
+   #[global] Hint Opaque nullopt_assign_spec : sl_opacity.
+   #[global] Arguments nullopt_assign_spec : simpl never.
+   Definition nullopt_assign_spec_instance := RegisterSpec nullopt_assign_spec.

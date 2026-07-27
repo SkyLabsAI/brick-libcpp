@@ -1,0 +1,9 @@
+diff --git a/proof/optional/model.v b/proof/optional/model.v
+--- a/proof/optional/model.v
++++ b/proof/optional/model.v
+@@ -17 +17 @@ Definition is_engaged (state : optional_state) : bool :=
+-  | Some _ => true
++  | Some value => negb (Z.eqb value 0)
+@@ -21 +21 @@ Succeed Example is_engaged_none : is_engaged None = false := eq_refl.
+-Succeed Example is_engaged_zero : is_engaged (Some 0) = true := eq_refl.
++Succeed Example is_engaged_zero : is_engaged (Some 0) = false := eq_refl.

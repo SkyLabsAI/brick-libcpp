@@ -1,0 +1,12 @@
+diff --git a/proof/optional/spec.v b/proof/optional/spec.v
+--- a/proof/optional/spec.v
++++ b/proof/optional/spec.v
+@@ -176,7 +176,7 @@ Section with_cpp.
+     specify.template.method optionalN "reset" function_qualifiers.N Tvoid [] $
+       \this this
+       \pre{state} this |-> optionalR 1$m state
+-      \post this |-> optionalR 1$m None.
++      \post this |-> optionalR 1$m state.
+   #[global] Hint Opaque reset_spec : sl_opacity.
+   #[global] Arguments reset_spec : simpl never.
+   Definition reset_spec_instance := RegisterSpec reset_spec.

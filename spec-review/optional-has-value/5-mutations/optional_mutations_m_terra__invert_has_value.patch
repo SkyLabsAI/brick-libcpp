@@ -1,0 +1,6 @@
+diff --git a/proof/optional/spec.v b/proof/optional/spec.v
+--- a/proof/optional/spec.v
++++ b/proof/optional/spec.v
+@@ -189 +189 @@ Section with_cpp.
+-      \post[Vbool (is_engaged state)] emp.
++      \post[Vbool (negb (is_engaged state))] emp.

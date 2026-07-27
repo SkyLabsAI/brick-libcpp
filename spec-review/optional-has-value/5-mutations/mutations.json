@@ -1,0 +1,75 @@
+[
+  {
+    "name": "optional_mutations_m_terra__invert_has_value",
+    "patch": "optional_mutations_m_terra__invert_has_value.patch",
+    "description": "Flips the has_value() observer relation so engaged optionals report false and disengaged optionals report true.",
+    "requirement_ids": [
+      "REQ_CORE_001"
+    ],
+    "expect_fail_targets": [
+      "test/optional/literal_bool_result_proof.vo"
+    ]
+  },
+  {
+    "name": "optional_mutations_m_terra__zero_value_absent",
+    "patch": "optional_mutations_m_terra__zero_value_absent.patch",
+    "description": "Weakens the engagement boundary by treating a stored zero int as absence even though std::optional<int>{0} is engaged.",
+    "requirement_ids": [
+      "REQ_CORE_001",
+      "REQ_BOUNDARY_001",
+      "REQ_BOUNDARY_002"
+    ],
+    "expect_fail_targets": [
+      "test/optional/zero_value_reports_true_proof.vo",
+      "test/optional/emplace_zero_still_engaged_proof.vo"
+    ]
+  },
+  {
+    "name": "optional_mutations_m_sonnet__reset_no_op",
+    "patch": "optional_mutations_m_sonnet__reset_no_op.patch",
+    "description": "reset()'s postcondition is weakened from establishing 'no value' (this |-> optionalR 1$m None) to merely restating whatever state already held (this |-> optionalR 1$m state, reusing the precondition's existential). reset() becomes a state-preserving no-op in the model: calling it on an engaged optional leaves it engaged. Still compiles because the precondition/postcondition shapes remain well-typed; only the effect is lost.",
+    "requirement_ids": [
+      "REQ_COMPOSITION_001"
+    ],
+    "expect_fail_targets": [
+      "test/optional/reset_then_query_reports_false_proof.vo"
+    ]
+  },
+  {
+    "name": "optional_mutations_m_sonnet__emplace_no_op",
+    "patch": "optional_mutations_m_sonnet__emplace_no_op.patch",
+    "description": "emplace(v)'s postcondition is weakened from establishing engagement with the newly constructed value (this |-> optionalR 1$m (Some value)) to reusing the precondition's state variable (this |-> optionalR 1$m state). The model never records that emplace succeeded: a disengaged optional stays disengaged, and an already-engaged optional keeps its old value instead of the refreshed one. Kills every real client that relies on emplace's engaged post-state, whether starting disengaged, already engaged, or emplacing zero.",
+    "requirement_ids": [
+      "REQ_COMPOSITION_002",
+      "REQ_COMPOSITION_003",
+      "REQ_BOUNDARY_002"
+    ],
+    "expect_fail_targets": [
+      "test/optional/emplace_then_query_reports_true_proof.vo",
+      "test/optional/reemplace_already_engaged_stays_engaged_proof.vo",
+      "test/optional/emplace_zero_still_engaged_proof.vo"
+    ]
+  },
+  {
+    "name": "optional_mutations_m_sonnet__nullopt_assign_no_op",
+    "patch": "optional_mutations_m_sonnet__nullopt_assign_no_op.patch",
+    "description": "operator=(nullopt_t)'s postcondition is weakened from establishing 'no value' (this |-> optionalR 1$m None) to restating the precondition's state (this |-> optionalR 1$m state). Assigning std::nullopt to an engaged optional no longer disengages it in the model -- the single most common way real code clears an optional silently becomes a no-op.",
+    "requirement_ids": [
+      "REQ_COMPOSITION_006"
+    ],
+    "expect_fail_targets": [
+      "test/optional/assign_nullopt_disengages_proof.vo"
+    ]
+  },
+  {
+    "name": "optional_mutations_m_sonnet__move_ctor_disengages_source",
+    "patch": "optional_mutations_m_sonnet__move_ctor_disengages_source.patch",
+    "description": "Move construction is remodeled after the common but incorrect owning-pointer intuition (as with std::unique_ptr): the source's engagement fact is split out of the shared \\prepost quantifier into a \\pre, and the postcondition adds otherp |-> optionalR 1$m None, so the moved-from source is left disengaged instead of retaining its abstract engagement. This drops/duplicates the resource incorrectly -- the destination gains the value while the source's ownership is wrongly extinguished, contradicting the standard's requirement that only the contained int (not the engagement) is moved from.",
+    "requirement_ids": [
+      "REQ_COMPOSITION_005"
+    ],
+    "expect_fail_targets": [
+      "test/optional/move_construct_preserves_source_engagement_proof.vo"
+    ]
+  }
+]
