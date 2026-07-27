@@ -48,15 +48,15 @@ Section with_cpp.
       /nullopt_destructor_spec.
     verify_spec.
 
-    go $usenamed=true.
+    go.
 
     iExists _. iFrame.
 
     iIntros "Hnullopt".
-    go $usenamed=true.
+    go.
 
     iExists _. iFrame.
-    go $usenamed=true.
+    go.
 
     Unshelve.
 

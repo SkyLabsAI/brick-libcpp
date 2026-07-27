@@ -45,7 +45,7 @@ Section with_cpp.
 
 
 repeat first
-      [ progress (go $usenamed=true)
+      [ progress (go)
       | iExists _; iFrame
       | rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ _ _ _))
       ].

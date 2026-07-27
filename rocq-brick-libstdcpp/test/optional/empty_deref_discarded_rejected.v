@@ -42,23 +42,23 @@ Section with_cpp.
 
 
 repeat first
-      [ progress (go $usenamed=true)
+      [ progress (go)
       | iExists _; iFrame
       | rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ _ _ _))
       | (iApply wp_init_constructor_inline;
-          [exact (InlineMe _) | go $usenamed=true |])
+          [exact (InlineMe _) | go |])
       | (iApply destroy_val_named_inline;
-          [exact (InlineMe _) | go $usenamed=true |])
+          [exact (InlineMe _) | go |])
       ].
 Unshelve. all: try exact None.
 repeat first
-      [ progress (go $usenamed=true)
+      [ progress (go)
       | iExists _; iFrame
       | rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ _ _ _))
       | (iApply wp_init_constructor_inline;
-          [exact (InlineMe _) | go $usenamed=true |])
+          [exact (InlineMe _) | go |])
       | (iApply destroy_val_named_inline;
-          [exact (InlineMe _) | go $usenamed=true |])
+          [exact (InlineMe _) | go |])
       ].
 Fail Qed.
 Abort.

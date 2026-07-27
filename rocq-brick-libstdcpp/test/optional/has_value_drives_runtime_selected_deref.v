@@ -23,15 +23,15 @@ Lemma has_value_drives_runtime_selected_deref_proof :
 
     verify_spec.
 
-    go $usenamed=true.
+    go.
 
     iExists _.
 
-    go $usenamed=true.
+    go.
 
     iExists _.
 
-    go $usenamed=true.
+    go.
 
   Unshelve.
 

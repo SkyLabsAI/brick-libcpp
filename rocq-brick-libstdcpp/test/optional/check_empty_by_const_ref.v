@@ -31,13 +31,13 @@ Lemma check_empty_by_const_ref_proof :
     rewrite /optional_uint8_has_value_spec.
     verify_spec.
     
-go $usenamed=true.
+go.
 
-repeat first [ progress (go $usenamed=true) | iExists _; iFrame ].
+repeat first [ progress (go) | iExists _; iFrame ].
 
 iExists _. iFrame.
 
-go $usenamed=true.
+go.
 
   Qed.
 End with_cpp.

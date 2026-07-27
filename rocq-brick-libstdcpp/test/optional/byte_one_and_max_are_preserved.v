@@ -41,7 +41,7 @@ Lemma byte_one_and_max_are_preserved_proof :
       /optional_uint8_deref_const_lvalue_spec
       /optional_uint8_destructor_spec.
     verify_spec.
-repeat first [ progress (go $usenamed=true) | iExists _; iFrame | rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ _ _ _)) ].
+repeat first [ progress (go) | iExists _; iFrame | rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ _ _ _)) ].
 
   Qed.
 End with_cpp.

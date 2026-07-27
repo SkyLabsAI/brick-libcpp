@@ -66,28 +66,28 @@ Section with_cpp.
     verify_spec.
     
 repeat first
-      [ progress (go $usenamed=true)
+      [ progress (go)
       | iExists _; iFrame
       | rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ _ _ _))
       | (iApply wp_init_constructor_inline;
-          [exact (InlineMe _) | go $usenamed=true |])
+          [exact (InlineMe _) | go |])
       | (iApply destroy_val_named_inline;
-          [exact (InlineMe _) | go $usenamed=true |])
+          [exact (InlineMe _) | go |])
       ].
 
 
 
-all: repeat first [ progress (go $usenamed=true) | iExists _; iFrame | rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ _ _ _)) | (iApply wp_init_constructor_inline; [exact (InlineMe _) | go $usenamed=true |]) | (iApply destroy_val_named_inline; [exact (InlineMe _) | go $usenamed=true |]) ].
+all: repeat first [ progress (go) | iExists _; iFrame | rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ _ _ _)) | (iApply wp_init_constructor_inline; [exact (InlineMe _) | go |]) | (iApply destroy_val_named_inline; [exact (InlineMe _) | go |]) ].
 
 wp_if.
 
-all: repeat first [ progress (go $usenamed=true) | iExists _; iFrame | rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ _ _ _)) | (iApply wp_init_constructor_inline; [exact (InlineMe _) | go $usenamed=true |]) | (iApply destroy_val_named_inline; [exact (InlineMe _) | go $usenamed=true |]) ].
+all: repeat first [ progress (go) | iExists _; iFrame | rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ _ _ _)) | (iApply wp_init_constructor_inline; [exact (InlineMe _) | go |]) | (iApply destroy_val_named_inline; [exact (InlineMe _) | go |]) ].
 
 all: rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ 1$m (Some 5%Z) (Some t))).
 
-all: go $usenamed=true.
+all: go.
 
-iExists (Some 5%Z), (Some t). go $usenamed=true.
+iExists (Some 5%Z), (Some t). go.
 
 Unshelve.
 

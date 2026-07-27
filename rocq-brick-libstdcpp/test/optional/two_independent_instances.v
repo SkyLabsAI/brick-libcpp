@@ -60,18 +60,18 @@ Section with_cpp.
       /optional_uint8_deref_const_lvalue_spec
       /optional_uint8_destructor_spec.
     verify_spec.
-repeat first [ progress (go $usenamed=true) | iExists _; iFrame | rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ _ _ _)) | (iApply wp_init_constructor_inline; [exact (InlineMe _) | go $usenamed=true |]) | (iApply destroy_val_named_inline; [exact (InlineMe _) | go $usenamed=true |]) ].
+repeat first [ progress (go) | iExists _; iFrame | rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ _ _ _)) | (iApply wp_init_constructor_inline; [exact (InlineMe _) | go |]) | (iApply destroy_val_named_inline; [exact (InlineMe _) | go |]) ].
 
 
 
 
-all: rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ (1$c)%cQp (Some 5%Z) (Some t))). all: go $usenamed=true. repeat first [ progress (go $usenamed=true) | (iExists (1$c)%cQp; iFrame) ]. iExists 5%Z, t. rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ (1$c)%cQp (Some 5%Z) (Some t))). iFrame. go $usenamed=true.
+all: rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ (1$c)%cQp (Some 5%Z) (Some t))). all: go. repeat first [ progress (go) | (iExists (1$c)%cQp; iFrame) ]. iExists 5%Z, t. rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ (1$c)%cQp (Some 5%Z) (Some t))). iFrame. go.
 
 iExists (1$c)%cQp. iFrame.
 
-iExists (1$c)%cQp, (Some 5%Z), (Some t). rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ (1$c)%cQp (Some 5%Z) (Some t))). iFrame. go $usenamed=true.
+iExists (1$c)%cQp, (Some 5%Z), (Some t). rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ (1$c)%cQp (Some 5%Z) (Some t))). iFrame. go.
 
-iExists (Some 5%Z), (Some t). rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ (1$m)%cQp (Some 5%Z) (Some t))). iFrame. go $usenamed=true.
+iExists (Some 5%Z), (Some t). rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ (1$m)%cQp (Some 5%Z) (Some t))). iFrame. go.
 
 Unshelve.
 

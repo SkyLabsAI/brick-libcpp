@@ -62,26 +62,26 @@ cpp.spec "value_construct_read_five()" from clients_cpp.source
 
 verify_spec.
 
-    go $usenamed=true.
+    go.
 
     
     
 iExists _. iFrame.
 
-    go $usenamed=true.
+    go.
 iExists _. iFrame.
 
-go $usenamed=true.
+go.
 
 iExists _. iFrame.
 
-go $usenamed=true.
+go.
 
 (* Expose the engaged byte returned by operator*. *) 
 rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ _ _ _)).
 
 
-go $usenamed=true.
+go.
 
 iExists _. iFrame.
 
@@ -89,7 +89,7 @@ iExists (Some 5%Z), (Some t).
 
 
 
-go $usenamed=true.
+go.
 
 Qed.
 End with_cpp.

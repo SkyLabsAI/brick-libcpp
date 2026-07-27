@@ -64,7 +64,7 @@ Section with_cpp.
       /optional_uint8_deref_const_lvalue_spec
       /optional_uint8_destructor_spec.
     verify_spec.
-repeat first [ progress (go $usenamed=true) | iExists _; iFrame | rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ _ _ _)) | (iApply wp_invoke_O_inline; [exact (InlineMe _) | go $usenamed=true |]) | (iApply wp_init_constructor_inline; [exact (InlineMe _) | go $usenamed=true |]) | (iApply destroy_val_named_inline; [exact (InlineMe _) | go $usenamed=true |]) ].
+repeat first [ progress (go) | iExists _; iFrame | rewrite (AutoUnlocking.unfold_eq (Unfoldable := optional_uint8.R_unfoldable _ _ _ _ _ _ _)) | (iApply wp_invoke_O_inline; [exact (InlineMe _) | go |]) | (iApply wp_init_constructor_inline; [exact (InlineMe _) | go |]) | (iApply destroy_val_named_inline; [exact (InlineMe _) | go |]) ].
 
     
 Unshelve.
