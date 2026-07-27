@@ -143,6 +143,18 @@
   	 (with-stderr-to inc_new_cpp.v.stderr (run cpp2v -v %{input} -o inc_new_cpp.v --no-elaborate --templates=inc_new_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_new.cpp))
 )
+(subdir optional
+ (rule
+  (targets inc_optional_cpp.v.stderr inc_optional_cpp.v inc_optional_cpp_templates.v)
+  (alias test_ast)
+  (deps
+   (:input inc_optional.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to inc_optional_cpp.v.stderr (run cpp2v -v %{input} -o inc_optional_cpp.v --no-elaborate --templates=inc_optional_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps inc_optional.cpp))
+)
 (subdir semaphore
  (rule
   (targets inc_hpp.v.stderr inc_hpp.v inc_hpp_templates.v)

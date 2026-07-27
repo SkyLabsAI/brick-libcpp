@@ -263,6 +263,66 @@
   	 (with-stderr-to demo_cpp.v.stderr (run cpp2v -v %{input} -o demo_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps demo.cpp))
 )
+(subdir optional
+ (rule
+  (targets clients_cpp.v.stderr clients_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input clients.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to clients_cpp.v.stderr (run cpp2v -v %{input} -o clients_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps clients.cpp))
+)
+(subdir optional
+ (rule
+  (targets empty_deref_discarded_rejected_cpp.v.stderr empty_deref_discarded_rejected_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input empty_deref_discarded_rejected.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to empty_deref_discarded_rejected_cpp.v.stderr (run cpp2v -v %{input} -o empty_deref_discarded_rejected_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps empty_deref_discarded_rejected.cpp))
+)
+(subdir optional
+ (rule
+  (targets empty_deref_max_rejected_cpp.v.stderr empty_deref_max_rejected_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input empty_deref_max_rejected.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to empty_deref_max_rejected_cpp.v.stderr (run cpp2v -v %{input} -o empty_deref_max_rejected_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps empty_deref_max_rejected.cpp))
+)
+(subdir optional
+ (rule
+  (targets empty_deref_zero_rejected_cpp.v.stderr empty_deref_zero_rejected_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input empty_deref_zero_rejected.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to empty_deref_zero_rejected_cpp.v.stderr (run cpp2v -v %{input} -o empty_deref_zero_rejected_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps empty_deref_zero_rejected.cpp))
+)
+(subdir optional
+ (rule
+  (targets lvalue_source_alias_rejected_cpp.v.stderr lvalue_source_alias_rejected_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input lvalue_source_alias_rejected.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to lvalue_source_alias_rejected_cpp.v.stderr (run cpp2v -v %{input} -o lvalue_source_alias_rejected_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps lvalue_source_alias_rejected.cpp))
+)
 (subdir shared_mutex
  (rule
   (targets test_cpp.v.stderr test_cpp.v)
