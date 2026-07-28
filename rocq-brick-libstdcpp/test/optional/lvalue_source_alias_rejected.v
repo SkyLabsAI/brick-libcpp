@@ -3,6 +3,7 @@ Require Import
   skylabs.brick.libstdcpp.test.optional.lvalue_source_alias_rejected_cpp.
 Require Import skylabs.auto.cpp.proof.
 Require Import skylabs.brick.libstdcpp.optional.spec.
+Require Import skylabs.brick.libstdcpp.optional.hints.
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
   Context
@@ -29,23 +30,7 @@ Section with_cpp.
     from lvalue_source_alias_rejected_cpp.source
     as lvalue_source_alias_rejected_spec with (\post emp).
   
-#[program] Definition optional_uint8_R_engaged_byte_C
-    (o p : ptr) (q : cQp.t) (b : Z) :=
-  \cancelx
-  \consuming o |-> optional_uint8.R q (Some b) (Some p)
-  \proving p |-> ucharR q b
-  \end.
-Next Obligation.
-  intros.
-  rewrite optional_uint8.R.unlock.
-  rewrite _at_sep _at_pureR.
-  go.
-Qed.
-#[local] Hint Resolve optional_uint8_R_engaged_byte_C : br_hints.
 
-#[local] Hint Resolve fractional.UNSAFE_read_prim_learn : sl_opacity.
-#[local] Instance optional_uint8_R_read_learn :
-  AtLearnEq3 optional_uint8.R := ltac:(solve_learnable).
 
 Lemma lvalue_source_alias_rejected_proof :
   denoteModule lvalue_source_alias_rejected_cpp.source |--

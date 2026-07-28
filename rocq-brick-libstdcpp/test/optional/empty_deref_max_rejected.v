@@ -3,6 +3,7 @@ Require Import
   skylabs.brick.libstdcpp.test.optional.empty_deref_max_rejected_cpp.
 Require Import skylabs.auto.cpp.proof.
 Require Import skylabs.brick.libstdcpp.optional.spec.
+Require Import skylabs.brick.libstdcpp.optional.hints.
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
   Context
@@ -36,9 +37,6 @@ Section with_cpp.
   cpp.spec "empty_deref_max_rejected()"
     from empty_deref_max_rejected_cpp.source
     as empty_deref_max_rejected_spec with (\post emp).
-#[local] Hint Resolve fractional.UNSAFE_read_prim_learn : sl_opacity.
-#[local] Instance optional_uint8_R_read_learn :
-  AtLearnEq3 optional_uint8.R := ltac:(solve_learnable).
 
 Lemma empty_deref_max_rejected_proof :
   denoteModule empty_deref_max_rejected_cpp.source |--

@@ -3,6 +3,7 @@ Require Import skylabs.brick.libstdcpp.test.optional.clients_cpp.
 
 Require Import skylabs.auto.cpp.proof.
 Require Import skylabs.brick.libstdcpp.optional.spec.
+Require Import skylabs.brick.libstdcpp.optional.hints.
 
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
@@ -40,20 +41,6 @@ cpp.spec "value_construct_read_five()" from clients_cpp.source
   
   
   
-Lemma optional_uint8_R_engaged_byte
-    (o p : ptr) (q : cQp.t) (b : Z) :
-  o |-> optional_uint8.R q (Some b) (Some p) |--
-    p |-> ucharR q b ** True.
-Proof.
-  rewrite optional_uint8.R.unlock !_at_sep !_at_pureR.
-  go.
-Qed.
-
-#[local] Hint Resolve
-  fractional.UNSAFE_read_prim_learn : sl_opacity.
-#[local] Instance optional_uint8_R_read_learn :
-  AtLearnEq3 optional_uint8.R := ltac:(solve_learnable).
-
 Lemma value_construct_read_five_proof :
   verify[clients_cpp.module] "value_construct_read_five()".
 Proof using MOD.
@@ -64,9 +51,10 @@ Proof using MOD.
     /assert_fail_unreachable_spec.
   verify_spec; go.
   Unshelve.
+  (* The dereference hands back the byte the optional stores, so pin the read
+     to that value instead of leaving it for the automation to choose. *)
+  iExists (Vint 5).
   ego.
-  - wapply (optional_uint8_R_engaged_byte o_addr t 1$c 5); go.
-  - go.
 Qed.
 End with_cpp.
 

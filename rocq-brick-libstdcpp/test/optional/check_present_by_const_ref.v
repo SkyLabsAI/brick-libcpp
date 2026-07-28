@@ -2,6 +2,7 @@
 Require Import skylabs.brick.libstdcpp.test.optional.clients_cpp.
 Require Import skylabs.auto.cpp.proof.
 Require Import skylabs.brick.libstdcpp.optional.spec.
+Require Import skylabs.brick.libstdcpp.optional.hints.
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
   Context `{MOD : !clients_cpp.source ⊧ σ}.
@@ -25,19 +26,6 @@ Section with_cpp.
     ).
   
 
-#[program] Definition optional_uint8_R_engaged_byte_C
-    (o p : ptr) (q : cQp.t) (b : Z) :=
-  \cancelx
-  \consuming o |-> optional_uint8.R q (Some b) (Some p)
-  \proving p |-> ucharR q b
-  \end.
-Next Obligation.
-  intros.
-  rewrite optional_uint8.R.unlock.
-  rewrite _at_sep _at_pureR.
-  go.
-Qed.
-#[local] Hint Resolve optional_uint8_R_engaged_byte_C : br_hints.
 
 Lemma check_present_by_const_ref_proof :
   verify[clients_cpp.module]
