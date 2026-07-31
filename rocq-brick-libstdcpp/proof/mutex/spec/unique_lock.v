@@ -52,9 +52,8 @@ NES.Begin unique_lock.
     Import rep.RepFor.
     Import RepScheme.
 
-    #[global] Instance repfor `{Σ : cpp_logic} {σ : genv} ty {T} mutexR `{!BasicLockable ty (T:=T) mutexR}
-      (q : cQp.t) (om : option (M T)) :
-      rep.RepFor.C (Tnamed $ "std::unique_lock" .<< Atype ty >>) [ArgType.CFrac;ArgType.Constant _]
+    #[global] Instance repfor `{Σ : cpp_logic} {σ : genv} ty {T} mutexR `{!BasicLockable ty (T:=T) mutexR} :
+      rep.RepFor.C (Tnamed $ "std::unique_lock" .<< Atype ty >>) [ArgType.CFrac; ArgType.Constant _]
         (R ty mutexR) := {}.
   End with_RepFor.
 

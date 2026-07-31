@@ -12,9 +12,8 @@ Section with_cpp.
     Import rep.RepFor.
     Import RepScheme.
 
-    (* <<std::defer_lock_t>> is a marker type, but it is empty, so ownership is not really
-       needed. *)
-    #[global] Instance repfor `{Σ : cpp_logic} : rep.RepFor.C "std::defer_lock_t" [] emp := {}.
+    #[global] Instance repfor `{Σ : cpp_logic} {σ : genv} :
+      rep.RepFor.C "std::defer_lock_t" [ArgType.CFrac] R := {}.
   End with_RepFor.
 
   cpp.spec "std::defer_lock_t::defer_lock_t(const std::defer_lock_t&)" as defer_lock_copy_ctor_spec from source with (
