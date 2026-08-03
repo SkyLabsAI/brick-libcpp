@@ -26,6 +26,16 @@ Module lock_guard.
   #[only(type_ptr)] derive R.
   #[only(lazy_unfold)] derive R.
 
+  Section with_RepFor.
+    Import rep.RepFor.
+    Import RepScheme.
+
+    #[global] Instance repfor `{Σ : cpp_logic, !HasStdThreads Σ} {σ : genv} :
+      rep.RepFor.C "std::lock_guard<std::mutex>"
+      [ArgType.Constant _; ArgType.CFrac; ArgType.Constant _]
+      R := {}.
+  End with_RepFor.
+
   (**
   These automated proofs fail, so we prove it by hand.
   [R_cfrac] does not seem too useful (why ever split a lock guard?), but let's

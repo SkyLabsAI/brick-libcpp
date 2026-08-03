@@ -148,7 +148,7 @@ NES.Begin std.
     (** Question(Simon): Should we take a predicate as a parameter instead of using [objR]? That would allow varying the
         representation of the contents of the vector of the course of a single proof. That's also enabled by manipulating
         [spineR] and [array_sliceR] separately. *)
-    #[global] Notation R_alloc_cap ty alloc_ty q size st xs :=
+    #[global] Abbreviation R_alloc_cap ty alloc_ty q size st xs :=
       ( spineR ty alloc_ty q size st **
         pureR (base_pointer st |-> array_sliceR ty 0 size (objR ty q) xs) )%I
       (q in scope cQp_scope, basep in scope bi_scope, size, cap in scope Z_scope ).
@@ -162,6 +162,16 @@ NES.Begin std.
 
     #[global] Abbreviation R ty q xs :=
       (R_alloc ty (std.allocator.T ty) q xs).
+
+    Section with_RepFor.
+      Import rep.RepFor.
+      Import RepScheme.
+
+      #[global] Instance repfor `{Σ : cpp_logic} {σ : genv} ty aty `(_ : BundledRep ty M) :
+        rep.RepFor.C (T ty aty)
+          [ArgType.CFrac; ArgType.Model _]
+          (λ q xs, R ty q xs) := {}.
+    End with_RepFor.
 
     (** [R_alloc_resized ty alloc_ty q size st xs] is a vector whose payloads can be proven (on
         demand) to be stored in memory specified by [st] if that memory can accommodate [size] elements.

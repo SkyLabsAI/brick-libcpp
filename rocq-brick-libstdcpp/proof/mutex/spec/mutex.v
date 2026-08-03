@@ -35,6 +35,16 @@ Section with_cpp.
   Parameter token : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv}, gname -> Qp -> mpred.
   #[only(fractional,fracvalid,asfractional,timeless)] derive token.
 
+  Section with_RepFor.
+    Import rep.RepFor.
+    Import RepScheme.
+
+    #[global] Instance repfor `{!HasStdThreads Σ} {σ : genv} :
+      rep.RepFor.C "std::mutex" [ArgType.Constant _; ArgType.CFrac; ArgType.Constant _]
+        (funI γ q P => R γ q P ∗ pureR (token γ q)) := {}.
+  End with_RepFor.
+
+
   (** A resource enforcing that the thread calling unlock must be the same thread
       that owns the lock
 
