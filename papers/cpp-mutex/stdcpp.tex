@@ -47,6 +47,7 @@
 \documentclass[sigplan,screen]{acmart}
 \usepackage{iris}
 \usepackage{mathpartir}
+\usepackage{listings}
 
 %https://tex.stackexchange.com/questions/78187/is-there-another-symbol-that-is-slightly-different-from-forall-likewise-for-e
 \makeatletter
@@ -255,31 +256,53 @@ The basic theory of threads and locks in separation logic is well understood. Ho
 
 \section{Introduction}
 
+Our contributions are:
+\begin{itemize}
+\item Specifications of standard, recursive, and shared mutexes as described in the C++ standard library.
+\item Separation-logic abstractions capturing common patterns across these mutexes, including thread identity tracking and the generic interface used by \lstinline{std::lock}.
+\item Specifications of C++'s lock management objects, defined generically over the type of lock.
+\item example?
+\end{itemize}
+
 \section{Background: Lock Specifications in Separation Logic}
 There are two common styles of CSL lock specification, which have been proved to be equivalent~\cite{}: invariant-based, and logically atomic (sometimes called TaDA-style~\cite{tada}). In the invariant style, a lock $\ell$ protects an invariant $P$ (represented as $\mathsf{is\_lock}(\ell, P)$), and acquire and release are specified as:
 \begin{mathpar}
-\{\mathsf{is\_lock}(\ell, P\}\ \texttt{acquire}(\ell)\ \{\mathsf{is\_lock}(\ell, P) \ast P\}
+\{\mathsf{is\_lock}(\ell, P\}\ \texttt{lock}(\ell)\ \{\mathsf{is\_lock}(\ell, P) \ast P\} %adjust to match the style of our lock specs, as in the RocqPL submission
 
-\{\mathsf{is\_lock}(\ell, P\} \ast P\}\ \texttt{release}(\ell)\ \{\mathsf{is\_lock}(\ell, P)\}
+\{\mathsf{is\_lock}(\ell, P\} \ast P\}\ \texttt{unlock}(\ell)\ \{\mathsf{is\_lock}(\ell, P)\}
 \end{mathpar}
 In the atomic style, a lock is simply in one of two states, represented by e.g. a boolean that is $\mathsf{true}$ when the lock is held. Then acquire and release can be specified as:
 \begin{mathpar}
-\fforall b.\ \langle \mathsf{lock\_state}(\ell, b)\rangle\ \texttt{acquire}(\ell)\ \langle \neg b \ast \mathsf{lock\_state}(\ell, \mathsf{true})\rangle
+\fforall b.\ \langle \mathsf{lock\_state}(\ell, b)\rangle\ \texttt{lock}(\ell)\ \langle \neg b \ast \mathsf{lock\_state}(\ell, \mathsf{true})\rangle
 
-\langle \mathsf{lock\_state}(\ell, \mathsf{true})\rangle\ \texttt{release}(\ell)\ \langle \mathsf{lock\_state}(\ell, \mathsf{false})\rangle
+\langle \mathsf{lock\_state}(\ell, \mathsf{true})\rangle\ \texttt{unlock}(\ell)\ \langle \mathsf{lock\_state}(\ell, \mathsf{false})\rangle
 \end{mathpar}
 While one thread is trying to acquire the lock, its state is unknown and may shift back and forth due to the behavior of other threads; at the lock's linearization point, we observe that the lock is not held ($\neg b$), and shift it to the held state ($\mathsf{true}$). By combining these specifications with a global invariant of the form $P \vee \mathsf{lock\_state}(\ell, \mathsf{true})$, we can derive the invariant-style specs: an acquiring thread trades its ownership of the lock $\mathsf{lock\_state}(\ell, \mathsf{true})$ for the invariant $P$, and then returns it before releasing the lock. (Less obviously, the TaDA-style specs can also be derived from invariant-style specs, using an invariant that is simply a ghost variable indicating the state $b$ of the lock; see \citet{} for more details.)
 
+These specifications capture the core idea of mutual exclusion: at most one thread holds the lock at any point in time, and so the protected resources can safely be accessed by that thread. They can also easily be shown to be satisfied by a simple implementation, such as a spinlock (show this? describe how one verifies it?). However, the locks used in systems programming languages are not generally implemented this way, instead building on operating system primitives (e.g., Linux's futex~\cite{}) and highly optimized libraries (e.g., Pthread~\cite{}). This leads to both additional restrictions---e.g., locks may only be released by the thread that acquired them, or can only be deallocated if not held---and additional features---e.g., locks may be recursive, so that the holder can re-acquire them any number of times and only exits the critical section after performing an equal number of releases. In this paper, we show how to extend the simple lock specs to account for the restrictions and features of the mutexes in C++'s standard library.
+
 \section{Three Flavors of Mutex}
-...
+\lstinline{mutex}, \lstinline{recursive_mutex}, \lstinline{shared_mutex}
+
+ %TODO: write out the specs for each mutex flavor (Ke)
+ 
+canonical implementation of each (simple mutex with spinlock on atomics, other flavors using simple mutex)
 
 the login-logout library
 
 the BasicLockable interface
 
 \section{RAII Lock Classes}
+\lstinline{lock_guard}, \lstinline{scoped_lock}, \lstinline{unique_lock}
 
 \section{Case Studies?}
+
+%TODO: find or make some interesting examples
+
+\section{Conclusion and Future Work}
+...
+
+condition variables, futures, shared pointers, ...
 
 %%
 %% The acknowledgments section is defined using the "acks" environment
