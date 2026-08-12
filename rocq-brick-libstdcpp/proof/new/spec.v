@@ -26,7 +26,7 @@ Section with_cpp.
             else ∃ sz, p |-> (allocatedR 1 sz ** blockR sz 1$m)
        \post emp).
 
-(*  #[ignore_missing] *)
+  #[ignore_missing]
   cpp.spec "operator delete(void*, std::size_t, enum std::align_val_t)" as operator_delete_size_align with
       (\arg{p} "p" (Vptr p)
        \arg{sz} "sz" (Vn sz)
@@ -35,7 +35,7 @@ Section with_cpp.
             else ∃ sz, p |-> (allocatedR 1 sz ** blockR sz 1$m ** alignedR al)
        \post emp).
 
-(*  #[ignore_missing] *)
+  #[ignore_missing]
   cpp.spec "operator delete(void*, std::size_t)" as operator_delete_size with
       (\arg{p} "p" (Vptr p)
        \arg{sz} "sz" (Vn sz)
@@ -59,6 +59,7 @@ Section with_cpp.
             else ∃ sz, p |-> (allocatedR 1 sz ** blockR sz 1$m)
        \post emp).
 
+  #[ignore_missing]
   cpp.spec "operator delete[](void*, std::size_t)" as operator_delete_array_size with
       (\arg{p} "p" (Vptr p)
        \arg{sz} "sz" (Vn sz)
