@@ -34,8 +34,7 @@ Module recursive_mutex.
   #[global] Arguments lockedG {_ _} Σ : assert.
 
   Record gname : Set := MkGname
-  { owned_count_id2 : iprop.gname;
-    owned_count_id : iprop.gname;
+  { owned_count_id : iprop.gname;
     locked_gname : iprop.gname;
     inv_gname : iprop.gname;
   }.
