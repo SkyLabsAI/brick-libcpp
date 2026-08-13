@@ -112,13 +112,9 @@ Module recursive_mutex.
       locked g th n ** locked g th m |-- False.
     Proof.
       rewrite locked.unlock.
-      (* iIntros "[A B]".
-      iDestruct (own_valid_2 with "A B") as "%".
-      rewrite -auth_frag_op auth_frag_valid in H.
-      rewrite /= gset_disj_valid_op /= in H.
-      set_solver.
-    Qed. *)
-    Admitted.
+      work.
+      iDestruct (not_locked_unique with "[$]") as "[]".
+    Qed.
 
     Lemma locked_excl_different_thread g th th' n m :
       locked g th n ** locked g th' m |-- [| n = 0 \/ m = 0 |] ** True.
