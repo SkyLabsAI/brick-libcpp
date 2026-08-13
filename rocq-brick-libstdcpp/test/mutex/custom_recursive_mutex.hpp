@@ -33,7 +33,9 @@ public:
 
   void unlock() {
     count--;
-    if (count == 0)
+    if (count == 0) {
       i_lock.unlock();
+      owner = std::thread::id{};
+    }
   }
 };
