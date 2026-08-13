@@ -172,8 +172,8 @@ The right invariant might resemble the following, but significant details are TB
 cinv (
   \exists x,
   mutex->__data.__owner |-> x **
-  if bool_decide (x = our thread id) then
-    sequential ownership of count ** ownership of data protected by the lock \/
+  if bool_decide (x <> 0) then
+    (sequential ownership of count ** ownership of data protected by the lock) \/
     some exclusive token (* needed to take the sequential out *)
   else
     emp
