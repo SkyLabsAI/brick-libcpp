@@ -229,6 +229,18 @@
 )
 (subdir mutex
  (rule
+  (targets custom_recursive_mutex_hpp.v.stderr custom_recursive_mutex_hpp.v)
+  (alias test_ast)
+  (deps
+   (:input custom_recursive_mutex.hpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to custom_recursive_mutex_hpp.v.stderr (run cpp2v -v %{input} -o custom_recursive_mutex_hpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps custom_recursive_mutex.hpp))
+)
+(subdir mutex
+ (rule
   (targets guard_recursive_cpp.v.stderr guard_recursive_cpp.v)
   (alias test_ast)
   (deps
