@@ -276,7 +276,10 @@ cinv (
 
   (** * Derived construction *)
   Record rmutex_gname :=
-    { lock_gname : gname; level_gname : iprop.gname }.
+    { lock_gname : gname
+    ; level_gname : iprop.gname
+    (* ; cinv_gname : iprop.gname *)
+    }.
   Definition rmutex_namespace := nroot .@@ "std" .@@ "recursive_mutex" .@@ "derived".
 
   Canonical Structure cmraR := (excl_authR (prodO natO thread_idTO)).
@@ -285,6 +288,8 @@ cinv (
   Definition inv_rmutex
       `{Σ : cpp_logic} `{!lockedG Σ} `{!HasOwn (iPropI _) cmraR}
       (g : rmutex_gname) (P : mpred) : mpred :=
+    (* TODO: this should be a _cancellable_ invariant *)
+    (* cinv rmutex_namespace g.(cinv_gname) *)
     inv rmutex_namespace
       (Exists n th, own g.(level_gname) (●E (n, th)) **
         match n with
@@ -292,6 +297,15 @@ cinv (
         | S n => locked g.(lock_gname) th (S n)
         end).
   #[only(knowledge)] derive inv_rmutex.
+
+  (*
+  sl.lock
+  Definition cinv_own_rmutex
+      `{Σ : cpp_logic} `{!lockedG Σ}
+      (g : rmutex_gname) (q : Qp) : mpred :=
+    cinv_own g.(cinv_gname) q.
+    *)
+
 
   (** [acquire_state] tracks the acquisition state of a recursive_mutex.
    *)
