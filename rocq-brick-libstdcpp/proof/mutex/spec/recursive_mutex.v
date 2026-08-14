@@ -610,7 +610,44 @@ cinv (
       ework with br_erefl.
     Qed.
 
-    (* Require Import bluerock.auto.cpp.prelude.proof. *)
+    Lemma dtor_spec_impl_dtor_spec' :
+      dtor_spec |-- dtor_spec'.
+    Proof using MOD HOV HOU.
+      apply specify_mono_fupd; work.
+      iModIntro; work.
+      iExists ths; work.
+      rewrite inv_rmutex.unlock.
+      iInv recursive_mutex.rmutex_namespace as (n th) "[>? ?]" "Hclose".
+      (* TODO: we should cancel this invariant instead *)
+      (* iMod (cinv_cancel with "[$]") as "?". *)
+
+      destruct n as [|n'] eqn:?; work; first last.
+      {
+        (* Somebody else has locked the mutex, but we have the full token.
+        This should be impossible, since we own [token 1], but it's unclear how we'd prove this. *)
+        (* iDestruct (recursive_mutex.locked_excl_same_thread (lock_gname γ) thr 0 (S n) with "[-]") as "[]".
+        work.
+        iDestruct (recursive_mutex.locked_excl_same_thread (lock_gname γ) thr 0 (S n) with "[$]") as "[]".
+        iDestruct "H" as "[[% >?] >?]". *)
+        admit.
+      }
+      iMod ("Hclose" with "[]") as "_". {
+        (* We should _cancel_ the invariant, then we would _not_ need to prove this. *)
+        admit.
+      }
+      iModIntro.
+      ego with br_erefl.
+      wname [inv] "I".
+      wname [own] "L1".
+      wname [own] "L2".
+      iCombine "L1 L2" as "L".
+      (* _now_ we just need to leak ghost state and that's okay *)
+      iApply (affine with "L").
+      apply mpred_BiAffine.
+      Unshelve.
+      all: fail.
+    Admitted.
+
     Lemma lock_spec_impl_lock_spec' :
       lock_spec |-- lock_spec'.
     Proof using MOD HOV HOU.
