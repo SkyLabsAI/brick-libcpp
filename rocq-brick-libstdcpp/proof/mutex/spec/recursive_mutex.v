@@ -290,7 +290,10 @@ cinv (
 
   (** * Derived construction *)
   Record rmutex_gname :=
-    { lock_gname : gname; level_gname : iprop.gname }.
+    { lock_gname : gname
+    ; level_gname : iprop.gname
+    (* ; cinv_gname : iprop.gname *)
+    }.
   Definition rmutex_namespace := nroot .@@ "std" .@@ "recursive_mutex" .@@ "derived".
 
   Canonical Structure cmraR := (excl_authR (prodO natO thread_idTO)).
@@ -299,6 +302,8 @@ cinv (
   Definition inv_rmutex
       `{Σ : cpp_logic} `{!lockedG Σ} `{!HasOwn (iPropI _) cmraR}
       (g : rmutex_gname) (P : mpred) : mpred :=
+    (* TODO: this should be a _cancellable_ invariant *)
+    (* cinv rmutex_namespace g.(cinv_gname) *)
     inv rmutex_namespace
       (Exists n th, own g.(level_gname) (●E (n, th)) **
         match n with
@@ -306,6 +311,15 @@ cinv (
         | S n => locked g.(lock_gname) th (S n)
         end).
   #[only(knowledge)] derive inv_rmutex.
+
+  (*
+  sl.lock
+  Definition cinv_own_rmutex
+      `{Σ : cpp_logic} `{!lockedG Σ}
+      (g : rmutex_gname) (q : Qp) : mpred :=
+    cinv_own g.(cinv_gname) q.
+    *)
+
 
   (** [acquire_state] tracks the acquisition state of a recursive_mutex.
    *)
@@ -500,14 +514,22 @@ cinv (
     cpp.spec "std::recursive_mutex::recursive_mutex()" as ctor_spec' with
       (\this this
       \persist{th} current_thread th
-      \pre{TT P xs} tele_app (TT := TT) P xs
+      \pre{TT P xs} |> tele_app (TT := TT) P xs
       \require ∀ xs, WeaklyObjective (tele_app P xs)
       \post
         Exists g,
-          this |-> R g.(lock_gname) 1 **
+          this |-> R g.(lock_gname) 1$m **
           token g.(lock_gname) 1 **
           used_threads g.(lock_gname) empty **
           inv_rmutex g (∃ xs, tele_app P xs)).
+
+    cpp.spec "std::recursive_mutex::~recursive_mutex()" as dtor_spec' with
+      (\this this
+      \pre{g} this |-> R g.(lock_gname) 1
+      \pre token g.(lock_gname) 1
+      \pre{ths} used_threads g.(lock_gname) ths
+      \pre{TT P} inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
+      \post |> Exists xs, tele_app (TT := TT) P xs).
 
     cpp.spec "std::recursive_mutex::lock()" as lock_spec' with
       (\this this
