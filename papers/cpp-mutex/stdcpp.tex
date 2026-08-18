@@ -92,6 +92,28 @@
 }
 \makeatother
 
+\lstdefinestyle{customc}{
+  mathescape=true,
+  belowcaptionskip=1\baselineskip,
+  breaklines=true,
+  xleftmargin=\parindent,
+  language=C,
+  showstringspaces=false,
+  basicstyle=\small\ttfamily,
+  keywordstyle=\bfseries\color{green!40!black},
+  commentstyle=\itshape\color{purple!40!black},
+  identifierstyle=\color{blue!50!black},
+  stringstyle=\color{orange},
+  numbers=left,
+  columns=fullflexible,
+   literate={=>}{{$\Rightarrow$\ }}1
+   %{l_}{{l$\hspace{.2ex}$\raisebox{-.46ex}{-}}}{2}
+   %{_}{\raisebox{-.46ex}{-}}1
+   {neq}{{$\neq$\ }}1
+}
+
+\lstset{style=customc}
+
 %%
 %% \BibTeX command to typeset BibTeX logo in the docs
 \AtBeginDocument{%
