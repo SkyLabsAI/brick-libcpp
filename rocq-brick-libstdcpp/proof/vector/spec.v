@@ -516,11 +516,10 @@ NES.Begin std.
             \arg{otherp} "other" (Vref otherp)
             \prepost{q__other size st xs}
                   otherp |-> R_cap q__other size st xs
-            \let cap := capacity st
             \post
-              Exists new_basep,
-                 let new_st := {| base_pointer := new_basep; capacity := cap |} in
-                 this |-> R_cap (cQp.m 1) size new_st xs.
+              Exists new_st,
+                this |-> R_cap (cQp.m 1) size new_st xs.
+
         #[global] Hint Opaque copy_ctor : sl_opacity.
         #[global] Arguments copy_ctor : simpl never.
         Definition SpecFor_copy_ctor := RegisterSpec copy_ctor.
