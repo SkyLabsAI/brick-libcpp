@@ -170,7 +170,7 @@ NES.Begin std.
       #[global] Instance repfor `{Σ : cpp_logic} {σ : genv} ty aty `(_ : BundledRep ty M) :
         rep.RepFor.C (T ty aty)
           [ArgType.CFrac; ArgType.Model _]
-          (λ q xs, R ty q xs) := {}.
+          (λ q xs, R_alloc ty aty q xs) := {}.
     End with_RepFor.
 
     (** [R_alloc_resized ty alloc_ty q size st xs] is a vector whose payloads can be proven (on
