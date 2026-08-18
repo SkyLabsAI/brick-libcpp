@@ -53,11 +53,50 @@ Section with_cpp.
   Implicit Types p : ptr.
   Import specify_notation. (** this should be enabled by default. Add to prelude? *)
 
+  Definition foo : constrained (WpSpec mpredI val val) :=
+  ( \\requires{C Iter} BundledRep it_ty (C * Iter)%type
+      \\requires HasRanges it_ty C Iter
+      \\requires{V} BundledRep ty V
+      \\requires  EqDecision V
+      \\with
+         \with c
+         \arg{beginp : ptr} "begin" (Vptr beginp)
+         \prepost{itb} beginp |-> objR it_ty 1$m (c, itb)
+
+         \arg{endp : ptr} "end" (Vptr endp)
+         \prepost{ite} endp |-> objR it_ty 1$m (c, ite)
+
+         \arg{vp : ptr} "v" (Vref vp)
+         \prepost{vq v} vp |-> objR ty vq v
+
+         (* spine and payload of the range between `begin` and `end` *)
+         \prepost{q ps}    range it_ty c q itb ps ite
+         \prepost{objq xs} payload it_ty c (fun x => objR ty objq x) ps xs
+         \post{retp : ptr}[Vptr retp]
+           ∃ itr,
+             retp |-> objR it_ty 1$m (c, itr) **
+             match list_findZ (eq v) xs with
+             | Some (i, _) =>
+                 lookup_result (ps !! i) itr
+             | None => [| itr = ite |]
+             end ).
+  Print constrained .
+  Print foo.
+
+  #[ignore_errors]
+  (* #[verbose,debug,ignore_errors] *)
+  (* #[materialized] *)
+  (* cpp.spec "std::find<$it_ty, $ty>($it_ty, $it_ty,const $ty &)"
+    as find_spec'
+    from inc_algorithms_cpp.source
+    templates inc_algorithms_cpp_templates.templates
+    (Reduce foo). *)
+
   #[materialized]
   cpp.spec "std::find<$it_ty, $ty>($it_ty, $it_ty,const $ty &)"
     as find_spec
     from inc_algorithms_cpp.source
-    templates inc_algorithms_cpp_templates.templates
+    (* templates inc_algorithms_cpp_templates.templates *)
     ( \\requires{C Iter} BundledRep it_ty (C * Iter)%type
       \\requires HasRanges it_ty C Iter
       \\requires{V} BundledRep ty V
@@ -70,8 +109,7 @@ Section with_cpp.
          \arg{endp : ptr} "end" endp
          \prepost{ite} endp |-> objR it_ty 1$m (c, ite)
 
-         \arg{vpp : ptr} "v" vpp
-         \prepost{vp : ptr} vpp |-> refR<ty> 1$m vp
+         \arg{vp : ptr} "v" vp
          \prepost{vq v} vp |-> objR ty vq v
 
          (* spine and payload of the range between `begin` and `end` *)

@@ -153,6 +153,7 @@ NES.Begin std.
         pureR (base_pointer st |-> array_sliceR ty 0 size (objR ty q) xs) )%I
       (q in scope cQp_scope, basep in scope bi_scope, size, cap in scope Z_scope ).
 
+    (* TODO inline? *)
     #[global] Abbreviation R_alloc ty alloc_ty q xs :=
       (∃ size st, R_alloc_cap ty alloc_ty q size st xs )%I
         (q in scope cQp_scope).
@@ -226,12 +227,24 @@ NES.Begin std.
         structR (N_base const ty alloc_ty) q.
       #[only(type_ptr,ascfractional)] derive R_base.
 
+      (* #[global] Abbreviation N_alloc ty alloc_ty :=
+        ({%cpp_name "__gnu_cxx::__normal_iterator<$ty *, std::vector<$ty, $alloc_ty>>"}).
+      Check fun ty alloc_ty => N_alloc ty alloc_ty. *)
+
       #[global] Abbreviation N_alloc ty alloc_ty       := (N_base false ty alloc_ty).
       #[global] Abbreviation N_alloc_const ty alloc_ty := (N_base true ty alloc_ty).
       #[global] Abbreviation T_alloc ty alloc_ty       := (T_base false ty alloc_ty).
       #[global] Abbreviation T_alloc_const ty alloc_ty := (T_base true ty alloc_ty).
       #[global] Abbreviation R_alloc ty alloc_ty       := (R_base false ty alloc_ty).
       #[global] Abbreviation R_alloc_const ty alloc_ty := (R_base true ty alloc_ty).
+
+      (* Compute (N_alloc "int" (std.allocator.T "int")). *)
+      (* Compute (N_alloc_const "int" (std.allocator.T "int")).
+      Set Printing All.
+      (* Check "__gnu_cxx::__normal_iterator<$ty *>"%cpp_name. *)
+
+      {%cpp_name "foo_bar<$ty>"}
+      Check "__gnu_cxx::__normal_iterator<$ty *, std::vector<$ty, std::allocator<$ty>>>"%cpp_name. *)
 
       #[global] Abbreviation N ty       := (N_base false ty (std.allocator.T ty)).
       #[global] Abbreviation N_const ty := (N_base true ty (std.allocator.T ty)).
@@ -251,6 +264,34 @@ NES.Begin std.
            facilitate unification. *)
         Definition iterator_has_rep is_const ty alloc_ty :=
           make_abstracted_name (T_base is_const ty alloc_ty, Hnf (iterator_has_rep' is_const ty alloc_ty)).
+
+        Context (ty alloc_ty : type).
+        Ltac2 Eval print_names 'source.
+(* About skylabs.lang.cpp.mparser.tu.with_templates. *)
+(* Definition source := skylabs.lang.cpp.mparser.tu.with_templates static__source meta__source. *)
+
+Ltac2 print_names' md := print_names.print_names_matching Init.None (Init.Some md) Init.None Init.true Init.false.
+
+        (* Ltac2 Eval print_names' 'meta__source. *)
+
+        Definition foo : specify_notation.constrained (WpSpec mpred val val) := (
+          \\with
+          \post emp
+        ).
+
+        (* Timeout 5 *)
+        (* #[ignore_errors] *)
+        (* #[materialized,ignore_errors] *)
+        cpp.spec
+          "__gnu_cxx::__normal_iterator<$ty *, std::vector<$ty, $alloc_ty>>::__normal_iterator()"
+          (* (N_base false ty alloc_ty) *)
+          (* (N_alloc ty alloc_ty) *)
+          as iter_default_ctor
+          from inc_vector_cpp.source
+        (
+          \\with
+          \post emp
+        ).
 
         Definition iter_default_ctor const ty alloc_ty :=
           concepts.default_ctor (T_base const ty alloc_ty) (nullptr, 0).
@@ -397,6 +438,13 @@ NES.Begin std.
     #[global] Abbreviation payload ty alloc_ty            := (std.payload (iterator.T_alloc ty alloc_ty)).
     #[global] Abbreviation payload_const ty alloc_ty      := (std.payload (iterator.T_alloc_const ty alloc_ty)).
 
+    (*
+    cpp.specify these specs
+    get the atomic specs
+
+    - understand these specs might be a stretch goal?
+    *)
+
     Section with_cpp.
       Context `{Σ : cpp_logic, σ : genv}.
       Context (ty alloc_ty : type).
@@ -504,6 +552,8 @@ NES.Begin std.
       Section no_alloc.
         Context `{!BundledRep ty V}.
 
+        About R_cap.
+        About R_alloc_cap.
         Definition copy_ctor :=
           specify.template.ctor vector [Tref (Tconst vectorT)] $
             \this this
