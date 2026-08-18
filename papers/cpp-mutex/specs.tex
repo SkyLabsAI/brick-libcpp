@@ -17,6 +17,29 @@
 
 \subsection{\texorpdfstring{\lstinline{std::mutex}}{std::mutex}}
 
+\begin{figure}[htb]
+\begin{lstlisting}
+std::atomic<bool> lock;
+
+void lock(){
+  while(!(lock->atomic_compare_exchange(&false, true))) { }
+}
+
+void unlock(){
+  lock = false;
+}
+\end{lstlisting}
+\caption{A simple spinlock implementation of \lstinline{std::mutex}}
+\label{mutex-simple}
+\end{figure}
+
+We begin by examining \lstinline{std::mutex}, the basic lock class. The class contains methods \lstinline{lock}, \lstinline{unlock}, and \lstinline{try_lock}, as well as a constructor and destructor. The intended behavior is simply to provide mutual exclusion; a simple implementation could be a spinlock as shown in Figure~\ref{mutex-simple}, although more realistic implementations use OS primitives for efficiency. While \lstinline{std::mutex} is the library class corresponding to a standard lock, its informal specification has two restrictions that do not appear in the standard separation logic treatment:
+\begin{itemize}
+\item When a thread calls \lstinline{unlock}, it must own the mutex (i.e., it must have been the thread that most recently called \lstinline{lock}).
+\item When a mutex is destroyed, it must not be owned by any threads.
+\end{itemize}
+A program that violates either of these conditions has \emph{undefined behavior} according to the library specification, so our program logic must ensure that they are respected.
+
 \begin{mathpar}
   \spectriple
     {\triangleright P}
