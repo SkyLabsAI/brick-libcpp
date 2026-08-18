@@ -1,0 +1,223 @@
+\section{Three Flavors of Mutex}
+
+\newcommand{\spectriple}[3]{%
+  \begingroup
+  \setlength{\fboxsep}{1.2pt}%
+  \setlength{\fboxrule}{0.3pt}%
+  \boxed{\begin{gathered}
+    \left\{\,#1\,\right\} \\[-1pt]
+    #2 \\[-1pt]
+    \left\{\,#3\,\right\}
+  \end{gathered}}%
+  \endgroup}
+
+% Keep neighboring triples close while the boxes provide their visual division.
+\renewcommand{\MathparLineskip}{\lineskiplimit=.55em\lineskip=.55em plus .1em}
+
+
+\subsection{\texorpdfstring{\lstinline{std::mutex}}{std::mutex}}
+
+\begin{mathpar}
+  \spectriple
+    {\triangleright P}
+    {\texttt{mutex::mutex}(m)}
+    {\exists\gamma.\;\mathsf{M}_1(m,\gamma,P)\ast\mathsf{token}(\gamma,1)}
+
+  \spectriple
+    {\mathsf{M}_1(m,\gamma,P)\ast\mathsf{token}(\gamma,1)}
+    {\texttt{mutex::$\sim$mutex}(m)}
+    {P}
+\end{mathpar}
+\begin{mathpar}
+  \spectriple
+    {\mathsf{M}_q(m,\gamma,P)\ast\mathsf{token}(\gamma,q')}
+    {\texttt{lock}(m)}
+    {\mathsf{M}_q(m,\gamma,P)\ast P\ast\mathsf{locked}(\gamma,t,q')}
+
+  \spectriple
+    {\mathsf{M}_q(m,\gamma,P)\ast\mathsf{locked}(\gamma,t,q')
+      \ast\triangleright P}
+    {\texttt{unlock}(m)}
+    {\mathsf{M}_q(m,\gamma,P)\ast\mathsf{token}(\gamma,q')}
+
+  \spectriple
+    {\mathsf{M}_q(m,\gamma,P)\ast\mathsf{token}(\gamma,q')}
+    {\texttt{try\_lock}(m)}
+    {\begin{gathered}
+       \exists b.\;\mathsf{ret}=\mathsf{Vbool}(b)\land
+         \mathsf{M}_q(m,\gamma,P)\ast {}\\
+       \left(\begin{aligned}
+         &b=\mathsf{true}\Rightarrow P\ast\mathsf{locked}(\gamma,t,q')\\
+         &b=\mathsf{false}\Rightarrow\mathsf{token}(\gamma,q')
+       \end{aligned}\right)
+     \end{gathered}}
+\end{mathpar}
+
+\subsection{\texorpdfstring{\lstinline{std::recursive_mutex}}{std::recursive\_mutex}}
+
+\begin{mathpar}
+  \spectriple
+    {\begin{gathered}
+       \mathsf{RM}_q(m,\gamma)\ast\mathsf{rmutex}(\gamma,P) \\
+       {}\ast\mathsf{acquireable}(\gamma,t,n,P,a)\ast\mathsf{token}(\gamma,q')
+     \end{gathered}}
+    {\texttt{lock}(m)}
+    {\begin{gathered}
+       \mathsf{RM}_q(m,\gamma)\ast\mathsf{rmutex}(\gamma,P) \\
+       {}\ast\mathsf{acquireable}(\gamma,t,n+1,P,a)\ast\mathsf{given\_token}(\gamma,q')
+     \end{gathered}}
+
+  \spectriple
+    {\begin{gathered}
+       \mathsf{RM}_q(m,\gamma)\ast\mathsf{rmutex}(\gamma,P) \\
+       {}\ast\mathsf{acquireable}(\gamma,t,n+1,P,a)\ast\mathsf{given\_token}(\gamma,q')
+     \end{gathered}}
+    {\texttt{unlock}(m)}
+    {\begin{gathered}
+       \mathsf{RM}_q(m,\gamma)\ast\mathsf{rmutex}(\gamma,P) \\
+       {}\ast\mathsf{acquireable}(\gamma,t,n,P,a)\ast\mathsf{token}(\gamma,q')
+     \end{gathered}}
+\end{mathpar}
+
+\subsection{\texorpdfstring{\lstinline{std::shared_mutex}}{std::shared\_mutex}}
+
+\begin{mathpar}
+  \spectriple
+    {\triangleright P(1)}
+    {\texttt{shared\_mutex::shared\_mutex}(m)}
+    {\exists\gamma.\;\mathsf{SM}_1(m,\gamma,P)\ast
+      \mathsf{allUsers}^{\gamma}(\varnothing)}
+
+  \spectriple
+    {\mathsf{SM}_1(m,\gamma,P)\ast\mathsf{allUsers}^{\gamma}(\varnothing)}
+    {\texttt{shared\_mutex::$\sim$shared\_mutex}(m)}
+    {P(1)}
+\end{mathpar}
+\begin{mathpar}
+  \spectriple
+    {\mathsf{SM}_q(m,\gamma,P)\ast\mathsf{user}^{\gamma}(t)}
+    {\texttt{lock}(m)}
+    {\mathsf{SM}_q(m,\gamma,P)\ast P(1)\ast\mathsf{locked}(\gamma,t)}
+
+  \spectriple
+    {\mathsf{SM}_q(m,\gamma,P)\ast\mathsf{locked}(\gamma,t)
+      \ast\triangleright P(1)}
+    {\texttt{unlock}(m)}
+    {\mathsf{SM}_q(m,\gamma,P)\ast\mathsf{user}^{\gamma}(t)}
+
+  \spectriple
+    {\mathsf{SM}_q(m,\gamma,P)\ast\mathsf{user}^{\gamma}(t)}
+    {\texttt{try\_lock}(m)}
+    {\begin{gathered}
+       \exists b.\;\mathsf{ret}=\mathsf{Vbool}(b)\land
+         \mathsf{SM}_q(m,\gamma,P)\ast {}\\
+       \left(\begin{aligned}
+         &b=\mathsf{true}\Rightarrow P(1)\ast\mathsf{locked}(\gamma,t)\\
+         &b=\mathsf{false}\Rightarrow\mathsf{user}^{\gamma}(t)
+       \end{aligned}\right)
+     \end{gathered}}
+\end{mathpar}
+\begin{mathpar}
+  \spectriple
+    {\mathsf{SM}_q(m,\gamma,P)\ast\mathsf{user}^{\gamma}(t)}
+    {\texttt{lock\_shared}(m)}
+    {\begin{gathered}
+       \mathsf{SM}_q(m,\gamma,P)\ast {}\\
+       \exists q_P.\;P(q_P)\ast\mathsf{reader\_locked}(\gamma,t,q_P)
+     \end{gathered}}
+
+  \spectriple
+    {\begin{gathered}
+       \mathsf{SM}_q(m,\gamma,P)\ast\mathsf{reader\_locked}(\gamma,t,q_P)\\
+       {}\ast\triangleright P(q_P)
+     \end{gathered}}
+    {\texttt{unlock\_shared}(m)}
+    {\mathsf{SM}_q(m,\gamma,P)\ast\mathsf{user}^{\gamma}(t)}
+
+  \spectriple
+    {\mathsf{SM}_q(m,\gamma,P)\ast\mathsf{user}^{\gamma}(t)}
+    {\texttt{try\_lock\_shared}(m)}
+    {\begin{gathered}
+       \exists b.\;\mathsf{ret}=\mathsf{Vbool}(b)\land
+         \mathsf{SM}_q(m,\gamma,P)\ast {}\\
+       \left(\begin{aligned}
+         &b=\mathsf{true}\Rightarrow
+           \exists q_P.\;P(q_P)\ast\mathsf{reader\_locked}(\gamma,t,q_P)\\
+         &b=\mathsf{false}\Rightarrow\mathsf{user}^{\gamma}(t)
+       \end{aligned}\right)
+     \end{gathered}}
+\end{mathpar}
+
+\subsection{The User Library}
+
+TODO cite the Iris reader/writer lock library
+TODO mutex is not implemented with the user library yet
+
+\begin{sloppypar}
+The \texttt{user} ghost state provides an interface that allows a thread to acquire
+locked resources at most once regardless of the mutex kinds. Each mutex
+invariant is associated with a disjoint set of thread IDs, managed by one
+authoritative piece \texttt{allUsers} and fragment pieces \texttt{user}:
+\begin{align*}
+  \mathsf{allUsers}^{\gamma}(S)
+    &\eqdef \mathsf{own}^{\gamma}(\mathord{\bullet}S), \\
+  % \mathsf{users}^{\gamma}(T)
+  %   &\eqdef \mathsf{own}^{\gamma}(\mathord{\circ}T), \\
+  \mathsf{user}^{\gamma}(t)
+    &\eqdef \mathsf{own}^{\gamma}(\mathord{\circ}\{t\}).
+\end{align*}
+The \texttt{allUsers($S$)} ghost state tracks all "logged-in" threads $S$. Each thread with thread ID $t$ can get
+a \texttt{user(t)} handle for that mutex with the \texttt{login} rule, and the handle is
+unique for each thread (user-unique). The mutex invariants are slightly
+different for different kinds of mutexes, but they all ensure that a thread
+must trade in its unique \texttt{user} handle to acquire mutex protected resources.
+This ensures that a thread can't acquire protected resources if it already has
+some, and unsafe programs that calls \texttt{mutex.lock()} or
+\texttt{shared\_mutex.lock\_shared()} twice consecutively in a single thread
+would get stuck. Notably, for recursive mutexes, if a thread already has the
+resource, it is safe to \texttt{lock()} again, and the thread simply does not
+exchange anything with the invariant.
+
+A thread can also "logout" and turn in its \texttt{user} handle. Deallocation
+of any kind of mutex requires no "logged-in" users
+($\mathsf{allUsers}^{\gamma}(\varnothing)$), enforcing that any allocated
+\texttt{user} handle is deallocated with \texttt{logout}
+(\texttt{all-user-logged-out}), and so the mutex is not held
+by any thread, thus safe to deallocate.
+
+
+\begin{figure}[t]
+\begin{equation}
+  \mathsf{user}^{\gamma}(t)\ast\mathsf{user}^{\gamma}(t)
+  \vdash \mathsf{False}
+  \tag{\textsc{user-unique}}
+  \label{law:user-unique}
+\end{equation}
+\begin{equation}
+  t\notin S \rightarrow
+  \mathsf{allUsers}^{\gamma}(S)
+  \vdash \upd
+  \mathsf{allUsers}^{\gamma}(\{t\}\cup S)
+  \ast\mathsf{user}^{\gamma}(t)
+  \tag{\textsc{login}}
+  \label{law:user-login}
+\end{equation}
+\begin{equation}
+  t\notin S \rightarrow
+  \mathsf{allUsers}^{\gamma}(\{t\}\cup S)\ast\mathsf{user}^{\gamma}(t)
+  \vdash \upd \mathsf{allUsers}^{\gamma}(S)
+  \tag{\textsc{logout}}
+  \label{law:user-logout}
+\end{equation}
+\begin{equation}
+  \mathsf{allUsers}^{\gamma}(\varnothing)\ast\mathsf{user}^{\gamma}(t)
+  \vdash \mathsf{False}
+  \tag{\textsc{all-user-logged-out}}
+  \label{law:all-user-logged-out}
+\end{equation}
+\caption{Rules for the user ghost state.}
+\label{fig:user-rules}
+\end{figure}
+
+
+\end{sloppypar}
