@@ -157,12 +157,6 @@ NES.Begin std.
       (∃ size st, R_alloc_cap ty alloc_ty q size st xs )%I
         (q in scope cQp_scope).
 
-    #[global] Abbreviation R_cap ty q size st xs :=
-      (R_alloc_cap ty (std.allocator.T ty) q size st xs).
-
-    #[global] Abbreviation R ty q xs :=
-      (R_alloc ty (std.allocator.T ty) q xs).
-
     Section with_RepFor.
       Import rep.RepFor.
       Import RepScheme.
@@ -867,6 +861,13 @@ NES.Begin std.
 
     #[global] Hint Resolve congr_spineR : tc_strong_opacity.
     #[global] Hint Resolve congr_resizedR : tc_strong_opacity.
+
+    (** These abbreviations hardcode the default allocator, so they are not used in this file. *)
+    #[global] Abbreviation R_cap ty q size st xs :=
+      (R_alloc_cap ty (std.allocator.T ty) q size st xs).
+
+    #[global] Abbreviation R ty q xs :=
+      (R_alloc ty (std.allocator.T ty) q xs).
 
   NES.End vector.
 
