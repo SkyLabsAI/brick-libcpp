@@ -14,6 +14,8 @@
 % Keep neighboring triples close while the boxes provide their visual division.
 \renewcommand{\MathparLineskip}{\lineskiplimit=.55em\lineskip=.55em plus .1em}
 
+\newcommand{\mutextoken}[2]{\ensuremath{\mathsf{token}(#1, #2)}}
+\newcommand{\currentthread}[1]{\ensuremath{\mathsf{current\_thread}(#1)}}
 
 \subsection{\texorpdfstring{\lstinline{std::mutex}}{std::mutex}}
 
@@ -40,6 +42,19 @@ We begin by examining \lstinline{std::mutex}, the basic lock class. The class co
 \end{itemize}
 A program that violates either of these conditions has \emph{undefined behavior} according to the library specification, so our program logic must ensure that they are respected.
 
+The representation for a mutex has the same shape as a standard lock: we write $m \mapsto \mathsf{mutex}(\gamma, P)$ for a mutex at $m$ associated with ghost identifier $\gamma$ and invariant $P$. However, we must extend the specifications of the mutex operations to enforce the two requirements above. The requirement that the mutex is not owned when deallocated can be enforced by adding a simple piece of ghost state, a fractional token $\mutextoken{\gamma}{q}$ that threads give up when they call \lstinline{lock} and retrieve when they call \lstinline{unlock}; then the destructor's precondition can require full ownership of the token: %notation
+\[\{{m \mapsto \mathsf{mutex}(\gamma,P)\ast\mutextoken{\gamma}{1}}\}\ {m\texttt{->$\sim$mutex()}}\ \{P\}\]
+The requirement that the mutex be released by the same thread that acquired it is more difficult. Indeed, one of the original selling points of CSL was that it could naturally verify \emph{daring} concurrency patterns~\cite{csl} in which a lock acquired by one thread is released by another. Separation logic predicates are innately transferable unless they explicitly reference the thread that holds them. So this is exactly what we must do: we introduce a predicate $\currentthread{t}$ asserting that the current thread (e.g., the one calling the specified function) is $t$, %should we discuss how current_thread is implemented and made non-transferable?
+and include $t$ in the $\mathsf{locked}$ predicate of the mutex, so that we can require the thread that calls \lstinline{unlock} to be the one that previously called \lstinline{lock}. Combining this with the fractional token, this gives us a predicate of the form $\mathsf{locked}(\gamma, t, q)$, saying that thread $t$ currently owns the lock $\gamma$ and has given up fraction $q$ of the token. We can then specify \lstinline{lock} and \lstinline{unlock} as follows:
+\[\begin{array}{c}
+\{\currentthread{t} \ast m \mapsto_q \mathsf{mutex}(\gamma,P)\ast\mathsf{token}(\gamma,q')\}\\ {m\texttt{->lock()}} \\ \{m \mapsto_q \mathsf{mutex}(\gamma,P)\ast P\ast\mathsf{locked}(\gamma,t,q')\}  \vspace{1em}\\
+    \{\currentthread{t} \ast m \mapsto_q \mathsf{mutex}(\gamma,P)\ast\mathsf{locked}(\gamma,t,q')
+      \ast\triangleright P\}\\ {m\texttt{->unlock}()}\\
+    \{m \mapsto_q \mathsf{mutex}(\gamma,P)\ast\mathsf{token}(\gamma,q')\}
+\end{array}\]
+We discuss the ghost-state implementation of the $\mathsf{locked}$ predicate in Section~\ref{login}.
+
+\ignore{
 \begin{mathpar}
   \spectriple
     {\triangleright P}
@@ -74,7 +89,7 @@ A program that violates either of these conditions has \emph{undefined behavior}
          &b=\mathsf{false}\Rightarrow\mathsf{token}(\gamma,q')
        \end{aligned}\right)
      \end{gathered}}
-\end{mathpar}
+\end{mathpar}}
 
 \subsection{\texorpdfstring{\lstinline{std::recursive_mutex}}{std::recursive\_mutex}}
 
@@ -172,6 +187,7 @@ A program that violates either of these conditions has \emph{undefined behavior}
 \end{mathpar}
 
 \subsection{The User Library}
+\label{login}
 
 TODO cite the Iris reader/writer lock library
 TODO mutex is not implemented with the user library yet
