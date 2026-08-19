@@ -5,7 +5,7 @@ REL_PATH="$($REALPATH `pwd` --relative-to "$DUNE_SOURCEROOT")"
 
 map_absolute_paths () {
     while [[ $# -gt 0 ]]; do
-        if [[ $1 =~ /.*\.(v|cpp|hpp|h|c) ]] && [[ -f "$1" ]]; then
+        if [[ $1 =~ ^/.*\.(v|cpp|hpp|h|c) ]] && [[ -f "$1" ]]; then
             local dir="$(dirname "$1")"
             echo "--volume" "$dir:$dir"
         fi
@@ -27,6 +27,28 @@ if [ -n "$IN_CPP2V_DOCKER" ]; then
   echo "Error: recursive invocation of \"cpp2v_docker\" as $0 from outer cpp2v_docker as ${IN_CPP2V_DOCKER}"
   echo "(PATH is $PATH)."
   exit 1
+fi
+
+CMD_LINE="$(printf "%q %q " "$0" "$@")"
+
+verbose () {
+    local cmd="$1" ; shift
+    if ! "$cmd" "$@" ; then
+        local r="$?"
+        cat 1>&2 <<EOF
+docker / cpp2v invocation failed. Command lines:
+
+  \$ $CMD_LINE
+
+  \$ $cmd $@
+EOF
+        return $r
+    fi
+}
+
+if [[ -z "$DUNE_SOURCEROOT" ]]; then
+    echo "variable DUNE_SOURCEROOT is unset"
+    exit 3
 fi
 
 ENABLED_VALUES="y|n|if-libstdc\+\+"
@@ -62,7 +84,7 @@ if [ "$CPP2V_DOCKER_ENABLED" = "y" ] && which docker > /dev/null; then
   ARGS+=( $(map_absolute_paths "$@") )
 
   cpp2v_args="$( printf '"%q" ' "$@" )" # ensure each argument is quoted as a whole.
-  docker run "${ARGS[@]}" "$CPP2V_DOCKER_IMAGE" \
+  verbose docker run "${ARGS[@]}" "$CPP2V_DOCKER_IMAGE" \
           /bin/bash -c 'eval $(opam env)'"; cpp2v $cpp2v_args"
 else
   export IN_CPP2V_DOCKER="$0"
