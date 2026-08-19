@@ -309,6 +309,8 @@ These specifications capture the core idea of mutual exclusion: at most one thre
 \input{specs.tex}
 
 \section{RAII Lock Classes}
+Managing locks manually is error-prone: it is easy to introduce deadlock by acquiring the same lock twice, forgetting to release a lock, or having a set of locks that are not always acquired and released in the same order, and releasing a lock that has not been acquired is undefined behavior. The Resource Acquisition Is Initialization (RAII) pattern aims to avoid these problems by aligning ownership of a lock with the lifetime of an object: the lock is acquired when the object is created, and released when the object is destroyed, thus benefiting from the guarantees of the language's memory management (an object will only be created and destroyed once each, will only be destroyed after it is created, will eventually be destroyed if unused, etc.). The C++ standard library includes a set of RAII lock classes, which we specify here. Intuitively, their specifications are simple: the object's constructor has the same specification as the underlying lock's \lstinline{lock} method, and the destructor has the same specification as the underlying \lstinline{unlock}. %but: we are the first to specify RAII at all in SL? in practice their use is more complicated (because of optional acquiring, detaching, etc.)? showing that they can actually be used as desired is nontrivial?
+
 \lstinline{lock_guard}, \lstinline{scoped_lock}, \lstinline{unique_lock}
 
 \section{Case Studies?}
