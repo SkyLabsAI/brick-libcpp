@@ -157,12 +157,6 @@ NES.Begin std.
       (∃ size st, R_alloc_cap ty alloc_ty q size st xs )%I
         (q in scope cQp_scope).
 
-    #[global] Abbreviation R_cap ty q size st xs :=
-      (R_alloc_cap ty (std.allocator.T ty) q size st xs).
-
-    #[global] Abbreviation R ty q xs :=
-      (R_alloc ty (std.allocator.T ty) q xs).
-
     Section with_RepFor.
       Import rep.RepFor.
       Import RepScheme.
@@ -170,7 +164,7 @@ NES.Begin std.
       #[global] Instance repfor `{Σ : cpp_logic} {σ : genv} ty aty `(_ : BundledRep ty M) :
         rep.RepFor.C (T ty aty)
           [ArgType.CFrac; ArgType.Model _]
-          (λ q xs, R ty q xs) := {}.
+          (λ q xs, R_alloc ty aty q xs) := {}.
     End with_RepFor.
 
     (** [R_alloc_resized ty alloc_ty q size st xs] is a vector whose payloads can be proven (on
@@ -516,11 +510,10 @@ NES.Begin std.
             \arg{otherp} "other" (Vref otherp)
             \prepost{q__other size st xs}
                   otherp |-> R_cap q__other size st xs
-            \let cap := capacity st
             \post
-              Exists new_basep,
-                 let new_st := {| base_pointer := new_basep; capacity := cap |} in
-                 this |-> R_cap (cQp.m 1) size new_st xs.
+              Exists new_st,
+                this |-> R_cap (cQp.m 1) size new_st xs.
+
         #[global] Hint Opaque copy_ctor : sl_opacity.
         #[global] Arguments copy_ctor : simpl never.
         Definition SpecFor_copy_ctor := RegisterSpec copy_ctor.
@@ -868,6 +861,13 @@ NES.Begin std.
 
     #[global] Hint Resolve congr_spineR : tc_strong_opacity.
     #[global] Hint Resolve congr_resizedR : tc_strong_opacity.
+
+    (** These abbreviations hardcode the default allocator, so they are not used in this file. *)
+    #[global] Abbreviation R_cap ty q size st xs :=
+      (R_alloc_cap ty (std.allocator.T ty) q size st xs).
+
+    #[global] Abbreviation R ty q xs :=
+      (R_alloc ty (std.allocator.T ty) q xs).
 
   NES.End vector.
 
