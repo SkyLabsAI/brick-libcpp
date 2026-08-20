@@ -19,6 +19,8 @@
 \newcommand{\notlocked}[2]{\ensuremath{\mathsf{not\_locked}_{#1}(#2)}}
 \newcommand{\locked}[2]{\ensuremath{\mathsf{locked}_{#1}(#2)}}
 \newcommand{\mutex}[2]{\ensuremath{\mathsf{mutex}_{#1}(#2)}}
+\newcommand{\acquirable}[4]{\ensuremath{\mathsf{holds}_{#1}(#2, #3, #4)}}
+\newcommand{\rmutex}[2]{\ensuremath{\mathsf{rmutex}_{#1}(#2)}}
 
 \subsection{\texorpdfstring{\lstinline{std::mutex}}{std::mutex}}
 
@@ -44,7 +46,7 @@ We begin by examining \lstinline{std::mutex}, the basic lock class. The class co
 \item When a thread calls \lstinline{lock}, it must \emph{not} own the mutex.
 \item When a mutex is destroyed, it must not be owned by any threads.
 \end{itemize}
-A program that violates any of these conditions has \emph{undefined behavior} according to the library specification, so our program logic must ensure that they are respected. %include checks in toy implementation
+A program that violates any of these conditions has \emph{undefined behavior} according to the library specification, so our program logic must ensure that they are respected. %include checks in toy implementation, or just mention that they could be added?
 
 The representation for a mutex has the same shape as a standard lock: we write $m \mapsto \mutex{\gamma}{P}$ for a mutex at $m$ associated with ghost identifier $\gamma$ and invariant $P$. However, we must extend the specifications of the mutex operations to enforce the requirements above. One of the original selling points of CSL was that it could naturally verify \emph{daring} concurrency patterns~\cite{csl} in which a lock acquired by one thread is released by another; in fact, in ordinary separation logics every predicate is freely transferable between threads. Fortunately, as mentioned in Section~\ref{brick}, the design of the BRiCk logic supports a non-transferable predicate $\currentthread{t}$ asserting that the current thread is $t$, which we can use to tie resources to a specific thread. When a thread $t$ starts using the mutex, it will generate a predicate $\notlocked{\gamma}{t}$, which it exchanges for another predicate $\locked{\gamma}{t}$ when it locks the mutex. A matching predicate $\usedthreads{\gamma}{T}$ will hold the set of all threads that are currently using the mutex, and the precondition of the destructor will require $\usedthreads{\emptyset}$, ensuring that no thread currently holds the lock. Formally, these predicates satisfy the following properties:
 %make this a figure?
@@ -60,12 +62,12 @@ We can then specify the mutex as follows:
 \[\begin{array}{c}
 \{\later P\}\\ \texttt{mutex()}\\ \{\exists \gamma.\ \mutex{\gamma}{P} \ast \usedthreads{\gamma}{\emptyset}\} \vspace{1em}\\%constructor notation?
 \{\currentthread{t} \ast m \mapsto_q \mutex{\gamma}{P}\ast\notlocked{\gamma}{t}\}\\ {m\texttt{.lock()}} \\ \{m \mapsto_q \mutex{\gamma}{P}\ast P\ast\locked{\gamma}{t}\}  \vspace{1em}\\
-    \{\currentthread{t} \ast m \mapsto_q \mutex{\gamma}{P}\ast\locked{\gamma}{t})
+    \{\currentthread{t} \ast m \mapsto_q \mutex{\gamma}{P}\ast\locked{\gamma}{t}
       \ast\triangleright P\}\\ {m\texttt{.unlock}()}\\
     \{m \mapsto_q \mutex{\gamma}{P}\ast\notlocked{\gamma}{t}\}  \vspace{1em} \\
 \{m \mapsto \mutex{\gamma}{P} \ast \usedthreads{\gamma}{\emptyset}\}\\ \sim m()\\ \{P\} %destructor notation?
 \end{array}\]
-A thread $t$ exchanges $\notlocked{\gamma}{t}$ for $\locked{\gamma}{t}$ when acquiring the mutex and vice versa when releasing; these predicates are freely transferable, but $\currentthread{t}$ ensures that each thread holds its own predicate when calling \lstinline{lock} or \lstinline{unlock}, and the laws of $\mathsf{locked}$ and $\mathsf{not\_locked}$ ensure that no two threads hold the mutex at once and that a thread cannot simultaneously be $\mathsf{locked}$ and $\mathsf{not\_locked}$. Finally, the $\usedthreads{\gamma}{\emptyset}$ in the precondition of the destructor ensures that all threads have been removed from the set of users (and thus cannot hold the mutex) before deallocation. When these specifications are used in proofs, the thread that allocates the mutex will acquire and hold $\usedthreads{\gamma}{T}$, and generate a $\notlocked{\gamma}{t}$ predicate for each thread $t$ participating in the mutex; when those threads terminate, the main thread will recollect all the $\notlocked{}{}$ predicates and remove them from $\usedthreads{}{}$ before the mutex is destroyed. %example proof
+A thread $t$ exchanges $\notlocked{\gamma}{t}$ for $\locked{\gamma}{t}$ when acquiring the mutex and vice versa when releasing; these predicates are freely transferable, but $\currentthread{t}$ ensures that each thread holds its own predicate when calling \lstinline{lock} or \lstinline{unlock}, and the laws of $\mathsf{locked}$ and $\mathsf{not\_locked}$ ensure that no two threads hold the mutex at once and that a thread cannot simultaneously be $\mathsf{locked}$ and $\mathsf{not\_locked}$. Finally, the $\usedthreads{\gamma}{\emptyset}$ in the precondition of the destructor ensures that all threads have been removed from the set of users (and thus cannot hold the mutex) before deallocation. When these specifications are used in proofs, the thread that allocates the mutex will acquire and hold $\usedthreads{\gamma}{T}$, and generate a $\notlocked{\gamma}{t}$ predicate for each thread $t$ participating in the mutex; when those threads terminate, the main thread will recollect all the $\notlocked{}{}$ predicates and remove them from $\usedthreads{}{}$ before the mutex is destroyed. %example proof?
 
 \ignore{
 \begin{mathpar}
@@ -133,8 +135,19 @@ void unlock(){
 \label{rmutex-simple}
 \end{figure}
 
-The specification of a recursive mutex in separation logic requires some care, since acquiring/releasing the mutex may or may not obtain/give up the lock invariant depending on how many times the caller has previously acquired it. While we could give specifications that explicitly distinguish the two cases, this is contrary to the intended abstraction---the point of a recursive mutex is that whether or not we hold the mutex before acquiring it, we know that we hold it afterwards, and as long as we perform the same number of releases as acquires we do not need to account for whether we still hold the lock. ... %bring in descriptions from the RocqPL abstract
+The specification of a recursive mutex in separation logic requires some care, since acquiring/releasing the mutex may or may not obtain/give up the lock invariant depending on how many times the caller has previously acquired it. While we could give specifications that explicitly distinguish the two cases, this is contrary to the intended abstraction---the point of a recursive mutex is that whether or not we hold the mutex before acquiring it, we know that we hold it afterwards, and as long as we perform the same number of releases as acquires we do not need to account for whether we still hold the lock. %note the existence of both atomic and invariant-based specs, and their relationship?
 
+We accomplish this by replacing the $\mathsf{not\_locked}$ and $\mathsf{locked}$ predicates of the mutex with a single predicate of the form $\acquirable{\gamma}{t}{n}{P}$, where $n$ is the number of times (0 or more) that $t$ holds the mutex. When $n$ is 0, $\mathsf{holds}$ acts as $\mathsf{not\_locked}$, and can be generated by or removed from $\usedthreads{}{}$. When $n$ is greater than 0, $\mathsf{holds}$ acts as $\mathsf{locked}$: it is exclusive with any other non-zero $\mathsf{holds}$, and the owner can borrow the invariant $P$ from it. This lets us specify \lstinline{lock} and \lstinline{unlock} as simply increasing and decreasing $n$, respectively:
+\[\begin{array}{c}
+\{\currentthread{t} \ast m \mapsto_q \rmutex{\gamma}{P}\ast\acquirable{\gamma}{t}{n}{P}\}\\ {m\texttt{.lock()}} \\ \{m \mapsto_q \rmutex{\gamma}{P}\ast P\ast\acquirable{\gamma}{t}{n+1}{P}\}  \vspace{1em}\\
+    \{\currentthread{t} \ast m \mapsto_q \rmutex{\gamma}{P}\ast\acquirable{\gamma}{t}{n+1}{P}\}\\ {m\texttt{.unlock}()}\\
+    \{m \mapsto_q \rmutex{\gamma}{P}\ast\acquirable{\gamma}{t}{n}{P}\}
+\end{array}\]
+These rules do not explicitly obtain or give up $P$; instead, $\mathsf{holds}$ has the property that
+\[\inferrule{n > 0}{\acquirable{\gamma}{t}{n}{P} \dashv\vdash P \ast (P \wand \acquirable{\gamma}{t}{n}{P})}\]
+allowing a thread to borrow $P$ as long as it can prove it owns the mutex at least once. This allows the reasoning pattern where a method acquires a recursive mutex, manipulates the associated resources, and releases the mutex, without ever having to do case analysis on whether the caller already owned the mutex. %mention fixed argument to P? %example?
+
+\ignore{
 \begin{mathpar}
   \spectriple
     {\begin{gathered}
@@ -158,6 +171,7 @@ The specification of a recursive mutex in separation logic requires some care, s
        {}\ast\mathsf{acquireable}(\gamma,t,n,P,a)\ast\mathsf{token}(\gamma,q')
      \end{gathered}}
 \end{mathpar}
+}
 
 \subsection{\texorpdfstring{\lstinline{std::shared_mutex}}{std::shared\_mutex}}
 
