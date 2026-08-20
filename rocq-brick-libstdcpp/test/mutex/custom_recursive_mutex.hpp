@@ -6,36 +6,36 @@
 #pragma once
 class MyRecursiveMutex {
   // not protected by the lock, but atomic
-  std::atomic<std::thread::id> owner{};
+  std::atomic<std::thread::id> m_owner{};
 
   // protected by the lock
-  unsigned long long count{0};
+  unsigned long long m_count{0};
 
   // non-recursive; protects count and the user resources.
-  std::mutex i_lock{};
+  std::mutex m_lock{};
 
 public:
   void lock() {
     std::thread::id this_id{std::this_thread::get_id()};
-    if (this->owner != this_id) {
-      i_lock.lock();
-      this->owner = this_id;
+    if (m_owner != this_id) {
+      m_lock.lock();
+      this->m_owner = this_id;
     }
-    assert (this_id == this->owner);
+    assert (this_id == m_owner);
 
     // assert: we own the lock either way!
-    if (count + 1 == 0) {
+    if (m_count + 1 == 0) {
       // TODO: review if nontermination is good enough for the paper.
       for (;;);
     }
-    count++;
+    m_count++;
   }
 
   void unlock() {
-    count--;
-    if (count == 0) {
-      i_lock.unlock();
-      owner = std::thread::id{};
+    m_count--;
+    if (m_count == 0) {
+      m_lock.unlock();
+      m_owner = std::thread::id{};
     }
   }
 };
