@@ -14,13 +14,12 @@ Require Import skylabs.brick.libstdcpp.cstring.inc_cstring_cpp.
 #[local] Open Scope Z_scope.
 
 Abbreviation byte_search_result := (fun byte_ty p found =>
-Vptr (match found with
-  | Some off => (p .[ byte_ty ! off ])
-  | None => nullptr
-  end)) (only parsing).
+  Vptr (match found with
+    | Some off => (p .[ byte_ty ! off ])
+    | None => nullptr
+    end)) (only parsing).
 
-Abbreviation search_result := (fun p found =>
-  (byte_search_result Tchar p found)) (only parsing).
+Abbreviation search_result := (byte_search_result Tchar) (only parsing).
 
 Section with_cpp.
 Context `{Σ : cpp_logic, source ⊧ σ}.
