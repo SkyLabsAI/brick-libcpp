@@ -83,6 +83,16 @@ Module custom_recursive_mutex.
         | _ => exclusive_token γ.(excl_gname)
         end)).
     (* we hold the lock if the owner is not none! *)
+
+    (** TODO: connect token, given_token and locked *)
+
+    (** alternative:
+    move state closer to shared_mutex.
+    *)
+
+    (** 3rd alternative: some PR
+
+    *)
   End with_Σ.
 
 End custom_recursive_mutex.
