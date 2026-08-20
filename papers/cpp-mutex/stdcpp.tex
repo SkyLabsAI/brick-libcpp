@@ -289,7 +289,8 @@ Our contributions are:
 \item example?
 \end{itemize}
 
-\section{Background: Lock Specifications in Separation Logic}
+\section{Background}
+\subsection{Lock Specifications in Separation Logic}
 There are two common styles of CSL lock specification, which have been proved to be equivalent~\cite{}: invariant-based, and logically atomic (sometimes called TaDA-style~\cite{tada}). In the invariant style, a lock $\ell$ protects an invariant $P$ (represented as $\mathsf{is\_lock}(\ell, P)$), and acquire and release are specified as:
 \begin{mathpar}
 \{\mathsf{is\_lock}(\ell, P\}\ \texttt{lock}(\ell)\ \{\mathsf{is\_lock}(\ell, P) \ast P\} %adjust to match the style of our lock specs, as in the RocqPL submission
@@ -306,16 +307,32 @@ While one thread is trying to acquire the lock, its state is unknown and may shi
 
 These specifications capture the core idea of mutual exclusion: at most one thread holds the lock at any point in time, and so the protected resources can safely be accessed by that thread. They can also easily be shown to be satisfied by a simple implementation, such as a spinlock (show this? describe how one verifies it?). However, the locks used in systems programming languages are not generally implemented this way, instead building on operating system primitives (e.g., Linux's futex~\cite{}) and highly optimized libraries (e.g., Pthread~\cite{}). This leads to both additional restrictions---e.g., locks may only be released by the thread that acquired them, or can only be deallocated if not held---and additional features---e.g., locks may be recursive, so that the holder can re-acquire them any number of times and only exits the critical section after performing an equal number of releases. In this paper, we show how to extend the simple lock specs to account for the restrictions and features of the mutexes in C++'s standard library.
 
+\subsection{The BRiCk Logic for C++}
+a fancy version of HeapLang, doesn't have opsem but does compile
+
+$\mathsf{current\_thread}$ (all predicates are actually monpreds on thread id)
+
 \input{specs.tex}
 
 \section{RAII Lock Classes}
 Managing locks manually is error-prone: it is easy to introduce deadlock by acquiring the same lock twice, forgetting to release a lock, or having a set of locks that are not always acquired and released in the same order, and releasing a lock that has not been acquired is undefined behavior. The Resource Acquisition Is Initialization (RAII) pattern aims to avoid these problems by aligning ownership of a lock with the lifetime of an object: the lock is acquired when the object is created, and released when the object is destroyed, thus benefiting from the guarantees of the language's memory management (an object will only be created and destroyed once each, will only be destroyed after it is created, will eventually be destroyed if unused, etc.). The C++ standard library includes a set of RAII lock classes, which we specify here. Intuitively, their specifications are simple: the object's constructor has the same specification as the underlying lock's \lstinline{lock} method, and the destructor has the same specification as the underlying \lstinline{unlock}. %but: we are the first to specify RAII at all in SL? in practice their use is more complicated (because of optional acquiring, detaching, etc.)? showing that they can actually be used as desired is nontrivial?
 
-\lstinline{lock_guard}, \lstinline{scoped_lock}, \lstinline{unique_lock}
+\subsection{\lstinline{lock_guard}}
+The \lstinline{lock_guard} class is the basic RAII class of the C++ library, a container for a single lock. \lstinline{lock_guard} is a templated class that takes an arbitrary \lstinline{BasicLockable} class as an argument, and our specification is likewise parameterized by a \lstinline{BasicLockable} instance. %not done yet
+Constructing a \lstinline{lock_guard} with argument $m$ acquires $m$, and destroying it releases $m$: ...
+
+\subsection{\lstinline{scoped_lock}}
+
+The \lstinline{scoped_lock} class takes a collection of locks as arguments, and acquires/releases them in an arbitrary fixed order, thus avoiding deadlock. %note this is also what std::lock does given multiple arguments
+
+\subsection{\lstinline{unique_lock}}
+The \lstinline{unique_lock} class offers a more sophisticated RAII interface: the lock can be manually acquired and released through the \lstinline{unique_lock} as well as at construction/destruction, and the \lstinline{unique_lock} can be detached from one lock and attached to another during its lifetime. ...
 
 \section{Case Studies?}
 
 %TODO: find or make some interesting examples
+
+\section{BRiCk Formalization}
 
 \section{Conclusion and Future Work}
 ...
