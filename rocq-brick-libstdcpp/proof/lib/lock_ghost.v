@@ -63,14 +63,14 @@ Section with_cpp.
   Lemma used_threads_empty_no_not_locked g th :
     used_threads g ∅ ** not_locked g th |-- False.
   Proof.
-    apply /bi.wand_elim_l' /observe_2_elim_pure /observe_2_derive_only_provable.
+    iIntros "[A B]". iDestruct (observe_2_elim_pure with "A B") as %?.
     set_solver.
   Qed.
 
   Lemma not_locked_unique g th :
     not_locked g th ** not_locked g th |-- False.
   Proof.
-    apply /bi.wand_elim_l' /observe_2_elim_pure /observe_2_derive_only_provable.
+    iIntros "[A B]". iDestruct (observe_2_elim_pure with "A B") as %?.
     set_solver.
   Qed.
 
