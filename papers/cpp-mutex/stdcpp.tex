@@ -308,10 +308,14 @@ While one thread is trying to acquire the lock, its state is unknown and may shi
 These specifications capture the core idea of mutual exclusion: at most one thread holds the lock at any point in time, and so the protected resources can safely be accessed by that thread. They can also easily be shown to be satisfied by a simple implementation, such as a spinlock (show this? describe how one verifies it?). However, the locks used in systems programming languages are not generally implemented this way, instead building on operating system primitives (e.g., Linux's futex~\cite{}) and highly optimized libraries (e.g., Pthread~\cite{}). This leads to both additional restrictions---e.g., locks may only be released by the thread that acquired them, or can only be deallocated if not held---and additional features---e.g., locks may be recursive, so that the holder can re-acquire them any number of times and only exits the critical section after performing an equal number of releases. In this paper, we show how to extend the simple lock specs to account for the restrictions and features of the mutexes in C++'s standard library.
 
 \subsection{The BRiCk Logic for C++}
+\label{brick}
+
+\newcommand{\currentthread}[1]{\ensuremath{\mathsf{current\_thread}(#1)}}
+
 a fancy version of HeapLang, doesn't have opsem but does compile
 
-$\mathsf{current\_thread}$ (all predicates are actually monpreds on thread id)
-
+$\mathsf{current\_thread}$ (all predicates are actually monpreds on thread id) ...
+Separation logic predicates are innately transferable unless they explicitly reference the thread that holds them. 
 \input{specs.tex}
 
 \section{RAII Lock Classes}
