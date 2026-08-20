@@ -13,7 +13,7 @@ Require Import skylabs.brick.libstdcpp.cstring.inc_cstring_cpp.
 
 #[local] Open Scope Z_scope.
 
-Abbreviation byte_search_result := (fun byte_ty p found =>
+Abbreviation search_result := (fun byte_ty p found =>
   Vptr (match found with
     | Some off => (p .[ byte_ty ! off ])
     | None => nullptr
@@ -48,28 +48,28 @@ Context `{Σ : cpp_logic, source ⊧ σ}.
      \arg{c} "__c" (Vint c)
      \prepost{q s} s_p |-> cstring.R q s
      \require valid<"unsigned char"> c
-     \post[byte_search_result Tchar s_p (strchr s c)] emp).
+     \post[search_result Tchar s_p (strchr s c)] emp).
 
   cpp.spec "strchr(const char*, int)" as strchr_const_spec with
     (\arg{s_p} "__s" (Vptr s_p)
      \arg{c} "__c" (Vint c)
      \prepost{q s} s_p |-> cstring.R q s
      \require valid<"unsigned char"> c
-     \post[byte_search_result Tchar s_p (strchr s c)] emp).
+     \post[search_result Tchar s_p (strchr s c)] emp).
 
   cpp.spec "strrchr(char*, int)" as strrchr_mut_spec with
     (\arg{s_p} "__s" (Vptr s_p)
      \arg{c} "__c" (Vint c)
      \prepost{q s} s_p |-> cstring.R q s
      \require valid<"unsigned char"> c
-     \post[byte_search_result Tchar s_p (strrchr s c)] emp).
+     \post[search_result Tchar s_p (strrchr s c)] emp).
 
   cpp.spec "strrchr(const char*, int)" as strrchr_const_spec with
     (\arg{s_p} "__s" (Vptr s_p)
      \arg{c} "__c" (Vint c)
      \prepost{q s} s_p |-> cstring.R q s
      \require valid<"unsigned char"> c
-     \post[byte_search_result Tchar s_p (strrchr s c)] emp).
+     \post[search_result Tchar s_p (strrchr s c)] emp).
 
   cpp.spec "strspn" with
     (\arg{s_p} "__s" (Vptr s_p)
@@ -92,28 +92,28 @@ Context `{Σ : cpp_logic, source ⊧ σ}.
      \arg{accept_p} "__accept" (Vptr accept_p)
      \prepost{q s} s_p |-> cstring.R q s
      \prepost{accept_q accept} accept_p |-> cstring.R accept_q accept
-     \post[byte_search_result Tchar s_p (strpbrk s accept)] emp).
+     \post[search_result Tchar s_p (strpbrk s accept)] emp).
 
   cpp.spec "strpbrk(const char*, const char*)" as strpbrk_const_spec with
     (\arg{s_p} "__s" (Vptr s_p)
      \arg{accept_p} "__accept" (Vptr accept_p)
      \prepost{q s} s_p |-> cstring.R q s
      \prepost{accept_q accept} accept_p |-> cstring.R accept_q accept
-     \post[byte_search_result Tchar s_p (strpbrk s accept)] emp).
+     \post[search_result Tchar s_p (strpbrk s accept)] emp).
 
   cpp.spec "strstr(char*, const char*)" as strstr_mut_spec with
     (\arg{haystack_p} "__haystack" (Vptr haystack_p)
      \arg{needle_p} "__needle" (Vptr needle_p)
      \prepost{haystack_q haystack} haystack_p |-> cstring.R haystack_q haystack
      \prepost{needle_q needle} needle_p |-> cstring.R needle_q needle
-     \post[byte_search_result Tchar haystack_p (strstr haystack needle)] emp).
+     \post[search_result Tchar haystack_p (strstr haystack needle)] emp).
 
   cpp.spec "strstr(const char*, const char*)" as strstr_const_spec with
     (\arg{haystack_p} "__haystack" (Vptr haystack_p)
      \arg{needle_p} "__needle" (Vptr needle_p)
      \prepost{haystack_q haystack} haystack_p |-> cstring.R haystack_q haystack
      \prepost{needle_q needle} needle_p |-> cstring.R needle_q needle
-     \post[byte_search_result Tchar haystack_p (strstr haystack needle)] emp).
+     \post[search_result Tchar haystack_p (strstr haystack needle)] emp).
 
 (*  Strong but unsound before C++17, and awkward
   cpp.spec "memchr(void*, int, unsigned long)" as memchr_mut_spec with
@@ -127,7 +127,7 @@ Context `{Σ : cpp_logic, source ⊧ σ}.
               | None => (n <= hi)%Z
               end
      (*equivalently: \require hi >= n \/ (hi < n /\ exists off, memchr bytes c = Some off)*)
-     \post[byte_search_result Tuchar s_p
+     \post[search_result Tuchar s_p
        (memchr (takeZ n bytes) c)] emp).
 
   cpp.spec "memchr(const void*, int, unsigned long)" as memchr_const_spec with
@@ -141,7 +141,7 @@ Context `{Σ : cpp_logic, source ⊧ σ}.
               | None => (n <= hi)%Z
               end
      (*equivalently: \require hi >= n \/ (hi < n /\ exists off, memchr bytes c = Some off)*)
-     \post[byte_search_result Tuchar s_p
+     \post[search_result Tuchar s_p
        (memchr (takeZ n bytes) c)] emp).
 *)
 
@@ -151,14 +151,14 @@ Context `{Σ : cpp_logic, source ⊧ σ}.
      \arg{c} "__c" (Vint c)
      \arg{n} "__n" (Vint n)
      \prepost{q bytes} s_p |-> array_sliceR Tuchar 0 n (fun b : Z => ucharR q b) bytes
-     \post[byte_search_result Tuchar s_p (memchr bytes c)] emp).
+     \post[search_result Tuchar s_p (memchr bytes c)] emp).
 
   cpp.spec "memchr(const void*, int, unsigned long)" as memchr_const_simple_spec with
     (\arg{s_p} "__s" (Vptr s_p)
      \arg{c} "__c" (Vint c)
      \arg{n} "__n" (Vint n)
      \prepost{q bytes} s_p |-> array_sliceR Tuchar 0 n (fun b : Z => ucharR q b) bytes
-     \post[byte_search_result Tuchar s_p (memchr bytes c)] emp).
+     \post[search_result Tuchar s_p (memchr bytes c)] emp).
 
   cpp.spec "memcmp" with
     (\arg{s1_p} "__s1" (Vptr s1_p)
