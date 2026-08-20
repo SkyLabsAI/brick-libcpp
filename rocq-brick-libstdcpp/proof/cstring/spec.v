@@ -19,6 +19,24 @@ Abbreviation search_result := (fun byte_ty p found =>
     | None => nullptr
     end)) (only parsing).
 
+Definition same_sign (source dest : Z) : Prop :=
+  match trichotomyT Z.lt source 0 with
+  | inleft (left H) => dest < 0
+  | inleft (right H) => dest = 0
+  | inright H => dest > 0
+  end.
+#[global] Arguments same_sign !_ /.
+
+Lemma same_sign_correct_lt s d :
+  same_sign s d -> s < 0 <-> d < 0.
+Proof. rewrite /same_sign; destruct trichotomyT as [[?|?]|?]; lia. Qed.
+Lemma same_sign_correct_eq s d :
+  same_sign s d -> s = 0 <-> d = 0.
+Proof. rewrite /same_sign; destruct trichotomyT as [[?|?]|?]; lia. Qed.
+Lemma same_sign_correct_gt s d :
+  same_sign s d -> s > 0 <-> d > 0.
+Proof. rewrite /same_sign; destruct trichotomyT as [[?|?]|?]; lia. Qed.
+
 Section with_cpp.
 Context `{Σ : cpp_logic, source ⊧ σ}.
 
@@ -33,7 +51,7 @@ Context `{Σ : cpp_logic, source ⊧ σ}.
      \arg{s2_p} "__s2" (Vptr s2_p)
      \prepost{q1 s1} s1_p |-> cstring.R q1 s1
      \prepost{q2 s2} s2_p |-> cstring.R q2 s2
-     \post[Vint (strcmp s1 s2)] emp).
+     \post{res}[Vint res] [| same_sign (strcmp s1 s2) res |] ).
 
   cpp.spec "strncmp" with
     (\arg{s1_p} "__s1" (Vptr s1_p)
@@ -41,7 +59,7 @@ Context `{Σ : cpp_logic, source ⊧ σ}.
      \arg{n} "__n" (Vn n)
      \prepost{q1 s1} s1_p |-> cstring.R q1 s1
      \prepost{q2 s2} s2_p |-> cstring.R q2 s2
-     \post[Vint (strncmp s1 s2 n)] emp).
+     \post{res}[Vint res] [| same_sign (strncmp s1 s2 n) res |] ).
 
   cpp.spec "strchr(char*, int)" as strchr_mut_spec with
     (\arg{s_p} "__s" (Vptr s_p)
@@ -166,7 +184,7 @@ Context `{Σ : cpp_logic, source ⊧ σ}.
      \arg{z} "__n" (Vint z)
      \prepost{q1 bytes1} s1_p |-> array_sliceR Tuchar 0 z (fun b : Z => ucharR q1 b) bytes1
      \prepost{q2 bytes2} s2_p |-> array_sliceR Tuchar 0 z (fun b : Z => ucharR q2 b) bytes2
-     \post[Vint (memcmp bytes1 bytes2)] emp).
+     \post{res}[Vint res] [| same_sign (memcmp bytes1 bytes2) res |] ).
 
   cpp.spec "memset" with
     (\arg{s_p} "__s" (Vptr s_p)
