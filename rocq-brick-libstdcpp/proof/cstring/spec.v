@@ -19,8 +19,6 @@ Abbreviation byte_search_result := (fun byte_ty p found =>
     | None => nullptr
     end)) (only parsing).
 
-Abbreviation search_result := (byte_search_result Tchar) (only parsing).
-
 Section with_cpp.
 Context `{Σ : cpp_logic, source ⊧ σ}.
 
@@ -50,28 +48,28 @@ Context `{Σ : cpp_logic, source ⊧ σ}.
      \arg{c} "__c" (Vint c)
      \prepost{q s} s_p |-> cstring.R q s
      \require valid<"unsigned char"> c
-     \post[search_result s_p (strchr s c)] emp).
+     \post[byte_search_result Tchar s_p (strchr s c)] emp).
 
   cpp.spec "strchr(const char*, int)" as strchr_const_spec with
     (\arg{s_p} "__s" (Vptr s_p)
      \arg{c} "__c" (Vint c)
      \prepost{q s} s_p |-> cstring.R q s
      \require valid<"unsigned char"> c
-     \post[search_result s_p (strchr s c)] emp).
+     \post[byte_search_result Tchar s_p (strchr s c)] emp).
 
   cpp.spec "strrchr(char*, int)" as strrchr_mut_spec with
     (\arg{s_p} "__s" (Vptr s_p)
      \arg{c} "__c" (Vint c)
      \prepost{q s} s_p |-> cstring.R q s
      \require valid<"unsigned char"> c
-     \post[search_result s_p (strrchr s c)] emp).
+     \post[byte_search_result Tchar s_p (strrchr s c)] emp).
 
   cpp.spec "strrchr(const char*, int)" as strrchr_const_spec with
     (\arg{s_p} "__s" (Vptr s_p)
      \arg{c} "__c" (Vint c)
      \prepost{q s} s_p |-> cstring.R q s
      \require valid<"unsigned char"> c
-     \post[search_result s_p (strrchr s c)] emp).
+     \post[byte_search_result Tchar s_p (strrchr s c)] emp).
 
   cpp.spec "strspn" with
     (\arg{s_p} "__s" (Vptr s_p)
@@ -94,28 +92,28 @@ Context `{Σ : cpp_logic, source ⊧ σ}.
      \arg{accept_p} "__accept" (Vptr accept_p)
      \prepost{q s} s_p |-> cstring.R q s
      \prepost{accept_q accept} accept_p |-> cstring.R accept_q accept
-     \post[search_result s_p (strpbrk s accept)] emp).
+     \post[byte_search_result Tchar s_p (strpbrk s accept)] emp).
 
   cpp.spec "strpbrk(const char*, const char*)" as strpbrk_const_spec with
     (\arg{s_p} "__s" (Vptr s_p)
      \arg{accept_p} "__accept" (Vptr accept_p)
      \prepost{q s} s_p |-> cstring.R q s
      \prepost{accept_q accept} accept_p |-> cstring.R accept_q accept
-     \post[search_result s_p (strpbrk s accept)] emp).
+     \post[byte_search_result Tchar s_p (strpbrk s accept)] emp).
 
   cpp.spec "strstr(char*, const char*)" as strstr_mut_spec with
     (\arg{haystack_p} "__haystack" (Vptr haystack_p)
      \arg{needle_p} "__needle" (Vptr needle_p)
      \prepost{haystack_q haystack} haystack_p |-> cstring.R haystack_q haystack
      \prepost{needle_q needle} needle_p |-> cstring.R needle_q needle
-     \post[search_result haystack_p (strstr haystack needle)] emp).
+     \post[byte_search_result Tchar haystack_p (strstr haystack needle)] emp).
 
   cpp.spec "strstr(const char*, const char*)" as strstr_const_spec with
     (\arg{haystack_p} "__haystack" (Vptr haystack_p)
      \arg{needle_p} "__needle" (Vptr needle_p)
      \prepost{haystack_q haystack} haystack_p |-> cstring.R haystack_q haystack
      \prepost{needle_q needle} needle_p |-> cstring.R needle_q needle
-     \post[search_result haystack_p (strstr haystack needle)] emp).
+     \post[byte_search_result Tchar haystack_p (strstr haystack needle)] emp).
 
 (*  Strong but unsound before C++17, and awkward
   cpp.spec "memchr(void*, int, unsigned long)" as memchr_mut_spec with
