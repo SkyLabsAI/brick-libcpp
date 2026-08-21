@@ -537,7 +537,7 @@ cinv (
       \pre token g.(lock_gname) 1
       \pre used_threads g.(lock_gname) empty
       \pre{TT P} inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
-      \post |> Exists xs, tele_app (TT := TT) P xs).
+      \post |> (Exists xs, tele_app (TT := TT) P xs)).
 
     cpp.spec "std::recursive_mutex::lock()" as lock_spec' with
       (\this this
@@ -576,7 +576,7 @@ cinv (
         (* TODO readd *)
         (* ▷ *)
         (token g.(lock_gname) q' ** acquireable g th (release $ Held n args) P) -*
-        K).
+        (|={⊤}=> K)).
     #[global] Arguments do_unlock /.
 
     #[global] Instance recursive_mutex_basic_lockable : BasicLockable (T:=rmutex_gname) "std::recursive_mutex" (λ q γ, R γ.(lock_gname) q) :=
@@ -595,7 +595,15 @@ cinv (
 
     Lemma unlock_spec'_equiv_unlock_spec_alt' :
       unlock_spec' -|- unlock_spec_alt'.
-    Proof. iSplit; iApply specify_mono; ework with br_erefl. Qed.
+    Proof.
+    iSplit; iApply specify_mono_fupd; work; iModIntro.
+      2: {
+        ework with br_erefl.
+        iSplitL; iIntros "? !>"; work.
+      }
+      ework with br_erefl.
+      iModIntro; work.
+    Qed.
 
     Definition acquireable_current_thread_F :=
       ltac:(mk_obs_fwd acquireable_current_thread).
