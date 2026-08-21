@@ -34,10 +34,17 @@ public:
 
   void lock() {
     std::thread::id this_id{std::this_thread::get_id()};
-    assert(m_owner != this_id); // benign race. UB?
+
+    // Prevent attempts at recursive locking, since they're UB:
+    // assert(m_owner != this_id); // benign race. UB?
+    //
+    // But this would race with writes even for valid callers.
+    // Relaxed atomics would address that at no cost, but aren't currently
+    // well-supported by our logic.
 
     do_lock(); // start of critical section
 
+    assert(m_owner == std::thread::id()); //unowned
     m_owner = this_id;
   }
 
