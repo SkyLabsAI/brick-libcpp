@@ -614,8 +614,6 @@ cinv (
       dtor_spec |-- dtor_spec'.
     Proof using MOD HOV HOU.
       apply specify_mono_fupd; work.
-      iModIntro; work.
-      iExists ths; work.
       rewrite inv_rmutex.unlock.
       iInv recursive_mutex.rmutex_namespace as (n th) "[>? ?]" "Hclose".
       (* TODO: we should cancel this invariant instead *)
@@ -623,18 +621,17 @@ cinv (
 
       destruct n as [|n'] eqn:?; work; first last.
       {
+        rewrite locked.unlock used_threads.unlock.
+        work.
+        iDestruct (used_threads_empty_no_not_locked with "[$]") as "[]".
         (* Somebody else has locked the mutex, but we have the full token.
         This should be impossible, since we own [token 1], but it's unclear how we'd prove this. *)
-        (* iDestruct (recursive_mutex.locked_excl_same_thread (lock_gname γ) thr 0 (S n) with "[-]") as "[]".
-        work.
-        iDestruct (recursive_mutex.locked_excl_same_thread (lock_gname γ) thr 0 (S n) with "[$]") as "[]".
-        iDestruct "H" as "[[% >?] >?]". *)
-        admit.
       }
       iMod ("Hclose" with "[]") as "_". {
         (* We should _cancel_ the invariant, then we would _not_ need to prove this. *)
         admit.
       }
+      iModIntro. work.
       iModIntro.
       ego with br_erefl.
       wname [inv] "I".
@@ -646,7 +643,8 @@ cinv (
       apply mpred_BiAffine.
       Unshelve.
       all: fail.
-    Admitted.
+    (* Abort this until we have a cancellable invariant. *)
+    Abort.
 
     Lemma lock_spec_impl_lock_spec' :
       lock_spec |-- lock_spec'.
