@@ -80,28 +80,26 @@ Section with_cpp.
   Lemma login th g s :
     th ∉ s ->
     used_threads g s |--
-    (|==> used_threads g ({[ th ]} ∪ s) ** not_locked g th).
+    (|==> used_threads g (s ∪ {[ th ]}) ** not_locked g th).
   Proof.
     rewrite users.unlock used_threads.unlock.
-    intros Hni.
-    iIntros "A".
+    iIntros (Hni) "A".
     iMod (own_update with "A") as "[● $]"; last by iModIntro; iFrame.
-    rewrite cmra_comm.
-    apply (auth_update_alloc _ (GSet ({[th]} ∪ s)) (GSet {[th]})).
+    rewrite (comm op) (comm_L union).
+    apply (auth_update_alloc _ (GSet ({[ th ]} ∪ s)) (GSet {[th]})).
     apply gset_disj_alloc_empty_local_update. set_solver.
   Qed.
 
   Lemma logout th g s :
     th ∉ s ->
-    used_threads g ({[ th ]} ∪ s) ** not_locked g th |--
+    used_threads g (s ∪ {[ th ]}) ** not_locked g th |--
     (|==> used_threads g s).
   Proof.
     rewrite users.unlock used_threads.unlock.
-    intros Hni.
-    iIntros "[A B]".
+    iIntros (Hni) "[A B]".
     iApply (own_update_2 with "A B").
     apply (auth_update_dealloc _ _ (GSet s)).
-    rewrite -gset_disj_union; last set_solver.
+    rewrite (comm_L (∪)) -gset_disj_union; last set_solver.
     apply gset_disj_dealloc_empty_local_update.
   Qed.
 End with_cpp.

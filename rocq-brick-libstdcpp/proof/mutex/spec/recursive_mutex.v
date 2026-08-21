@@ -11,8 +11,8 @@ Require Import skylabs.brick.libstdcpp.mutex.spec.mutex.
 Require Export skylabs.brick.libstdcpp.runtime.pred.
 
 Require Import skylabs.brick.libstdcpp.mutex.requirements.
-Require Import skylabs.brick.libstdcpp.mutex.inc_hpp.
 Require Import skylabs.brick.libstdcpp.lib.lock_ghost.
+Require Import skylabs.brick.libstdcpp.mutex.inc_hpp.
 
 Import linearity.
 
@@ -88,25 +88,33 @@ Module recursive_mutex.
       used_threads g s |--
       (|==> used_threads g (s ∪ {[ th ]}) ** locked g th 0).
     Proof.
-      intros Hni.
-      replace (s ∪ {[ th ]}) with ({[ th ]} ∪ s) by set_solver.
       rewrite used_threads.unlock locked.unlock.
-      iIntros "A".
-      iMod (lock_ghost.login th g.(locked_gname) s with "A") as "[A $]".
-      { done. }
-      iAssert (|==> owned_count_id_frag g None)%I as ">$".
-      {
-        rewrite owned_count_id_frag.unlock.
-        iApply own_unit.
-      }
-      iModIntro.
-      iFrame.
+      iIntros (Hni) "A".
+      iMod (lock_ghost.login th g.(locked_gname) s with "A") as "[$ $]";
+        first done.
+      rewrite owned_count_id_frag.unlock /=.
+      iApply own_unit.
     Qed.
+
+    Lemma logout th g s :
+      th ∉ s ->
+      used_threads g (s ∪ {[ th ]}) ** locked g th 0 |--
+        (|==> used_threads g s ** owned_count_id_frag g None).
+    Proof.
+      rewrite used_threads.unlock locked.unlock.
+      iIntros (Hni) "(? & ? & $)".
+      iApply (lock_ghost.logout th g.(locked_gname) s); first done.
+      work.
+    Qed.
+
+    #[global] Instance owned_count_id_frag_WeaklyObjective γ om :
+      WeaklyObjective (PROP := iPropI _) (owned_count_id_frag γ om).
+    Proof. rewrite owned_count_id_frag.unlock. apply _. Qed.
 
     #[global] Instance
       locked_WeaklyObjective γ thr n :
       WeaklyObjective (PROP := iPropI _) (locked γ thr n).
-    Proof. rewrite locked.unlock owned_count_id_frag.unlock. apply _. Qed.
+    Proof. rewrite locked.unlock. apply _. Qed.
 
     Lemma locked_excl_same_thread g th n m :
       locked g th n ** locked g th m |-- False.
@@ -124,10 +132,10 @@ Module recursive_mutex.
       }
       rewrite locked.unlock.
       iIntros "[[_ A] [_ B]]".
-      destruct n, m; try auto.
+      destruct n, m; try auto. iExFalso.
       rewrite owned_count_id_frag.unlock.
-      iDestruct (own_valid_2 with "A B") as "%".
-      rewrite -auth_frag_op auth_frag_valid in H.
+      iDestruct (own_valid_2 with "A B") as %HV; exfalso.
+      rewrite -auth_frag_op auth_frag_valid in HV.
       done.
     Qed.
 
