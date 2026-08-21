@@ -76,7 +76,6 @@ Section with_cpp.
     (\this this
      \arg{x} "x" (Vint x)
      \prepost{γ q} this |-> CR γ q
-     \prepost{q'} recursive_mutex.token γ.(recursive_mutex.lock_gname) q'
      \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (P this)
      \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (trim 64 (a+x)) b) args) (P this)).
 
@@ -84,7 +83,6 @@ Section with_cpp.
     (\this this
      \arg{x} "x" (Vint x)
      \prepost{γ q} this |-> CR γ q
-     \prepost{q'} recursive_mutex.token γ.(recursive_mutex.lock_gname) q'
      \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (P this)
      \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk a (trim 64 (b + x))) args) (P this)).
 
@@ -147,7 +145,6 @@ Section with_cpp.
     (\this this
       \arg{x} "x" (Vint x)
       \prepost{γ q} this |-> CR γ q
-      \prepost{q'} recursive_mutex.token γ.(recursive_mutex.lock_gname) q'
       \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (P this)
       \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (trim 64 (a+x)) (trim 64 (b-x))) args) (P this)).
 

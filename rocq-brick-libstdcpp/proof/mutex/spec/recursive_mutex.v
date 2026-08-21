@@ -245,33 +245,13 @@ cinv (
     #[global] Instance R_learn : Cbn (Learn (learn_eq ==> any ==> learn_hints.fin) R).
     Proof. solve_learnable. Qed.
 
-    (** <<token γ q>>
-        if <<q = 1>>, then the mutex is not locked and therefore can be destroyed.
-
-        <<token γ 1>> is shared among threads who has access to the lock, and a
-        call to lock turns some of <<token γ q>> into <<given_token γ q>>, unlock
-        does the opposite.
-    *)
-    Parameter token : gname -> Qp -> mpred.
-    #[only(fracsplittable,timeless)] derive token.
-
-    (** Tracks whether any thread holds the lock. *)
-    Parameter given_token : gname -> Qp -> mpred.
-    #[only(timeless)] derive given_token.
-    (* #[only(cfracsplittable,timeless)] derive given_token. *)
-
-    #[global]
-    Instance given_token_learn γ : LearnEq1 (given_token γ) :=
-      ltac:(solve_learnable).
-
     cpp.spec "std::recursive_mutex::recursive_mutex()" as ctor_spec with
       (\this this
-      \post Exists g, this |-> R g 1$m ** token g 1 ** used_threads g empty).
+      \post Exists g, this |-> R g 1$m ** used_threads g empty).
 
     cpp.spec "std::recursive_mutex::~recursive_mutex()" as dtor_spec with
       (\this this
       \pre{g} this |-> R g 1$m
-      \pre token g 1
       \pre used_threads g empty
       \post emp).
 
@@ -279,19 +259,17 @@ cinv (
       (\this this
         \prepost{q g} this |-> R g q (* part of both pre and post *)
         \persist{th} current_thread th
-        \pre{q'} token g q'
         \pre{Q} AC << ∀ n , locked g th n >> @ top \ ↑ mask , empty
                     << locked g th (S n) , COMM Q >>
-        \post Q ** given_token g q').
+        \post Q).
 
     cpp.spec "std::recursive_mutex::unlock()" as unlock_spec with
       (\this this
         \prepost{q g} this |-> R g q (* part of both pre and post *)
         \persist{th} current_thread th
-        \pre{q'} given_token g q'
         \pre{Q} AC << ∀ n , locked g th (S n) >> @ top \ ↑ mask , empty
                     << locked g th n , COMM Q >>
-        \post token g q' ** Q).
+        \post Q).
 
   End base_construction.
 
@@ -513,14 +491,12 @@ cinv (
       \post
         Exists g,
           this |-> R g.(lock_gname) 1$m **
-          token g.(lock_gname) 1 **
           used_threads g.(lock_gname) empty **
           inv_rmutex g (∃ xs, tele_app P xs)).
 
     cpp.spec "std::recursive_mutex::~recursive_mutex()" as dtor_spec' with
       (\this this
       \pre{g} this |-> R g.(lock_gname) 1
-      \pre token g.(lock_gname) 1
       \pre used_threads g.(lock_gname) empty
       \pre{TT P} inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
       \post |> (Exists xs, tele_app (TT := TT) P xs)).
@@ -530,8 +506,7 @@ cinv (
       \persist{g TT P} inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
       \prepost{q} this |-> R g.(lock_gname) q
       \pre{th n} acquireable g th n P
-      \pre{q'} token g.(lock_gname) q'
-      \post given_token g.(lock_gname) q' ** (Exists n', [| acquire n n' |] ** ▷ acquireable g th n' P)).
+      \post (Exists n', [| acquire n n' |] ** ▷ acquireable g th n' P)).
     (* to prove: this is derivable from lock_spec *)
 
     cpp.spec "std::recursive_mutex::unlock()" as unlock_spec' with
@@ -539,29 +514,25 @@ cinv (
       \persist{g TT P} inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
       \prepost{q} this |-> R g.(lock_gname) q
       \pre{th n args} acquireable g th (Held n args) P
-      \pre{q'} given_token g.(lock_gname) q'
-      \post token g.(lock_gname) q' ** acquireable g th (release $ Held n args) P).
+      \post acquireable g th (release $ Held n args) P).
 
-    Definition do_lock g K : mpred := ∃ TT P th n q',
+    Definition do_lock g K : mpred := ∃ TT P th n,
       inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
       ** acquireable g th n P
-      ** token g.(lock_gname) q'
       ** (
         (* TODO readd *)
         (* ▷ *)
-        (given_token g.(lock_gname) q' **
-        (Exists n', [| acquire n n' |] ** ▷ acquireable g th n' P)) -*
+        (Exists n', [| acquire n n' |] ** ▷ acquireable g th n' P) -*
         K).
     #[global] Arguments do_lock /.
 
-    Definition do_unlock g K : mpred := ∃ TT P th n args q',
+    Definition do_unlock g K : mpred := ∃ TT P th n args,
       inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
       ** acquireable g th (Held n args) P
-      ** given_token g.(lock_gname) q'
       ** (
         (* TODO readd *)
         (* ▷ *)
-        (token g.(lock_gname) q' ** acquireable g th (release $ Held n args) P) -*
+        (acquireable g th (release $ Held n args) P) -*
         (|={⊤}=> K)).
     #[global] Arguments do_unlock /.
 
@@ -659,7 +630,7 @@ cinv (
     Proof using MOD HOV HOU.
       apply specify_mono; work.
       Import auto_frac.
-      iExists q, q'.
+      iExists q.
 
       iExists (∃ t, [| acquire n t |] ∗ ▷ acquireable g th t P)%I.
 
