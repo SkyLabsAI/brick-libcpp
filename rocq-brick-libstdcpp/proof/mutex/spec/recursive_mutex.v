@@ -272,7 +272,7 @@ cinv (
       (\this this
       \pre{g} this |-> R g 1$m
       \pre token g 1
-      \pre{ths} used_threads g ths
+      \pre used_threads g empty
       \post emp).
 
     cpp.spec "std::recursive_mutex::lock()" as lock_spec with
@@ -521,7 +521,7 @@ cinv (
       (\this this
       \pre{g} this |-> R g.(lock_gname) 1
       \pre token g.(lock_gname) 1
-      \pre{ths} used_threads g.(lock_gname) ths
+      \pre used_threads g.(lock_gname) empty
       \pre{TT P} inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
       \post |> Exists xs, tele_app (TT := TT) P xs).
 
