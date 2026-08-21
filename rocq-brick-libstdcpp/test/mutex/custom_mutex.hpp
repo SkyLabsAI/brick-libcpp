@@ -23,6 +23,10 @@ class MyMutex {
   // "Actual locking"
   void do_lock() {
     while (m_lock.exchange(true)) {
+      // Yielding helps scheduling, and makes this loop obviously not UB
+      // (under https://eel.is/c++draft/intro.progress#1.2).
+      // Calling exchange might qualify under
+      // https://eel.is/c++draft/intro.progress#1.5, but that is subtle.
       std::this_thread::yield();
     }
   }
