@@ -80,7 +80,6 @@ Section with_cpp.
     \persist{thr} current_thread thr
     \post Exists γ,
       this |-> CR γ 1$m **
-      recursive_mutex.token (lock_gname γ) 1 **
       recursive_mutex.used_threads (lock_gname γ) {[thr]} **
       recursive_mutex.locked (lock_gname γ) thr 0
   ).
@@ -111,15 +110,7 @@ Section with_cpp.
     \this this
     \persist{thr} current_thread thr
     \pre{γ} this |-> CR γ 1$m
-    \pre recursive_mutex.token (lock_gname γ) 1
     \pre recursive_mutex.used_threads (lock_gname γ) empty
-    (* Currently unused, but callers are likely to have this and need to leak it. *)
-    (* \pre recursive_mutex.locked (lock_gname γ) thr 0 *)
-
-    (* **
-      token (lock_gname γ) 1 **
-      used_threads (lock_gname γ) {[thr]} **
-      locked (lock_gname γ) thr 0 *)
     \post emp).
 
   (* #[global] Instance: Inhabited [tele _ : Z]. Proof. solve_inhabited. Qed. *)
