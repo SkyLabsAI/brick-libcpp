@@ -517,6 +517,14 @@ cinv (
           used_threads g.(lock_gname) empty **
           inv_rmutex g (∃ xs, tele_app P xs)).
 
+    cpp.spec "std::recursive_mutex::~recursive_mutex()" as dtor_spec' with
+      (\this this
+      \pre{g} this |-> R g.(lock_gname) 1
+      \pre token g.(lock_gname) 1
+      \pre{ths} used_threads g.(lock_gname) ths
+      \pre{TT P} inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
+      \post |> Exists xs, tele_app (TT := TT) P xs).
+
     cpp.spec "std::recursive_mutex::lock()" as lock_spec' with
       (\this this
       \persist{g TT P} inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
