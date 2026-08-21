@@ -29,7 +29,7 @@
 std::atomic<bool> lock;
 
 void lock(){
-  while(!(lock.atomic_compare_exchange(&false, true))) { }
+  while(lock.exchange(true)) { yield(); }
 }
 
 void unlock(){
