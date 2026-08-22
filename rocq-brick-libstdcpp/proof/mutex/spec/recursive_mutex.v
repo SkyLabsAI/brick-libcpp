@@ -60,12 +60,11 @@ Module recursive_mutex.
   sl.lock
   Definition locked `{Σ : cpp_logic, !lockedG Σ}
       (γ : gname) (th : thread_idT) (n : nat) : mpred :=
-      user γ.(locked_gname) th **
-      match n with
-      | 0 => owned_count_id_frag γ None
-      | S n => owned_count_id_frag γ (Some (th, n))
-      end
-  .
+    user γ.(locked_gname) th **
+    match n with
+    | 0 => owned_count_id_frag γ None
+    | S n => owned_count_id_frag γ (Some (th, n))
+    end.
   #[only(timeless)] derive locked.
 
   (* TODO: we should abstract this over the ownership that is produced and
@@ -75,7 +74,6 @@ Module recursive_mutex.
     `{Σ : cpp_logic, !lockedG Σ, !HasStdThreads Σ}
     (γ : gname) (s : gset thread_idT) : mpred :=
     lock_ghost.used_threads γ.(locked_gname) s.
-
   #[only(timeless)] derive used_threads.
 
   Section locked_with_cpp.
@@ -88,11 +86,9 @@ Module recursive_mutex.
       used_threads g s |--
       (|==> used_threads g (s ∪ {[ th ]}) ** locked g th 0).
     Proof.
-      rewrite used_threads.unlock locked.unlock.
+      rewrite used_threads.unlock locked.unlock owned_count_id_frag.unlock /=.
       iIntros (Hni) "A".
-      iMod (lock_ghost.login th g.(locked_gname) s with "A") as "[$ $]";
-        first done.
-      rewrite owned_count_id_frag.unlock /=.
+      iMod (lock_ghost.login with "A") as "[$ $]"; first done.
       iApply own_unit.
     Qed.
 
@@ -103,7 +99,7 @@ Module recursive_mutex.
     Proof.
       rewrite used_threads.unlock locked.unlock.
       iIntros (Hni) "(? & ? & $)".
-      iApply (lock_ghost.logout th g.(locked_gname) s); first done.
+      iApply lock_ghost.logout; first done.
       work.
     Qed.
 
@@ -232,7 +228,7 @@ cinv (
     Something like *)
     (* _mutex_field |-> mutex.R q ... ** *)
     pureR (cinv_own γ.(inv_gname) q).
-  #[only(cfractional,ascfractional,timeless,type_ptr="std::recursive_mutex")] derive R.
+  #[only(cfracsplittable,type_ptr="std::recursive_mutex")] derive R.
 
 
   Section base_construction.
@@ -617,108 +613,70 @@ cinv (
       apply specify_mono_fupd; work.
       rewrite derivedR.unlock inv_rmutex.unlock.
       work.
-      wname [cinv_own] "c".
-      iMod (cinv_cancel with "[] [c] ") as "P"; [done..|].
-      iDestruct "P" as (n th) "(>? & ?)".
+      iMod (cinv_cancel with "[$] [$]") as (n th) "(>? & ?)"; [done..|].
 
       destruct n as [|n'] eqn:?; work; first last.
       {
         rewrite locked.unlock used_threads.unlock.
-        work.
-        iDestruct (used_threads_empty_no_not_locked with "[$]") as "[]".
+        wapply used_threads_empty_no_not_locked; work with br_erefl.
       }
-      iModIntro. work.
-      iModIntro.
-      ego with br_erefl.
-      wname [cinv] "I".
-      wname [own] "L1".
-      wname [own] "L2".
-      iCombine "L1 L2" as "L".
+      iModIntro. work. iModIntro. ego with br_erefl.
       (* _now_ we just need to leak ghost state and that's okay *)
-      iApply (affine with "L").
-      apply mpred_BiAffine.
+      wname [cinv] "I"; wname [own] "L1"; wname [own] "L2"; iCombine "L1 L2" as "L".
+      iApply (affine with "L"). apply mpred_BiAffine.
     Qed.
 
     Lemma lock_spec_impl_lock_spec' :
       lock_spec |-- lock_spec'.
     Proof using MOD HOV HOU.
-      apply specify_mono.
-      rewrite derivedR.unlock.
-      work.
-      Import auto_frac.
-      iExists q.
-
-      iExists (cinv_own g.(cinv_gname) q **
+      apply specify_mono; rewrite derivedR.unlock; work.
+      iExists q, (cinv_own g.(cinv_gname) q **
         (∃ t, [| acquire n t |] ∗ ▷ acquireable g th t P))%I.
-
-      wname [bi_wand] "W".
-      wfocus (bi_wand _ _) "W".
-      { work $usenamed=true. }
-      work.
-      iAcIntro; rewrite /commit_acc/=.
+      wname [bi_wand] "W"; wfocus (bi_wand _ _) "W". { work $usenamed=true. }
       rewrite inv_rmutex.unlock acquireable.unlock.
-      iInv rmutex_namespace as "[Hbody Hcinv]" "Hclose".
-      iDestruct "Hbody" as (??) "(>Hn & Hcases)".
-      work.
-      destruct n; simpl.
-      - iApply fupd_mask_intro; first set_solver; iIntros "Hclose'".
-        work.
-        iExists 0; work.
-        destruct n0; first last. {
+      work; iAcIntro; rewrite /commit_acc/=; work.
+      iInv rmutex_namespace as "[(%n' & %th' & >Hn & Hcases) ?]" "Hclose".
+      destruct n as [|n args]; simpl; [iExists 0 | iExists (S n)]; work.
+      2: iDestruct (own_valid_2 with "Hn [$]") as %[=]%excl_auth_agree_L; subst.
+      all: work $usenamed=true; iApply fupd_mask_intro; first set_solver;
+        iIntros "Hclose'"; work; iMod "Hclose'" as "_".
+      - destruct n'; first last. {
           iMod "Hcases".
           iDestruct (locked_excl_different_thread with "[$]") as (?) "?".
           exfalso. lia.
         }
-        iDestruct "Hcases" as "(HP & >Hcase)".
-        iMod (own_update_2 with "Hn Hcase") as "(Hg & Hcase)";
+        rewrite bi.later_sep bi.later_exist_except_0.
+        iDestruct "Hcases" as "(>(%args & ?) & >Hcase)".
+        iMod (own_update_2 with "Hn Hcase") as "(Hg & ?)";
           first apply (excl_auth_update _ _ (1, th)).
-        iMod "Hclose'" as "_".
-        wname [recursive_mutex.locked _ th _] "Hlocked".
-        iMod ("Hclose" with "[$Hg $Hlocked //]") as "_".
-        iMod (bi.later_exist_except_0 with "HP") as "(%args & HP)".
-        iModIntro.
-        iExists (Held 0 args); work $usenamed=true.
-      - work.
-        iDestruct (own_valid_2 with "Hn [$]") as %[=]%excl_auth_agree_L; subst.
-        iMod "Hcases".
-        iApply fupd_mask_intro; first set_solver; iIntros "Hclose'".
-        iExists (S n). work $usenamed=true.
-        iMod (own_update_2 with "Hn [$]") as "(Hg & Hcase)";
+        wname [recursive_mutex.locked _ th _] "Hlocked";
+          iMod ("Hclose" with "[$Hg $Hlocked //]") as "_"; iModIntro.
+        iExists (Held 0 args). work.
+      - iMod (own_update_2 with "Hn [$]") as "(Hg & ?)";
           first apply (excl_auth_update _ _ (S (S n), th)).
-        iMod "Hclose'" as "_".
-        wname [recursive_mutex.locked _ th _] "Hlocked".
-        iMod ("Hclose" with "[$Hg $Hlocked //]") as "_".
-        iModIntro.
-        iExists (Held (S n) xs). work $usenamed=true.
+        wname [recursive_mutex.locked _ th _] "Hlocked";
+          iMod ("Hclose" with "[$Hg $Hlocked //]") as "_"; iModIntro.
+        iExists (Held (S n) args). work.
     Qed.
 
     Lemma unlock_spec_impl_unlock_spec' :
       unlock_spec |-- unlock_spec'.
     Proof using MOD HOV HOU.
-      apply specify_mono.
-      rewrite derivedR.unlock.
-      work.
-      iExists _, (cinv_own g.(cinv_gname) q **
+      apply specify_mono; rewrite derivedR.unlock; work.
+      iExists q, (cinv_own g.(cinv_gname) q **
         acquireable g th (release $ Held n args) P)%I.
-      wname [bi_wand] "W".
-      wfocus (bi_wand _ _) "W".
-      { work $usenamed=true. }
-      work.
-      iAcIntro; rewrite /commit_acc/=.
+      wname [bi_wand] "W"; wfocus (bi_wand _ _) "W". { work $usenamed=true. }
       rewrite inv_rmutex.unlock acquireable.unlock.
-      iInv rmutex_namespace as "[Hbody Hcinv]" "Hclose".
-      iDestruct "Hbody" as (??) "(>Hn & Hcases)".
-      work.
+      work; iAcIntro; rewrite /commit_acc/=; work.
+      iInv rmutex_namespace as "[(%n' & %th' & >Hn & Hcases) ?]" "Hclose".
       iDestruct (own_valid_2 with "Hn [$]") as %[=]%excl_auth_agree_L; subst.
       iMod "Hcases".
       iApply fupd_mask_intro; first set_solver; iIntros "Hclose'".
-      ework $usenamed=true with br_erefl.
+      iExists n; work $usenamed=true.
       iMod "Hclose'" as "_".
       iMod (own_update_2 with "Hn [$]") as "(Hg & Hcase)";
         first apply (excl_auth_update _ _ (n, th)).
-      iFrame "#".
-      rewrite release.unlock.
-      destruct n; iFrame.
+      rewrite release.unlock; destruct n; iFrame "#∗".
       all: iMod ("Hclose" with "[-]") as "_";
         ework $usenamed=true with br_erefl; done.
     Qed.
