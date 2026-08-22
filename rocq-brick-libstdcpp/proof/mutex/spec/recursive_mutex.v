@@ -276,7 +276,10 @@ cinv (
 
   (** * Derived construction *)
   Record rmutex_gname :=
-    { lock_gname : gname; level_gname : iprop.gname }.
+    { lock_gname : gname
+    ; level_gname : iprop.gname
+    ; cinv_gname : iprop.gname
+    }.
   Definition rmutex_namespace := nroot .@@ "std" .@@ "recursive_mutex" .@@ "derived".
 
   Canonical Structure cmraR := (excl_authR (prodO natO thread_idTO)).
@@ -285,13 +288,19 @@ cinv (
   Definition inv_rmutex
       `{Σ : cpp_logic} `{!lockedG Σ} `{!HasOwn (iPropI _) cmraR}
       (g : rmutex_gname) (P : mpred) : mpred :=
-    inv rmutex_namespace
+    cinv rmutex_namespace g.(cinv_gname)
       (Exists n th, own g.(level_gname) (●E (n, th)) **
         match n with
         | 0 => P ** own g.(level_gname) (◯E (n, th))
         | S n => locked g.(lock_gname) th (S n)
         end).
   #[only(knowledge)] derive inv_rmutex.
+
+  sl.lock
+  Definition cinv_own_rmutex
+      `{Σ : cpp_logic} `{!lockedG Σ}
+      (g : rmutex_gname) : mpred :=
+    cinv_own g.(cinv_gname) 1.
 
   (** [acquire_state] tracks the acquisition state of a recursive_mutex.
    *)
@@ -490,15 +499,17 @@ cinv (
       \require ∀ xs, WeaklyObjective (tele_app P xs)
       \post
         Exists g,
-          this |-> R g.(lock_gname) 1$m **
+          (this |-> R g.(lock_gname) 1$m **
           used_threads g.(lock_gname) empty **
-          inv_rmutex g (∃ xs, tele_app P xs)).
+          inv_rmutex g (∃ xs, tele_app P xs)) **
+          cinv_own_rmutex g).
 
     cpp.spec "std::recursive_mutex::~recursive_mutex()" as dtor_spec' with
       (\this this
       \pre{g} this |-> R g.(lock_gname) 1
       \pre used_threads g.(lock_gname) empty
       \pre{TT P} inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
+      \pre cinv_own_rmutex g
       \post |> (Exists xs, tele_app (TT := TT) P xs)).
 
     cpp.spec "std::recursive_mutex::lock()" as lock_spec' with
@@ -583,47 +594,43 @@ cinv (
       rewrite /acquireable /=.
       iMod (own_alloc (●E (O, th) ⋅ ◯E (O, th))) as (g) "(? & ?)".
       { apply excl_auth_valid. }
-      iExists {| lock_gname := t; level_gname := g |}; iFrame.
-      rewrite inv_rmutex.unlock.
-      iMod (inv_alloc with "[-]") as "$"; last done.
+      wname [used_threads] "u".
+      wname [_ |-> _ _ _] "a".
+      iMod (cinv_alloc with "[-u a]") as (ginv) "?"; last first. {
+        iExists {| lock_gname := t; level_gname := g; cinv_gname:= ginv |}.
+        rewrite cinv_own_rmutex.unlock inv_rmutex.unlock /=. iModIntro.
+        go with br_erefl $usenamed=true.
+      }
       ework with br_erefl.
+      apply _.
     Qed.
 
     Lemma dtor_spec_impl_dtor_spec' :
       dtor_spec |-- dtor_spec'.
     Proof using MOD HOV HOU.
       apply specify_mono_fupd; work.
-      rewrite inv_rmutex.unlock.
-      iInv recursive_mutex.rmutex_namespace as (n th) "[>? ?]" "Hclose".
-      (* TODO: we should cancel this invariant instead *)
-      (* iMod (cinv_cancel with "[$]") as "?". *)
+      rewrite inv_rmutex.unlock cinv_own_rmutex.unlock.
+      wname [cinv_own] "c".
+      iMod (cinv_cancel with "[] [c] ") as "P"; [done..|].
+      iDestruct "P" as (n th) "(>? & ?)".
 
       destruct n as [|n'] eqn:?; work; first last.
       {
         rewrite locked.unlock used_threads.unlock.
         work.
         iDestruct (used_threads_empty_no_not_locked with "[$]") as "[]".
-        (* Somebody else has locked the mutex, but we have the full token.
-        This should be impossible, since we own [token 1], but it's unclear how we'd prove this. *)
-      }
-      iMod ("Hclose" with "[]") as "_". {
-        (* We should _cancel_ the invariant, then we would _not_ need to prove this. *)
-        admit.
       }
       iModIntro. work.
       iModIntro.
       ego with br_erefl.
-      wname [inv] "I".
+      wname [cinv] "I".
       wname [own] "L1".
       wname [own] "L2".
       iCombine "L1 L2" as "L".
       (* _now_ we just need to leak ghost state and that's okay *)
       iApply (affine with "L").
       apply mpred_BiAffine.
-      Unshelve.
-      all: fail.
-    (* Abort this until we have a cancellable invariant. *)
-    Abort.
+    Qed.
 
     Lemma lock_spec_impl_lock_spec' :
       lock_spec |-- lock_spec'.
