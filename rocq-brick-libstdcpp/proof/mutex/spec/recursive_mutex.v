@@ -296,23 +296,6 @@ cinv (
         end).
   #[only(knowledge)] derive inv_rmutex.
 
-  sl.lock
-  Definition cinv_own_rmutex
-      `{Σ : cpp_logic} `{!lockedG Σ}
-      (g : rmutex_gname) (q : Qp) : mpred :=
-    cinv_own g.(cinv_gname) q.
-  #[only(timeless)] derive cinv_own_rmutex.
-
-  #[global] Instance cinv_own_rmutex_fractional
-      `{Σ : cpp_logic} `{!lockedG Σ} g :
-      Fractional (cinv_own_rmutex g).
-  Proof. rewrite cinv_own_rmutex.unlock. apply cinv_own_fractional. Qed.
-
-  #[global] Instance cinv_own_rmutex_as_fractional
-      `{Σ : cpp_logic} `{!lockedG Σ} g q :
-      AsFractional (cinv_own_rmutex g q) (cinv_own_rmutex g) q.
-  Proof. rewrite cinv_own_rmutex.unlock. apply cinv_own_as_fractional. Qed.
-
   (** Fractional ownership of the physical recursive mutex and of the
    cancellable invariant that protects the custom resource P.
    The two fractions do not have to be the same, we just choose to make them
@@ -323,8 +306,8 @@ cinv (
       `{Σ : cpp_logic, σ : genv, !lockedG Σ}
       (g : rmutex_gname) (q : cQp.t) : Rep :=
     R g.(lock_gname) q **
-    pureR (cinv_own_rmutex g q).
-  #[only(cfractional,ascfractional,timeless,type_ptr="std::recursive_mutex")] derive derivedR.
+    pureR (cinv_own g.(cinv_gname) q).
+  #[only(cfracsplittable,type_ptr="std::recursive_mutex")] derive derivedR.
 
   (** [acquire_state] tracks the acquisition state of a recursive_mutex.
    *)
@@ -621,7 +604,7 @@ cinv (
       wname [_ |-> _ _ _] "a".
       iMod (cinv_alloc with "[-u a]") as (ginv) "(#Hinv & Hown)"; last first.
       - iExists {| lock_gname := t; level_gname := g; cinv_gname:= ginv |}.
-        rewrite derivedR.unlock cinv_own_rmutex.unlock inv_rmutex.unlock /=.
+        rewrite derivedR.unlock inv_rmutex.unlock /=.
         iModIntro.
         go with br_erefl $usenamed=true.
       - ework with br_erefl.
@@ -632,7 +615,7 @@ cinv (
       dtor_spec |-- dtor_spec'.
     Proof using MOD HOV HOU.
       apply specify_mono_fupd; work.
-      rewrite derivedR.unlock cinv_own_rmutex.unlock inv_rmutex.unlock.
+      rewrite derivedR.unlock inv_rmutex.unlock.
       work.
       wname [cinv_own] "c".
       iMod (cinv_cancel with "[] [c] ") as "P"; [done..|].
@@ -660,7 +643,7 @@ cinv (
       lock_spec |-- lock_spec'.
     Proof using MOD HOV HOU.
       apply specify_mono.
-      rewrite derivedR.unlock cinv_own_rmutex.unlock.
+      rewrite derivedR.unlock.
       work.
       Import auto_frac.
       iExists q.
@@ -713,7 +696,7 @@ cinv (
       unlock_spec |-- unlock_spec'.
     Proof using MOD HOV HOU.
       apply specify_mono.
-      rewrite derivedR.unlock cinv_own_rmutex.unlock.
+      rewrite derivedR.unlock.
       work.
       iExists _, (cinv_own g.(cinv_gname) q **
         acquireable g th (release $ Held n args) P)%I.
