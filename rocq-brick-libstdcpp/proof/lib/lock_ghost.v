@@ -29,8 +29,8 @@ Definition users `{Σ : cpp_logic, !lockG Σ}
   own γ (◯ GSet ths).
 #[only(timeless)] derive users.
 
-(* not_locked is the handle to call lock functions *)
-Abbreviation not_locked γ th := (users γ {[ th ]}).
+(* user is the handle to call lock functions *)
+Abbreviation user γ th := (users γ {[ th ]}).
 
 Section with_cpp.
   Context `{Σ : cpp_logic}.
@@ -61,26 +61,26 @@ Section with_cpp.
 
   (** *** ghost state set agreement observations: corollaries *)
   Lemma used_threads_empty_no_not_locked g th :
-    used_threads g ∅ ** not_locked g th |-- False.
+    used_threads g ∅ ** user g th |-- False.
   Proof.
     iIntros "[A B]". iDestruct (observe_2_elim_pure with "A B") as %?.
     set_solver.
   Qed.
 
-  Lemma not_locked_unique g th :
-    not_locked g th ** not_locked g th |-- False.
+  Lemma user_unique g th :
+    user g th ** user g th |-- False.
   Proof.
     iIntros "[A B]". iDestruct (observe_2_elim_pure with "A B") as %?.
     set_solver.
   Qed.
 
   (** *** ghost state manipulation:
-  borrow [not_locked] from [used_threads] and back. *)
+  borrow [user] from [used_threads] and back. *)
   (* TODO rename to use_thread *)
   Lemma login th g s :
     th ∉ s ->
     used_threads g s |--
-    (|==> used_threads g (s ∪ {[ th ]}) ** not_locked g th).
+    (|==> used_threads g (s ∪ {[ th ]}) ** user g th).
   Proof.
     rewrite users.unlock used_threads.unlock.
     iIntros (Hni) "A".
@@ -92,7 +92,7 @@ Section with_cpp.
 
   Lemma logout th g s :
     th ∉ s ->
-    used_threads g (s ∪ {[ th ]}) ** not_locked g th |--
+    used_threads g (s ∪ {[ th ]}) ** user g th |--
     (|==> used_threads g s).
   Proof.
     rewrite users.unlock used_threads.unlock.

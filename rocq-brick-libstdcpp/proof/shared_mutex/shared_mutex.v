@@ -48,7 +48,7 @@ Section with_cpp.
 
     Allows to prove writer_writer_exclusive and writer_reader_exclusive.
     Unlike them, we can't just use ∅ for the reader map, because when the
-    writer unlocks, the cinv stores its `not_locked γ th`, but `th` is existentially
+    writer unlocks, the cinv stores its `user γ th`, but `th` is existentially
     quanified in cinv and it needs some way to recover that `th` matches with
     itself. Note that we still lose writer_reader_exclusiveness for the same,
     thread, but that should be fine with the current cinv.
@@ -93,7 +93,7 @@ Section with_cpp.
   Abbreviation users γ ths :=
     (lock_ghost.users γ.(login_gname) ths).
 
-  Abbreviation not_locked γ th := (users γ {[ th ]}).
+  Abbreviation user γ th := (users γ {[ th ]}).
 
   Context `{Σ : cpp_logic}.
   Context `{!lockedG Σ}.
@@ -166,7 +166,7 @@ Section with_cpp.
         own γ.(phys_state_gname) (● borrow_map)) **
         (* the permission borrowed and the permission left in the inv sums to 1 *)
         [| map_fold (λ _ qi q, (Qp_to_Qc qi) + q) (oqp_to_qc oqP) borrow_map = 1%Qc |] **
-        (* all borrowers have to turn in their `not_locked` handle *)
+        (* all borrowers have to turn in their `user` handle *)
         [| ∀ th, th ∈ ths ↔ th ∈ dom borrow_map |].
   End with_Qcanon.
 
@@ -219,15 +219,15 @@ Section with_cpp.
     \this this
     \prepost{qi P g} this |-> R g qi P
     \persist{thr} current_thread thr
-    \pre not_locked g thr
+    \pre user g thr
     \post P 1%Qp ** locked g thr).
 
   cpp.spec "std::shared_mutex::try_lock()" as try_lock_spec_alt with (
     \this this
     \prepost{qi P g} this |-> R g qi P
     \persist{thr} current_thread thr
-    \pre not_locked g thr
-    \post{b}[Vbool b] if b then P 1%Qp ** locked g thr else not_locked g thr).
+    \pre user g thr
+    \post{b}[Vbool b] if b then P 1%Qp ** locked g thr else user g thr).
 
   cpp.spec "std::shared_mutex::unlock()" as unlock_spec_alt with (
     \this this
@@ -235,21 +235,21 @@ Section with_cpp.
     \persist{thr} current_thread thr
     \pre locked g thr
     \pre ▷ P 1%Qp
-    \post not_locked g thr).
+    \post user g thr).
 
   cpp.spec "std::shared_mutex::lock_shared()" as lock_shared_spec_alt with (
     \this this
     \prepost{qi P g} this |-> R g qi P
     \persist{thr} current_thread thr
-    \pre not_locked g thr
+    \pre user g thr
     \post ∃ qP, P qP ** reader_locked g thr qP).
 
   cpp.spec "std::shared_mutex::try_lock_shared()" as try_lock_shared_spec_alt with (
     \this this
     \prepost{qi P g} this |-> R g qi P
     \persist{thr} current_thread thr
-    \pre not_locked g thr
-    \post{b}[Vbool b] if b then ∃ qP, P qP ** reader_locked g thr qP else not_locked g thr).
+    \pre user g thr
+    \post{b}[Vbool b] if b then ∃ qP, P qP ** reader_locked g thr qP else user g thr).
 
   cpp.spec "std::shared_mutex::unlock_shared()" as unlock_shared_spec_alt with (
     \this this
@@ -257,14 +257,14 @@ Section with_cpp.
     \persist{thr} current_thread thr
     \pre{qP} reader_locked g thr qP
     \pre ▷P qP
-    \post not_locked g thr).
+    \post user g thr).
 
   (** Safety Properties (we model violation of these properties as stuckness):
     1. a thread calling lock() or shared_lock() twice should fail.
-      This is prevented by having a unique `not_locked`, and turn in not_locked in the inv.
+      This is prevented by having a unique `user`, and turn in user in the inv.
     2. `lock(); ~shared_mutex()` should fail.
       Assume we have `used_threads g s`.
-      dtor requires s=∅, but `lock()` puts the unique `not_locked γ th` in inv, so we
+      dtor requires s=∅, but `lock()` puts the unique `user γ th` in inv, so we
       can't deallocate that piece, therefore th ∈ s.
     3. `lock(); unlock_shared()` should fail.
       This is prevented because locked can't be transformed into reader_locked,
@@ -274,7 +274,7 @@ Section with_cpp.
   Definition do_lock (lk : gname * (Qp -> mpred)) (K: mpred) : mpred :=
     let g := lk.1 in
     let P := lk.2 in
-    ∃ thr, current_thread thr ∗ not_locked g thr ∗
+    ∃ thr, current_thread thr ∗ user g thr ∗
                (* TODO readd *)
                (* ▷ *)
                (locked g thr ** P 1%Qp -* K).
@@ -286,7 +286,7 @@ Section with_cpp.
     ∃ thr, current_thread thr ** locked g thr ** ▷P 1%Qp **
     (* TODO readd *)
     (* ▷ *)
-    (not_locked g thr -* Q).
+    (user g thr -* Q).
   #[global] Arguments do_unlock /.
 
   (* Obtain same specs from (Basic)Lockable. *)
@@ -306,9 +306,9 @@ Section with_cpp.
   Definition do_try_lock (lk : gname * (Qp -> mpred)) (Q : bool -> mpred) : mpred :=
     let g := lk.1 in
     let P := lk.2 in
-    ∃ thr, current_thread thr ∗ not_locked g thr ∗
+    ∃ thr, current_thread thr ∗ user g thr ∗
     ∀ b : bool,
-    (if b then P 1%Qp ** locked g thr else not_locked g thr) -∗ Q b.
+    (if b then P 1%Qp ** locked g thr else user g thr) -∗ Q b.
   #[global] Arguments do_try_lock /.
 
   #[global,program] Instance shared_mutex_lockable : Lockable (T:=T) "std::shared_mutex" (λ q γP, R γP.1 q γP.2) :=
