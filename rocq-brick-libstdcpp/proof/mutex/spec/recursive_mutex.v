@@ -299,8 +299,32 @@ cinv (
   sl.lock
   Definition cinv_own_rmutex
       `{Σ : cpp_logic} `{!lockedG Σ}
-      (g : rmutex_gname) : mpred :=
-    cinv_own g.(cinv_gname) 1.
+      (g : rmutex_gname) (q : Qp) : mpred :=
+    cinv_own g.(cinv_gname) q.
+  #[only(timeless)] derive cinv_own_rmutex.
+
+  #[global] Instance cinv_own_rmutex_fractional
+      `{Σ : cpp_logic} `{!lockedG Σ} g :
+      Fractional (cinv_own_rmutex g).
+  Proof. rewrite cinv_own_rmutex.unlock. apply cinv_own_fractional. Qed.
+
+  #[global] Instance cinv_own_rmutex_as_fractional
+      `{Σ : cpp_logic} `{!lockedG Σ} g q :
+      AsFractional (cinv_own_rmutex g q) (cinv_own_rmutex g) q.
+  Proof. rewrite cinv_own_rmutex.unlock. apply cinv_own_as_fractional. Qed.
+
+  (** Fractional ownership of the physical recursive mutex and of the
+   cancellable invariant that protects the custom resource P.
+   The two fractions do not have to be the same, we just choose to make them
+   equal for convenience.
+  *)
+  sl.lock
+  Definition derivedR
+      `{Σ : cpp_logic, σ : genv, !lockedG Σ}
+      (g : rmutex_gname) (q : cQp.t) : Rep :=
+    R g.(lock_gname) q **
+    pureR (cinv_own_rmutex g q).
+  #[only(cfractional,ascfractional,timeless,type_ptr="std::recursive_mutex")] derive derivedR.
 
   (** [acquire_state] tracks the acquisition state of a recursive_mutex.
    *)
@@ -499,23 +523,21 @@ cinv (
       \require ∀ xs, WeaklyObjective (tele_app P xs)
       \post
         Exists g,
-          (this |-> R g.(lock_gname) 1$m **
+          this |-> derivedR g 1$m **
           used_threads g.(lock_gname) empty **
-          inv_rmutex g (∃ xs, tele_app P xs)) **
-          cinv_own_rmutex g).
+          inv_rmutex g (∃ xs, tele_app P xs)).
 
     cpp.spec "std::recursive_mutex::~recursive_mutex()" as dtor_spec' with
       (\this this
-      \pre{g} this |-> R g.(lock_gname) 1
+      \pre{g} this |-> derivedR g 1
       \pre used_threads g.(lock_gname) empty
       \pre{TT P} inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
-      \pre cinv_own_rmutex g
       \post |> (Exists xs, tele_app (TT := TT) P xs)).
 
     cpp.spec "std::recursive_mutex::lock()" as lock_spec' with
       (\this this
       \persist{g TT P} inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
-      \prepost{q} this |-> R g.(lock_gname) q
+      \prepost{q} this |-> derivedR g q
       \pre{th n} acquireable g th n P
       \post (Exists n', [| acquire n n' |] ** ▷ acquireable g th n' P)).
     (* to prove: this is derivable from lock_spec *)
@@ -523,7 +545,7 @@ cinv (
     cpp.spec "std::recursive_mutex::unlock()" as unlock_spec' with
       (\this this
       \persist{g TT P} inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
-      \prepost{q} this |-> R g.(lock_gname) q
+      \prepost{q} this |-> derivedR g q
       \pre{th n args} acquireable g th (Held n args) P
       \post acquireable g th (release $ Held n args) P).
 
@@ -547,15 +569,16 @@ cinv (
         (|={⊤}=> K)).
     #[global] Arguments do_unlock /.
 
-    #[global] Instance recursive_mutex_basic_lockable : BasicLockable (T:=rmutex_gname) "std::recursive_mutex" (λ q γ, R γ.(lock_gname) q) :=
+    #[global] Instance recursive_mutex_basic_lockable : BasicLockable
+      (T:=rmutex_gname) "std::recursive_mutex" (λ q g, derivedR g q) :=
     { do_lock := fun this => do_lock
     ; do_unlock := fun this => do_unlock }.
 
     cpp.spec "std::recursive_mutex::lock()" as lock_spec_alt' with
-    (\exact Reduce (lock_basic_lockable "std::recursive_mutex" (λ q γ, R γ.(lock_gname) q))).
+    (\exact Reduce (lock_basic_lockable "std::recursive_mutex" (λ q g, derivedR g q))).
 
     cpp.spec "std::recursive_mutex::unlock()" as unlock_spec_alt' with
-    (\exact Reduce (unlock_basic_lockable "std::recursive_mutex" (λ q γ, R γ.(lock_gname) q))).
+    (\exact Reduce (unlock_basic_lockable "std::recursive_mutex" (λ q g, derivedR g q))).
 
     Lemma lock_spec'_equiv_lock_spec_alt' :
       lock_spec' -|- lock_spec_alt'.
@@ -596,20 +619,21 @@ cinv (
       { apply excl_auth_valid. }
       wname [used_threads] "u".
       wname [_ |-> _ _ _] "a".
-      iMod (cinv_alloc with "[-u a]") as (ginv) "?"; last first. {
-        iExists {| lock_gname := t; level_gname := g; cinv_gname:= ginv |}.
-        rewrite cinv_own_rmutex.unlock inv_rmutex.unlock /=. iModIntro.
+      iMod (cinv_alloc with "[-u a]") as (ginv) "(#Hinv & Hown)"; last first.
+      - iExists {| lock_gname := t; level_gname := g; cinv_gname:= ginv |}.
+        rewrite derivedR.unlock cinv_own_rmutex.unlock inv_rmutex.unlock /=.
+        iModIntro.
         go with br_erefl $usenamed=true.
-      }
-      ework with br_erefl.
-      apply _.
+      - ework with br_erefl.
+      - apply _.
     Qed.
 
     Lemma dtor_spec_impl_dtor_spec' :
       dtor_spec |-- dtor_spec'.
     Proof using MOD HOV HOU.
       apply specify_mono_fupd; work.
-      rewrite inv_rmutex.unlock cinv_own_rmutex.unlock.
+      rewrite derivedR.unlock cinv_own_rmutex.unlock inv_rmutex.unlock.
+      work.
       wname [cinv_own] "c".
       iMod (cinv_cancel with "[] [c] ") as "P"; [done..|].
       iDestruct "P" as (n th) "(>? & ?)".
@@ -635,11 +659,14 @@ cinv (
     Lemma lock_spec_impl_lock_spec' :
       lock_spec |-- lock_spec'.
     Proof using MOD HOV HOU.
-      apply specify_mono; work.
+      apply specify_mono.
+      rewrite derivedR.unlock cinv_own_rmutex.unlock.
+      work.
       Import auto_frac.
       iExists q.
 
-      iExists (∃ t, [| acquire n t |] ∗ ▷ acquireable g th t P)%I.
+      iExists (cinv_own g.(cinv_gname) q **
+        (∃ t, [| acquire n t |] ∗ ▷ acquireable g th t P))%I.
 
       wname [bi_wand] "W".
       wfocus (bi_wand _ _) "W".
@@ -647,7 +674,8 @@ cinv (
       work.
       iAcIntro; rewrite /commit_acc/=.
       rewrite inv_rmutex.unlock acquireable.unlock.
-      iInv rmutex_namespace as (??) "(>Hn & Hcases)" "Hclose".
+      iInv rmutex_namespace as "[Hbody Hcinv]" "Hclose".
+      iDestruct "Hbody" as (??) "(>Hn & Hcases)".
       work.
       destruct n; simpl.
       - iApply fupd_mask_intro; first set_solver; iIntros "Hclose'".
@@ -684,12 +712,19 @@ cinv (
     Lemma unlock_spec_impl_unlock_spec' :
       unlock_spec |-- unlock_spec'.
     Proof using MOD HOV HOU.
-      apply specify_mono; work.
-      iExists _, (acquireable g th (release $ Held n args) P)%I.
+      apply specify_mono.
+      rewrite derivedR.unlock cinv_own_rmutex.unlock.
+      work.
+      iExists _, (cinv_own g.(cinv_gname) q **
+        acquireable g th (release $ Held n args) P)%I.
+      wname [bi_wand] "W".
+      wfocus (bi_wand _ _) "W".
+      { work $usenamed=true. }
       work.
       iAcIntro; rewrite /commit_acc/=.
       rewrite inv_rmutex.unlock acquireable.unlock.
-      iInv rmutex_namespace as (??) "(>Hn & Hcases)" "Hclose".
+      iInv rmutex_namespace as "[Hbody Hcinv]" "Hclose".
+      iDestruct "Hbody" as (??) "(>Hn & Hcases)".
       work.
       iDestruct (own_valid_2 with "Hn [$]") as %[=]%excl_auth_agree_L; subst.
       iMod "Hcases".

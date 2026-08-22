@@ -37,7 +37,7 @@ Definition CR
     `{Σ : cpp_logic, σ : genv, HasOwn (iPropI _) recursive_mutex.cmraR, !recursive_mutex.lockedG Σ}
     (γ : recursive_mutex.rmutex_gname) (q : cQp.t) : Rep :=
   structR "C" q **
-  _field "C::mut" |-> recursive_mutex.R γ.(recursive_mutex.lock_gname) q **
+  _field "C::mut" |-> recursive_mutex.derivedR γ q **
   as_Rep (fun this : ptr =>
     recursive_mutex.inv_rmutex γ (∃ a_b : tele_arg _, tele_app (P this) a_b)).
 
