@@ -105,32 +105,65 @@ Section with_cpp.
   (* Instance: `{ShouldInlineFunction n} | 1000 := {}. *)
   cpp.spec "C::one_answer()" from source inline.
 
+  cpp.spec "std::recursive_mutex::~recursive_mutex()" from source as dtor_spec'' with
+    (\this this
+    \pre{g} this |-> recursive_mutex.R g.(lock_gname) 1
+    \pre{th} recursive_mutex.used_threads g.(lock_gname) {[th]}
+    \pre{TT P} recursive_mutex.inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
+    \pre recursive_mutex.acquireable (TT := TT) g th recursive_mutex.NotHeld P
+    (* \pre recursive_mutex.locked g th 0 *)
+    \post |> (Exists xs, tele_app (TT := TT) P xs)).
+  Lemma dtor_spec''_ok :
+    recursive_mutex.dtor_spec' |--
+    dtor_spec''.
+  Proof.
+    apply specify_mono_fupd; work.
+    rewrite recursive_mutex.acquireable.unlock /=.
+    rewrite -{1}(left_id_L ∅ (∪) {[th]}).
+    wapply recursive_mutex.logout; first last. {
+      repeat (ework with br_erefl; try iModIntro).
+      iApply affine; [apply mpred_BiAffine|go].
+    }
+    set_solver.
+  Qed.
+
   (* cpp.spec "C::~C()" from source inline. *)
   cpp.spec "C::~C()" from source as C_dtor_spec with (
     \this this
     \persist{thr} current_thread thr
     \pre{γ} this |-> CR γ 1$m
-    \pre recursive_mutex.used_threads (lock_gname γ) empty
+    (* \pre recursive_mutex.used_threads (lock_gname γ) empty *)
+    \pre recursive_mutex.used_threads γ.(lock_gname) {[thr]}
+    \pre recursive_mutex.inv_rmutex γ (∃ xs, tele_app (TT := TT) (P this) xs)
+    \pre recursive_mutex.acquireable (TT := TT) γ thr recursive_mutex.NotHeld (P this)
     \post emp).
 
   (* #[global] Instance: Inhabited [tele _ : Z]. Proof. solve_inhabited. Qed. *)
+  #[program]
+  Definition strip_timeless_later_wp_destroy_CX :=
+    \cancelx
+    \consuming{P} ▷ P
+    \guard Timeless P
+    (* \goal_trigger{tu cv y p Q} wp_destroy_val tu cv y p Q
+    \frame P *)
+    \proving{tu cv y p Q} wp_destroy_val tu cv y p Q
+    \through P -* wp_destroy_val tu cv y p Q
+    \end.
+  Next Obligation.
+    iIntros.
+    iApply fupd_wp_destroy_val.
+    wname [bi_later] ">?"; iModIntro; work.
+  Qed.
+  #[local] Hint Resolve strip_timeless_later_wp_destroy_CX : br_hints.
 
   Lemma C_dtor_ok :
     (* We only get [|> recursive_mutex.dtor_spec'], and that's not enough *)
-    recursive_mutex.dtor_spec' |--
+    (* recursive_mutex.  *)
+    dtor_spec'' |--
     verify[source] "C::~C()".
   Proof.
-    verify_spec.
-    wuntil (wp_destroy_val _ _ _ (this ,, _field "C::value")) go.
-    iApply fupd_wp_destroy_val.
-    wname [bi_later] ">?"; iModIntro; go.
-
-    destruct t as [? []]; rewrite P.unlock; go.
-
-    (* _now_ we just need to leak ghost state and that's okay *)
-    (* wname [recursive_mutex.locked] "L". *)
-    (* iApply (affine with "L"). *)
-    (* apply mpred_BiAffine. *)
+    verify_spec; go. destruct_tele; rewrite P.unlock /=.
+    go.
   Qed.
 
   cpp.spec "ghost()" from source as ghost_spec with (
@@ -178,18 +211,14 @@ Section with_cpp.
     have [Ha1 Hrel]: (a1 = 42 /\ recursive_mutex.release (recursive_mutex.Held n (mk a1)) = recursive_mutex.NotHeld). {
       rewrite-> recursive_mutex.release.unlock in *; naive_solver.
     }
-    iExists ?[K], (mk a1); go.
+    subst a1.
+    iExists ?[K], (mk 42). rewrite Hrel /=.
+    go.
     wname [recursive_mutex.used_threads] "U".
     iSplitL "U"; go. {
-      rewrite recursive_mutex.acquireable.unlock /=.
-      work.
-      rewrite -{1}(left_id_L ∅ (∪) {[thr]}) {}Hrel.
-      iMod (recursive_mutex.logout with "[$]") as "[? ?]"; first set_solver.
-      iModIntro.
-      work.
+      iModIntro; go.
     }
     rewrite P.unlock CR'.unlock; go.
-    iApply affine; [apply mpred_BiAffine|go].
   Qed.
 
   (* TODO: when we project out equalities about Held and NotHeld, project info
