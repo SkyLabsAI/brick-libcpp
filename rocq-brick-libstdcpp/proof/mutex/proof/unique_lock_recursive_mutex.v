@@ -51,7 +51,7 @@ NES.Begin unique_lock.
       iExists K.
       (* Time Succeed solve [setoid_rewrite cQp.scale_mut; setoid_rewrite (right_id_L 1%Qp Qp.mul); ego with br_erefl]. *)
       (* 1.6s *)
-      iExists _, q.
+      iExists _.
       rewrite cQp.scale_mut (right_id_L 1%Qp Qp.mul).
       go with br_erefl.
     Qed.

@@ -29,8 +29,8 @@ Definition users `{Σ : cpp_logic, !lockG Σ}
   own γ (◯ GSet ths).
 #[only(timeless)] derive users.
 
-(* not_locked is the handle to call lock functions *)
-Abbreviation not_locked γ th := (users γ {[ th ]}).
+(* user is the handle to call lock functions *)
+Abbreviation user γ th := (users γ {[ th ]}).
 
 Section with_cpp.
   Context `{Σ : cpp_logic}.
@@ -61,47 +61,45 @@ Section with_cpp.
 
   (** *** ghost state set agreement observations: corollaries *)
   Lemma used_threads_empty_no_not_locked g th :
-    used_threads g ∅ ** not_locked g th |-- False.
+    used_threads g ∅ ** user g th |-- False.
   Proof.
     iIntros "[A B]". iDestruct (observe_2_elim_pure with "A B") as %?.
     set_solver.
   Qed.
 
-  Lemma not_locked_unique g th :
-    not_locked g th ** not_locked g th |-- False.
+  Lemma user_unique g th :
+    user g th ** user g th |-- False.
   Proof.
     iIntros "[A B]". iDestruct (observe_2_elim_pure with "A B") as %?.
     set_solver.
   Qed.
 
   (** *** ghost state manipulation:
-  borrow [not_locked] from [used_threads] and back. *)
+  borrow [user] from [used_threads] and back. *)
   (* TODO rename to use_thread *)
   Lemma login th g s :
     th ∉ s ->
     used_threads g s |--
-    (|==> used_threads g ({[ th ]} ∪ s) ** not_locked g th).
+    (|==> used_threads g (s ∪ {[ th ]}) ** user g th).
   Proof.
     rewrite users.unlock used_threads.unlock.
-    intros Hni.
-    iIntros "A".
+    iIntros (Hni) "A".
     iMod (own_update with "A") as "[● $]"; last by iModIntro; iFrame.
-    rewrite cmra_comm.
-    apply (auth_update_alloc _ (GSet ({[th]} ∪ s)) (GSet {[th]})).
+    rewrite (comm op) (comm_L union).
+    apply (auth_update_alloc _ (GSet ({[ th ]} ∪ s)) (GSet {[th]})).
     apply gset_disj_alloc_empty_local_update. set_solver.
   Qed.
 
   Lemma logout th g s :
     th ∉ s ->
-    used_threads g ({[ th ]} ∪ s) ** not_locked g th |--
+    used_threads g (s ∪ {[ th ]}) ** user g th |--
     (|==> used_threads g s).
   Proof.
     rewrite users.unlock used_threads.unlock.
-    intros Hni.
-    iIntros "[A B]".
+    iIntros (Hni) "[A B]".
     iApply (own_update_2 with "A B").
     apply (auth_update_dealloc _ _ (GSet s)).
-    rewrite -gset_disj_union; last set_solver.
+    rewrite (comm_L (∪)) -gset_disj_union; last set_solver.
     apply gset_disj_dealloc_empty_local_update.
   Qed.
 End with_cpp.
