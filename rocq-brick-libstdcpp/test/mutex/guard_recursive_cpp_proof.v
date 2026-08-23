@@ -63,9 +63,6 @@ Section with_cpp.
   #[global] Instance P_timeless' p a : Timeless (tele_app (P p) a).
   Proof. destruct a. apply _. Qed.
 
-  (* int value{0};
-  std::recursive_mutex m; *)
-
   cpp.spec "test_one_answer()" from source with (
     \post[Vint 42] emp
   ).
