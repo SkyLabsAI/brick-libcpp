@@ -78,7 +78,7 @@ Section with_cpp.
     \post Exists γ,
       this |-> CR γ 1$m **
       recursive_mutex.used_threads (lock_gname γ) {[thr]} **
-      recursive_mutex.locked (lock_gname γ) thr 0
+      recursive_mutex.acquireable (TT := TT) γ thr recursive_mutex.NotHeld (P this)
   ).
 
   #[global] Instance unfold (p' : ptr) : `{AutoUnlocking.DefinedUsing (P p n) (p' |-> CR' n')} := {}.
@@ -96,6 +96,8 @@ Section with_cpp.
     iMod (recursive_mutex.use_thread thr (lock_gname t) ∅ with "[$]") as "?"; first set_solver.
     iModIntro.
     rewrite (left_id_L _ (∪)).
+    go.
+    rewrite recursive_mutex.acquireable.unlock.
     go.
   Qed.
 
@@ -171,11 +173,6 @@ Section with_cpp.
     verify[source] "test_one_answer()".
   Proof.
     verify_spec; go.
-    wname [recursive_mutex.locked (lock_gname t) thr 0] "C".
-    iAssert (recursive_mutex.acquireable (TT := TT) t thr recursive_mutex.NotHeld (P c_addr)) with "[C]" as "?". {
-      by rewrite recursive_mutex.acquireable.unlock; iFrame.
-    }
-    go.
     rewrite P.unlock.
     destruct args as [a []]; simpl in *.
     go.
