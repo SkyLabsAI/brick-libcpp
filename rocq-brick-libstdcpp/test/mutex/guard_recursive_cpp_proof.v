@@ -105,21 +105,16 @@ Section with_cpp.
   Proof.
     verify_shift; go.
     iExists TT, (P this), (mk 0); go.
+    rewrite -bi.later_intro.
     rewrite {1}P.unlock.
     (* Ugh *)
-    rewrite -bi.later_intro.
     go.
 
-    iMod (recursive_mutex.use_thread thr (lock_gname t) ∅ with "[$]") as "?"; first set_solver.
-    iModIntro.
-    rewrite (left_id_L _ (∪)).
+    iMod (recursive_mutex.use_thread thr (lock_gname t) ∅ with "[$]") as "?"; first set_solver; iModIntro.
     go.
-    rewrite recursive_mutex.acquireable.unlock.
+    rewrite recursive_mutex.acquireable.unlock (left_id_L _ (∪)).
     go.
   Qed.
-
-  (* Instance: `{ShouldInlineFunction n} | 1000 := {}. *)
-  cpp.spec "C::one_answer()" from source inline.
 
   cpp.spec "std::recursive_mutex::~recursive_mutex()" from source as dtor_spec'' with
     (\this this
@@ -153,6 +148,7 @@ Section with_cpp.
     \post emp).
 
   (* #[global] Instance: Inhabited [tele _ : Z]. Proof. solve_inhabited. Qed. *)
+
   Lemma C_dtor_ok :
     (* We only get [|> recursive_mutex.dtor_spec'], and that's not enough *)
     (* recursive_mutex.  *)
@@ -163,22 +159,17 @@ Section with_cpp.
     go.
   Qed.
 
-  cpp.spec "ghost()" from source as ghost_spec with (
-    \pre{P}
-     |={⊤}=>
-    P
-    \post P).
+  cpp.spec "C::one_answer()" from source inline.
 
   Lemma test_one_answer_ok :
     verify[source] "test_one_answer()".
   Proof.
     verify_spec; go.
-    rewrite P.unlock.
-    destruct args as [a []]; simpl in *.
+    destruct args as [a []].
+    rewrite P.unlock /=.
     go.
 
-    iExists ?[K], (mk 42).
-    go.
+    iExists ?[K], (mk 42). go.
     iSplitL ""; first by go; iModIntro; go.
     go.
     have [? [??]] : exists a, n = 1%nat /\ recursive_mutex.acquire a (recursive_mutex.release (recursive_mutex.Held n (mk 42))). {
