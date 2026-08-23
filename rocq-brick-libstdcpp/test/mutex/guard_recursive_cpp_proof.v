@@ -140,27 +140,6 @@ Section with_cpp.
     go.
   Qed.
 
-  cpp.spec "std::recursive_mutex::~recursive_mutex()" from source as dtor_spec'' with
-    (\this this
-    \pre{g} this |-> recursive_mutex.derivedR g 1
-    \pre{th} recursive_mutex.used_threads g.(lock_gname) {[th]}
-    \pre{TT P} recursive_mutex.inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
-    \pre recursive_mutex.acquireable (TT := TT) g th recursive_mutex.NotHeld P
-    (* \pre recursive_mutex.locked g th 0 *)
-    \post |> (Exists xs, tele_app (TT := TT) P xs)).
-  Lemma dtor_spec''_ok :
-    recursive_mutex.dtor_spec' |--
-    dtor_spec''.
-  Proof.
-    apply specify_mono_fupd; work.
-    rewrite recursive_mutex.acquireable.unlock /=.
-    rewrite -{1}(left_id_L ∅ (∪) {[th]}).
-    wapply (recursive_mutex.logout th _ ∅); first by set_solver.
-    repeat (ework with br_erefl; try iModIntro).
-    iApply affine; [apply mpred_BiAffine|go].
-  Qed.
-
-  (* cpp.spec "C::~C()" from source inline. *)
   cpp.spec "C::~C()" from source as C_dtor_spec with (
     \this this
     \persist{thr} current_thread thr
@@ -175,12 +154,17 @@ Section with_cpp.
 
   Lemma C_dtor_ok :
     (* We only get [|> recursive_mutex.dtor_spec'], and that's not enough *)
-    (* recursive_mutex.  *)
-    dtor_spec'' |--
-    verify[source] "C::~C()".
+    recursive_mutex.dtor_spec' |-- verify[source] "C::~C()".
   Proof.
-    verify_spec; go. destruct_tele; rewrite P.unlock /=.
+    verify_shift; go.
+    wapply (recursive_mutex.logout thr _ ∅); first by set_solver.
+    rewrite recursive_mutex.acquireable.unlock /= (left_id_L _ (∪)).
+    go with br_erefl.
+    iModIntro.
     go.
+    progress destruct_tele; rewrite P.unlock /=.
+    go.
+    iApply affine; [apply mpred_BiAffine|go].
   Qed.
 
   cpp.spec "C::one_answer()" from source inline.
