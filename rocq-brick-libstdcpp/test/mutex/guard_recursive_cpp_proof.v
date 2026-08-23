@@ -48,6 +48,30 @@ Definition CR
 #[only(cfractional,ascfractional,cfracvalid,type_ptr)] derive CR.
 #[only(lazy_unfold(export))] derive CR.
 
+Section about_telescopes.
+  #[global] Instance timeless_tele_app {PROP : bi} {TT : tele} (args : TT) (P : TT -t> PROP):
+    `{(∀.. args, Timeless (tele_app P args)) -> Timeless (tele_app P args)}.
+  Proof.
+    elim: TT args P => [[] //|T TT IH] args P HT.
+    destruct_tele; simpl.
+    apply IH, HT.
+  Qed.
+
+  (* #[global] Instance timeless_tele_app {TT : tele} (args : TT) (P : TT -t> mpred): *)
+  (*   `{(∀ args, Timeless (tele_app P args)) -> Timeless (tele_app P args)}. *)
+
+  (* #[global] *)
+  (* #[global] Instance timeless_tele_app_TT (args : TT) (P : TT -t> mpred): *)
+  (*   `{(∀ z, Timeless (P z)) -> Timeless (tele_app P args)} := _. *)
+  (* Proof. *)
+  (*   intros HT; apply timeless_tele_app. *)
+  (*   apply _. *)
+  (* Qed. *)
+End about_telescopes.
+
+#[global] Hint Extern 100 (tforall _) => cbn : typeclass_instances.
+Existing Class tforall.
+
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv} {HAS_THREADS : HasStdThreads Σ}.
 
@@ -77,8 +101,8 @@ Section with_cpp.
   #[global] Instance P_timeless p a : Timeless (P p a).
   Proof. rewrite P.unlock; apply _. Qed.
 
-  #[global] Instance P_timeless' p a : Timeless (tele_app (P p) a).
-  Proof. destruct a. apply _. Qed.
+  Succeed #[global] Instance CR'_timeless' p args : Timeless (tele_app (TT := TT) (λ a : Z, p |-> CR' a) args) := _.
+  Succeed #[global] Instance P_timeless' p args : Timeless (tele_app (P p) args) := _.
 
   cpp.spec "test_one_answer()" from source with (
     \post[Vint 42] emp
