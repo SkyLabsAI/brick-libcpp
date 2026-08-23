@@ -120,11 +120,9 @@ Section with_cpp.
     apply specify_mono_fupd; work.
     rewrite recursive_mutex.acquireable.unlock /=.
     rewrite -{1}(left_id_L ∅ (∪) {[th]}).
-    wapply recursive_mutex.logout; first last. {
-      repeat (ework with br_erefl; try iModIntro).
-      iApply affine; [apply mpred_BiAffine|go].
-    }
-    set_solver.
+    wapply (recursive_mutex.logout th _ ∅); first by set_solver.
+    repeat (ework with br_erefl; try iModIntro).
+    iApply affine; [apply mpred_BiAffine|go].
   Qed.
 
   (* cpp.spec "C::~C()" from source inline. *)
