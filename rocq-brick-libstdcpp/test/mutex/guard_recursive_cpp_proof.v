@@ -41,7 +41,7 @@ Definition CR
   `{!HasOwn (iPropI _) recursive_mutex.cmraR}
   (γ : recursive_mutex.rmutex_gname) (q : cQp.t) :=
   structR "C" q **
-  _field "C::m" |-> recursive_mutex.R γ.(recursive_mutex.lock_gname) q **
+  _field "C::m" |-> recursive_mutex.derivedR γ q **
   as_Rep (fun this : ptr =>
     recursive_mutex.inv_rmutex γ (∃ a : tele_arg TT, tele_app (P this) a)).
 
@@ -107,7 +107,7 @@ Section with_cpp.
 
   cpp.spec "std::recursive_mutex::~recursive_mutex()" from source as dtor_spec'' with
     (\this this
-    \pre{g} this |-> recursive_mutex.R g.(lock_gname) 1
+    \pre{g} this |-> recursive_mutex.derivedR g 1
     \pre{th} recursive_mutex.used_threads g.(lock_gname) {[th]}
     \pre{TT P} recursive_mutex.inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
     \pre recursive_mutex.acquireable (TT := TT) g th recursive_mutex.NotHeld P
