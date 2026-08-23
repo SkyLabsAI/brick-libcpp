@@ -54,6 +54,23 @@ Section with_cpp.
   Context `{!recursive_mutex.lockedG Σ}.
   Context `{!HasOwn (iPropI _) recursive_mutex.cmraR}.
 
+  #[program]
+  Definition strip_timeless_later_wp_destroy_CX :=
+    \cancelx
+    \consuming{P} ▷ P
+    \guard Timeless P
+    (* \goal_trigger{tu cv y p Q} wp_destroy_val tu cv y p Q
+    \frame P *)
+    \proving{tu cv y p Q} wp_destroy_val tu cv y p Q
+    \through P -* wp_destroy_val tu cv y p Q
+    \end.
+  Next Obligation.
+    iIntros.
+    iApply fupd_wp_destroy_val.
+    wname [bi_later] ">?"; iModIntro; work.
+  Qed.
+  #[local] Hint Resolve strip_timeless_later_wp_destroy_CX : br_hints.
+
   #[local] Instance: `{WeaklyObjective1 (tele_app (P p))}.
   Proof. Admitted.
 
@@ -136,23 +153,6 @@ Section with_cpp.
     \post emp).
 
   (* #[global] Instance: Inhabited [tele _ : Z]. Proof. solve_inhabited. Qed. *)
-  #[program]
-  Definition strip_timeless_later_wp_destroy_CX :=
-    \cancelx
-    \consuming{P} ▷ P
-    \guard Timeless P
-    (* \goal_trigger{tu cv y p Q} wp_destroy_val tu cv y p Q
-    \frame P *)
-    \proving{tu cv y p Q} wp_destroy_val tu cv y p Q
-    \through P -* wp_destroy_val tu cv y p Q
-    \end.
-  Next Obligation.
-    iIntros.
-    iApply fupd_wp_destroy_val.
-    wname [bi_later] ">?"; iModIntro; work.
-  Qed.
-  #[local] Hint Resolve strip_timeless_later_wp_destroy_CX : br_hints.
-
   Lemma C_dtor_ok :
     (* We only get [|> recursive_mutex.dtor_spec'], and that's not enough *)
     (* recursive_mutex.  *)
