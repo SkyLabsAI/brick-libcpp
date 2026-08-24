@@ -115,6 +115,17 @@
 \lstset{style=customc}
 
 \newcommand{\ignore}[1]{}
+\makeatletter
+\if@ACM@anonymous
+  \newcommand{\kedu}[1]{}
+  \newcommand{\wm}[1]{}
+  \newcommand{\paolo}[1]{}
+\else
+  \newcommand{\kedu}[1]{\textcolor{red}{[Ke: #1]}}
+  \newcommand{\wm}[1]{\textcolor{red}{[William: #1]}}
+  \newcommand{\paolo}[1]{\textcolor{red}{[Paolo: #1]}}
+\fi
+\makeatother
 
 %%
 %% \BibTeX command to typeset BibTeX logo in the docs
@@ -333,7 +344,7 @@ The \lstinline{scoped_lock} class takes a collection of locks as arguments, and 
 The \lstinline{unique_lock} class offers a more sophisticated RAII interface: the lock can be manually acquired and released through the \lstinline{unique_lock} as well as at construction/destruction, and the \lstinline{unique_lock} can be detached from one lock and attached to another during its lifetime. ...
 
 \section{Case Studies?}
-
+\input{ring_buffer.tex}
 %TODO: find or make some interesting examples
 
 \section{BRiCk Formalization}

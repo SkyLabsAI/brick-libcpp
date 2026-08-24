@@ -345,4 +345,38 @@ by any thread, thus safe to deallocate.
 \end{sloppypar}
 
 \subsection{Generic \lstinline{lock} and \lstinline{unlock}}
-the \lstinline{BasicLockable} named requirement
+The \lstinline{BasicLockable} named requirement describes the common interface
+of types that provide \lstinline{lock()} and \lstinline{unlock()}
+operations~\cite{ISO:2024:IIP}.  An invocation of \lstinline{lock()} blocks
+until the calling thread acquires the lock, and \lstinline{unlock()} releases a
+lock owned by the calling thread.  The caller must not already own the lock
+when invoking \lstinline{lock()}, and must own it when invoking
+\lstinline{unlock()}.  This is a requirement on a type, rather than a concrete
+C++ class: \lstinline{std::mutex}, \lstinline{std::recursive_mutex}, and
+user-defined lock types can all implement it.  Generic classes such as
+\lstinline{lock_guard} can therefore operate on any such implementation.
+
+We represent an implementation of \lstinline{BasicLockable} by a predicate
+$R(q,x)$ describing fractional ownership $q$ of a lock with abstract state
+$x$, together with two predicates $L(m,x,K)$ and $U(m,x,K)$.  These predicates
+give the resources required to lock and unlock the object at $m$ and describe
+their result through the continuation $K$.  The generic specifications are:
+\begin{mathpar}
+  \spectriple
+    {m\mapsto R(q,x)\ast L(m,x,K)}
+    {\texttt{m.lock()}}
+    {m\mapsto R(q,x)\ast K}
+
+  \spectriple
+    {m\mapsto R(q,x)\ast U(m,x,K)}
+    {\texttt{m.unlock()}}
+    {m\mapsto R(q,x)\ast K}
+\end{mathpar}
+The representation predicate is preserved by both operations, while the
+implementation-specific predicates describe the change in logical ownership.
+For example, the \lstinline{std::mutex} instance defines $L$ to exchange the
+calling thread's \texttt{user} token for the protected resource and its
+\texttt{locked} token; it defines $U$ to perform the reverse exchange.  The
+recursive and shared mutexes instantiate the same interface with their own
+ghost states.  Thus clients can use the two generic specifications without
+depending on the particular mutex representation.
