@@ -131,13 +131,11 @@ Section with_cpp.
     Lemma update_a_ok : verify[source] "C::update_a(long)".
     Proof.
       verify_spec; go.
-      iExists _; iSplitL ""; [go; iModIntro|]; go.
     Qed.
 
     Lemma update_b_ok : verify[source] "C::update_b(long)".
     Proof.
       verify_spec; go.
-      iExists _; iSplitL ""; [go; iModIntro|]; go.
     Qed.
   End unfold_P.
 
@@ -151,7 +149,6 @@ Section with_cpp.
   Lemma transfer_ok : verify[source] "C::transfer(int)".
   Proof.
     verify_spec; go.
-    iExists _; iSplitL ""; [go; iModIntro|]; go.
     destruct args as [a [b []]]; work.
   Qed.
 
