@@ -544,8 +544,8 @@ cinv (
       ** (
         (* TODO readd *)
         (* ▷ *)
-        (acquireable g th (release $ Held n args) P) -*
-        (|={⊤}=> K)).
+        acquireable g th (release $ Held n args) P -*
+        K).
     #[global] Arguments do_unlock /.
 
     #[global] Instance recursive_mutex_basic_lockable : BasicLockable
@@ -565,15 +565,7 @@ cinv (
 
     Lemma unlock_spec'_equiv_unlock_spec_alt' :
       unlock_spec' -|- unlock_spec_alt'.
-    Proof.
-    iSplit; iApply specify_mono_fupd; work; iModIntro.
-      2: {
-        ework with br_erefl.
-        iSplitL; iIntros "? !>"; work.
-      }
-      ework with br_erefl.
-      iModIntro; work.
-    Qed.
+    Proof. iSplit; iApply specify_mono; ework with br_erefl. Qed.
 
     Definition acquireable_current_thread_F :=
       ltac:(mk_obs_fwd acquireable_current_thread).
