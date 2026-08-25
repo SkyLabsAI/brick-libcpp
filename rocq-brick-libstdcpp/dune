@@ -19,15 +19,17 @@ sed -e \"s/@CPP2V_SHA1@/$hash/g\" -e \"s/@CPP2V_DOCKER_IMAGE_ID@/$image_id/g\" %
    (run chmod +x %{target}))))
 
 (env
+ (sl_timing
+  (binaries (../../BRiCk/rocq-tools/bin/rocq_perf.exe as rocq))
+  (env-vars
+   (CPP2V_DOCKER_IMAGE "skylabsai/fm-releases:fm-release-nightly"))
+  (rocq
+   (rocqdep_flags :standard -w +all)
+   (flags :standard %{read-lines:flags/coqc} -w +sl-transparent-constants)))
+ ; Same, but without rocq_perf
  (_
   (env-vars
    (CPP2V_DOCKER_IMAGE "skylabsai/fm-releases:fm-release-nightly"))
-  (flags :standard %{read-lines:flags/ocamlc})
-  (ocamlopt_flags :standard -O3 -unbox-closures)
   (rocq
    (rocqdep_flags :standard -w +all)
-   (flags
-    (:standard
-      %{read-lines:flags/coqc}
-      -w +sl-transparent-constants
-)))))
+   (flags :standard %{read-lines:flags/coqc} -w +sl-transparent-constants))))
