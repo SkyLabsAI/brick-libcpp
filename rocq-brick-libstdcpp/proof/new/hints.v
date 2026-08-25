@@ -1,4 +1,5 @@
 Require Import skylabs.auto.persistent.
+Require Import skylabs.auto.cpp.hints.alignment.
 Require Import skylabs.auto.cpp.proof.
 Require Export skylabs.brick.libstdcpp.new.spec.
 
@@ -179,6 +180,24 @@ Section with_cpp.
   Qed.
 
   #[program]
+  Definition wp_delete_null_operator_delete_size_align_C source cls Q al
+  (Hdelete : delete_operator.delete_for source "operator delete(void*, unsigned long, enum std::align_val_t)" cls =[Vm]=> Some ("operator delete(void*, unsigned long, enum std::align_val_t)"%cpp_name, delete_operator.mk None true true))
+    (Hal : _align_of source cls =[Vm]=> Some al)
+    :=
+    \cancelx
+    \using operator_delete_size_align
+    \using denoteModule source
+    \proving wp_delete_null "operator delete(void*, unsigned long, enum std::align_val_t)" cls Q
+    \through Q
+    \end.
+  Next Obligation.
+    intros * Hdel%RedEq_eq_iff Hal%RedEq_eq_iff. rewrite wp_delete_null.unlock; work.
+    rewrite (delete_for_genv_compat Hdel) wp_invoke_delete.unlock/=.
+    move: Hal => /_align_of_ok Hal.
+    go.
+  Qed.
+
+  #[program]
   Definition wp_delete_null_operator_delete_array_size_C source cls Q
     (Hdelete : delete_operator.delete_for source "operator delete[](void*, unsigned long)" (Tincomplete_array cls) =[Vm]=> Some ("operator delete[](void*, unsigned long)"%cpp_name, delete_operator.mk None true false))
     :=
@@ -229,6 +248,7 @@ Section with_cpp.
 End with_cpp.
 
 #[global] Hint Resolve wp_delete_null_operator_delete_size_C wp_delete_null_operator_delete_C : db_skylabs_wp.
+#[global] Hint Resolve wp_delete_null_operator_delete_size_align_C : db_skylabs_wp.
 #[global] Hint Resolve wp_delete_null_operator_delete_array_size_C wp_delete_null_operator_delete_array_C
  wp_delete_null_operator_delete_fixed_array_C : db_skylabs_wp.
 
