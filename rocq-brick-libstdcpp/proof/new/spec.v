@@ -32,7 +32,7 @@ Section with_cpp.
        \arg{sz} "sz" (Vn sz)
        \arg{al} "al" (Vn al)
        \pre if bool_decide (p = nullptr) then emp
-            else ∃ sz, p |-> (allocatedR 1 sz ** blockR sz 1$m ** alignedR al)
+            else p |-> (allocatedR 1 sz ** blockR sz 1$m ** alignedR al)
        \post emp).
 
 (*  #[ignore_missing] *)
