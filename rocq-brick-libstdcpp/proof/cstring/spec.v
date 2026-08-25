@@ -65,29 +65,25 @@ Context `{Σ : cpp_logic, source ⊧ σ}.
     (\arg{s_p} "__s" (Vptr s_p)
      \arg{c} "__c" (Vint c)
      \prepost{q s} s_p |-> cstring.R q s
-     \require valid<"unsigned char"> c
-     \post[search_result Tchar s_p (strchr s c)] emp).
+     \post[search_result Tchar s_p (strchr s (byte_of_int c))] emp).
 
   cpp.spec "strchr(const char*, int)" as strchr_const_spec with
     (\arg{s_p} "__s" (Vptr s_p)
      \arg{c} "__c" (Vint c)
      \prepost{q s} s_p |-> cstring.R q s
-     \require valid<"unsigned char"> c
-     \post[search_result Tchar s_p (strchr s c)] emp).
+     \post[search_result Tchar s_p (strchr s (byte_of_int c))] emp).
 
   cpp.spec "strrchr(char*, int)" as strrchr_mut_spec with
     (\arg{s_p} "__s" (Vptr s_p)
      \arg{c} "__c" (Vint c)
      \prepost{q s} s_p |-> cstring.R q s
-     \require valid<"unsigned char"> c
-     \post[search_result Tchar s_p (strrchr s c)] emp).
+     \post[search_result Tchar s_p (strrchr s (byte_of_int c))] emp).
 
   cpp.spec "strrchr(const char*, int)" as strrchr_const_spec with
     (\arg{s_p} "__s" (Vptr s_p)
      \arg{c} "__c" (Vint c)
      \prepost{q s} s_p |-> cstring.R q s
-     \require valid<"unsigned char"> c
-     \post[search_result Tchar s_p (strrchr s c)] emp).
+     \post[search_result Tchar s_p (strrchr s (byte_of_int c))] emp).
 
   cpp.spec "strspn" with
     (\arg{s_p} "__s" (Vptr s_p)
