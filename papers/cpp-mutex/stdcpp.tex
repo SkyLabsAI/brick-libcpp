@@ -251,7 +251,8 @@
 %% of authors' names for this purpose.
 \renewcommand{\shortauthors}{Du et al.}
 
-\newcommand{\mutexR}{\ensuremath{\mathsf{rmutex}}}
+\newcommand{\dolock}[3]{\ensuremath{\mathsf{do\_lock}(#1, #2, #3)}}
+\newcommand{\dounlock}[3]{\ensuremath{\mathsf{do\_unlock}(#1, #2, #3)}}
 
 %%
 %% The abstract is a short summary of the work to be presented in the
@@ -330,10 +331,32 @@ Separation logic predicates are innately transferable unless they explicitly ref
 \input{specs.tex}
 
 \section{RAII Lock Classes}
+
+\newcommand{\ulock}[0]{\ensuremath{\mathsf{ulock}}}
+
 Managing locks manually is error-prone: it is easy to introduce deadlock by acquiring the same lock twice, forgetting to release a lock, or having a set of locks that are not always acquired and released in the same order, and releasing a lock that has not been acquired is undefined behavior. The Resource Acquisition Is Initialization (RAII) pattern aims to avoid these problems by aligning ownership of a lock with the lifetime of an object: the lock is acquired when the object is created, and released when the object is destroyed, thus benefiting from the guarantees of the language's memory management (an object will only be created and destroyed once each, will only be destroyed after it is created, will eventually be destroyed if unused, etc.). The C++ standard library includes a set of RAII lock classes, which we specify here. Intuitively, their specifications are simple: the object's constructor has the same specification as the underlying lock's \lstinline{lock} method, and the destructor has the same specification as the underlying \lstinline{unlock}. %but: we are the first to specify RAII at all in SL? in practice their use is more complicated (because of optional acquiring, detaching, etc.)? showing that they can actually be used as desired is nontrivial?
 
+%maybe we should actually explain BasicLockable and std::lock/unlock here, as the infrastructure that the RAII classes build on
+
 \subsection{\lstinline{lock_guard}}
-The \lstinline{lock_guard} class is the basic RAII class of the C++ library, a container for a single lock. \lstinline{lock_guard} is a templated class that takes an arbitrary \lstinline{BasicLockable} class as an argument, and our specification is likewise parameterized by a \lstinline{BasicLockable} instance. %not done yet
+\begin{figure}[htb]
+\begin{lstlisting}
+  std::mutex mutex_;
+  int size;
+
+  bool get_size() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return size;
+  }
+\end{lstlisting}
+\caption{A simple use of \lstinline{std::lock_guard} with a \lstinline{mutex}}
+\label{lock-guard-ex}
+\end{figure}
+
+
+The \lstinline{lock_guard} class is the basic RAII class of the C++ library, a container for a single lock. \lstinline{lock_guard} is a templated class that takes an arbitrary \lstinline{BasicLockable} class as an argument, acquires it when constructed, and releases it when destroyed. A simple example of its use is shown in Figure~\ref{lock-guard-ex}; the mutex \lstinline{mutex_} is meant to protect the value of \lstinline{size}, and the \lstinline{lock_guard} object \lstinline{lock} in \lstinline{get_size} takes the place of calls to \lstinline{lock} and \lstinline{unlock}; \lstinline{mutex_} is \lstinline{lock}ed at line 5 and \lstinline{unlock}ed after reading \lstinline{size} but before \lstinline{get\_size} returns.
+
+Since \lstinline{lock_guard} is parameterized by a \lstinline{BasicLockable} class, our specification is likewise parameterized by a \lstinline{BasicLockable} instance. %not done yet
 Constructing a \lstinline{lock_guard} with argument $m$ acquires $m$, and destroying it releases $m$: ...
 
 \subsection{\lstinline{scoped_lock}}
@@ -341,7 +364,19 @@ Constructing a \lstinline{lock_guard} with argument $m$ acquires $m$, and destro
 The \lstinline{scoped_lock} class takes a collection of locks as arguments, and acquires/releases them in an arbitrary fixed order, thus avoiding deadlock. %note this is also what std::lock does given multiple arguments
 
 \subsection{\lstinline{unique_lock}}
-The \lstinline{unique_lock} class offers a more sophisticated RAII interface: the lock can be manually acquired and released through the \lstinline{unique_lock} as well as at construction/destruction, and the \lstinline{unique_lock} can be detached from one lock and attached to another during its lifetime. ...
+The \lstinline{unique_lock} class offers a more sophisticated RAII interface: the lock can be manually acquired and released through the \lstinline{unique_lock} as well as at construction/destruction, and the \lstinline{unique_lock} can be detached from one lock and attached to another during its lifetime. %example?
+
+The abstract state of a \lstinline{unique_lock} is of type $\mathsf{option}\ M$, which is $\mathsf{Some}\ m$ if a mutex $m$ is associated with the \lstinline{unique_lock} and $\mathsf{None}$ if no mutex is associated with it. %do we want to talk about move constructors/operators here?
+
+%how much of this detail is useful? There are a lot of variations.
+\[\begin{array}{c}
+\{p \mapsto R(q, m) \ast \dolock{p}{m}{K}\}\\ \texttt{unique\_lock(p)}\\ \{\ulock(\mathsf{Some}\ (\mathsf{false}, p, q, m))\} \vspace{1em}\\%constructor notation?
+\{u \mapsto \ulock(m)\ast \neg \mathsf{held}(m) \ast \dolock{\mathsf{ptr}(m)}{\mathsf{m}(m)}{K}\}\\ {u\texttt{.lock()}} \\ \{m \mapsto \ulock(m[\mathsf{held} := \mathsf{true}]) \ast K\}  \vspace{1em}\\
+    \{u \mapsto \ulock(m)\ast \mathsf{held}(m) \ast \dounlock{\mathsf{ptr}(m)}{\mathsf{m}(m)}{K}\}\\ {u\texttt{.unlock}()}\\
+    \{m \mapsto \ulock(m[\mathsf{held} := \mathsf{false}]) \ast K\}  \vspace{1em} \\
+\{u \mapsto \ulock() \ast (\text{if } \mathsf{held}(m) \text{ then } \dounlock{\mathsf{ptr}(m)}{\mathsf{m}(m)}{K}\} \text{ else } K)\}\\ \sim u()\\ \{K \ast \text{if } m \text{ then } \mathsf{ptr}(m) \mapsto R(\mathsf{q}(m), \mathsf{m}(m)) \text { else } \mathsf{emp}\} %destructor notation, Some/None notation
+\end{array}\]
+
 
 \section{Case Studies?}
 \input{ring_buffer.tex}
