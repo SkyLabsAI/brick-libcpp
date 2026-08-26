@@ -21,6 +21,8 @@
 \newcommand{\mutex}[2]{\ensuremath{\mathsf{mutex}_{#1}(#2)}}
 \newcommand{\acquirable}[4]{\ensuremath{\mathsf{holds}_{#1}(#2, #3, #4)}}
 \newcommand{\rmutex}[2]{\ensuremath{\mathsf{rmutex}_{#1}(#2)}}
+\newcommand{\readerlocked}[3]{\ensuremath{\mathsf{reader\_locked}_{#1}(#2, #3)}}
+\newcommand{\smutex}[2]{\ensuremath{\mathsf{smutex}_{#1}(#2)}}
 
 \subsection{\texorpdfstring{\lstinline{std::mutex}}{std::mutex}}
 
@@ -48,7 +50,7 @@ We begin by examining \lstinline{std::mutex}, the basic lock class. The class co
 \end{itemize}
 A program that violates any of these conditions has \emph{undefined behavior} according to the library specification, so our program logic must ensure that they are respected. %include checks in toy implementation, or just mention that they could be added?
 
-The representation for a mutex has the same shape as a standard lock: we write $m \mapsto \mutex{\gamma}{P}$ for a mutex at $m$ associated with ghost identifier $\gamma$ and invariant $P$. However, we must extend the specifications of the mutex operations to enforce the requirements above. One of the original selling points of CSL was that it could naturally verify \emph{daring} concurrency patterns~\cite{csl} in which a lock acquired by one thread is released by another; in fact, in ordinary separation logics every predicate is freely transferable between threads. Fortunately, as mentioned in Section~\ref{brick}, the design of the BRiCk logic supports a non-transferable predicate $\currentthread{t}$ asserting that the current thread is $t$, which we can use to tie resources to a specific thread. When a thread $t$ starts using the mutex, it will generate a predicate $\notlocked{\gamma}{t}$, which it exchanges for another predicate $\locked{\gamma}{t}$ when it locks the mutex. A matching predicate $\usedthreads{\gamma}{T}$ will hold the set of all threads that are currently using the mutex, and the precondition of the destructor will require $\usedthreads{\emptyset}$, ensuring that no thread currently holds the lock. Formally, these predicates satisfy the following properties:
+The representation for a mutex has the same shape as a standard lock: we write $m \mapsto \mutex{\gamma}{P}$ for a mutex at $m$ associated with ghost identifier $\gamma$ and invariant $P$. However, we must extend the specifications of the mutex operations to enforce the requirements above. One of the original selling points of CSL was that it could naturally verify \emph{daring} concurrency patterns~\cite{csl} in which a lock acquired by one thread is released by another; in fact, in ordinary separation logics every predicate is freely transferable between threads. Fortunately, as mentioned in Section~\ref{brick}, the design of the BRiCk logic supports a non-transferable predicate $\currentthread{t}$ asserting that the current thread is $t$, which we can use to tie resources to a specific thread. When a thread $t$ starts using the mutex, it will generate a predicate $\notlocked{\gamma}{t}$, which it exchanges for another predicate $\locked{\gamma}{t}$ when it locks the mutex. A matching predicate $\usedthreads{\gamma}{T}$ will hold the set of all threads that are currently using the mutex, and the precondition of the destructor will require $\usedthreads{\gamma}{\emptyset}$, ensuring that no thread currently holds the lock. Formally, these predicates satisfy the following properties:
 %make this a figure?
 \begin{mathpar}
 \inferrule{t \not\in T}{\usedthreads{\gamma}{T} \vs \usedthreads{\gamma}{T \cup \{t\}} \ast \notlocked{\gamma}{t}} \and
@@ -175,7 +177,7 @@ allowing a thread to borrow $P$ as long as it can prove it owns the mutex at lea
 
 \subsection{\texorpdfstring{\lstinline{std::shared_mutex}}{std::shared\_mutex}}
 
-C++'s \lstinline{shared_mutex} class is more commonly known as a \emph{reader-writer lock}. It provides two separate pairs of acquire and release operations, \emph{exclusive} \lstinline{lock}/\lstinline{unlock} and \emph{shared} \lstinline{lock_shared}/\lstinline{unlock_shared}; while \lstinline{lock} and \lstinline{unlock} ensure mutual exclusion, any number of threads can successfully perform \lstinline{lock_shared} at once as long as no thread has acquired the lock exclusively. Reader-writer locks have been modeled in separation logic by \cite{}, and we build on their work, but must also account for C++'s additional restrictions: no thread may acquire shared ownership of the mutex more than once, and only threads that have acquired it may release it. ...
+C++'s \lstinline{shared_mutex} class is more commonly known as a \emph{reader-writer lock}. It provides two separate pairs of acquire and release operations, \emph{exclusive} \lstinline{lock}/\lstinline{unlock} and \emph{shared} \lstinline{lock_shared}/\lstinline{unlock_shared}; while \lstinline{lock} and \lstinline{unlock} ensure mutual exclusion, any number of threads can successfully perform \lstinline{lock_shared} at once as long as no thread has acquired the lock exclusively. Reader-writer locks have been modeled in separation logic by \citet{heaplang-rw-lock}, and we build on their work, but must also account for C++'s additional restrictions: no thread may acquire shared ownership of the mutex more than once, and only threads that have acquired it may release it.
 
 \begin{figure}[htb]
 \begin{lstlisting} %not sure whether this is the right canonical implementation
@@ -202,6 +204,22 @@ void unlock_shared(){
 \label{smutex-simple}
 \end{figure}
 
+Following \citet{heaplang-rw-lock}, we take the invariant $P$ of a shared mutex to be a predicate on a share; $P(1)$ represents exclusive ownership of the invariant from calling \lstinline{lock}, while calling \lstinline{lock_shared} yields $P(q)$ for an arbitrary fraction $q$ (usually representing read-only access to $P$). Accordingly, in our specifications each user of a shared mutex has one of three predicates, $\notlocked{\gamma}{t}$, $\readerlocked{\gamma}{t}{q}$, or $\locked{\gamma}{t}$, where $\mathsf{reader\_locked}$ records the fraction $q$ of ownership received by the reader.
+
+\[\begin{array}{c}
+\{\currentthread{t} \ast m \mapsto_q \smutex{\gamma}{P}\ast\notlocked{\gamma}{t}\}\\ {m\texttt{.lock()}} \\ \{m \mapsto_q \mutex{\gamma}{P}\ast P(1)\ast\locked{\gamma}{t}\}  \vspace{1em}\\
+    \{\currentthread{t} \ast m \mapsto_q \smutex{\gamma}{P}\ast\locked{\gamma}{t}
+      \ast \triangleright P(1)\}\\ {m\texttt{.unlock}()}\\
+    \{m \mapsto_q \mutex{\gamma}{P}\ast\notlocked{\gamma}{t}\}  \vspace{1em} \\
+\{\currentthread{t} \ast m \mapsto_q \mutex{\gamma}{P}\ast\notlocked{\gamma}{t}\}\\ {m\texttt{.lock\_shared()}} \\ \{m \mapsto_q \mutex{\gamma}{P}\ast \exists q_P.\ P(q_P)\ast\readerlocked{\gamma}{t}{q_P}\}  \vspace{1em}\\
+    \{\currentthread{t} \ast m \mapsto_q \mutex{\gamma}{P}\ast\readerlocked{\gamma}{t}{q_P}
+      \ast\triangleright P(q_P)\}\\ {m\texttt{.unlock\_shared}()}\\
+    \{m \mapsto_q \mutex{\gamma}{P}\ast\notlocked{\gamma}{t}\}
+\end{array}\]
+
+%anything else interesting to say? should we describe the invariant?
+
+\ignore{
 \begin{mathpar}
   \spectriple
     {\triangleright P(1)}
@@ -268,6 +286,7 @@ void unlock_shared(){
        \end{aligned}\right)
      \end{gathered}}
 \end{mathpar}
+}
 
 \subsection{The User Library}
 \label{login}
