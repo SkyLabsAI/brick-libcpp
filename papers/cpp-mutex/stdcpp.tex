@@ -292,12 +292,19 @@ The basic theory of threads and locks in separation logic is well understood. Ho
 \maketitle
 
 \section{Introduction}
+Mechanized concurrent separation logic has advanced to the stage where we can prove correctness of programs in real languages, using logics like VST~\cite{vst}, BRiCk~\cite{brick}, or RustBelt~\cite{rustbelt} that give Hoare rules for every operation in the language. However, specification of language features alone is not enough to verify real code: most languages ship with extensive standard libraries, and programmers treat these libraries as if they were language primitives. This makes standard libraries a high-value target for specification and verification: they usually have only one or a few implementations and are used in almost all other code in the language. In this paper, we focus on the concurrency support library of C++, which includes threads, atomic operations, mutexes/locks, and futures. Threads, atomics, and locks have been thoroughly studied in concurrent separation logic, but C++'s locks include some restrictions and variants that have not previously been formalized.
 
-Our contributions are:
+First, unlike the standard separation-logic treatment of locks, C++ mutex operations place restrictions on which threads can perform them and whether they are currently held. For instance, the basic \lstinline{std::mutex} class must be released by the same thread that acquired it, cannot be acquired twice by the same thread, and must not be held when deallocated. One might expect that acquiring a lock twice in one thread would lead to deadlock, but in fact violating any of these conditions is \emph{undefined behavior}, meaning that it could lead to unsafe behavior and must not occur in verified code. We develop a general mechanism for associating lock ownership with threads, based on a reusable ghost state pattern, and use it to enforce the standard library's restrictions.
+
+Second, the standard library includes three main variants of mutexes\footnote{The library also includes timed variants of each mutex type, on which attempts to acquire may time out, but from the separation logic perspective these are identical to the non-timed variants.}: ordinary mutex, recursive mutex, and shared mutex (i.e., reader-writer lock). Recursive mutexes, which can be acquired multiple times by a single thread, have not previously been formalized in separation logic, but are widely used in object-oriented programming---they allow a thread-safe method to acquire a lock on its object's contents even if it may be called from within another thread-safe method. We give specifications for all three variants, including a specification of recursive mutexes that allows generic reasoning over whether the lock is already held.
+
+Finally, the standard library includes a collection of mutex container classes following the Resource Acquisition Is Initialization (RAII) pattern, where a resource (in this case, a mutex) is acquired when the container is created and released when it is destroyed. These classes are generic in the underlying type of mutex, using C++'s \emph{named requirement} feature (analogous to ??? in another language); the underlying mutex need only meet the \lstinline{BasicLockable} named requirement, supporting the \lstinline{lock} and \lstinline{unlock} methods. We develop a separation logic interface corresponding to \lstinline{BasicLockable} that is satisfied by all three of our mutex variants, and use it as a parameter to our RAII class specifications. %what's interesting about this? what do we do with it?
+
+In summary, our contributions are:
 \begin{itemize}
 \item Specifications of standard, recursive, and shared mutexes as described in the C++ standard library.
-\item Separation-logic abstractions capturing common patterns across these mutexes, including thread identity tracking and the generic interface used by \lstinline{std::lock}.
-\item Specifications of C++'s lock management objects, defined generically over the type of lock.
+\item A ghost-state library for thread identity tracking that we use to build the basic ownership predicates of the lock specifications.
+\item A generic interface for mutexes, corresponding to the \lstinline{BasicLockable} named requirement, and specifications for C++'s lock management objects that are parameterized by this interface.
 \item example?
 \end{itemize}
 
@@ -324,10 +331,12 @@ These specifications capture the core idea of mutual exclusion: at most one thre
 
 \newcommand{\currentthread}[1]{\ensuremath{\mathsf{current\_thread}(#1)}}
 
-a fancy version of HeapLang, doesn't have opsem but does compile; logic evaluated with projects like TODO cite previous brick paper/projects
+BRiCk~\cite{brick} is an Iris-based program logic for C++, inspired by Iris's HeapLang and the Verified Software Toolchain's logic for C~\cite{vst}. Its predicates and rules are similar to those of standard Iris instances, with special support for object-oriented data and templates. %anything else of note?
+Unlike most Iris instances, it does not carry an adequacy proof that connects its rules to an operational semantics (indeed, there is no complete operational semantics for C++), but similarity to the rules of HeapLang and VST and the ability to test specifications by compiling and running the code give us confidence in its soundness. %rephrase %doesn't have opsem but does compile; logic evaluated with projects like TODO cite previous brick paper/projects
 
-$\mathsf{current\_thread}$ (all predicates are actually monpreds on thread id) ...
-Separation logic predicates are innately transferable unless they explicitly reference the thread that holds them. 
+One feature of BRiCk that is particularly relevant to our work is thread-specific predicates. In ordinary separation logic, all predicates can be transfered between threads: if thread $t_1$ owns $x \mapsto v$ and then synchronizes with $t_2$ via a lock or atomic operation, then afterwards $t_2$ may own $x \mapsto v$. This is problematic when the behavior of a function depends on the calling thread. BRiCk solves this using Iris's \emph{monotonic predicates}, previously used in weak-memory logics~\cite{igps} %and others
+. Every BRiCk predicate is implicitly indexed by a thread ID, and a predicate $\currentthread{t}$ asserts that the current thread's ID is $t$. Every predicate that does not include $\mathsf{current\_thread}$ is \emph{objective}, allowing it to be freely transferred between threads. This allows us to specify the fact that, e.g., a C++ \lstinline{mutex} can only be released by the thread that acquired it.
+
 \input{specs.tex}
 
 \section{RAII Lock Classes}
@@ -357,14 +366,17 @@ Managing locks manually is error-prone: it is easy to introduce deadlock by acqu
 The \lstinline{lock_guard} class is the basic RAII class of the C++ library, a container for a single lock. \lstinline{lock_guard} is a templated class that takes an arbitrary \lstinline{BasicLockable} class as an argument, acquires it when constructed, and releases it when destroyed. A simple example of its use is shown in Figure~\ref{lock-guard-ex}; the mutex \lstinline{mutex_} is meant to protect the value of \lstinline{size}, and the \lstinline{lock_guard} object \lstinline{lock} in \lstinline{get_size} takes the place of calls to \lstinline{lock} and \lstinline{unlock}; \lstinline{mutex_} is \lstinline{lock}ed at line 5 and \lstinline{unlock}ed after reading \lstinline{size} but before \lstinline{get\_size} returns.
 
 Since \lstinline{lock_guard} is parameterized by a \lstinline{BasicLockable} class, our specification is likewise parameterized by a \lstinline{BasicLockable} instance. %not done yet
-Constructing a \lstinline{lock_guard} with argument $m$ acquires $m$, and destroying it releases $m$: ...
+Constructing a \lstinline{lock_guard} with argument $m$ acquires $m$, and destroying it releases $m$: %adopt_lock?
+%specs go here once we've made them generic
 
 \subsection{\lstinline{scoped_lock}}
 
 The \lstinline{scoped_lock} class takes a collection of locks as arguments, and acquires/releases them in an arbitrary fixed order, thus avoiding deadlock. %note this is also what std::lock does given multiple arguments
 
+%specs go here once we've made them generic
+
 \subsection{\lstinline{unique_lock}}
-The \lstinline{unique_lock} class offers a more sophisticated RAII interface: the lock can be manually acquired and released through the \lstinline{unique_lock} as well as at construction/destruction, and the \lstinline{unique_lock} can be detached from one lock and attached to another during its lifetime. %example?
+The \lstinline{unique_lock} class offers a more sophisticated RAII interface: the lock can be manually acquired and released through the \lstinline{unique_lock} as well as at construction/destruction, and the \lstinline{unique_lock} can be detached from one lock and attached to another during its lifetime. A \lstinline{unique_lock} object tracks whether its associated mutex (if any) is currently locked, counting the acquisition from the constructor as well as explicit \lstinline{lock}/lstinline{unlock} calls, and its destructor unlocks the mutex only if it is not currently locked. %None of these operations are very complicated, but their specifications do need to account for many variations (no associated lock, associated lock is locked, associated lock is unlocked). %example?
 
 The abstract state of a \lstinline{unique_lock} is of type $\mathsf{option}\ M$, which is $\mathsf{Some}\ m$ if a mutex $m$ is associated with the \lstinline{unique_lock} and $\mathsf{None}$ if no mutex is associated with it. %do we want to talk about move constructors/operators here?
 
@@ -376,7 +388,7 @@ The abstract state of a \lstinline{unique_lock} is of type $\mathsf{option}\ M$,
     \{m \mapsto \ulock(m[\mathsf{held} := \mathsf{false}]) \ast K\}  \vspace{1em} \\
 \{u \mapsto \ulock() \ast (\text{if } \mathsf{held}(m) \text{ then } \dounlock{\mathsf{ptr}(m)}{\mathsf{m}(m)}{K}\} \text{ else } K)\}\\ \sim u()\\ \{K \ast \text{if } m \text{ then } \mathsf{ptr}(m) \mapsto R(\mathsf{q}(m), \mathsf{m}(m)) \text { else } \mathsf{emp}\} %destructor notation, Some/None notation
 \end{array}\]
-
+%verify the code from cppreference or a similar example?
 
 \section{Case Studies?}
 \input{ring_buffer.tex}
