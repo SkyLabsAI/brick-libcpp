@@ -311,14 +311,14 @@ locked resources at most once regardless of the mutex kinds. Each flavor of mute
 is associated with a disjoint set of thread IDs, managed by one
 authoritative piece \allusers\ and fragment pieces \notlocked{\gamma}{t}:
 \begin{align*}
-  \allusers^{\gamma}(S)
-    &\eqdef \mathsf{own}^{\gamma}(\mathord{\bullet}S), \\
+  \allusers^{\gamma}(T)
+    &\eqdef \mathsf{own}^{\gamma}(\mathord{\bullet}T), \\
   % \mathsf{users}^{\gamma}(T)
   %   &\eqdef \mathsf{own}^{\gamma}(\mathord{\circ}T), \\
   \mathsf{not\_locked}^{\gamma}(t)
     &\eqdef \mathsf{own}^{\gamma}(\mathord{\circ}\{t\}).
 \end{align*}
-The \allusers{S} ghost state tracks all "logged-in" threads $S$. Each thread with thread ID $t$ can get
+The \allusers{T} ghost state tracks all "logged-in" threads $T$. Each thread with thread ID $t$ can get
 a \notlocked{\gamma}{t} handle for that mutex with the \texttt{login} rule, and the handle is
 unique for each thread (not-locked-unique). The mutex invariants are slightly
 different for different kinds of mutexes, but they all ensure that a thread
