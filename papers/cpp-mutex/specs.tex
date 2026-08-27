@@ -19,11 +19,13 @@
   \ensuremath{\mathsf{all\_users}\IfValueT{#1}{(#1)}}}
 \newcommand{\usedthreads}[2]{\ensuremath{\allusers_{#1}(#2)}}
 \newcommand{\notlocked}[2]{\ensuremath{\mathsf{not\_locked}_{#1}(#2)}}
-\newcommand{\locked}[2]{\ensuremath{\mathsf{locked}_{#1}(#2)}}
+\newcommand{\locked}[2]{\ensuremath{\mathsf{m\_locked}_{#1}(#2)}}
+\newcommand{\smlocked}[2]{\ensuremath{\mathsf{sm\_locked}_{#1}(#2)}}
+\newcommand{\rmlocked}[2]{\ensuremath{\mathsf{rm\_locked}_{#1}(#2)}}
 \newcommand{\mutex}[2]{\ensuremath{\mathsf{mutex}_{#1}(#2)}}
 \newcommand{\acquirable}[4]{\ensuremath{\mathsf{holds}_{#1}(#2, #3, #4)}}
 \newcommand{\rmutex}[2]{\ensuremath{\mathsf{rmutex}_{#1}(#2)}}
-\newcommand{\readerlocked}[3]{\ensuremath{\mathsf{reader\_locked}_{#1}(#2, #3)}}
+\newcommand{\smreaderlocked}[3]{\ensuremath{\mathsf{sm\_reader\_locked}_{#1}(#2, #3)}}
 \newcommand{\smutex}[2]{\ensuremath{\mathsf{smutex}_{#1}(#2)}}
 
 \subsection{\texorpdfstring{\lstinline{std::mutex}}{std::mutex}}
@@ -71,7 +73,7 @@ We can then specify the mutex as follows:
     \{m \mapsto_q \mutex{\gamma}{P}\ast\notlocked{\gamma}{t}\}  \vspace{1em} \\
 \{m \mapsto \mutex{\gamma}{P} \ast \usedthreads{\gamma}{\emptyset}\}\\ \sim m()\\ \{P\} %destructor notation?
 \end{array}\] %note that current_thread is persistent
-A thread $t$ exchanges $\notlocked{\gamma}{t}$ for $\locked{\gamma}{t}$ when acquiring the mutex and vice versa when releasing; these predicates are freely transferable, but $\currentthread{t}$ ensures that each thread holds its own predicate when calling \lstinline{lock} or \lstinline{unlock}, and the laws of $\mathsf{locked}$ and $\mathsf{not\_locked}$ ensure that no two threads hold the mutex at once and that a thread cannot simultaneously be $\mathsf{locked}$ and $\mathsf{not\_locked}$. Finally, the $\usedthreads{\gamma}{\emptyset}$ in the precondition of the destructor ensures that all threads have been removed from the set of users (and thus cannot hold the mutex) before deallocation. When these specifications are used in proofs, the thread that allocates the mutex will acquire and hold $\usedthreads{\gamma}{T}$, and generate a $\notlocked{\gamma}{t}$ predicate for each thread $t$ participating in the mutex; when those threads terminate, the main thread will recollect all the $\notlocked{}{}$ predicates and remove them from $\usedthreads{}{}$ before the mutex is destroyed.
+A thread $t$ exchanges $\notlocked{\gamma}{t}$ for $\locked{\gamma}{t}$ when acquiring the mutex and vice versa when releasing; these predicates are freely transferable, but $\currentthread{t}$ ensures that each thread holds its own predicate when calling \lstinline{lock} or \lstinline{unlock}, and the laws of $\mathsf{m\_locked}$ and $\mathsf{not\_locked}$ ensure that no two threads hold the mutex at once and that a thread cannot simultaneously be $\mathsf{m\_locked}$ and $\mathsf{not\_locked}$. Finally, the $\usedthreads{\gamma}{\emptyset}$ in the precondition of the destructor ensures that all threads have been removed from the set of users (and thus cannot hold the mutex) before deallocation. When these specifications are used in proofs, the thread that allocates the mutex will acquire and hold $\usedthreads{\gamma}{T}$, and generate a $\notlocked{\gamma}{t}$ predicate for each thread $t$ participating in the mutex; when those threads terminate, the main thread will recollect all the $\notlocked{}{}$ predicates and remove them from $\usedthreads{}{}$ before the mutex is destroyed.
 
 \ignore{
 \begin{mathpar}
@@ -89,10 +91,10 @@ A thread $t$ exchanges $\notlocked{\gamma}{t}$ for $\locked{\gamma}{t}$ when acq
   \spectriple
     {\mathsf{M}_q(m,\gamma,P)\ast\mathsf{token}(\gamma,q')}
     {\texttt{lock}(m)}
-    {\mathsf{M}_q(m,\gamma,P)\ast P\ast\mathsf{locked}(\gamma,t,q')}
+    {\mathsf{M}_q(m,\gamma,P)\ast P\ast\mathsf{m\_locked}(\gamma,t,q')}
 
   \spectriple
-    {\mathsf{M}_q(m,\gamma,P)\ast\mathsf{locked}(\gamma,t,q')
+    {\mathsf{M}_q(m,\gamma,P)\ast\mathsf{m\_locked}(\gamma,t,q')
       \ast\triangleright P}
     {\texttt{unlock}(m)}
     {\mathsf{M}_q(m,\gamma,P)\ast\mathsf{token}(\gamma,q')}
@@ -104,7 +106,7 @@ A thread $t$ exchanges $\notlocked{\gamma}{t}$ for $\locked{\gamma}{t}$ when acq
        \exists b.\;\mathsf{ret}=\mathsf{Vbool}(b)\land
          \mathsf{M}_q(m,\gamma,P)\ast {}\\
        \left(\begin{aligned}
-         &b=\mathsf{true}\Rightarrow P\ast\mathsf{locked}(\gamma,t,q')\\
+         &b=\mathsf{true}\Rightarrow P\ast\mathsf{m\_locked}(\gamma,t,q')\\
          &b=\mathsf{false}\Rightarrow\mathsf{token}(\gamma,q')
        \end{aligned}\right)
      \end{gathered}}
@@ -312,20 +314,20 @@ void unlock_shared(){
 Following \citet{heaplang-rw-lock}, we take the resource $P$ protected by a shared mutex to be a fractional predicate;
 calling \lstinline{lock} yields full ownership of the resource $P(1)$,
 while calling \lstinline{lock_shared} yields $P(q)$ for an arbitrary fraction $q$, representing read-only access to $P$.
-Accordingly, in our specifications each user of a shared mutex has one of three predicates, $\notlocked{\gamma}{t}$, $\readerlocked{\gamma}{t}{q}$, or $\locked{\gamma}{t}$, where $\mathsf{reader\_locked}$ records the fraction $q$ of ownership received by the reader.
+Accordingly, in our specifications each user of a shared mutex has one of three predicates, $\notlocked{\gamma}{t}$, $\smreaderlocked{\gamma}{t}{q}$, or $\smlocked{\gamma}{t}$, where $\mathsf{sm\_reader\_locked}$ records the fraction $q$ of ownership received by the reader.
 
 \[
 \begin{array}{@{}c@{}}
 \{m \mapsto_q \smutex{\gamma}{P}\ast\notlocked{\gamma}{t}\} \\
   m\texttt{.lock()}\ \currentthread{\ t} \\[-1pt]
-\{m \mapsto_q \smutex{\gamma}{P}\ast P(1)\ast\locked{\gamma}{t}\} \\[1.8em]
-\{m \mapsto_q \smutex{\gamma}{P}\ast\locked{\gamma}{t}\ast\triangleright P(1)\}\\
+\{m \mapsto_q \smutex{\gamma}{P}\ast P(1)\ast\smlocked{\gamma}{t}\} \\[1.8em]
+\{m \mapsto_q \smutex{\gamma}{P}\ast\smlocked{\gamma}{t}\ast\triangleright P(1)\}\\
   m\texttt{.unlock()}\ \currentthread{\ t} \\[-1pt]
 \{m \mapsto_q \smutex{\gamma}{P}\ast\notlocked{\gamma}{t}\} \\[1.8em]
 \{m \mapsto_q \smutex{\gamma}{P}\ast\notlocked{\gamma}{t}\}\\
   m\texttt{.lock\_shared()}\ \currentthread{\ t} \\[-1pt]
-\{m \mapsto_q \smutex{\gamma}{P}\ast\exists q_P.\;P(q_P)\ast\readerlocked{\gamma}{t}{q_P}\} \\[1.8em]
-\{m \mapsto_q \smutex{\gamma}{P}\ast\readerlocked{\gamma}{t}{q_P}
+\{m \mapsto_q \smutex{\gamma}{P}\ast\exists q_P.\;P(q_P)\ast\smreaderlocked{\gamma}{t}{q_P}\} \\[1.8em]
+\{m \mapsto_q \smutex{\gamma}{P}\ast\smreaderlocked{\gamma}{t}{q_P}
   \ast\triangleright P(q_P)\} \\[-1pt]
   m\texttt{.unlock\_shared()}\ \currentthread{\ t} \\
 \{m \mapsto_q \smutex{\gamma}{P}\ast\notlocked{\gamma}{t}\}
