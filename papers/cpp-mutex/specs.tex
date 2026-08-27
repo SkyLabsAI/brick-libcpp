@@ -184,10 +184,11 @@ C++'s \lstinline{shared_mutex} class is more commonly known as a \emph{reader-wr
 \begin{figure}[htb]
 \begin{lstlisting} %not sure whether this is the right canonical implementation
 
-std::atomic<int> sharers;
+std::atomic<int> sharers{0};
 
 void lock(){
-  while(!sharers.atomic_compare_exchange(&0, -1)) { }
+  int idle = 0;
+  while(!sharers.compare_exchange_strong(idle, -1)) { idle = 0; }
 }
 
 void unlock(){
@@ -195,8 +196,9 @@ void unlock(){
 }
 
 void lock_shared(){
-  do { int val = sharers; }
-  while(!sharers.atomic_compare_exchange(val, val + 1)) { }
+  int val;
+  do { val = sharers; }
+  while(val < 0 || !sharers.compare_exchange_strong(val, val + 1)) {}
 }
 
 void unlock_shared(){
