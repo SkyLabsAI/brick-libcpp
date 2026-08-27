@@ -52,7 +52,7 @@ We begin by examining \lstinline{std::mutex}, the basic lock class. The class co
 \end{itemize}
 A program that violates any of these conditions has \emph{undefined behavior} according to the library specification, so our program logic must ensure that they are respected. %include checks in toy implementation, or just mention that they could be added?
 
-The representation for a mutex has the same shape as a standard lock: we write $m \mapsto \mutex{\gamma}{P}$ for a mutex at $m$ associated with ghost identifier $\gamma$ and invariant $P$. However, we must extend the specifications of the mutex operations to enforce the requirements above. One of the original selling points of CSL was that it could naturally verify \emph{daring} concurrency patterns~\cite{csl} in which a lock acquired by one thread is released by another; in fact, in ordinary separation logics every predicate is freely transferable between threads. Fortunately, as mentioned in Section~\ref{brick}, the design of the BRiCk logic supports a non-transferable predicate $\currentthread{t}$ asserting that the current thread is $t$, which we can use to tie resources to a specific thread. When a thread $t$ starts using the mutex, it will generate a predicate $\notlocked{\gamma}{t}$, which it exchanges for another predicate $\locked{\gamma}{t}$ when it locks the mutex. A matching predicate $\usedthreads{\gamma}{T}$ will hold the set of all threads that are currently using the mutex, and the precondition of the destructor will require $\usedthreads{\gamma}{\emptyset}$, ensuring that no thread currently holds the lock. Formally, these predicates satisfy the following properties:
+The representation for a mutex has the same shape as a standard lock: we write $m \mapsto \mutex{\gamma}{P}$ for a mutex at $m$ associated with ghost identifier $\gamma$ and protected resources $P$. However, we must extend the specifications of the mutex operations to enforce the requirements above. One of the original selling points of CSL was that it could naturally verify \emph{daring} concurrency patterns~\cite{csl} in which a lock acquired by one thread is released by another; in fact, in ordinary separation logics every predicate is freely transferable between threads. Fortunately, as mentioned in Section~\ref{brick}, the design of the BRiCk logic supports a non-transferable predicate $\currentthread{t}$ asserting that the current thread is $t$, which we can use to tie resources to a specific thread. When a thread $t$ starts using the mutex, it will generate a predicate $\notlocked{\gamma}{t}$, which it exchanges for another predicate $\locked{\gamma}{t}$ when it locks the mutex. A matching predicate $\usedthreads{\gamma}{T}$ will hold the set of all threads that are currently using the mutex, and the precondition of the destructor will require $\usedthreads{\gamma}{\emptyset}$, ensuring that no thread currently holds the lock. Formally, these predicates satisfy the following properties:
 %make this a figure?
 \begin{mathpar}
 \inferrule{t \not\in T}{\usedthreads{\gamma}{T} \vs \usedthreads{\gamma}{T \cup \{t\}} \ast \notlocked{\gamma}{t}} \and
@@ -60,7 +60,7 @@ The representation for a mutex has the same shape as a standard lock: we write $
 \usedthreads{\gamma}{T} \ast \notlocked{\gamma}{t} \vs \usedthreads{\gamma}{T \setminus \{t\}} \and
 \notlocked{\gamma}{t} \ast \notlocked{\gamma}{t} \vdash \mathsf{False} \and \notlocked{\gamma}{t} \ast \locked{\gamma}{t} \vdash \mathsf{False} \and \locked{\gamma}{t_1} \ast \locked{\gamma}{t_2} \vdash \mathsf{False} %anything else we need?
 \end{mathpar}
-This not\_locked-tracking pattern is very useful for describing thread-specific properties of mutexes; we will extend it for the following mutex types, and explain its implementation in Section~\ref{login}.
+This user-tracking pattern is very useful for describing thread-specific properties of mutexes; we will extend it for the following mutex types, and explain its implementation in Section~\ref{login}.
 
 We can then specify the mutex as follows:
 \[\begin{array}{c}
@@ -139,9 +139,9 @@ void unlock(){
 \label{rmutex-simple}
 \end{figure}
 
-The specification of a recursive mutex in separation logic requires some care, since acquiring/releasing the mutex may or may not obtain/give up the lock invariant depending on how many times the caller has previously acquired it. While we could give specifications that explicitly distinguish the two cases, this is contrary to the intended abstraction---the point of a recursive mutex is that whether or not we hold the mutex before acquiring it, we know that we hold it afterwards, and as long as we perform the same number of releases as acquires we do not need to account for whether we still hold the lock. %note the existence of both atomic and invariant-based specs, and their relationship?
+The specification of a recursive mutex in separation logic requires some care, since acquiring/releasing the mutex may or may not obtain/give up the lock resources depending on how many times the caller has previously acquired it. While we could give specifications that explicitly distinguish the two cases, this is contrary to the intended abstraction---the point of a recursive mutex is that whether or not we hold the mutex before acquiring it, we know that we hold it afterwards, and as long as we perform the same number of releases as acquires we do not need to account for whether we still hold the lock. %note the existence of both atomic and invariant-based specs, and their relationship?
 
-We accomplish this by replacing the $\mathsf{not\_locked}$ and $\mathsf{locked}$ predicates of the mutex with a single predicate of the form $\acquirable{\gamma}{t}{n}{P}$, where $n$ is the number of times (0 or more) that $t$ holds the mutex. When $n$ is 0, $\mathsf{holds}$ acts as $\mathsf{not\_locked}$, and can be generated by or removed from $\usedthreads{}{}$. When $n$ is greater than 0, $\mathsf{holds}$ acts as $\mathsf{locked}$: it is exclusive with any other non-zero $\mathsf{holds}$, and the owner can borrow the invariant $P$ from it. This lets us specify \lstinline{lock} and \lstinline{unlock} as simply increasing and decreasing $n$, respectively:
+We accomplish this by replacing the $\mathsf{not\_locked}$ and $\mathsf{locked}$ predicates of the mutex with a single predicate of the form $\acquirable{\gamma}{t}{n}{P}$, where $n$ is the number of times (0 or more) that $t$ holds the mutex. When $n$ is 0, $\mathsf{holds}$ acts as $\mathsf{not\_locked}$, and can be generated by or removed from $\usedthreads{}{}$. When $n$ is greater than 0, $\mathsf{holds}$ acts as $\mathsf{locked}$: it is exclusive with any other non-zero $\mathsf{holds}$, and the owner can borrow the resources $P$ from it. This lets us specify \lstinline{lock} and \lstinline{unlock} as simply increasing and decreasing $n$, respectively:
 \[\begin{array}{c}
 \{\currentthread{t} \ast m \mapsto_q \rmutex{\gamma}{P}\ast\acquirable{\gamma}{t}{n}{P}\}\\ {m\texttt{.lock()}} \\ \{m \mapsto_q \rmutex{\gamma}{P}\ast P\ast\acquirable{\gamma}{t}{n+1}{P}\}  \vspace{1em}\\
     \{\currentthread{t} \ast m \mapsto_q \rmutex{\gamma}{P}\ast\acquirable{\gamma}{t}{n+1}{P}\}\\ {m\texttt{.unlock}()}\\
@@ -307,7 +307,7 @@ Accordingly, in our specifications each user of a shared mutex has one of three 
 \label{login}
 
 TODO cite the Iris reader/writer lock library
-TODO mutex is not implemented with the not\_locked library yet
+TODO mutex is not implemented with the user library yet
 
 The $\mathsf{not\_locked}$ ghost state provides an interface that allows a thread to acquire
 locked resources at most once regardless of the mutex kinds. Each flavor of mutex
@@ -325,7 +325,7 @@ The \allusers{T} ghost state tracks all "logged-in" threads $T$. Each thread wit
 a \notlocked{\gamma}{t} handle for that mutex with the \texttt{login} rule, and the handle is
 unique for each thread (not-locked-unique). The mutex invariants are slightly
 different for different kinds of mutexes, but they all ensure that a thread
-must trade in its unique \notlocked{\gamma}{t} handle to acquire mutex protected resources.
+must trade in its unique \notlocked{\gamma}{t} handle to acquire protected resources.
 This ensures that a thread can't acquire protected resources if it already has
 some, and unsafe programs that calls \texttt{mutex.lock()} or
 \texttt{shared\_mutex.lock\_shared()} twice consecutively in a single thread
