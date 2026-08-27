@@ -305,6 +305,8 @@ Accordingly, in our specifications each user of a shared mutex has one of three 
 }
 
 \section{Implementing the Mutex Specifications}
+Our specifications of C++ mutexes capture the informal specifications of the mutexes and can be used to verify client programs. Ideally, we would next show that standard library implementations actually meet our specifications. However, the widely used implementations of the C++ standard library would be difficult to verify---they use Pthread implementations of the corresponding mutex types, which have nearly the same specifications as the standard library mutexes, and the Pthread implementations in turn make heavy use of operating system primitives with complicated low-level specifications (e.g., Linux's \lstinline{futex}). In this section, we instead verify simple and portable implementations of the mutexes that synchronize using atomic operations instead of OS primitives. We first describe the ghost state construction that underlies the $\mathsf{locked}$ and $\mathsf{not\_locked}$ predicates for each mutex, and then show that our simple implementation of each mutex meets the specifications of the previous section.
+
 \subsection{The User Library}
 \label{login}
 
@@ -343,3 +345,4 @@ of any kind of mutex requires no "logged-in" users
 by any thread, thus safe to deallocate.
 
 \subsection{Mutex Implementations}
+%move sample implementations here?
