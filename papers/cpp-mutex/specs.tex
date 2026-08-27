@@ -15,7 +15,9 @@
 \renewcommand{\MathparLineskip}{\lineskiplimit=.55em\lineskip=.55em plus .1em}
 
 \newcommand{\mutextoken}[2]{\ensuremath{\mathsf{token}(#1, #2)}}
-\newcommand{\usedthreads}[2]{\ensuremath{\mathsf{allUsers}_{#1}(#2)}}
+\NewDocumentCommand{\allusers}{g}{%
+  \ensuremath{\mathsf{all\_users}\IfValueT{#1}{(#1)}}}
+\newcommand{\usedthreads}[2]{\ensuremath{\allusers_{#1}(#2)}}
 \newcommand{\notlocked}[2]{\ensuremath{\mathsf{not\_locked}_{#1}(#2)}}
 \newcommand{\locked}[2]{\ensuremath{\mathsf{locked}_{#1}(#2)}}
 \newcommand{\mutex}[2]{\ensuremath{\mathsf{mutex}_{#1}(#2)}}
@@ -225,10 +227,10 @@ Following \citet{heaplang-rw-lock}, we take the invariant $P$ of a shared mutex 
     {\triangleright P(1)}
     {\texttt{shared\_mutex::shared\_mutex}(m)}
     {\exists\gamma.\;\mathsf{SM}_1(m,\gamma,P)\ast
-      \mathsf{allUsers}^{\gamma}(\varnothing)}
+      \allusers^{\gamma}(\varnothing)}
 
   \spectriple
-    {\mathsf{SM}_1(m,\gamma,P)\ast\mathsf{allUsers}^{\gamma}(\varnothing)}
+    {\mathsf{SM}_1(m,\gamma,P)\ast\allusers^{\gamma}(\varnothing)}
     {\texttt{shared\_mutex::$\sim$shared\_mutex}(m)}
     {P(1)}
 \end{mathpar}
@@ -297,16 +299,16 @@ TODO mutex is not implemented with the not\_locked library yet
 The $\mathsf{not\_locked}$ ghost state provides an interface that allows a thread to acquire
 locked resources at most once regardless of the mutex kinds. Each flavor of mutex
 is associated with a disjoint set of thread IDs, managed by one
-authoritative piece \texttt{allUsers} and fragment pieces \notlocked{\gamma}{t}:
+authoritative piece \allusers\ and fragment pieces \notlocked{\gamma}{t}:
 \begin{align*}
-  \mathsf{allUsers}^{\gamma}(S)
+  \allusers^{\gamma}(S)
     &\eqdef \mathsf{own}^{\gamma}(\mathord{\bullet}S), \\
   % \mathsf{users}^{\gamma}(T)
   %   &\eqdef \mathsf{own}^{\gamma}(\mathord{\circ}T), \\
   \mathsf{not\_locked}^{\gamma}(t)
     &\eqdef \mathsf{own}^{\gamma}(\mathord{\circ}\{t\}).
 \end{align*}
-The \texttt{allUsers($S$)} ghost state tracks all "logged-in" threads $S$. Each thread with thread ID $t$ can get
+The \allusers{S} ghost state tracks all "logged-in" threads $S$. Each thread with thread ID $t$ can get
 a \notlocked{\gamma}{t} handle for that mutex with the \texttt{login} rule, and the handle is
 unique for each thread (not-locked-unique). The mutex invariants are slightly
 different for different kinds of mutexes, but they all ensure that a thread
@@ -320,7 +322,7 @@ exchange anything with the invariant.
 
 A thread can also "logout" and turn in its \notlocked{\gamma}{t} handle. Deallocation
 of any kind of mutex requires no "logged-in" users
-($\mathsf{allUsers}^{\gamma}(\varnothing)$), enforcing that any allocated
+($\allusers^{\gamma}(\varnothing)$), enforcing that any allocated
 \notlocked{\gamma}{t} handle is deallocated with \texttt{logout}
 (\texttt{all-not\_locked-logged-out}), and so the mutex is not held
 by any thread, thus safe to deallocate.
