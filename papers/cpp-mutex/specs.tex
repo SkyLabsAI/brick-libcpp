@@ -211,16 +211,33 @@ void unlock_shared(){
 
 Following \citet{heaplang-rw-lock}, we take the invariant $P$ of a shared mutex to be a predicate on a share; $P(1)$ represents exclusive ownership of the invariant from calling \lstinline{lock}, while calling \lstinline{lock_shared} yields $P(q)$ for an arbitrary fraction $q$ (usually representing read-only access to $P$). Accordingly, in our specifications each user of a shared mutex has one of three predicates, $\notlocked{\gamma}{t}$, $\readerlocked{\gamma}{t}{q}$, or $\locked{\gamma}{t}$, where $\mathsf{reader\_locked}$ records the fraction $q$ of ownership received by the reader.
 
-\[\begin{array}{c}
-\{\currentthread{t} \ast m \mapsto_q \smutex{\gamma}{P}\ast\notlocked{\gamma}{t}\}\\ {m\texttt{.lock()}} \\ \{m \mapsto_q \mutex{\gamma}{P}\ast P(1)\ast\locked{\gamma}{t}\}  \vspace{1em}\\
-    \{\currentthread{t} \ast m \mapsto_q \smutex{\gamma}{P}\ast\locked{\gamma}{t}
-      \ast \triangleright P(1)\}\\ {m\texttt{.unlock}()}\\
-    \{m \mapsto_q \mutex{\gamma}{P}\ast\notlocked{\gamma}{t}\}  \vspace{1em} \\
-\{\currentthread{t} \ast m \mapsto_q \mutex{\gamma}{P}\ast\notlocked{\gamma}{t}\}\\ {m\texttt{.lock\_shared()}} \\ \{m \mapsto_q \mutex{\gamma}{P}\ast \exists q_P.\ P(q_P)\ast\readerlocked{\gamma}{t}{q_P}\}  \vspace{1em}\\
-    \{\currentthread{t} \ast m \mapsto_q \mutex{\gamma}{P}\ast\readerlocked{\gamma}{t}{q_P}
-      \ast\triangleright P(q_P)\}\\ {m\texttt{.unlock\_shared}()}\\
-    \{m \mapsto_q \mutex{\gamma}{P}\ast\notlocked{\gamma}{t}\}
-\end{array}\]
+\[
+\begin{array}{@{}c@{}}
+\{\currentthread{t} \ast m \mapsto_q \smutex{\gamma}{P}
+  \ast \notlocked{\gamma}{t}\} \\
+m\texttt{.lock()} \\
+\{m \mapsto_q \smutex{\gamma}{P}\ast P(1)\ast \locked{\gamma}{t}\} \\[1.8em]
+\left\{\begin{gathered}
+  \currentthread{t} \ast m \mapsto_q \smutex{\gamma}{P} \\[-2pt]
+  {}\ast \locked{\gamma}{t}\ast \triangleright P(1)
+\end{gathered}\right\} \\
+m\texttt{.unlock()} \\
+\{m \mapsto_q \smutex{\gamma}{P}\ast\notlocked{\gamma}{t}\} \\[1.8em]
+\{\currentthread{t} \ast m \mapsto_q \smutex{\gamma}{P}
+  \ast \notlocked{\gamma}{t}\} \\
+m\texttt{.lock\_shared()} \\
+\left\{\begin{gathered}
+  m \mapsto_q \smutex{\gamma}{P} \\[-2pt]
+  {}\ast \exists q_P.\;P(q_P)\ast\readerlocked{\gamma}{t}{q_P}
+\end{gathered}\right\} \\[1.8em]
+\left\{\begin{gathered}
+  \currentthread{t} \ast m \mapsto_q \smutex{\gamma}{P} \\[-2pt]
+  {}\ast \readerlocked{\gamma}{t}{q_P}\ast\triangleright P(q_P)
+\end{gathered}\right\} \\
+m\texttt{.unlock\_shared()} \\
+\{m \mapsto_q \smutex{\gamma}{P}\ast\notlocked{\gamma}{t}\}
+\end{array}
+\]
 
 %anything else interesting to say? should we describe the invariant?
 
