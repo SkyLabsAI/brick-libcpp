@@ -209,7 +209,10 @@ void unlock_shared(){
 \label{smutex-simple}
 \end{figure}
 
-Following \citet{heaplang-rw-lock}, we take the invariant $P$ of a shared mutex to be a predicate on a share; $P(1)$ represents exclusive ownership of the invariant from calling \lstinline{lock}, while calling \lstinline{lock_shared} yields $P(q)$ for an arbitrary fraction $q$ (usually representing read-only access to $P$). Accordingly, in our specifications each user of a shared mutex has one of three predicates, $\notlocked{\gamma}{t}$, $\readerlocked{\gamma}{t}{q}$, or $\locked{\gamma}{t}$, where $\mathsf{reader\_locked}$ records the fraction $q$ of ownership received by the reader.
+Following \citet{heaplang-rw-lock}, we take the resource $P$ protected by a shared mutex to be a fractional predicate;
+calling \lstinline{lock} yields full ownership of the resource $P(1)$,
+while calling \lstinline{lock_shared} yields $P(q)$ for an arbitrary fraction $q$, representing read-only access to $P$.
+Accordingly, in our specifications each user of a shared mutex has one of three predicates, $\notlocked{\gamma}{t}$, $\readerlocked{\gamma}{t}{q}$, or $\locked{\gamma}{t}$, where $\mathsf{reader\_locked}$ records the fraction $q$ of ownership received by the reader.
 
 \[
 \begin{array}{@{}c@{}}
