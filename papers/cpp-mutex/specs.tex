@@ -115,7 +115,7 @@ A thread $t$ exchanges $\notlocked{\gamma}{t}$ for $\locked{\gamma}{t}$ when acq
 
 \begin{figure}[htb]
 \begin{lstlisting}
-std::atomic<thread_id> owner;
+std::atomic<std::thread::id> owner; // default val neq any thread ID
 int count;
 std::mutex m;
 
@@ -131,7 +131,7 @@ void unlock(){
   count--;
   if(count == 0){
     m.unlock();
-    owner = null;
+    owner = std::thread::id{}; // reset to default
   }
 }
 \end{lstlisting}
