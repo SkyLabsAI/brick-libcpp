@@ -318,18 +318,21 @@ Accordingly, in our specifications each user of a shared mutex has one of three 
 
 \[
 \begin{array}{@{}c@{}}
-\{m \mapsto_q \smutex{\gamma}{P}\ast\notlocked{\gamma}{t}\} \\
-  m\texttt{.lock()}\ \currentthread{\ t} \\[-1pt]
+\{\currentthread{t} \ast m \mapsto_q \smutex{\gamma}{P}\ast\notlocked{\gamma}{t}\} \\
+  m\texttt{.lock()} \\[-1pt]
 \{m \mapsto_q \smutex{\gamma}{P}\ast P(1)\ast\smlocked{\gamma}{t}\} \\[1.8em]
-\{m \mapsto_q \smutex{\gamma}{P}\ast\smlocked{\gamma}{t}\ast\triangleright P(1)\}\\
-  m\texttt{.unlock()}\ \currentthread{\ t} \\[-1pt]
+
+\{\currentthread{t} \ast m \mapsto_q \smutex{\gamma}{P}\ast\smlocked{\gamma}{t}\ast\triangleright P(1)\}\\
+  m\texttt{.unlock()} \\[-1pt]
 \{m \mapsto_q \smutex{\gamma}{P}\ast\notlocked{\gamma}{t}\} \\[1.8em]
-\{m \mapsto_q \smutex{\gamma}{P}\ast\notlocked{\gamma}{t}\}\\
-  m\texttt{.lock\_shared()}\ \currentthread{\ t} \\[-1pt]
+
+\{\currentthread{t} \ast m \mapsto_q \smutex{\gamma}{P}\ast\notlocked{\gamma}{t}\}\\
+  m\texttt{.lock\_shared()} \\[-1pt]
 \{m \mapsto_q \smutex{\gamma}{P}\ast\exists q_P.\;P(q_P)\ast\smreaderlocked{\gamma}{t}{q_P}\} \\[1.8em]
-\{m \mapsto_q \smutex{\gamma}{P}\ast\smreaderlocked{\gamma}{t}{q_P}
+
+\{\currentthread{t} \ast m \mapsto_q \smutex{\gamma}{P}\ast\smreaderlocked{\gamma}{t}{q_P}
   \ast\triangleright P(q_P)\} \\[-1pt]
-  m\texttt{.unlock\_shared()}\ \currentthread{\ t} \\
+  m\texttt{.unlock\_shared()}  \\
 \{m \mapsto_q \smutex{\gamma}{P}\ast\notlocked{\gamma}{t}\}
 \end{array}
 \]

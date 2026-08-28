@@ -329,7 +329,7 @@ These specifications capture the core idea of mutual exclusion: at most one thre
 \subsection{The BRiCk Logic for C++}
 \label{brick}
 
-\newcommand{\currentthread}[1]{\ensuremath{\mathord{@}#1}}
+\newcommand{\currentthread}[1]{\ensuremath{\mathtt{tid}(#1)}}
 
 BRiCk~\cite{brick} is an Iris-based program logic for C++, inspired by Iris's HeapLang and the Verified Software Toolchain's logic for C~\cite{vst}. Its predicates and rules are similar to those of standard Iris instances, with special support for object-oriented data and templates. %anything else of note?
 Unlike most Iris instances, it does not carry an adequacy proof that connects its rules to an operational semantics (indeed, there is no complete operational semantics for C++), but similarity to the rules of HeapLang and VST and the ability to test specifications by compiling and running the code give us confidence in its soundness. %rephrase %doesn't have opsem but does compile; logic evaluated with projects like TODO cite previous brick paper/projects
