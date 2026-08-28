@@ -182,9 +182,9 @@ Section with_cpp.
     iExists ?[K], (mk 42). go.
     iSplitL ""; [by go | go].
     have [? [??]] : exists a, n = 1%nat /\ recursive_mutex.acquire a (recursive_mutex.release (recursive_mutex.Held n (mk 42))). {
-      Unset SsrIdents.
-      rename _n_ into n0.
-      Set SsrIdents.
+      lazymatch goal with
+      | _ : recursive_mutex.Held ?x _ = _ |- _ => rename x into n0
+      end.
       (* This step breaks abstractions, but we have taken the lock yet hints don't
       give us access to the resouce. *)
       assert (n0 = 0 /\ n = 1)%nat as [-> ->]. {
