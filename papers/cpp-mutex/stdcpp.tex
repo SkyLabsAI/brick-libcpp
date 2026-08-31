@@ -458,6 +458,8 @@ The code in Figure~\ref{unique-recursive} shows how this can be used. When \lsti
 \section{Conclusion and Future Work}
 ...
 
+%the client problem: all preconditions need not_locked, can't be transferred between threads, so if we include it in an abstract predicate that predicate can't be transferred either (even if it uses locks in a way that would never allow double acquire)
+
 condition variables, futures, shared pointers, ...
 
 verified Pthread?
