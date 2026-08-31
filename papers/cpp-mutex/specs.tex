@@ -191,7 +191,7 @@ Figure~\ref{mutex-ex} shows a simple application of \lstinline{mutex}. The mutex
 
 \begin{figure}[htb]
 \begin{lstlisting}
-std::atomic<std::thread::id> owner; // default val neq any thread ID
+std::atomic<std::thread::id> owner;
 int count;
 std::mutex m;
 
@@ -591,11 +591,76 @@ class Mutex2 {
 \label{mutex-impl2}
 \end{figure}
 
-We consider two spinlock implementations of \lstinline{std::mutex}. The first, in Figure~\ref{mutex-impl1}, is a straightforward implementation similar to that used in HeapLang: \lstinline{lock} atomically exchanges \lstinline{true} with the current value of \lstinline{lock}, which is \lstinline{true} if the mutex is currently held (in which case the exchange does nothing and the loop continues) and \lstinline{false} if the mutex is not held (in which case the exchange sets \lstinline{lock} to \lstinline{true} and the loop ends). The second, in Figure~\ref{mutex-impl2}, additionally records the thread ID of the current owner, and uses it to assert some of the mutex requirements: a thread calling \lstinline{unlock} must be the current owner, and when the mutex is destroyed it must not be held by any thread. Both of these implementations meet the informal specification of \lstinline{mutex}: since violating the mutex requirements is undefined behavior, assert failure and abnormal termination is a permissible result. However, the second implementation does \emph{not} meet the usual separation logic specification of locks, in which any thread that holds a transferable $\mathsf{locked}$ predicate can release the lock. We prove that both of these implementations satisfy the mutex specifications of Section~\ref{mutex-spec}. We outline the proof for \lstinline{Mutex2}; the proof for \lstinline{Mutex1} is strictly simpler. The standard Iris approach to verifying a spinlock is to define an invariant of the form $\knowInv{}{(\texttt{lock} \mapsto \mathsf{true}) \vee (\texttt{lock} \mapsto \mathsf{false} \ast \token{\gamma} \ast P)}$, where whenever the lock is not held the invariant contains the exclusive token and the protected resources $P$, and when the lock is held those resources are transferred to the holder. (We use a cancelable invariant instead to support destruction; this gives us a fractional token $\mathsf{tok}_q$ that can be used to deallocate the invariant when $q = 1$.) We add the \lstinline{owner} field to the resources involved, and require that it is the default value $\bot$ when unowned; because ownership of a pointer is exclusive, we can use this in place of the exclusive token, yielding the invariant
+We consider two spinlock implementations of \lstinline{std::mutex}. The first, in Figure~\ref{mutex-impl1}, is a straightforward implementation similar to that used in HeapLang: \lstinline{lock} atomically exchanges \lstinline{true} with the current value of \lstinline{lock}, which is \lstinline{true} if the mutex is currently held (in which case the exchange does nothing and the loop continues) and \lstinline{false} if the mutex is not held (in which case the exchange sets \lstinline{lock} to \lstinline{true} and the loop ends). Unlike in HeapLang, a location that will be accessed concurrently by multiple threads must explicitly be declared to be of an \lstinline{atomic} type: data races on non-atomic locations are undefined behavior in C++. The second implementation, in Figure~\ref{mutex-impl2}, additionally records the thread ID of the current owner, and uses it to assert some of the mutex requirements: a thread calling \lstinline{unlock} must be the current owner, and when the mutex is destroyed it must not be held by any thread. (Because \lstinline{owner} is only accessed by the thread that holds the mutex and in the destructor, it does not need to be atomic.) Both of these implementations meet the informal specification of \lstinline{mutex}: since violating the mutex requirements is undefined behavior, assert failure and abnormal termination is a permissible result. However, the second implementation does \emph{not} meet the usual separation logic specification of locks, in which any thread that holds a transferable $\mathsf{locked}$ predicate can release the lock. We prove that both of these implementations satisfy the mutex specifications of Section~\ref{mutex-spec}. We outline the proof for \lstinline{Mutex2}; the proof for \lstinline{Mutex1} is strictly simpler.
+
+The standard Iris approach to verifying a spinlock is to define an invariant of the form $\knowInv{}{(\texttt{lock} \mapsto \mathsf{true}) \vee (\texttt{lock} \mapsto \mathsf{false} \ast \token{\gamma} \ast P)}$, where whenever the lock is not held the invariant contains the exclusive token and the protected resources $P$, and when the lock is held those resources are transferred to the holder. (We use a cancelable invariant instead to support destruction; this gives us a fractional token $\mathsf{tok}_q$ that can be used to deallocate the invariant when $q = 1$.) We add the \lstinline{owner} field to the resources involved, and require that it is the default value $\bot$ when unowned; because ownership of a pointer is exclusive, we can use this in place of the exclusive token, yielding the invariant
 \[I(P) \triangleq \knowInv{}{(\texttt{lock} \mapsto \mathsf{true}) \vee (\texttt{lock} \mapsto \mathsf{false} \ast P \ast \texttt{owner} \mapsto \bot)}\] %don't reuse \gamma, or explain that it's a record
 Now we can define $\locked{\gamma}{t}$ as $\notlocked{\gamma}{t} \ast \texttt{owner} \mapsto t$. We include $\mathsf{not\_locked}$ in $\mathsf{m\_locked}$ because this immediately gives us $\notlocked{\gamma}{t} \ast \locked{\gamma}{t} \vdash \mathsf{False}$, and the exclusivity of $\mapsto$ guarantees that $\notlocked{\gamma}{t_1} \ast \locked{\gamma}{t_2} \vdash \mathsf{False}$. Furthermore, $\currentthread{t} \ast \locked{\gamma}{t}$ guarantees that \lstinline{owner} is precisely the current thread $t$, so the precondition of \lstinline{unlock} is sufficient to ensure that the \lstinline{assert} will succeed. %But this doesn't seem to be enough to pass !lock in the destructor -- we need something in the true case that's inconsistent with used_threads(\empty). Maybe use some extra ghost state to split not_locked and put half into the invariant.
 The representation predicate is defined as $\mutex{\gamma}{P}_q \triangleq I(P) \ast \mathsf{tok}_q$. With these definitions, we can prove that each method meets its specification: ...
 
 \subsubsection{\lstinline{std::recursive_mutex}}
+\begin{figure}[htb]
+\begin{lstlisting}
+class RecursiveMutex {
+  std::atomic<std::thread::id> owner;
+  int count;
+  std::mutex m;
+
+  void lock(){
+    if(owner != get_id()){
+      m.lock();
+      owner = get_id();
+    }
+    count++;
+  }
+
+  void unlock(){
+    count--;
+    if(count == 0){
+      m.unlock();
+      owner = std::thread::id{}; // reset to default
+    }
+  }
+}
+\end{lstlisting} %destructor?
+\caption{A simple implementation of \lstinline{std::recursive_mutex}}
+\label{rmutex-simple}
+\end{figure}
+
+The simplest way to implement a recursive mutex is by combining an underlying non-recursive mutex \lstinline{m} with an integer \lstinline{count}: each thread's first acquire and last release of the recursive mutex (per critical section) are performed on \lstinline{m}, while all intervening operations by the same thread only increment and decrement \lstinline{count}. Threads must check whether they already hold the recursive mutex before locking \lstinline{m}, so the \lstinline{owner} field may be accessed concurrently and must be atomic. The abstract state of the lock is a pair $(t, n)$ of optional owning thread and acquisition count, where $t = \bot \leftrightarrow n = 0$. %skipping atomic specs for now
+We store this abstract state in a piece of authoritative ghost state, where the invariant $I$ always owns the authoritative copy and the owning thread (if any) owns the fragment. This lets us define the central $\mathsf{holds}$ predicate as:
+\begin{align*}
+\acquirable{\gamma}{t}{n}{P}{a} \triangleq \currentthread{t}\ \ast\ &\text{if } n = 0 \text{ then } \notlocked{\gamma}{t} \\&\text{ else } \ownGhost{}{\authfrag (t, n)}%acquirable includes current_thread, unlike not_locked and locked: is this what we want?
+\end{align*}
+%invariant
+
+%proof sketch
 
 \subsubsection{\lstinline{std::shared_mutex}}
+\begin{figure}[htb]
+\begin{lstlisting}
+
+std::atomic<int> sharers{0};
+
+void lock(){
+  int idle = 0;
+  while(!sharers.compare_exchange_strong(idle, -1)) { idle = 0; }
+}
+
+void unlock(){
+  sharers = 0;
+}
+
+void lock_shared(){
+  int val;
+  do { val = sharers; }
+  while(val < 0 || !sharers.compare_exchange_strong(val, val + 1)) {}
+}
+
+void unlock_shared(){
+  sharers--;
+}
+\end{lstlisting}
+\caption{A simple implementation of \lstinline{std::shared_mutex}}
+\label{smutex-simple}
+\end{figure}
