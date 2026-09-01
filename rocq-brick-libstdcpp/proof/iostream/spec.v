@@ -162,7 +162,7 @@ Module istream.
     (** [is_ws] returns true if the character is a standard whitespace.
         Uses stdpp's bool_decide to evaluate the logical disjunction. *)
     Definition is_ws (c : N) : bool :=
-      bool_decide (c = 32 \/ c = 10 \/ c = 13 \/ c = 9)%N.
+      bool_decide (c = 32 \/ c = 10 \/ c = 13 \/ c = 9 \/ c = 11 \/ c = 12)%N.
 
     (** [as_digit] returns [Some d] if the character is between '0' and '9'.
         Uses stdpp's bool_decide to evaluate the logical conjunction. *)
@@ -205,7 +205,7 @@ Module istream.
           loop 1%Z 0%Z
 
         else if is_ws c then
-          (* Whitespace (space, \n, \r, \t) -> Co-recursively skip *)
+          (* Whitespace (space, \n, \r, \t, \v, \f) -> Co-recursively skip *)
           read_int
 
         else match as_digit c with
