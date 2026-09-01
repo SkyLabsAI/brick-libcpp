@@ -484,19 +484,20 @@ NES.Begin std.
         Definition SpecFor_copy_alloc_ctor := RegisterSpec copy_alloc_ctor.
         #[global] Existing Instance SpecFor_copy_alloc_ctor.
 
-        Definition move_alloc_ctor :=
+        Definition move_alloc_ctor `{!MovedValue ty V} :=
           specify.template.ctor vector [Trv_ref vectorT; Tref (Tconst alloc_ty)] $
             \this this
             \arg{otherp} "other" (Vref otherp)
             \arg{allocp} "alloc" (Vptr allocp)
-            \pre{size st xs}
-                   otherp |-> R_cap  (cQp.m 1) size st xs
-            \post* otherp |-> R_null (cQp.m 1)
+            \pre{xs} otherp |-> R (cQp.m 1) xs
+            (* If the allocators differ, the elements are moved individually.
+               In either case, [other] remains valid but its state is unspecified. *)
+            \post* Exists other_xs, otherp |-> R (cQp.m 1) other_xs
             \prepost{a}  allocp |-> objR alloc_ty (cQp.m 1) a
-            \post this |-> R_cap (cQp.m 1) size st xs.
+            \post this |-> R (cQp.m 1) xs.
         #[global] Hint Opaque move_alloc_ctor : sl_opacity.
         #[global] Arguments move_alloc_ctor : simpl never.
-        Definition SpecFor_move_alloc_ctor := RegisterSpec move_alloc_ctor.
+        Definition SpecFor_move_alloc_ctor := RegisterSpec (@move_alloc_ctor).
         #[global] Existing Instance SpecFor_move_alloc_ctor.
 
       End allocator.
