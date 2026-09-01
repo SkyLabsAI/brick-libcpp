@@ -159,8 +159,8 @@ Module istream.
       | read => fun n => Read n
       end.
 
-    (** [is_ws] returns true if the character is a standard whitespace.
-        Uses stdpp's bool_decide to evaluate the logical disjunction. *)
+    (** [is_ws] returns true if the character is a standard whitespace 
+        (space, \n, \r, \t, \v, \f). *)
     Definition is_ws (c : N) : bool :=
       bool_decide (c = 32 \/ c = 10 \/ c = 13 \/ c = 9 \/ c = 11 \/ c = 12)%N.
 
