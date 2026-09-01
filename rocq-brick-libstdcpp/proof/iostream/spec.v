@@ -205,7 +205,7 @@ Module istream.
           loop 1%Z 0%Z
 
         else if is_ws c then
-          (* Whitespace (space, \n, \r, \t, \v, \f) -> Co-recursively skip *)
+          (* Whitespace -> Co-recursively skip *)
           read_int
 
         else match as_digit c with
