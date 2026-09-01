@@ -17,4 +17,3 @@ _RocqProject
 
 # Only at the root, since it comes from enabling `dune.disabled` locally
 /dune
-papers/cpp-mutex/stdcpp.synctex.gz
