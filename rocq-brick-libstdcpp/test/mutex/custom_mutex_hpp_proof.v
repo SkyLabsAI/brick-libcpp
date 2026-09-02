@@ -493,6 +493,17 @@ Module custom_mutex.
       Fail progress go.
       iExists _.
       Succeed by repeat (ework; go).
+      Import Verbose.
+      iExists _.
+      Remove Hints later_spec_bwd : db_skylabs_syntactic.
+      go.
+      (* progress sep with {1}sl_opacity* pure typeclass_instances. *)
+      progress sep with {0}sl_opacity* {1}db_skylabs_wp #db_skylabs_syntactic pure typeclass_instances.
+
+      step.
+      go.
+      step.
+      work.
       Set SL Debug "@default=1".
       progress with_log! go.
       (*
