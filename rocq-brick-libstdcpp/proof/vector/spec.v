@@ -122,7 +122,7 @@ NES.Begin std.
         references to remain valid and we can use A) at points of discontinuity where we no longer use
         the internal references of our vector.
 
-        LIMITATION: this specification applies to the libc++ vectors and does not support
+        LIMITATION: this specification applies to the libstdc++ vectors and does not support
           <<std::vector<bool> >>. To support <<std::vector<bool> >>, we need a different
           construction from [array_sliceR] so that we can track invidividual bits separately.
 
@@ -222,7 +222,7 @@ NES.Begin std.
       #[global] Abbreviation T_base const ty alloc_ty := (Tnamed (N_base const ty alloc_ty)).
       sl.lock
       Definition R_base `{Σ : cpp_logic, σ : genv} (const : bool) (ty alloc_ty : type) (q : cQp.t) (basep : ptr) (i : Z) : Rep :=
-        _field (N_base const ty alloc_ty .:: Nid "__i_") |-> ptrR<ty> q (basep .[ ty ! i]) **
+        _field (N_base const ty alloc_ty .:: Nid "_M_current") |-> ptrR<ty> q (basep .[ ty ! i]) **
         structR (N_base const ty alloc_ty) q.
       #[only(type_ptr,ascfractional)] derive R_base.
 
