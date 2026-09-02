@@ -477,10 +477,124 @@ Module custom_mutex.
     Proof using MOD HAS_THREADS.
       verify_spec.
       rewrite locked.unlock.
-      (* TODO AUTO *)
-      Fail by ego.
-      repeat (go; ework).
-    Qed.
+      go.
+      erun1.
+      go.
+      erun1.
+      go.
+      erun1.
+      go.
+      erun1.
+      go.
+      erun1.
+      go.
+      iExists _.
+      Succeed by repeat (ework; go).
+      Fail progress go.
+      iExists _.
+      Succeed by repeat (ework; go).
+      Set SL Debug "@default=1".
+      progress with_log! go.
+      (*
+
+<prompt>mymutex_unlock_proof < 1469 |mymutex_unlock_proof| 0 < </prompt>progress with_log! go.
+[sep:discharge, flag=dis, level=1] computed plan: LiftExist
+[sep:discharge, flag=dis, level=1] computed plan: Continue
+[sep:discharge, flag=dis, level=1] computed plan: Continue
+[sep:dnet:skylabs.auto.cpp.linking_proof.later_spec_bwd:cancelx, flag=cancel, level=1] Successfully applied CancelX hint:
+(later_spec_bwd (new_delete.wp_operand_delete_C ?tu ?ρ ?default_delete ?e ?destroyed_type ?Q))
+[sep:discharge, flag=dis, level=1] computed plan: Smash
+[sep:discharge, flag=dis, level=1] computed plan: Continue
+[sep:dnet:skylabs.auto.cpp.hints.builtins.wp_operand_builtin_call_B:bwd, flag=bwd, level=1] Applying Bwd: (λ _ : gname,
+                 builtins.wp_operand_builtin_call_B ?tu ?ρ ?f ?es ?ty
+                   (λ (obj_val : val) (free : FreeTemps),
+                      match obj_val with
+                      | Vptr obj_ptr =>
+                          if bool_decide (obj_ptr = nullptr)
+                          then wp_delete_null ?default_delete ?destroyed_type (?Q Vvoid free)
+                          else new_delete.wp_delete_dispatch ?default_delete ?destroyed_type obj_ptr (?Q Vvoid free)
+                      | _ => False%I
+                      end)) at (split_propT.L (split_propT.Here 0))
+[sep:discharge, flag=dis, level=1] computed plan: Continue
+[sep:discharge, flag=dis, level=1] computed plan: Continue
+[sep:discharge, flag=dis, level=1] computed plan: Continue
+[sep:discharge, flag=dis, level=1] computed plan: Continue
+
+<prompt>mymutex_unlock_proof < 1470 |mymutex_unlock_proof| 0 < </prompt>Show.
+1 focused goal (shelved: 8) (ID 41242)
+  
+  thread_info : biIndex
+  _Σ : gFunctors
+  Σ : cpp_logic thread_info _Σ
+  σ : genv
+  HAS_THREADS : HasStdThreads Σ
+  lockG0 : lockG Σ
+  ownerG0 : ownerG Σ
+  MOD : source ⊧ σ
+  _PostPred_ : ptr → mpred
+  this : ptr
+  q : cQp.t
+  m : gname * mpred
+  K : mpred
+  PostCond : PostCondition
+  t : thread_idT
+  GUARDS : GWs.GUARDS
+  ============================
+  _ : denoteModule source
+  _ : current_thread t
+  _ : type_ptr "MyMutex" this
+  _ : thread_id_move_assign_spec
+  _ : thread_id_eq_spec
+  _ : thread_id_dtor_spec
+  _ : thread_id_ctor_spec
+  _ : thread_id_copy_ctor_spec
+  _ : get_id_spec
+  _ : do_unlock_spec
+  _ : std.cassert.assert_fail_spec
+  _ : validP<"bool"> (Vbool (bool_decide (Some t = Some t)))
+  --------------------------------------□
+  _ : PostCond
+  _ : user (user_gname m.1) t -∗ K
+  _ : this |-> IR m.1 q m.2
+  _ : m.2
+  _ : owner_token_frac (phys_state_gname m.1) (Some t)
+  --------------------------------------∗
+  ∃ g : gname,
+    match args_for <$> as_function (normalize_type ?ty) with
+    | Some _ =>
+        eval evaluation_order.nd (map (wp_operand ?tu ?ρ) ?es)
+          (λ (vs : list val) (free : FreeTemps),
+             builtins.wp_builtin ?f ?ty vs
+               (λ v : val,
+                  match v with
+                  | Vptr obj_ptr =>
+                      if bool_decide (obj_ptr = nullptr)
+                      then wp_delete_null ?default_delete ?destroyed_type (?Q Vvoid free)
+                      else new_delete.wp_delete_dispatch ?default_delete ?destroyed_type obj_ptr (?Q Vvoid free)
+                  | _ => False
+                  end))
+    | None => errors.Errors.ERROR "builtin does not have function type"%bs
+    end ∗
+    this
+    |-> IR g ?t
+          (::wpOperand
+             ?ρ
+             (Edelete false ?default_delete (Ecall (Ecast (Cbuiltin2fun (Tptr ?ty)) (Eglobal (Nglobal (Nid ?f)) ?ty)) ?es)
+                ?destroyed_type)) ∗
+    owner_token_frac (phys_state_gname g) (Some t) ∗
+    (this
+     |-> IR g ?t
+           (::wpOperand
+              ?ρ
+              (Edelete false ?default_delete (Ecall (Ecast (Cbuiltin2fun (Tptr ?ty)) (Eglobal (Nglobal (Nid ?f)) ?ty)) ?es)
+                 ?destroyed_type)) ∗
+     user (user_gname g) t -∗ ::interp { 1 })
+
+<prompt>mymutex_unlock_proof < 1470 |mymutex_unlock_proof| 0 < </prompt>
+
+       *)
+
+    Abort.
 
 
   End with_Σ.
