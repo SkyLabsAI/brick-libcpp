@@ -77,6 +77,11 @@ if [ "$CPP2V_DOCKER_ENABLED" = "y" ] && which docker > /dev/null; then
 
   BRICK_LIBCPP=/home/coq/worktree
   ARGS=()
+
+  docker_user="${CPP2V_DOCKER_USER:-$(id -u):$(id -g)}"
+  ARGS+=( "--rm" )
+  ARGS+=( "--user" "$docker_user" )
+  ARGS+=( "--env" "HOME=/tmp" )
   ARGS+=( "--platform" "linux/amd64" )
   ARGS+=( "--volume" "${HOME}/.cache/remote_dune:/home/coq/.cache/dune:cached" )
   ARGS+=( "--volume" "$DUNE_SOURCEROOT:$BRICK_LIBCPP" )
