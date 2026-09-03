@@ -596,19 +596,27 @@ We consider two spinlock implementations of \lstinline{std::mutex}. The first, i
 
 The standard Iris approach to verifying a spinlock is to define an invariant of the form
 \[
-  \knowInv{}{\begin{gathered}
-    (\texttt{lock} \mapsto \mathsf{true}) \\
-    {}\vee (\texttt{lock} \mapsto \mathsf{false} \ast \token{\gamma} \ast P)
-  \end{gathered}},
+  \knowInv{}{\begin{aligned}
+    &(\texttt{lock} \mapsto \mathsf{true}) \\
+    {}\vee{} &(\texttt{lock} \mapsto \mathsf{false} \ast P \ast \token{\gamma})
+  \end{aligned}},
 \]
-where whenever the lock is not held the invariant contains the exclusive token and the protected resources $P$, and when the lock is held those resources are transferred to the holder. (We use a cancelable invariant instead to support destruction; this gives us a fractional token $\mathsf{tok}_q$ that can be used to deallocate the invariant when $q = 1$.) We add the \lstinline{owner} field to the resources involved, and require that it is the default value $\bot$ when unowned; because ownership of a pointer is exclusive, we can use this in place of the exclusive token, yielding the invariant
+where whenever the lock is not held the invariant contains the protected resources $P$ and some exclusive token $\token{\gamma}$, and when the lock is held, these are transferred to the holder. Having $\token{\gamma}$ allows the thread to unlock the mutex: when it opens the invariant, it must be the unlocked branch because there cannot be two copies of $\token{\gamma}$. The mutex invariant is slightly more complex:\footnote{We use a cancelable invariant instead so that the invariant can be "deallocated" and the protected resources unboxed in the mutex destructor.\kedu{The \lstinline|cinv_own| detail should probably be omitted?} }
 \[
-  I(P) \triangleq \knowInv{}{\begin{gathered}
-    (\texttt{lock} \mapsto \mathsf{true}) \\
-    {}\vee (\texttt{lock} \mapsto \mathsf{false} \ast P
-      \ast \texttt{owner} \mapsto \bot)
-  \end{gathered}}
+  I(P) \triangleq \knowInv{}{\begin{aligned}
+    &(\exists t.\ \ownGhost{}{\authfull t}) \\
+    &{}\ast \left(\begin{aligned}
+      &(\texttt{lock} \mapsto \mathsf{true}
+        \ast \notlocked{\gamma}{t}) \\
+      {}\vee{} &(\texttt{lock} \mapsto \mathsf{false} \ast P
+        \ast \ownGhost{}{\authfrag \bot}
+        \ast \texttt{owner} \mapsto \bot)
+    \end{aligned}\right)
+  \end{aligned}}
 \] %don't reuse \gamma, or explain that it's a record
+
+First, the locking thread $t$ hands over its $\notlocked{\gamma}{t}$ in the invariant. As mentioned before, this ensures the mutex is only destructed when no thread currently locks it. But when $\notlocked{\gamma}{t}$ is stored in the invariant, its argument $t$ is forgotten, so we use a pair of \textit{authoritative} ghost states $\ownGhost{}{\authfull t}$ and $\ownGhost{}{\authfrag t}$ to remedy this: when a thread $t$ locks the mutex, it also receives $\ownGhost{}{\authfrag t}$ from the mutex \kedu{Do we want to explain ghost update?} with the same $t$; the other piece $\ownGhost{}{\authfull t}$ always store the same value as $\ownGhost{}{\authfrag t}$ and is stored in the invariant, so when thread $t$ unlocks the mutex, it can use $\ownGhost{}{\authfrag t}$ to recover $\notlocked{\gamma}{t}$. The $\ownGhost{}{\authfrag t}$ ghost state is also exclusive and does the job of $\token{\gamma}$. Lastly, the \lstinline{owner} field is also a protected resource, and it is required to have the default value $\bot$ when the mutex is unowned.
+
 Now we can define $\locked{\gamma}{t}$ as $\notlocked{\gamma}{t} \ast \texttt{owner} \mapsto t$. We include $\mathsf{not\_locked}$ in $\mathsf{m\_locked}$ because this immediately gives us $\notlocked{\gamma}{t} \ast \locked{\gamma}{t} \vdash \mathsf{False}$, and the exclusivity of $\mapsto$ guarantees that $\notlocked{\gamma}{t_1} \ast \locked{\gamma}{t_2} \vdash \mathsf{False}$. Furthermore, $\currentthread{t} \ast \locked{\gamma}{t}$ guarantees that \lstinline{owner} is precisely the current thread $t$, so the precondition of \lstinline{unlock} is sufficient to ensure that the \lstinline{assert} will succeed. %But this doesn't seem to be enough to pass !lock in the destructor -- we need something in the true case that's inconsistent with used_threads(\empty). Maybe use some extra ghost state to split not_locked and put half into the invariant.
 The representation predicate is defined as $\mutex{\gamma}{P}_q \triangleq I(P) \ast \mathsf{tok}_q$. With these definitions, we can prove that each method meets its specification: ...
 
