@@ -295,10 +295,10 @@ Figure~\ref{rmutex-ex} shows an example of the use of \lstinline{recursive_mutex
   (*@ $\{ \texttt{m} \mapsto_q \rmutex{\gamma}{P} \ast \acquirable{\gamma}{t}{n}{P}{(a,b)} \}$ @*)
   void update_a(long x) {
     m.lock();
-    (*@ $\{ \texttt{m} \mapsto_q \rmutex{\gamma}{P} \ast \acquirable{\gamma}{t}{n+1}{P}{(a,b)} \} \Rightarrow$ @*)
-    (*@ $\{ \texttt{m} \mapsto_q \rmutex{\gamma}{P} \ast P(a, b) \ast (\forall a', b'.\ P(a', b') \wand \acquirable{\gamma}{t}{n+1}{P}{(a',b')}) \}$ @*)
+    (*@ $\{ ... \ast \acquirable{\gamma}{t}{n+1}{P}{(a,b)} \} \Rightarrow$ @*)
+    (*@ $\{ ... \ast P(a, b) \ast (\forall a', b'.\ P(a', b') \wand \acquirable{\gamma}{t}{n+1}{P}{(a',b')}) \}$ @*)
     balance_a += x;
-    (*@ $\{ \texttt{m} \mapsto_q \rmutex{\gamma}{P} \ast \acquirable{\gamma}{t}{n+1}{P}{(a+x,b)}) \}$ @*)
+    (*@ $\{ ... \ast \acquirable{\gamma}{t}{n+1}{P}{(a+x,b)}) \}$ @*)
     m.unlock();
   }
   (*@ $\{ \texttt{m} \mapsto_q \rmutex{\gamma}{P} \ast \acquirable{\gamma}{t}{n}{P}{(a + \texttt{x},b)} \}$ @*)
@@ -314,15 +314,16 @@ Figure~\ref{rmutex-ex} shows an example of the use of \lstinline{recursive_mutex
   (*@ $\{ \texttt{m} \mapsto_q \rmutex{\gamma}{P} \ast \acquirable{\gamma}{t}{n}{P}{(a,b)} \}$ @*)
   void transfer(int x) {
     m.lock();
-    (*@ $\{ \texttt{m} \mapsto_q \rmutex{\gamma}{P} \ast P(a, b) \ast (\forall a', b'.\ P(a', b') \wand \acquirable{\gamma}{t}{n+1}{P}{(a,b)}) \}$ @*)
+    (*@ $\{ ... \ast \acquirable{\gamma}{t}{n+1}{P}{(a,b)} \} \provesIff$ @*)
+    (*@ $\{ ... \ast P(a, b) \ast (\forall a', b'.\ P(a', b') \wand \acquirable{\gamma}{t}{n+1}{P}{(a',b')}) \}$ @*)
     update_a(x);
     update_b(-(long)x);
-    (*@ $\{ \texttt{m} \mapsto_q \rmutex{\gamma}{P} \ast \acquirable{\gamma}{t}{n+1}{P}{(a+x,b-x)} \}$ @*)
+    (*@ $\{ ... \ast \acquirable{\gamma}{t}{n+1}{P}{(a+x,b-x)} \}$ @*)
     m.unlock();
   }
   (*@ $\{ \texttt{m} \mapsto_q \rmutex{\gamma}{P} \ast \acquirable{\gamma}{t}{n}{P}{(a+x,b-x)} \}$ @*)
 \end{lstlisting}
-\caption{The proof outline for the \lstinline{recursive_mutex} example}
+\caption{The proof outline for the \lstinline{recursive_mutex} example. The mutex points-to assertion is unchanged in these functions and abbreviated with ellipses.}
 \label{rmutex-ex-proof}
 \end{figure}
 
