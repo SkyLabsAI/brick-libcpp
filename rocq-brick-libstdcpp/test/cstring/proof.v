@@ -393,26 +393,14 @@ Section with_cpp.
   Lemma test_strchr_ok : verify[source] "test_strchr()".
   Proof.
     verify_spec; go.
-    all: repeat match goal with
-         | H : context [byte_of_int _] |- _ => vm_compute in H
-         end.
-    all: exfalso.
-    all: apply H.
-    all: apply offset_ptr_sub_0.
-    all: rewrite size_of_char; done.
+    all: simpl in *; by normalize_ptrs.
   Qed.
 
   cpp.spec "test_strrchr()" from source default.
   Lemma test_strrchr_ok : verify[source] "test_strrchr()".
   Proof.
     verify_spec; go.
-    all: repeat match goal with
-         | H : context [byte_of_int _] |- _ => vm_compute in H
-         end.
-    all: exfalso.
-    all: apply H.
-    all: apply offset_ptr_sub_0.
-    all: rewrite size_of_char; done.
+    all: simpl in *; by normalize_ptrs.
   Qed.
 
   cpp.spec "test_strspn()" from source default.
