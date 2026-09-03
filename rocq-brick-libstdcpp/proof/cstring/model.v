@@ -52,6 +52,8 @@ Fixpoint strchr (s : bs) (c : Z) : option Z :=
       (*else option_map (fun off => (1 + off)%Z) (strchr rest c)*)
       else Z.succ <$> (strchr rest c)
   end.
+#[global] Arguments strchr : simpl nomatch.
+(* ^^ [cbn] won't reduce [bool_decide], and this [Arguments] setting stops it from reducing [strchr] to a huge term. *)
 
 Fixpoint strrchr (s : bs) (c : Z) : option Z :=
   match s with
@@ -64,6 +66,8 @@ Fixpoint strrchr (s : bs) (c : Z) : option Z :=
           if bool_decide (c = byte_ord ch) then Some 0 else None
       end
   end.
+#[global] Arguments strrchr : simpl nomatch.
+(* ^^ same as [strchr]. *)
 
 Fixpoint contains (needle : Byte.byte) (haystack : bs) : bool :=
   match haystack with
@@ -139,8 +143,6 @@ Fixpoint memcmp (bytes1 bytes2 : list Z) : Z :=
 
 Definition memset (c n : Z) : list Z :=
   replicateZ n (byte_of_int c).
-
-#[local] Open Scope bs_scope.
 
 Succeed Example strcmp_equal : strcmp "abc" "abc" = 0 := eq_refl.
 Succeed Example strcmp_less : strcmp "abc" "abd" = -1 := eq_refl.

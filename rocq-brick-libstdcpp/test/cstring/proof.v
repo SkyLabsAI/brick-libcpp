@@ -393,16 +393,14 @@ Section with_cpp.
   Lemma test_strchr_ok : verify[source] "test_strchr()".
   Proof.
     verify_spec; go.
-    all: exfalso.
-    all: by normalize_ptrs.
+    all: simpl in *; by normalize_ptrs.
   Qed.
 
   cpp.spec "test_strrchr()" from source default.
   Lemma test_strrchr_ok : verify[source] "test_strrchr()".
   Proof.
     verify_spec; go.
-    all: exfalso.
-    all: by normalize_ptrs.
+    all: simpl in *; by normalize_ptrs.
   Qed.
 
   cpp.spec "test_strspn()" from source default.
