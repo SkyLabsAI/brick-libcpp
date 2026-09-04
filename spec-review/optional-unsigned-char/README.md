@@ -21,8 +21,10 @@ here.
 | `spec/pred.v` | The concrete libstdc++ 12 representation predicate |
 | `spec/spec.v` | The six registered operation contracts |
 | `spec/inc_optional.cpp` | The concrete template instantiations used for binding generation |
-| `clients/` | One ordinary client and two ownership/lifetime clients |
-| `proofs/` | The corresponding Rocq proofs |
+| `clients/positive/` | Two clients whose verification must succeed |
+| `clients/negative/` | One invalid client whose verification must fail |
+| `proofs/positive/` | The two corresponding proofs ending in `Qed.` |
+| `proofs/negative/` | The expected-failure proof committed with `Fail Qed.` and `Abort.` |
 
 There are ten substantive source files: four library files, three C++
 clients, and three Rocq proofs.

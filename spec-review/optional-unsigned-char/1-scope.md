@@ -22,18 +22,18 @@ mathematical value represented by an `unsigned char`.
 
 ## Selected clients
 
-### `arbitrary_byte_roundtrip`
+### Positive: `arbitrary_byte_roundtrip`
 
 Constructs const optionals containing low and high nonzero byte values, checks
 engagement, and reads the stored values. This is the ordinary positive example.
 
-### `rvalue_snapshot_not_alias`
+### Positive: `rvalue_snapshot_not_alias`
 
 Constructs an optional from an rvalue source, changes the source afterward, and
 checks that the optional retained the original value. This exercises source
 preservation and independent storage.
 
-### `reference_outlives_optional`
+### Negative: `reference_outlives_optional`
 
 Keeps a pointer to the contained byte after the optional has been destroyed and
 then attempts to read through it. Its proof is intentionally unable to close:
