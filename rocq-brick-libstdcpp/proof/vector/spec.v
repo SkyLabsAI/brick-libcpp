@@ -791,7 +791,7 @@ NES.Begin std.
         iDestruct (observe_elim_pure (0 ≤ size ≤ cap) with "H") as %Hsize.
         { apply spineR_valid_size. }
         iDestruct (nullptr_valid with "H") as %->.
-        move: Hsize => /= /ZMicromega.eq_le_iff <-.
+        have -> : size = 0 by lia.
         by iIntros "!>".
       Qed.
       Definition nullptr_cap_size_F := ltac:(mk_obs_fwd nullptr_cap_size).
