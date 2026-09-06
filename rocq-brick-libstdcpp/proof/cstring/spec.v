@@ -3,6 +3,8 @@
  * This software is distributed under the terms of the BedRock Open-Source License.
  * See the LICENSE-BedRock file in the repository root for details.
  *)
+Set Default Goal Selector "!".
+
 Require Import skylabs.auto.cpp.specs.
 Require Import skylabs.auto.cpp.prelude.proof.
 
@@ -182,6 +184,8 @@ Context `{Σ : cpp_logic, module ⊧ σ}.
     (\arg{dest_p} "__dest" (Vptr dest_p)
      \arg{src_p} "__src" (Vptr src_p)
      \arg{z} "__n" (Vint z)
+     (* Empty slices admit nullptr; the C++23 library contract does not. *)
+     \pre [| dest_p <> nullptr /\ src_p <> nullptr |]
      \prepost{q bytes} src_p |-> array_sliceR Tuchar 0 z (fun b : Z => ucharR q b) bytes
      \pre{l} dest_p |-> array_sliceR Tuchar 0 z (fun _ : unit => anyR Tuchar 1$m) l (*(replicateZ z tt)*)
      \post[Vptr dest_p] dest_p |-> array_sliceR Tuchar 0 z (fun b : Z => ucharR 1$m b) bytes).
