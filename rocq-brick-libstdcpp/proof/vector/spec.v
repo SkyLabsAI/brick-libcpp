@@ -122,7 +122,7 @@ NES.Begin std.
         references to remain valid and we can use A) at points of discontinuity where we no longer use
         the internal references of our vector.
 
-        LIMITATION: this specification applies to the libc++ vectors and does not support
+        LIMITATION: this specification applies to the libstdc++ vectors and does not support
           <<std::vector<bool> >>. To support <<std::vector<bool> >>, we need a different
           construction from [array_sliceR] so that we can track invidividual bits separately.
 
@@ -148,7 +148,7 @@ NES.Begin std.
     (** Question(Simon): Should we take a predicate as a parameter instead of using [objR]? That would allow varying the
         representation of the contents of the vector of the course of a single proof. That's also enabled by manipulating
         [spineR] and [array_sliceR] separately. *)
-    #[global] Notation R_alloc_cap ty alloc_ty q size st xs :=
+    #[global] Abbreviation R_alloc_cap ty alloc_ty q size st xs :=
       ( spineR ty alloc_ty q size st **
         pureR (base_pointer st |-> array_sliceR ty 0 size (objR ty q) xs) )%I
       (q in scope cQp_scope, basep in scope bi_scope, size, cap in scope Z_scope ).
@@ -157,11 +157,15 @@ NES.Begin std.
       (∃ size st, R_alloc_cap ty alloc_ty q size st xs )%I
         (q in scope cQp_scope).
 
-    #[global] Abbreviation R_cap ty q size st xs :=
-      (R_alloc_cap ty (std.allocator.T ty) q size st xs).
+    Section with_RepFor.
+      Import rep.RepFor.
+      Import RepScheme.
 
-    #[global] Abbreviation R ty q xs :=
-      (R_alloc ty (std.allocator.T ty) q xs).
+      #[global] Instance repfor `{Σ : cpp_logic} {σ : genv} ty aty `(_ : BundledRep ty M) :
+        rep.RepFor.C (T ty aty)
+          [ArgType.CFrac; ArgType.Model _]
+          (λ q xs, R_alloc ty aty q xs) := {}.
+    End with_RepFor.
 
     (** [R_alloc_resized ty alloc_ty q size st xs] is a vector whose payloads can be proven (on
         demand) to be stored in memory specified by [st] if that memory can accommodate [size] elements.
@@ -218,7 +222,7 @@ NES.Begin std.
       #[global] Abbreviation T_base const ty alloc_ty := (Tnamed (N_base const ty alloc_ty)).
       sl.lock
       Definition R_base `{Σ : cpp_logic, σ : genv} (const : bool) (ty alloc_ty : type) (q : cQp.t) (basep : ptr) (i : Z) : Rep :=
-        _field (N_base const ty alloc_ty .:: Nid "__i_") |-> ptrR<ty> q (basep .[ ty ! i]) **
+        _field (N_base const ty alloc_ty .:: Nid "_M_current") |-> ptrR<ty> q (basep .[ ty ! i]) **
         structR (N_base const ty alloc_ty) q.
       #[only(type_ptr,ascfractional)] derive R_base.
 
@@ -368,6 +372,8 @@ NES.Begin std.
           iter_op_pre_inc const ty alloc_ty **
           iter_op_eq const ty alloc_ty **
           iter_op_ne const ty alloc_ty.
+        #[global] Hint Opaque specs : typeclass_instances sl_opacity.
+        #[only(knowledge)] derive specs.
 
       End iter.
       #[global] Existing Instance iterator_has_rep.
@@ -379,7 +385,7 @@ NES.Begin std.
 
         Definition congr_iterator_R_base := normalize.NormCongr4 iterator.R_base.
       End hints.
-      #[global] Hint Resolve congr_iterator_R_base : normalize_db.
+      #[global] Hint Resolve congr_iterator_R_base : tc_strong_opacity.
 
     End iterator.
 
@@ -420,14 +426,14 @@ NES.Begin std.
       #[global] Existing Instance SpecFor_default_ctor.
 
       Definition ctor_with_alloc `{!BundledRep alloc_ty AllocT} :=
-        specify.template.ctor vector [alloc_ty] $
+        specify.template.ctor vector [Tref (Tconst alloc_ty)] $
           \this this
           \arg{allocp} "alloc" (Vptr allocp)
           \prepost{a} allocp |-> objR alloc_ty (cQp.m 1) a
           \post this |-> R_null (cQp.m 1).
       #[global] Hint Opaque ctor_with_alloc : sl_opacity.
       #[global] Arguments ctor_with_alloc : simpl never.
-      Definition SpecFor_ctor_with_alloc := RegisterSpec default_ctor.
+      Definition SpecFor_ctor_with_alloc := RegisterSpec (@ctor_with_alloc).
       #[global] Existing Instance SpecFor_ctor_with_alloc.
 
       Section allocator.
@@ -478,19 +484,20 @@ NES.Begin std.
         Definition SpecFor_copy_alloc_ctor := RegisterSpec copy_alloc_ctor.
         #[global] Existing Instance SpecFor_copy_alloc_ctor.
 
-        Definition move_alloc_ctor :=
+        Definition move_alloc_ctor `{!MovedValue ty V} :=
           specify.template.ctor vector [Trv_ref vectorT; Tref (Tconst alloc_ty)] $
             \this this
             \arg{otherp} "other" (Vref otherp)
             \arg{allocp} "alloc" (Vptr allocp)
-            \pre{size st xs}
-                   otherp |-> R_cap  (cQp.m 1) size st xs
-            \post* otherp |-> R_null (cQp.m 1)
+            \pre{xs} otherp |-> R (cQp.m 1) xs
+            (* If the allocators differ, the elements are moved individually.
+               In either case, [other] remains valid but its state is unspecified. *)
+            \post* Exists other_xs, otherp |-> R (cQp.m 1) other_xs
             \prepost{a}  allocp |-> objR alloc_ty (cQp.m 1) a
-            \post this |-> R_cap (cQp.m 1) size st xs.
+            \post this |-> R (cQp.m 1) xs.
         #[global] Hint Opaque move_alloc_ctor : sl_opacity.
         #[global] Arguments move_alloc_ctor : simpl never.
-        Definition SpecFor_move_alloc_ctor := RegisterSpec move_alloc_ctor.
+        Definition SpecFor_move_alloc_ctor := RegisterSpec (@move_alloc_ctor).
         #[global] Existing Instance SpecFor_move_alloc_ctor.
 
       End allocator.
@@ -504,11 +511,10 @@ NES.Begin std.
             \arg{otherp} "other" (Vref otherp)
             \prepost{q__other size st xs}
                   otherp |-> R_cap q__other size st xs
-            \let cap := capacity st
             \post
-              Exists new_basep,
-                 let new_st := {| base_pointer := new_basep; capacity := cap |} in
-                 this |-> R_cap (cQp.m 1) size new_st xs.
+              Exists new_st,
+                this |-> R_cap (cQp.m 1) size new_st xs.
+
         #[global] Hint Opaque copy_ctor : sl_opacity.
         #[global] Arguments copy_ctor : simpl never.
         Definition SpecFor_copy_ctor := RegisterSpec copy_ctor.
@@ -767,6 +773,8 @@ NES.Begin std.
           size **
           MaybeConst begin_spec **
           MaybeConst end_spec.
+        #[global] Hint Opaque specs : typeclass_instances sl_opacity.
+        #[only(knowledge)] derive specs.
 
       End specs.
 
@@ -783,7 +791,7 @@ NES.Begin std.
         iDestruct (observe_elim_pure (0 ≤ size ≤ cap) with "H") as %Hsize.
         { apply spineR_valid_size. }
         iDestruct (nullptr_valid with "H") as %->.
-        move: Hsize => /= /ZMicromega.eq_le_iff <-.
+        have -> : size = 0 by lia.
         by iIntros "!>".
       Qed.
       Definition nullptr_cap_size_F := ltac:(mk_obs_fwd nullptr_cap_size).
@@ -852,8 +860,15 @@ NES.Begin std.
     #[global] Hint Resolve vector_spine_elim_CF : sl_opacity.
     #[global] Hint Resolve vector_spine_intro_CB : sl_opacity.
 
-    #[global] Hint Resolve congr_spineR : normalize_db.
-    #[global] Hint Resolve congr_resizedR : normalize_db.
+    #[global] Hint Resolve congr_spineR : tc_strong_opacity.
+    #[global] Hint Resolve congr_resizedR : tc_strong_opacity.
+
+    (** These abbreviations hardcode the default allocator, so they are not used in this file. *)
+    #[global] Abbreviation R_cap ty q size st xs :=
+      (R_alloc_cap ty (std.allocator.T ty) q size st xs).
+
+    #[global] Abbreviation R ty q xs :=
+      (R_alloc ty (std.allocator.T ty) q xs).
 
   NES.End vector.
 

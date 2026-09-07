@@ -13,7 +13,7 @@ Require Import skylabs.brick.libstdcpp.cstdlib.inc_cstdlib_cpp.
 #[local] Set Primitive Projections.
 
 Section with_cpp.
-  Context `{Σ : cpp_logic, module ⊧ σ}.
+  Context `{Σ : cpp_logic, source ⊧ σ}.
 
   #[local] Open Scope Z_scope.
 
@@ -22,19 +22,19 @@ Section with_cpp.
     (\arg{buf} "str" (Vptr buf)
      \prepost{q str} buf |-> cstring.R q str
      \require valid<"int"> (atoi str)
-     \post{n}[Vint n] emp).
+     \post[Vint (atoi str)] emp).
 
   cpp.spec "atol" with
     (\arg{buf} "str" (Vptr buf)
      \prepost{q str} buf |-> cstring.R q str
      \require valid<"long"> (atoi str)
-     \post{n}[Vint n] emp).
+     \post[Vint (atoi str)] emp).
 
   cpp.spec "atoll" with
     (\arg{buf} "str" (Vptr buf)
      \prepost{q str} buf |-> cstring.R q str
      \require valid<"long long"> (atoi str)
-     \post{n}[Vint n] emp).
+     \post[Vint (atoi str)] emp).
 
 End with_cpp.
 

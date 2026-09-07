@@ -15,15 +15,15 @@ Section with_cpp.
       _global "std::cout" |-> ostream_contentR 1$m
         (str ++
         "Before swapping a = " ++
-        Z_to_string 2 ++ " , b = " ++ Z_to_string 3 ++ "\n" ++
-        "After swapping a = " ++ Z_to_string 3 ++ " , b = " ++ Z_to_string 2 ++ "\n"
+        Z_to_string 2 ++ " , b = " ++ Z_to_string 3 ++ endl_content ++
+        "After swapping a = " ++ Z_to_string 3 ++ " , b = " ++ Z_to_string 2 ++ endl_content
       )
   ).
 
   Lemma main_ok : verify[source] "main()".
   Proof.
     verify_shift; go.
-    (* iExists id, (fun str => str ++ "\n")%bs; go. *)
+    (* iExists id, (fun str => str ++ endl_content)%bs; go. *)
     iExists (_ : ostreamT → ostreamT), (_ : cstring.t → cstring.t); work with br_erefl; go.
     iExists (_ : ostreamT → ostreamT), (_ : cstring.t → cstring.t); work with br_erefl; go.
     banish_string_literals.

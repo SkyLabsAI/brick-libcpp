@@ -11,7 +11,7 @@ Require Import skylabs.brick.libstdcpp.cassert.inc_cassert_cpp.
 
 NES.Begin std.cassert.
 Section with_cpp.
-  Context `{Σ : cpp_logic, module ⊧ σ}.
+  Context `{Σ : cpp_logic, source ⊧ σ}.
 
   Definition assert_fail_wpp : WpSpec_cpp :=
     (\arg{assertion_p} "assertion" (Vptr assertion_p)
@@ -33,6 +33,8 @@ Section with_cpp.
 
   Definition specs :=
     assert_fail_spec ** assert_rtn_spec.
+  #[global] Hint Opaque specs : typeclass_instances sl_opacity.
+  #[only(knowledge)] derive specs.
 End with_cpp.
 
 NES.End std.cassert.

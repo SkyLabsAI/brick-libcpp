@@ -14,7 +14,7 @@ Require Import skylabs.auto.cpp.prelude.test.
 Module Aggregate.
   Import concepts.
 
-   cpp.class "Aggregate" prefix "" from module
+   cpp.class "Aggregate" prefix "" from source
     dataclass { copyable ; movable ; destructible }.
   #[only(eq_dec)] derive T.
 
@@ -42,7 +42,7 @@ Module Aggregate.
   Section with_cpp.
     Context `{Σ : cpp_logic, σ : genv}.
     Section specs.
-      Context `{MOD : test_cpp.module ⊧ σ}.
+      Context `{MOD : test_cpp.source ⊧ σ}.
 
       cpp.spec "Aggregate::Aggregate(int)" as ctor_spec with
           (\this this
@@ -77,26 +77,26 @@ Module Aggregate.
     End specs.
 
     Section proofs.
-      Context `{MOD : test_cpp.module ⊧ σ}.
+      Context `{MOD : test_cpp.source ⊧ σ}.
       Import linearity.
 
       Lemma copy_ctor_ok :
-        denoteModule module |-- copy_ctor_spec.
+        denoteModule source |-- copy_ctor_spec.
       Proof using MOD. verify_spec. go. Qed.
       Definition copy_ctor_B := [LINK] copy_ctor_ok.
 
       Lemma move_ctor_ok :
-        denoteModule module |-- move_ctor_spec.
+        denoteModule source |-- move_ctor_spec.
       Proof using MOD. verify_spec. go. Qed.
       Definition move_ctor_B := [LINK] move_ctor_ok.
 
       Lemma ctor_ok :
-        denoteModule module |-- ctor_spec.
+        denoteModule source |-- ctor_spec.
       Proof using MOD. verify_spec. go. Qed.
       Definition ctor_B := [LINK] ctor_ok.
 
       Lemma dtor_ok :
-        denoteModule module |-- dtor_spec.
+        denoteModule source |-- dtor_spec.
       Proof using MOD. verify_spec. go. Qed.
       Definition dtor_B := [LINK] dtor_ok.
 
@@ -112,7 +112,7 @@ Module Aggregate.
       Qed.
 
       Lemma op_eq_ok :
-        denoteModule module |-- op_eq_spec.
+        denoteModule source |-- op_eq_spec.
       Proof using MOD.
         verify_spec.
         case: (bool_decide_reflect (a = b)) => Hab.
@@ -128,7 +128,7 @@ Module Aggregate.
       Definition op_eq_B := [LINK] op_eq_ok.
 
       Lemma op_neq_ok :
-        denoteModule module |-- op_neq_spec.
+        denoteModule source |-- op_neq_spec.
       Proof using MOD.
         verify_spec. wapply op_eq_ok.
         go using prim.primR_aggressiveC.
@@ -177,6 +177,9 @@ Section with_cpp.
         (\post emp).
 
     cpp.spec "TestForEach()" as test_for_each with
+        (\post emp).
+
+    cpp.spec "TestAllocCtor()" as test_alloc_ctor with
         (\post emp).
 
     cpp.spec "TestAggregate()" as test_aggregate with
@@ -255,6 +258,15 @@ Section with_cpp.
     Definition test_basic_B := [LINK] test_basic_ok.
     #[local] Hint Resolve test_basic_B : sl_opacity.
 
+    Lemma test_alloc_ctor_ok : verify[ source ] test_alloc_ctor.
+    Proof using MOD.
+      verify_spec.
+      go.
+      iExists (). iFrame. iIntros "?". go.
+    Qed.
+    Definition test_alloc_ctor_B := [LINK] test_alloc_ctor_ok.
+    #[local] Hint Resolve test_alloc_ctor_B : sl_opacity.
+
     Lemma test_aggregate_ok : verify[ source ] test_aggregate.
     Proof using MOD.
       verify_spec.
@@ -289,11 +301,14 @@ Section with_cpp.
           std.vector.iterator.specs true "unsigned" alloc_uint **
           std.vector.iterator.specs false "int" alloc_int **
           std.find_spec (std.vector.iterator.T "int") "int" source **
+          std.allocator.specs "int" **
           std.cassert.specs)
       |-- main.
     Proof using MOD.
       rewrite /std.vector.specs.
       rewrite /std.vector.iterator.specs.
+      rewrite /std.cassert.specs.
+      rewrite /std.allocator.specs.
       work.
     Qed.
 

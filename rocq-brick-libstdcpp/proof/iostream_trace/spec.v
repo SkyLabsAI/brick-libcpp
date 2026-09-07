@@ -58,8 +58,11 @@ Section with_cpp.
   Definition iostream_manip_kind : okind :=
     tFunction ostream_cpp_type [ostream_cpp_type].
 
+  Definition endl_content : cstring.t := "
+"%bs.
+
   cpp.spec "std::endl<char, std::char_traits<char>>(std::basic_ostream<char, std::char_traits<char>>&)" from source as endl_spec with (
-    \exact Reduce iostream_manip_spec (fun osM => osM) (fun str => str ++ "\n")%bs
+    \exact Reduce iostream_manip_spec (fun osM => osM) (fun str => str ++ endl_content)%bs
   ).
 
   (* This is the overload taking the endl manipulator. *)

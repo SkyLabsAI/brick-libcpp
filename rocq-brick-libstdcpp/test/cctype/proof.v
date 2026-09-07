@@ -9,76 +9,76 @@ Require Import skylabs.brick.libstdcpp.cctype.spec.
 Require Import skylabs.brick.libstdcpp.test.cctype.test_cpp.
 
 Section with_cpp.
-  Context `{Σ : cpp_logic} `{MOD : module ⊧ σ}.
+  Context `{Σ : cpp_logic} `{MOD : source ⊧ σ}.
 
   (* Test verification for isalpha *)
   cpp.spec "test_isalpha()" default.
-  Lemma test_isalpha_ok : verify[module] "test_isalpha()".
+  Lemma test_isalpha_ok : verify[source] "test_isalpha()".
   Proof. verify_spec; go. Qed.
 
   (* Test verification for isdigit *)
   cpp.spec "test_isdigit()" default.
-  Lemma test_isdigit_ok : verify[module] "test_isdigit()".
+  Lemma test_isdigit_ok : verify[source] "test_isdigit()".
   Proof. verify_spec; go. Qed.
 
   (* Test verification for isalnum *)
   cpp.spec "test_isalnum()" default.
-  Lemma test_isalnum_ok : verify[module] "test_isalnum()".
+  Lemma test_isalnum_ok : verify[source] "test_isalnum()".
   Proof. verify_spec; go. Qed.
 
   (* Test verification for isspace *)
   cpp.spec "test_isspace()" default.
-  Lemma test_isspace_ok : verify[module] "test_isspace()".
+  Lemma test_isspace_ok : verify[source] "test_isspace()".
   Proof. verify_spec; go. Qed.
 
   (* Test verification for islower *)
   cpp.spec "test_islower()" default.
-  Lemma test_islower_ok : verify[module] "test_islower()".
+  Lemma test_islower_ok : verify[source] "test_islower()".
   Proof. verify_spec; go. Qed.
 
   (* Test verification for isupper *)
   cpp.spec "test_isupper()" default.
-  Lemma test_isupper_ok : verify[module] "test_isupper()".
+  Lemma test_isupper_ok : verify[source] "test_isupper()".
   Proof. verify_spec; go. Qed.
 
   (* Test verification for isprint *)
   cpp.spec "test_isprint()" default.
-  Lemma test_isprint_ok : verify[module] "test_isprint()".
+  Lemma test_isprint_ok : verify[source] "test_isprint()".
   Proof. verify_spec; go. Qed.
 
   (* Test verification for ispunct *)
   cpp.spec "test_ispunct()" default.
-  Lemma test_ispunct_ok : verify[module] "test_ispunct()".
+  Lemma test_ispunct_ok : verify[source] "test_ispunct()".
   Proof. verify_spec; go. Qed.
 
   (* Test verification for iscntrl *)
   cpp.spec "test_iscntrl()" default.
-  Lemma test_iscntrl_ok : verify[module] "test_iscntrl()".
+  Lemma test_iscntrl_ok : verify[source] "test_iscntrl()".
   Proof. verify_spec; go. Qed.
 
   (* Test verification for isgraph *)
   cpp.spec "test_isgraph()" default.
-  Lemma test_isgraph_ok : verify[module] "test_isgraph()".
+  Lemma test_isgraph_ok : verify[source] "test_isgraph()".
   Proof. verify_spec; go. Qed.
 
   (* Test verification for isxdigit *)
   cpp.spec "test_isxdigit()" default.
-  Lemma test_isxdigit_ok : verify[module] "test_isxdigit()".
+  Lemma test_isxdigit_ok : verify[source] "test_isxdigit()".
   Proof. verify_spec; go. Qed.
 
   (* Test verification for tolower *)
   cpp.spec "test_tolower()" default.
-  Lemma test_tolower_ok : verify[module] "test_tolower()".
+  Lemma test_tolower_ok : verify[source] "test_tolower()".
   Proof. verify_spec; go. Qed.
 
   (* Test verification for toupper *)
   cpp.spec "test_toupper()" default.
-  Lemma test_toupper_ok : verify[module] "test_toupper()".
+  Lemma test_toupper_ok : verify[source] "test_toupper()".
   Proof. verify_spec; go. Qed.
 
   (* Test verification for main *)
   cpp.spec "main()" default.
-  Lemma main_ok : verify[module] "main()".
+  Lemma main_ok : verify[source] "main()".
   Proof. verify_spec; go. Qed.
 
 End with_cpp.

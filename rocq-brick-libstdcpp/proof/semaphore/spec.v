@@ -36,6 +36,7 @@ Section with_cpp.
   cpp.spec "std::counting_semaphore<1l>::counting_semaphore(long)" as ctor_spec with
       (\this this
        \arg{desired} "desired" (Vnat desired)
+       \require desired <= 1
        \post Exists g, this |-> semaphoreR g 1$m ** semaphore_Val g desired).
   (* note that technically mutex needs to know which thread holds it *)
 
@@ -47,7 +48,7 @@ Section with_cpp.
 
   Definition try_acquire_ac g Q : mpred :=
     AU <{ ∃∃ n, semaphore_Val g n }> @ top, empty
-       <{ semaphore_Val g (if bool_decide (n = 0) then n else n-1), COMM Q $ bool_decide (n = 0) }>.
+       <{ semaphore_Val g (if bool_decide (n <> 0) then n-1 else n), COMM Q $ bool_decide (n <> 0) }>.
   #[global] Hint Opaque try_acquire_ac : sl_opacity.
 
   cpp.spec "std::counting_semaphore<1l>::try_acquire()" as try_lock_spec with

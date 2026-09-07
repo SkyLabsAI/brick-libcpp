@@ -27,7 +27,6 @@
   skylabs.cpp.stdlib
   skylabs.ltac2.logger
   skylabs.auto.core
-  ExtLib
   skylabs.elpi.extra
   skylabs.elpi.cpp
   tactic_classes

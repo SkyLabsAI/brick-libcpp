@@ -1,3 +1,5 @@
+Require Import skylabs.auto.persistent.
+Require Import skylabs.auto.cpp.hints.alignment.
 Require Import skylabs.auto.cpp.proof.
 Require Export skylabs.brick.libstdcpp.new.spec.
 
@@ -129,149 +131,125 @@ Section with_cpp.
       specification says that it should be). A better phrasing of this might be a class
       like [TrivialOnNull function_name] which would allow us to generalize these proofs.
    *)
+
+  (* Helpers for these proofs. *)
+  Definition denoteModule_models_observe_F :=
+    ltac:(mk_obs_fwd denoteModule_models_observe).
+  #[local] Hint Resolve denoteModule_models_observe_F : br_hints.
+
+  Lemma delete_for_genv_compat {op cls result} `{tu ⊧ σ}:
+    delete_operator.delete_for tu op cls = Some result ->
+    delete_operator.delete_for (genv_tu σ) op cls = Some result.
+  Proof.
+    intros Hdel. apply (delete_operator.delete_for_submodule Hdel).
+    exact: genv_compat_submodule.
+  Qed.
+  #[local] Arguments delete_operator.type_for !_ /.
+  #[local] Arguments delete_operator.delete_for : simpl never.
+
   #[program]
-  Definition wp_delete_null_operator_delete_size_C module cls Q
-    (Hdelete : delete_operator.delete_for module "operator delete(void*, unsigned long)" cls =[Vm]=> Some ("operator delete(void*, unsigned long)"%cpp_name, delete_operator.mk None true false))
-    {sz} (Hsizeof : sizeof._size_of module cls =[Vm]=> Some sz)
+  Definition wp_delete_null_operator_delete_size_C source cls Q
+    (Hdelete : delete_operator.delete_for source "operator delete(void*, unsigned long)" cls =[Vm]=> Some ("operator delete(void*, unsigned long)"%cpp_name, delete_operator.mk None true false))
     :=
     \cancelx
     \using operator_delete_size
-    \using denoteModule module
+    \using denoteModule source
     \proving wp_delete_null "operator delete(void*, unsigned long)" cls Q
     \through Q
     \end.
   Next Obligation.
-    intros * Hdel * Hsize.
-    rewrite wp_delete_null.unlock.
-    iIntros "[#? #M] ?".
-    iDestruct (observe [| _ ⊧ _ |] with "M") as "%".
-    inversion Hdel.
-    erewrite delete_operator.delete_for_submodule;
-      [ | eassumption
-      | apply genv_compat_submodule; eauto ].
-    work. inversion Hsize as [Hx]; clear Hsize.
-    rewrite wp_invoke_delete.unlock; simpl.
-    work.
-    rewrite /delete_operator.type_for/=.
-    iApply invoke.use_cptrR; eauto; eauto.
-    simpl.
+    intros * Hdel%RedEq_eq_iff. rewrite wp_delete_null.unlock; work.
+    rewrite (delete_for_genv_compat Hdel) wp_invoke_delete.unlock/=.
     go.
   Qed.
 
   #[program]
-  Definition wp_delete_null_operator_delete_C module cls Q
-    (Hdelete : delete_operator.delete_for module "operator delete(void* )" cls =[Vm]=> Some ("operator delete(void* )"%cpp_name, delete_operator.mk None false false))
-    {sz} (Hsizeof : sizeof._size_of module cls =[Vm]=> Some sz)
+  Definition wp_delete_null_operator_delete_C source cls Q
+    (Hdelete : delete_operator.delete_for source "operator delete(void* )" cls =[Vm]=> Some ("operator delete(void* )"%cpp_name, delete_operator.mk None false false))
     :=
     \cancelx
     \using operator_delete
-    \using denoteModule module
+    \using denoteModule source
     \proving wp_delete_null "operator delete(void* )" cls Q
     \through Q
     \end.
   Next Obligation.
-    intros * Hdel * Hsize.
-    rewrite wp_delete_null.unlock.
-    iIntros "[#? #M] ?".
-    iDestruct (observe [| _ ⊧ _ |] with "M") as "%".
-    inversion Hdel.
-    erewrite delete_operator.delete_for_submodule;
-      [ | eassumption
-      | apply genv_compat_submodule; eauto ].
-    work. inversion Hsize as [Hx]; clear Hsize.
-    rewrite wp_invoke_delete.unlock; simpl.
-    work.
-    rewrite /delete_operator.type_for/=.
-    iApply invoke.use_cptrR; eauto; eauto.
-    simpl.
+    intros * Hdel%RedEq_eq_iff. rewrite wp_delete_null.unlock; work.
+    rewrite (delete_for_genv_compat Hdel) wp_invoke_delete.unlock/=.
     go.
   Qed.
 
   #[program]
-  Definition wp_delete_null_operator_delete_array_size_C module cls Q
-    (Hdelete : delete_operator.delete_for module "operator delete[](void*, unsigned long)" (Tincomplete_array cls) =[Vm]=> Some ("operator delete[](void*, unsigned long)"%cpp_name, delete_operator.mk None true false))
-    {sz} (Hsizeof : sizeof._size_of module cls =[Vm]=> Some sz)
+  Definition wp_delete_null_operator_delete_size_align_C source cls Q al
+  (Hdelete : delete_operator.delete_for source "operator delete(void*, unsigned long, enum std::align_val_t)" cls =[Vm]=> Some ("operator delete(void*, unsigned long, enum std::align_val_t)"%cpp_name, delete_operator.mk None true true))
+    (Hal : _align_of source cls =[Vm]=> Some al)
+    :=
+    \cancelx
+    \using operator_delete_size_align
+    \using denoteModule source
+    \proving wp_delete_null "operator delete(void*, unsigned long, enum std::align_val_t)" cls Q
+    \through Q
+    \end.
+  Next Obligation.
+    intros * Hdel%RedEq_eq_iff Hal%RedEq_eq_iff. rewrite wp_delete_null.unlock; work.
+    rewrite (delete_for_genv_compat Hdel) wp_invoke_delete.unlock/=.
+    move: Hal => /_align_of_ok Hal.
+    go.
+  Qed.
+
+  #[program]
+  Definition wp_delete_null_operator_delete_array_size_C source cls Q
+    (Hdelete : delete_operator.delete_for source "operator delete[](void*, unsigned long)" (Tincomplete_array cls) =[Vm]=> Some ("operator delete[](void*, unsigned long)"%cpp_name, delete_operator.mk None true false))
     :=
     \cancelx
     \using operator_delete_array_size
-    \using denoteModule module
+    \using denoteModule source
     \proving wp_delete_null "operator delete[](void*, unsigned long)" (Tincomplete_array cls) Q
     \through Q
     \end.
   Next Obligation.
-    intros * Hdel * Hsize.
-    rewrite wp_delete_null.unlock.
-    iIntros "[#? #M] ?".
-    iDestruct (observe [| _ ⊧ _ |] with "M") as "%".
-    inversion Hdel.
-    erewrite delete_operator.delete_for_submodule;
-      [ | eassumption
-      | apply genv_compat_submodule; eauto ].
-    work. inversion Hsize as [Hx]; clear Hsize.
-    rewrite wp_invoke_delete.unlock; simpl.
-    work.
-    iApply invoke.use_cptrR; eauto; eauto.
-    simpl. go.
-  Qed.
-
-  #[program]
-  Definition wp_delete_null_operator_delete_array_C module cls Q
-    (Hdelete : delete_operator.delete_for module "operator delete[](void* )" (Tincomplete_array cls) =[Vm]=> Some ("operator delete[](void* )"%cpp_name, delete_operator.mk None false false))
-    {sz} (Hsizeof : sizeof._size_of module cls =[Vm]=> Some sz)
-    :=
-    \cancelx
-    \using operator_delete_array
-    \using denoteModule module
-    \proving wp_delete_null "operator delete[](void* )" (Tincomplete_array cls) Q
-    \through Q
-    \end.
-  Next Obligation.
-    intros * Hdel * Hsize.
-    rewrite wp_delete_null.unlock.
-    iIntros "[#? #M] ?".
-    iDestruct (observe [| _ ⊧ _ |] with "M") as "%".
-    inversion Hdel.
-    erewrite delete_operator.delete_for_submodule;
-      [ | eassumption
-      | apply genv_compat_submodule; eauto ].
-    work. inversion Hsize as [Hx]; clear Hsize.
-    rewrite wp_invoke_delete.unlock; simpl.
-    work.
-    iApply invoke.use_cptrR; eauto; eauto.
+    intros * Hdel%RedEq_eq_iff. rewrite wp_delete_null.unlock; work.
+    rewrite (delete_for_genv_compat Hdel) wp_invoke_delete.unlock/=.
     go.
   Qed.
 
   #[program]
-  Definition wp_delete_null_operator_delete_fixed_array_C module cls array_size Q
-    (Hdelete : delete_operator.delete_for module "operator delete[](void*, unsigned long)" (Tarray cls array_size) =[Vm]=> Some ("operator delete[](void*, unsigned long)"%cpp_name, delete_operator.mk None true false))
-    {sz} (Hsizeof : sizeof._size_of module cls =[Vm]=> Some sz)
+  Definition wp_delete_null_operator_delete_array_C source cls Q
+    (Hdelete : delete_operator.delete_for source "operator delete[](void* )" (Tincomplete_array cls) =[Vm]=> Some ("operator delete[](void* )"%cpp_name, delete_operator.mk None false false))
+    :=
+    \cancelx
+    \using operator_delete_array
+    \using denoteModule source
+    \proving wp_delete_null "operator delete[](void* )" (Tincomplete_array cls) Q
+    \through Q
+    \end.
+  Next Obligation.
+    intros * Hdel%RedEq_eq_iff. rewrite wp_delete_null.unlock; work.
+    rewrite (delete_for_genv_compat Hdel) wp_invoke_delete.unlock/=.
+    go.
+  Qed.
+
+  #[program]
+  Definition wp_delete_null_operator_delete_fixed_array_C source cls array_size Q
+    (Hdelete : delete_operator.delete_for source "operator delete[](void*, unsigned long)" (Tarray cls array_size) =[Vm]=> Some ("operator delete[](void*, unsigned long)"%cpp_name, delete_operator.mk None true false))
     :=
     \cancelx
     \using operator_delete_array_size
-    \using denoteModule module
+    \using denoteModule source
     \proving wp_delete_null "operator delete[](void*, unsigned long)" (Tarray cls array_size) Q
     \through Q
     \end.
   Next Obligation.
-    intros * Hdel * Hsize.
-    rewrite wp_delete_null.unlock.
-    iIntros "[#? #M] ?".
-    iDestruct (observe [| _ ⊧ _ |] with "M") as "%".
-    inversion Hdel.
-    erewrite delete_operator.delete_for_submodule;
-      [ | eassumption
-      | apply genv_compat_submodule; eauto ].
-    work. inversion Hsize as [Hx]; clear Hsize.
-    rewrite wp_invoke_delete.unlock; simpl.
-    work.
-    iApply invoke.use_cptrR; eauto; eauto.
+    intros * Hdel%RedEq_eq_iff. rewrite wp_delete_null.unlock; work.
+    rewrite (delete_for_genv_compat Hdel) wp_invoke_delete.unlock/=.
     go.
   Qed.
 
 End with_cpp.
 
 #[global] Hint Resolve wp_delete_null_operator_delete_size_C wp_delete_null_operator_delete_C : db_skylabs_wp.
-#[global] Hint Resolve wp_delete_null_operator_delete_array_C wp_delete_null_operator_delete_array_size_C
+#[global] Hint Resolve wp_delete_null_operator_delete_size_align_C : db_skylabs_wp.
+#[global] Hint Resolve wp_delete_null_operator_delete_array_size_C wp_delete_null_operator_delete_array_C
  wp_delete_null_operator_delete_fixed_array_C : db_skylabs_wp.
 
 #[global] Hint Resolve token_prove_C token_prove_0_C | 100 : sl_opacity.

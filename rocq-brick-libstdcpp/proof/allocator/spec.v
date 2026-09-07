@@ -38,4 +38,36 @@ NES.Begin std.allocator.
     {| size_type := "unsigned long" ;
        alloc_state := () |}.
 
+  Section with_cpp.
+    Context `{Σ : cpp_logic, σ : genv}.
+    Context (ty : type).
+
+    #[local] Abbreviation allocator := (N ty) (only parsing).
+
+    (* std::allocator<T> is stateless: the default constructor produces the
+       allocator object and the destructor consumes it. *)
+    Definition ctor :=
+      specify.template.ctor allocator [] $
+        \this this
+        \post this |-> R ty (cQp.m 1) ().
+    #[global] Hint Opaque ctor : sl_opacity.
+    #[global] Arguments ctor : simpl never.
+    Definition SpecFor_ctor := RegisterSpec ctor.
+    #[global] Existing Instance SpecFor_ctor.
+
+    Definition dtor :=
+      specify.template.dtor allocator $
+        \this this
+        \pre this |-> R ty (cQp.m 1) ()
+        \post emp.
+    #[global] Hint Opaque dtor : sl_opacity.
+    #[global] Arguments dtor : simpl never.
+    Definition SpecFor_dtor := RegisterSpec dtor.
+    #[global] Existing Instance SpecFor_dtor.
+
+    Definition specs := ctor ** dtor.
+    #[global] Hint Opaque specs : typeclass_instances sl_opacity.
+    #[only(knowledge)] derive specs.
+  End with_cpp.
+
 NES.End std.allocator.

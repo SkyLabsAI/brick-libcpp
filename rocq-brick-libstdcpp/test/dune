@@ -25,7 +25,6 @@
   skylabs.lang.cpp
   skylabs.ltac2.logger
   skylabs.auto.core
-  ExtLib
   skylabs.elpi.extra
   skylabs.elpi.cpp
   skylabs

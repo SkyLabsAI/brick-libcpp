@@ -8,7 +8,9 @@
     (binaries
      (../cpp2v_docker as cpp2v))
     (env-vars
-     (CPP2V_DOCKER_ENABLED "y")))))
+     ; (CPP2V_DOCKER_ENABLED "if-libstdc++") ; This will call `cpp2v` through `docker` only for files that require `libstdc++`
+     (CPP2V_DOCKER_ENABLED "y")              ; This will use docker for all calls of `cpp2v`
+     ))))
 
  (subdir test
   (env
@@ -16,4 +18,5 @@
     (binaries
      (../cpp2v_docker as cpp2v))
     (env-vars
+     ; (CPP2V_DOCKER_ENABLED "if-libstdc++")
      (CPP2V_DOCKER_ENABLED "y"))))))

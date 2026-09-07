@@ -1,0 +1,483 @@
+%%
+%% This is file `sample-sigplan.tex',
+%% generated with the docstrip utility.
+%%
+%% The original source files were:
+%%
+%% samples.dtx  (with options: `all,proceedings,bibtex,sigplan')
+%% 
+%% IMPORTANT NOTICE:
+%% 
+%% For the copyright see the source file.
+%% 
+%% Any modified versions of this file must be renamed
+%% with new filenames distinct from sample-sigplan.tex.
+%% 
+%% For distribution of the original source see the terms
+%% for copying and modification in the file samples.dtx.
+%% 
+%% This generated file may be distributed as long as the
+%% original source files, as listed above, are part of the
+%% same distribution. (The sources need not necessarily be
+%% in the same archive or directory.)
+%%
+%%
+%% Commands for TeXCount
+%TC:macro \cite [option:text,text]
+%TC:macro \citep [option:text,text]
+%TC:macro \citet [option:text,text]
+%TC:envir table 0 1
+%TC:envir table* 0 1
+%TC:envir tabular [ignore] word
+%TC:envir displaymath 0 word
+%TC:envir math 0 word
+%TC:envir comment 0 0
+%%
+%% The first command in your LaTeX source must be the \documentclass
+%% command.
+%%
+%% For submission and review of your manuscript please change the
+%% command to \documentclass[manuscript, screen, review]{acmart}.
+%%
+%% When submitting camera ready or to TAPS, please change the command
+%% to \documentclass[sigconf]{acmart} or whichever template is required
+%% for your publication.
+%%
+%%
+\documentclass[sigplan,screen]{acmart}
+\usepackage{iris}
+\usepackage{mathpartir}
+\usepackage{cuted}
+\usepackage{listings}
+
+%https://tex.stackexchange.com/questions/78187/is-there-another-symbol-that-is-slightly-different-from-forall-likewise-for-e
+\makeatletter
+\newcommand*{\fforall}{%
+	{\mathpalette\fforallAux{}}%
+}
+\newcommand*{\fforallAuxx}[1]{%
+	\sbox0{$\m@th#1\forall$}%
+	\sbox2{%
+		\rlap{%
+			\raisebox{\depth}{$\m@th#1\backslash$}%
+		}%
+		\kern\ht0 %
+	}%
+	\sbox2{\resizebox{\ht2}{\height}{\copy2}}%
+	\sbox2{\resizebox{!}{\ht0}{\copy2}}%
+	\wd2=0pt %
+	\copy2
+	\forall
+}
+\newsavebox\forallBox
+\newdimen\forallLineWidth
+\newdimen\forallSep
+\newcommand*{\fforallAux}[1]{%
+	\sbox\forallBox{$\m@th#1\forall$}%
+	\setlength{\forallLineWidth}{.06\wd\forallBox}%
+	\setlength{\forallSep}{.09\wd\forallBox}%
+	\tikz[
+	inner sep=0pt,
+	line cap=round,
+	line width=\forallLineWidth,
+	]
+	\draw
+	(0,0) node (A) {\copy\forallBox}
+	(A.south) ++(-\forallSep-\forallLineWidth,.4\forallLineWidth)
+	coordinate (A1)
+	(A.north west) ++(-\forallSep,-\forallLineWidth)
+	coordinate (A2)
+	(A1) -- (A2)
+	;%
+}
+\makeatother
+
+\lstdefinestyle{customc}{
+  mathescape=true,
+  belowcaptionskip=1\baselineskip,
+  breaklines=true,
+  xleftmargin=\parindent,
+  language=C,
+  showstringspaces=false,
+  basicstyle=\small\ttfamily,
+  keywordstyle=\bfseries\color{green!40!black},
+  commentstyle=\itshape\color{purple!40!black},
+  identifierstyle=\color{blue!50!black},
+  stringstyle=\color{orange},
+  numbers=left,
+  columns=fullflexible,
+   literate={=>}{{$\Rightarrow$\ }}1
+   %{l_}{{l$\hspace{.2ex}$\raisebox{-.46ex}{-}}}{2}
+   %{_}{\raisebox{-.46ex}{-}}1
+   {neq}{{$\neq$\ }}1
+}
+
+\lstset{style=customc}
+
+\newcommand{\ignore}[1]{}
+\makeatletter
+\if@ACM@anonymous
+  \newcommand{\kedu}[1]{}
+  \newcommand{\wm}[1]{}
+  \newcommand{\paolo}[1]{}
+\else
+  \newcommand{\kedu}[1]{\textcolor{red}{[Ke: #1]}}
+  \newcommand{\wm}[1]{\textcolor{red}{[William: #1]}}
+  \newcommand{\paolo}[1]{\textcolor{red}{[Paolo: #1]}}
+\fi
+\makeatother
+
+%%
+%% \BibTeX command to typeset BibTeX logo in the docs
+\AtBeginDocument{%
+  \providecommand\BibTeX{{%
+    Bib\TeX}}}
+
+%% Rights management information.  This information is sent to you
+%% when you complete the rights form.  These commands have SAMPLE
+%% values in them; it is your responsibility as an author to replace
+%% the commands and values with those provided to you when you
+%% complete the rights form.
+\setcopyright{acmlicensed}
+\copyrightyear{2018}
+\acmYear{2018}
+\acmDOI{XXXXXXX.XXXXXXX}
+%% These commands are for a PROCEEDINGS abstract or paper.
+\acmConference[RocqPL '26]{Make sure to enter the correct
+  conference title from your rights confirmation email}{June 03--05,
+  2018}{Woodstock, NY}
+%%
+%%  Uncomment \acmBooktitle if the title of the proceedings is different
+%%  from ``Proceedings of ...''!
+%%
+%%\acmBooktitle{Woodstock '18: ACM Symposium on Neural Gaze Detection,
+%%  June 03--05, 2018, Woodstock, NY}
+\acmISBN{978-1-4503-XXXX-X/2018/06}
+
+
+%%
+%% Submission ID.
+%% Use this when submitting an article to a sponsored event. You'll
+%% receive a unique submission ID from the organizers
+%% of the event, and this ID should be used as the parameter to this command.
+%%\acmSubmissionID{123-A56-BU3}
+
+%%
+%% For managing citations, it is recommended to use bibliography
+%% files in BibTeX format.
+%%
+%% You can then either use BibTeX with the ACM-Reference-Format style,
+%% or BibLaTeX with the acmnumeric or acmauthoryear sytles, that include
+%% support for advanced citation of software artefact from the
+%% biblatex-software package, also separately available on CTAN.
+%%
+%% Look at the sample-*-biblatex.tex files for templates showcasing
+%% the biblatex styles.
+%%
+
+%%
+%% The majority of ACM publications use numbered citations and
+%% references.  The command \citestyle{authoryear} switches to the
+%% "author year" style.
+%%
+%% If you are preparing content for an event
+%% sponsored by ACM SIGGRAPH, you must use the "author year" style of
+%% citations and references.
+%% Uncommenting
+%% the next command will enable that style.
+%%\citestyle{acmauthoryear}
+
+
+%%
+%% end of the preamble, start of the body of the document source.
+\begin{document}
+
+%%
+%% The "title" command has an optional parameter,
+%% allowing the author to define a "short title" to be used in page headers.
+\title{A Separation Logic Formalization of the C++ Mutex Library}
+
+%%
+%% The "author" command and its associated commands are used to define
+%% the authors and their affiliations.
+%% Of note is the shared affiliation of the first two authors, and the
+%% "authornote" and "authornotemark" commands
+%% used to denote shared contribution to the research.
+\author{Ke Du}
+\email{kdu9@uic.edu}
+\orcid{1234-5678-9012}
+\affiliation{%
+  \institution{University of Illinois Chicago}
+  \city{Chicago}
+  \state{Illinois}
+  \country{USA}
+}
+
+\author{Paolo G. Giarrusso}
+\email{paolo@skylabs-ai.com}
+\orcid{1234-5678-9012}
+\affiliation{%
+  \institution{Skylabs AI}
+  \city{}
+  \state{}
+  \country{}
+}
+
+\author{Gregory Malecha}
+\email{gregory@skylabs-ai.com}
+\orcid{1234-5678-9012}
+\affiliation{%
+  \institution{Skylabs AI}
+  \city{}
+  \state{}
+  \country{}
+}
+
+\author{William Mansky}
+\email{mansky1@uic.edu}
+\orcid{1234-5678-9012}
+\affiliation{%
+  \institution{University of Illinois Chicago}
+  \city{Chicago}
+  \state{Illinois}
+  \country{USA}
+}
+
+%%
+%% By default, the full list of authors will be used in the page
+%% headers. Often, this list is too long, and will overlap
+%% other information printed in the page headers. This command allows
+%% the author to define a more concise list
+%% of authors' names for this purpose.
+\renewcommand{\shortauthors}{Du et al.}
+
+\newcommand{\dolock}[3]{\ensuremath{\mathsf{do\_lock}(#1, #2, #3)}}
+\newcommand{\dounlock}[3]{\ensuremath{\mathsf{do\_unlock}(#1, #2, #3)}}
+
+%%
+%% The abstract is a short summary of the work to be presented in the
+%% article.
+\begin{abstract}
+The basic theory of threads and locks in separation logic is well understood. However, locks as they are actually implemented have further variations and subtleties, including restrictions on transferring locks between threads, recursive mutexes, and classes designed for RAII patterns. In this paper, we present separation logic specifications for the C++ mutex library in the BRiCk logic. We identify and abstract out common patterns, and verify implementations of higher-level constructs (e.g., a RAII class for unique ownership) using lower-level ones (e.g., basic, shared, and recursive mutexes). ... %we verify examples taken from real-world code, and show that proofs can mostly be automated?
+\end{abstract}
+
+%new specifications for kinds of mutexes, formalizing the no-transfer and release-before-free requirements, RAII, 
+%how do we know our specs successfully disallow transfer?
+%can we show that our spec applies to an implementation that doesn't satisfy the normal mutex spec? yes
+
+%%
+%% The code below is generated by the tool at http://dl.acm.org/ccs.cfm.
+%% Please copy and paste the code instead of the example below.
+%%
+\begin{CCSXML}
+<ccs2012>
+<concept>
+<concept_id>10003752.10010124.10010138.10010142</concept_id>
+<concept_desc>Theory of computation~Program verification</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+</ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Theory of computation~Program verification}
+
+%%
+%% Keywords. The author(s) should pick words that accurately describe
+%% the work being presented. Separate the keywords with commas.
+\keywords{concurrent separation logic, C++}
+
+%%
+%% This command processes the author and affiliation and title
+%% information and builds the first part of the formatted document.
+\maketitle
+
+\section{Introduction}
+Mechanized concurrent separation logic has advanced to the stage where we can prove correctness of programs in real languages, using logics like VST~\cite{vst}, BRiCk~\cite{brick}, or RustBelt~\cite{rustbelt} that give Hoare rules for every operation in the language. However, specification of language features alone is not enough to verify real code: most languages ship with extensive standard libraries, and programmers treat these libraries as if they were language primitives. This makes standard libraries a high-value target for specification and verification: they usually have only one or a few implementations and are used in almost all other code in the language. In this paper, we focus on the concurrency support library of C++, which includes threads, atomic operations, mutexes/locks, and futures. Threads, atomics, and locks have been thoroughly studied in concurrent separation logic, but C++'s locks include some restrictions and variants that have not previously been formalized.
+
+First, unlike the standard separation-logic treatment of locks, C++ mutex operations place restrictions on which threads can perform them and whether they are currently held. For instance, the basic \lstinline{std::mutex} class must be released by the same thread that acquired it, cannot be acquired twice by the same thread, and must not be held when deallocated. One might expect that acquiring a lock twice in one thread would lead to deadlock, but in fact violating any of these conditions is \emph{undefined behavior}, meaning that it could lead to unsafe behavior and must not occur in verified code. We develop a general mechanism for associating lock ownership with threads, based on a reusable ghost state pattern, and use it to enforce the standard library's restrictions.
+
+Second, the standard library includes three main variants of mutexes\footnote{The library also includes timed variants of each mutex type, on which attempts to acquire may time out, but from the separation logic perspective these are identical to the non-timed variants.}: ordinary mutex, recursive mutex, and shared mutex (i.e., reader-writer lock). Recursive mutexes, which can be acquired multiple times by a single thread, have not previously been formalized in separation logic, but are widely used in object-oriented programming---they allow a thread-safe method to acquire a lock on its object's contents even if it may be called from within another thread-safe method. We give specifications for all three variants, including a specification of recursive mutexes that allows generic reasoning over whether the lock is already held.
+
+Finally, the standard library includes a collection of mutex container classes following the Resource Acquisition Is Initialization (RAII) pattern, where a resource (in this case, a mutex) is acquired when the container is created and released when it is destroyed. These classes are generic in the underlying type of mutex, using C++'s \emph{named requirement} feature (analogous to ??? in another language); the underlying mutex need only meet the \lstinline{BasicLockable} named requirement, supporting the \lstinline{lock} and \lstinline{unlock} methods. We develop a separation logic interface corresponding to \lstinline{BasicLockable} that is satisfied by all three of our mutex variants, and use it as a parameter to our RAII class specifications. %what's interesting about this? what do we do with it?
+
+In summary, our contributions are:
+\begin{itemize}
+\item Specifications of standard, recursive, and shared mutexes as described in the C++ standard library.
+\item A ghost-state library for thread identity tracking that we use to build the basic ownership predicates of the lock specifications.
+\item A generic interface for mutexes, corresponding to the \lstinline{BasicLockable} named requirement, and specifications for C++'s lock management objects that are parameterized by this interface.
+\item example?
+\end{itemize}
+
+\section{Background}
+\subsection{Lock Specifications in Separation Logic}
+There are two common styles of CSL lock specification, which have been proved to be equivalent~\cite{}: invariant-based, and logically atomic (sometimes called TaDA-style~\cite{tada}). In the invariant style, a lock $\ell$ protects an invariant $P$ (represented as $\mathsf{is\_lock}(\ell, P)$), and acquire and release are specified as:
+\begin{mathpar}
+\{\mathsf{is\_lock}(\ell, P\}\ \texttt{lock}(\ell)\ \{\mathsf{is\_lock}(\ell, P) \ast P\} %adjust to match the style of our lock specs, as in the RocqPL submission
+
+\{\mathsf{is\_lock}(\ell, P\} \ast P\}\ \texttt{unlock}(\ell)\ \{\mathsf{is\_lock}(\ell, P)\}
+\end{mathpar}
+In the atomic style, a lock is simply in one of two states, represented by e.g. a boolean that is $\mathsf{true}$ when the lock is held. Then acquire and release can be specified as:
+\begin{mathpar}
+\fforall b.\ \langle \mathsf{lock\_state}(\ell, b)\rangle\ \texttt{lock}(\ell)\ \langle \neg b \ast \mathsf{lock\_state}(\ell, \mathsf{true})\rangle
+
+\langle \mathsf{lock\_state}(\ell, \mathsf{true})\rangle\ \texttt{unlock}(\ell)\ \langle \mathsf{lock\_state}(\ell, \mathsf{false})\rangle
+\end{mathpar}
+While one thread is trying to acquire the lock, its state is unknown and may shift back and forth due to the behavior of other threads; at the lock's linearization point, we observe that the lock is not held ($\neg b$), and shift it to the held state ($\mathsf{true}$). By combining these specifications with a global invariant of the form $P \vee \mathsf{lock\_state}(\ell, \mathsf{true})$, we can derive the invariant-style specs: an acquiring thread trades its ownership of the lock $\mathsf{lock\_state}(\ell, \mathsf{true})$ for the invariant $P$, and then returns it before releasing the lock. (Less obviously, the TaDA-style specs can also be derived from invariant-style specs, using an invariant that is simply a ghost variable indicating the state $b$ of the lock; see \citet{} for more details.)
+
+These specifications capture the core idea of mutual exclusion: at most one thread holds the lock at any point in time, and so the protected resources can safely be accessed by that thread. They can also easily be shown to be satisfied by a simple implementation, such as a spinlock (show this? describe how one verifies it?). However, the locks used in systems programming languages are not generally implemented this way, instead building on operating system primitives (e.g., Linux's futex~\cite{}) and highly optimized libraries (e.g., Pthread~\cite{}). This leads to both additional restrictions---e.g., locks may only be released by the thread that acquired them, or can only be deallocated if not held---and additional features---e.g., locks may be recursive, so that the holder can re-acquire them any number of times and only exits the critical section after performing an equal number of releases. In this paper, we show how to extend the simple lock specs to account for the restrictions and features of the mutexes in C++'s standard library.
+
+\subsection{The BRiCk Logic for C++}
+\label{brick}
+
+\newcommand{\currentthread}[1]{\ensuremath{\mathtt{tid}(#1)}}
+
+BRiCk~\cite{brick} is an Iris-based program logic for C++, inspired by Iris's HeapLang and the Verified Software Toolchain's logic for C~\cite{vst}. Its predicates and rules are similar to those of standard Iris instances, with special support for object-oriented data and templates. %anything else of note?
+Unlike most Iris instances, it does not carry an adequacy proof that connects its rules to an operational semantics (indeed, there is no complete operational semantics for C++), but similarity to the rules of HeapLang and VST and the ability to test specifications by compiling and running the code give us confidence in its soundness. %rephrase %doesn't have opsem but does compile; logic evaluated with projects like TODO cite previous brick paper/projects
+
+One feature of BRiCk that is particularly relevant to our work is thread-specific predicates. In ordinary separation logic, all predicates can be transfered between threads: if thread $t_1$ owns $x \mapsto v$ and then synchronizes with $t_2$ via a lock or atomic operation, then afterwards $t_2$ may own $x \mapsto v$. This is problematic when the behavior of a function depends on the calling thread. BRiCk solves this using Iris's \emph{monotonic predicates}, previously used in weak-memory logics~\cite{igps} %and others
+. Every BRiCk predicate is implicitly indexed by a thread ID, and a predicate $\currentthread{t}$ asserts that the current thread's ID is $t$. Every predicate that does not include $\currentthread{t}$ is \emph{objective}, allowing it to be freely transferred between threads. This allows us to specify the fact that, e.g., a C++ \lstinline{mutex} can only be released by the thread that acquired it.
+
+\input{specs.tex}
+
+\section{RAII Lock Classes}
+
+\newcommand{\ulock}[0]{\ensuremath{\mathsf{ulock}}}
+
+Managing locks manually is error-prone: it is easy to introduce deadlock by acquiring the same lock twice, forgetting to release a lock, or having a set of locks that are not always acquired and released in the same order, and releasing a lock that has not been acquired is undefined behavior. The Resource Acquisition Is Initialization (RAII) pattern aims to avoid these problems by aligning ownership of a lock with the lifetime of an object: the lock is acquired when the object is created, and released when the object is destroyed, thus benefiting from the guarantees of the language's memory management (an object will only be created and destroyed once each, will only be destroyed after it is created, will eventually be destroyed if unused, etc.). The C++ standard library includes a set of RAII lock classes, which we specify here. Intuitively, their specifications are simple: the object's constructor has the same specification as the underlying lock's \lstinline{lock} method, and the destructor has the same specification as the underlying \lstinline{unlock}. %but: we are the first to specify RAII at all in SL? in practice their use is more complicated (because of optional acquiring, detaching, etc.)? showing that they can actually be used as desired is nontrivial?
+%we verify the actual standard library implementations of these classes?!
+
+\subsection{Generic \lstinline{lock} and \lstinline{unlock}}
+\label{basic-lockable}
+The \lstinline{BasicLockable} named requirement describes the common interface
+of types that provide \lstinline{lock()} and \lstinline{unlock()}
+operations~\cite{ISO:2024:IIP}.  An invocation of \lstinline{lock()} blocks
+until the calling thread acquires the lock, and \lstinline{unlock()} releases a
+lock owned by the calling thread.  The caller must not already own the lock
+when invoking \lstinline{lock()}, and must own it when invoking
+\lstinline{unlock()}.  This is a requirement on a type, rather than a concrete
+C++ class: \lstinline{std::mutex}, \lstinline{std::recursive_mutex}, and
+user-defined lock types can all implement it.  Generic classes such as
+\lstinline{lock_guard} can therefore operate on any such implementation.
+
+We represent an implementation of \lstinline{BasicLockable} by a predicate
+$R(q,x)$ describing fractional ownership $q$ of a lock with abstract state
+$x$, together with two predicates $L(m,x,K)$ and $U(m,x,K)$.  These predicates
+give the resources required to lock and unlock the object at $m$ and describe
+their result through the continuation $K$.  The generic specifications are:
+\begin{mathpar}
+  \spectriple
+    {m\mapsto R(q,x)\ast L(m,x,K)}
+    {\texttt{m.lock()}}
+    {m\mapsto R(q,x)\ast K}
+
+  \spectriple
+    {m\mapsto R(q,x)\ast U(m,x,K)}
+    {\texttt{m.unlock()}}
+    {m\mapsto R(q,x)\ast K}
+\end{mathpar}
+The representation predicate is preserved by both operations, while the
+implementation-specific predicates describe the change in logical ownership.
+For example, the \lstinline{std::mutex} instance defines $L$ to exchange the
+calling thread's $\mathsf{not\_locked}$ token for the protected resource and its
+\texttt{locked} token; it defines $U$ to perform the reverse exchange.  The
+recursive and shared mutexes instantiate the same interface with their own
+ghost states.  Thus clients can use the two generic specifications without
+depending on the particular mutex representation.
+
+\subsection{\lstinline{lock_guard}}
+\begin{figure}[htb]
+\begin{lstlisting}
+  std::mutex mutex_;
+  int size;
+
+  bool get_size() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return size;
+  }
+\end{lstlisting}
+\caption{A simple use of \lstinline{std::lock_guard} with a \lstinline{mutex}}
+\label{lock-guard-ex}
+\end{figure}
+
+
+The \lstinline{lock_guard} class is the basic RAII class of the C++ library, a container for a single lock. \lstinline{lock_guard} is a templated class that takes an arbitrary \lstinline{BasicLockable} class as an argument, acquires it when constructed, and releases it when destroyed. A simple example of its use is shown in Figure~\ref{lock-guard-ex}; the mutex \lstinline{mutex_} is meant to protect the value of \lstinline{size}, and the \lstinline{lock_guard} object \lstinline{lock} in \lstinline{get_size} takes the place of calls to \lstinline{lock} and \lstinline{unlock}; \lstinline{mutex_} is \lstinline{lock}ed at line 5 and \lstinline{unlock}ed after reading \lstinline{size} but before \lstinline{get\_size} returns.
+
+Since \lstinline{lock_guard} is parameterized by a \lstinline{BasicLockable} class, our specification is likewise parameterized by a \lstinline{BasicLockable} instance. %not done yet
+Constructing a \lstinline{lock_guard} with argument $m$ acquires $m$, and destroying it releases $m$: %adopt_lock?
+%specs go here once we've made them generic
+
+\subsection{\lstinline{scoped_lock}}
+
+The \lstinline{scoped_lock} class takes a collection of locks as arguments, and acquires/releases them in an arbitrary fixed order, thus avoiding deadlock. %note this is also what std::lock does given multiple arguments
+
+%specs go here once we've made them generic
+
+\subsection{\lstinline{unique_lock}}
+The \lstinline{unique_lock} class offers a more sophisticated RAII interface: the lock can be manually acquired and released through the \lstinline{unique_lock} as well as at construction/destruction, and the \lstinline{unique_lock} can be detached from one lock and attached to another during its lifetime. A \lstinline{unique_lock} object tracks whether it has acquired its associated mutex (if any), counting the acquisition from the constructor as well as explicit \lstinline{lock}/\lstinline{unlock} calls, and its destructor releases the mutex only if it is not currently acquired. %None of these operations are very complicated, but their specifications do need to account for many variations (no associated lock, associated lock is locked, associated lock is unlocked). %example?
+
+The abstract state of a \lstinline{unique_lock} is of type $\mathsf{option}\ M$, which is $\mathsf{Some}\ m$ if a mutex $m$ is associated with the \lstinline{unique_lock} and $\mathsf{None}$ if no mutex is associated with it. %do we want to talk about move constructors/operators here?
+
+%how much of this detail is useful? There are a lot of variations.
+\[\begin{array}{c}
+\{p \mapsto R(q, m) \ast \dolock{p}{m}{K}\}\\ \texttt{unique\_lock(p)}\\ \{\ulock(\mathsf{Some}\ (\mathsf{false}, p, q, m))\} \vspace{1em}\\%constructor notation?
+\{u \mapsto \ulock(m)\ast \neg \mathsf{held}(m) \ast \dolock{\mathsf{ptr}(m)}{\mathsf{m}(m)}{K}\}\\ {u\texttt{.lock()}} \\ \{m \mapsto \ulock(m[\mathsf{held} := \mathsf{true}]) \ast K\}  \vspace{1em}\\
+    \{u \mapsto \ulock(m)\ast \mathsf{held}(m) \ast \dounlock{\mathsf{ptr}(m)}{\mathsf{m}(m)}{K}\}\\ {u\texttt{.unlock}()}\\
+    \{m \mapsto \ulock(m[\mathsf{held} := \mathsf{false}]) \ast K\}  \vspace{1em} \\
+\{u \mapsto \ulock() \ast (\text{if } \mathsf{held}(m) \text{ then } \dounlock{\mathsf{ptr}(m)}{\mathsf{m}(m)}{K}\} \text{ else } K)\}\\ \sim u()\\ \{K \ast \text{if } m \text{ then } \mathsf{ptr}(m) \mapsto R(\mathsf{q}(m), \mathsf{m}(m)) \text { else } \mathsf{emp}\} %destructor notation, Some/None notation
+\end{array}\]
+%verify the code from cppreference or a similar example?
+
+\begin{figure}[htb]
+\begin{lstlisting}
+  int value{0};
+  std::recursive_mutex m;
+
+  void inc() {
+    std::unique_lock<std::recursive_mutex> lk(m);
+    value++;
+  }
+
+  void answer() {
+    std::unique_lock<std::recursive_mutex> lk(m);
+    value = 41;
+    inc();
+  }
+\end{lstlisting}
+\caption{A program with multiple \lstinline{unique_lock}s around a single \lstinline{recursive_mutex}}
+\label{unique-recursive}
+\end{figure}
+As discussed in Section~\ref{basic-lockable}, the \lstinline{BasicLockable} requirement does not explicitly require that \lstinline{lock} lead to mutual exclusion, and indeed recursive mutexes can be \lstinline{lock}ed multiple times without being \lstinline{unlock}ed. This interacts in an interesting and useful way with \lstinline{unique_lock}'s acquisition tracking (the $\mathsf{held}$ predicate in our specifications): each \lstinline{unique_lock} can only acquire its mutex at most once, but we can construct multiple \lstinline{unique_lock}s around a single recursive mutex, each of which manages a single acquisition. %Is this equally true of lock_guard? We could call unlock once manually to illustrate the point.
+The code in Figure~\ref{unique-recursive} shows how this can be used. When \lstinline{answer} is called, it acquires the recursive mutex \lstinline{m} by constructing a \lstinline{unique_lock} around it; it then calls \lstinline{inc}, which constructs another \lstinline{unique_lock} that acquires \lstinline{m} a second time. When each method returns, its \lstinline{unique_lock} is destroyed and \lstinline{m} is released once, so that \lstinline{m} is no longer locked after \lstinline{answer} returns. Our specifications can be used to verify this program. %proof outline?
+
+\section{Case Studies?}
+\input{ring_buffer.tex}
+%TODO: find or make some interesting examples
+
+\section{BRiCk Formalization}
+
+\section{Conclusion and Future Work}
+...
+
+condition variables, futures, shared pointers, ...
+
+verified Pthread?
+
+%%
+%% The acknowledgments section is defined using the "acks" environment
+%% (and NOT an unnumbered section). This ensures the proper
+%% identification of the section in the article metadata, and the
+%% consistent spelling of the heading.
+\begin{acks}
+
+\end{acks}
+
+%%
+%% The next two lines define the bibliography style to be used, and
+%% the bibliography file.
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{bibfile}
+
+\end{document}
+\endinput
+%%
+%% End of file `sample-sigplan.tex'.

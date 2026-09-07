@@ -48,6 +48,15 @@ NES.Begin unique_lock.
       pureR (m.(mutex_ptr) |-> mutexR (cQp.scale m.(mutex_q) q) m.(mutex_m))
     end.
 
+  Section with_RepFor.
+    Import rep.RepFor.
+    Import RepScheme.
+
+    #[global] Instance repfor `{Σ : cpp_logic} {σ : genv} ty {T} mutexR `{!BasicLockable ty (T:=T) mutexR} :
+      rep.RepFor.C (Tnamed $ "std::unique_lock" .<< Atype ty >>) [ArgType.CFrac; ArgType.Constant _]
+        (R ty mutexR) := {}.
+  End with_RepFor.
+
   Module R_unfold.
     #[only(lazy_unfold(export))] derive R.
   End R_unfold.
@@ -198,7 +207,7 @@ NES.Begin unique_lock.
               else K
           | _ => K
           end
-        \post
+        \post[Vref this]
           this |-> R 1$m om2 **
           other |-> R 1$m None **
           K **
@@ -217,7 +226,7 @@ NES.Begin unique_lock.
         \pre{om1} this |-> R 1$m om1
         \pre{om2} other |-> R 1$m om2
         \pre{K} ensure_unlock om1 K
-        \post
+        \post[Vref this]
           this |-> R 1$m om2 **
           other |-> R 1$m None **
           K

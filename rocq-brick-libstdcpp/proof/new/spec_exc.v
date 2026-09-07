@@ -22,7 +22,7 @@ Import cpp_notation.
 #[local] Set Primitive Projections.
 
 Section with_cpp.
-  Context `{Σ : cpp_logic, module ⊧ σ}.
+  Context `{Σ : cpp_logic, source ⊧ σ}.
 
   (** <<operator new(size_t)>> is not allowed to return <<nullptr>>, it
       signals failure by raising an exception.
