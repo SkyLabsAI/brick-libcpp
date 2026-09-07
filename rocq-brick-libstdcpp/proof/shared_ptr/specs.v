@@ -26,6 +26,7 @@ A common pattern where this can be useful is when the thread that calls new need
 *)
 
 Require Import skylabs.auto.cpp.proof.
+Set Default Goal Selector "!".
 Require Import skylabs.brick.libstdcpp.allocator.spec.
 Require Import skylabs.brick.libstdcpp.cassert.spec.
 Require Import skylabs.brick.libstdcpp.vector.spec.
@@ -37,6 +38,8 @@ Require Import skylabs.cpp.spec.concepts.
 Require Import skylabs.cpp.spec.concepts.experimental.
 Require Import skylabs.brick.libstdcpp.shared_ptr.inc_shared_ptr_cpp.
 Require Import iris.algebra.excl.
+
+NES.Open std.atomic.
 
 
 Record CtrlBlockId : Set :=
@@ -63,7 +66,7 @@ Definition countLN {A : Type} (f : A -> bool) (l : list A) : N :=
   lengthN (filter f l).
 
 Section specs.
-  Context `{Σ : cpp_logic, MOD:inc_shared_ptr_cpp.module ⊧ σ}.
+  Context `{Σ : cpp_logic, MOD:inc_shared_ptr_cpp.source ⊧ σ}.
   #[local] Existing Instance br.ghost.excl_inG.
 
 

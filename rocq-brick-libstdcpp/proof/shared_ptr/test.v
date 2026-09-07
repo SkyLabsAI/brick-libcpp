@@ -55,7 +55,7 @@ Qed.
 Section proofs.
   #[local] Set Warnings "-sl-transparent-constants".
   Opaque SharedPtrR.
-  Context `{Σ : cpp_logic, MOD:test_cpp.module ⊧ σ}
+  Context `{Σ : cpp_logic, MOD:test_cpp.source ⊧ σ}
   {hf:fracG () _Σ}.
   
 
