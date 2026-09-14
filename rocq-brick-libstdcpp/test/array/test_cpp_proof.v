@@ -271,9 +271,8 @@ Section with_cpp.
       \post
         r_addr |-> uintR 1$m (trim 32 (r + sum ys)) **
         i_addr |-> ulongR 1$m 5).
-    iExists 0, xs, 0. go.
-    wp_if.
-    all: go.
+    go.
+    wp_if; go.
   Qed.
 
   (** ** Other instantiations
