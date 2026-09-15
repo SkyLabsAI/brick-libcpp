@@ -13,10 +13,10 @@
   "customizations": {
     "vscode": {
       "settings": {
-        "vsrocq.path": "/home/coq/.opam/main/bin/vsrocqtop"
+        "vsrocq.path": "/opt/skylabs/opam/main/bin/vsrocqtop"
       },
       "extensions": [
-        "rocq-prover.vsrocq@2.3.4",
+        "rocq-prover.vsrocq@2.4.3",
         "ocamllabs.ocaml-platform",
         "zeithaste.cursorcharcode@0.2.5",
         "mr-konn.generic-input-method"
