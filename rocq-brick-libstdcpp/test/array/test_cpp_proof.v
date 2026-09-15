@@ -215,7 +215,6 @@ Section with_cpp.
   Lemma last_via_end_ok : verify[ source ] last_via_end_spec.
   Proof using MOD.
     verify_spec; go.
-    rewrite !o_sub_sub /=. go.
   Qed.
 
   (** <<std::array>>'s iterators are raw pointers, so a condition such as
