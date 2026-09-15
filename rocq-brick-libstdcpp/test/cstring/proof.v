@@ -389,20 +389,142 @@ Section with_cpp.
     verify_spec; go.
   Qed.
 
+  Section with_resolve.
+    Context {resolve:genv} (tu : translation_unit).
+    Import operators.
+
+    Lemma wp_eval_ptr_eq : forall ty ap bp (Q : val -> mpred),
+        (∃ res, ptr_comparable ap bp res ** True //\\
+          Q (Vbool res))
+          |-- wp_eval_binop tu Beq (Tptr ty) (Tptr ty) Tbool (Vptr ap) (Vptr bp) Q.
+    Proof.
+      intros. iIntros "[%res HcmpQ]".
+      rewrite wp_eval_binop.unlock !has_type_ptr' /eval_binop.
+      iIntros "#? #?". iExists _.
+      iSplit; last by iDestruct "HcmpQ" as "[_ $]".
+      iPoseProof eval_ptr_eq as "H".
+      iDestruct "HcmpQ" as "[Hcmp _]".
+      iDestruct ("H" with "[Hcmp]") as "[$ $]".
+      iDestruct "Hcmp" as "[$ _]".
+    Qed.
+    Definition wp_eval_ptr_eq_B := [BWD] wp_eval_ptr_eq.
+  End with_resolve.
+  Hint Resolve wp_eval_ptr_eq_B : sl_opacity.
+
+  Section PtrIntoSub.
+    Implicit Type (p : ptr) (o : offset) (os : list offset)
+      (ty : type) (σ : genv) (i : Z) (f : field).
+    Class PtrIntoSub (p1 p2 : ptr) ty i :=
+      _ptr_into_sub : p1 = p2 .[ ty ! i ].
+    #[global] Hint Mode PtrIntoSub + - - - : typeclass_instances sl_opacity.
+
+    #[global] Instance PtrNorm_PtrIntoSub p1 p2 ty i :
+      PtrNorm p1 (p2 .[ ty ! i]) ->
+      PtrIntoSub p1 p2 ty i.
+    Proof. by []. Qed.
+
+    #[global] Instance PtrNorm_0_PtrIntoSub p1 p2 :
+      PtrNorm p1 p2 ->
+      PtrIntoSub p1 p2 "char" 0.
+    Proof. rewrite /PtrIntoSub. normalize_ptrs. by []. Qed.
+  End PtrIntoSub.
+  (* Add Auto Subgoal PtrIntoSub. *)
+
+  (* TODO upstream *)
+  (* Extract from same_address_bool_partial_reflexive. *)
+  Lemma same_address_partial_reflexive p :
+    is_Some (ptr_vaddr p) ->
+    same_address p p.
+  Proof. by rewrite same_address_eq -same_property_reflexive_equiv. Qed.
+
+  Lemma o_sub_eq_inj (p : ptr) ty i j sz :
+    is_Some (ptr_vaddr (p .[ ty ! i ])) →
+    size_of σ ty = Some sz → (0 < sz)%N →
+    p .[ ty ! i ] = p .[ ty ! j ] <-> i = j.
+  Proof.
+    intros; split; last naive_solver; intros E.
+    apply /(same_address_o_sub_eq p); [done|lia|].
+    rewrite -{}E. exact /same_address_partial_reflexive.
+  Qed.
+
+  Lemma ptr_comparable_equiv p1 p2 res1 res2 :
+    (is_Some (ptr_vaddr p1) -> is_Some (ptr_vaddr p2) -> res1 = res2) ->
+    ptr_comparable p1 p2 res1 -|- ptr_comparable p1 p2 res2.
+  Proof.
+    rewrite ptr_comparable_eq /ptr_comparable_def !only_provable_wand_forall.
+    intros Heq. f_equiv => -[Hp1 Hp2]. by move: Heq => /(_ Hp1 Hp2) ->.
+  Qed.
+
+  (* TODO: not obviously a bi-entailment, but could be if [ptr_comparable]'s
+  definition were tweaked. *)
+  Lemma ptr_ord_comparable_valid ty p1 p2 (p : ptr) (sz : N) (i j : Z) :
+    size_of σ ty = Some sz →
+    (0 < sz)%N →
+    p1 = p .[ ty ! i ] →
+    p2 = p .[ ty ! j ] →
+    valid_ptr p1 ∗ valid_ptr p2 ⊢
+    ptr_ord_comparable p1 p2 (λ va1 va2, bool_decide (va1 = va2)) (bool_decide (p1 = p2)).
+  Proof.
+    intros; subst.
+    iApply (ptr_ord_comparable_off_off _ _ p) => //.
+    intros va1 va2 Hva1 Hva2.
+    vc_split (bool_decide (va1 = va2)) => Hva; simplify_eq; first last.
+    all: case_bool_decide => //=. { congruence. }
+    have /same_address_o_sub_eq Hij: same_address (p .[ ty ! i ]) (p .[ ty ! j ]).
+    { exact /same_address_intro. }
+    by odestruct (Hij sz); try lia.
+  Qed.
+
+  Lemma ptr_comparable_valid ty p1 p2 (p : ptr) (sz : N) (i j : Z) :
+    size_of σ ty = Some sz →
+    (0 < sz)%N →
+    p1 = p .[ ty ! i ] →
+    p2 = p .[ ty ! j ] →
+    valid_ptr p1 ∗ valid_ptr p2 ⊢
+    ptr_comparable p1 p2 (bool_decide (p1 = p2)).
+  Proof. intros. rewrite -ptr_ord_comparable_comparable. exact: ptr_ord_comparable_valid. Qed.
+
+  Lemma ptr_comparable_valid_idx ty p1 p2 (p : ptr) (sz : N) (i j : Z) :
+    size_of σ ty = Some sz →
+    (0 < sz)%N →
+    p1 = p .[ ty ! i ] →
+    p2 = p .[ ty ! j ] →
+    valid_ptr p1 ∗ valid_ptr p2 ⊢
+    ptr_comparable p1 p2 (bool_decide (i = j)).
+  Proof.
+    intros. rewrite ptr_comparable_equiv; first exact /ptr_comparable_valid.
+    intros; subst; apply bool_decide_ext. rewrite o_sub_eq_inj //; lia.
+  Qed.
+
+  (* TODO review and upstream *)
+  #[program]
+  Definition ptr_comparable_valid_CX ty p1 p2 (p : ptr) sz (i j : Z) :=
+    \cancelx
+    \guard PtrIntoSub p1 p ty i
+    \guard PtrIntoSub p2 p ty j
+    \guard size_of σ ty = Some sz
+    \guard StringSidecond (0 < sz)%N
+    \through valid_ptr p1
+    \through valid_ptr p2
+    \whole_conclusion
+    \bound Q res
+    \proving (ptr_comparable p1 p2 res ** True) //\\ Q
+    \through Q
+    \through [| res = bool_decide (i = j) |]
+    \end.
+  Next Obligation. intros; work. rewrite -ptr_comparable_valid_idx //. work. Qed.
+  Hint Resolve ptr_comparable_valid_CX : br_hints.
+
   cpp.spec "test_strchr()" from source default.
   Lemma test_strchr_ok : verify[source] "test_strchr()".
   Proof.
     verify_spec; go.
-    all: simpl in *; Arith.arith_simpl; normalize_ptrs; go.
-    all: by exfalso.
   Qed.
 
   cpp.spec "test_strrchr()" from source default.
   Lemma test_strrchr_ok : verify[source] "test_strrchr()".
   Proof.
     verify_spec; go.
-    all: simpl in *; Arith.arith_simpl; normalize_ptrs; go.
-    all: by exfalso.
   Qed.
 
   cpp.spec "test_strspn()" from source default.
@@ -417,16 +539,12 @@ Section with_cpp.
   Lemma test_strpbrk_ok : verify[source] "test_strpbrk()".
   Proof.
     verify_spec; go.
-    all: Arith.arith_simpl; normalize_ptrs; go.
-    all: by exfalso.
   Qed.
 
   cpp.spec "test_strstr()" from source default.
   Lemma test_strstr_ok : verify[source] "test_strstr()".
   Proof.
     verify_spec; go.
-    all: Arith.arith_simpl; normalize_ptrs; go.
-    all: by exfalso.
   Qed.
 
   cpp.spec "test_cstring_slice1()" from source default.
