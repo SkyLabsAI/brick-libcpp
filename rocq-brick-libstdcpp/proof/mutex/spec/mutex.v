@@ -119,6 +119,7 @@ Module Type MUTEX_PREDS.
       WeaklyObjective P ->
       this |-> R old 1$m emp ** token old 1$m ** ▷P |--
         (|={⊤}=> ∃ g,
+          [| pool_name g = pool |] **
           this |-> R g 1$m P ** token g 1$m).
 
     (** Register a thread by consuming its handle for this mutex's namespace
