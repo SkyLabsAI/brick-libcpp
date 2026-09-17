@@ -38,6 +38,8 @@ Module Type MUTEX_SETS.
       `{Σ : cpp_logic, !G Σ} γ M : WeaklyObjective (mutex_set_map γ M).
   #[global] Declare Instance my_mutexes_WeaklyObjective
       `{Σ : cpp_logic, !G Σ} γ th E : WeaklyObjective (my_mutexes γ th E).
+  #[global] Declare Instance my_mutexes_objective
+      `{Σ : cpp_logic, !G Σ} γ th E : Objective (my_mutexes γ th E).
 
   Parameter my_mutexes_exclusive : forall `{Σ : cpp_logic, !G Σ} γ th (E1 E2: coPset),
     E1 ∩ E2 <> ∅ ->
@@ -198,6 +200,9 @@ Module MutexSets : MUTEX_SETS.
   Proof. rewrite /mutex_set_map. apply _. Qed.
   #[global] Instance my_mutexes_WeaklyObjective `{Σ : cpp_logic, !G Σ} γ th E :
     WeaklyObjective (my_mutexes γ th E).
+  Proof. rewrite /my_mutexes. apply _. Qed.
+  #[global] Instance my_mutexes_objective `{Σ : cpp_logic, !G Σ} γ th E :
+    Objective (my_mutexes γ th E).
   Proof. rewrite /my_mutexes. apply _. Qed.
 
   Section theory.

@@ -37,6 +37,11 @@ Section with_cpp.
 
   Definition entry_type : type := Tfunction (FunctionType Tvoid []).
 
+  #[global] Declare Instance wp_fptr_objective (f : ptr) (Q : mpred)
+      `{!WeaklyObjective Q} :
+    ObjectiveWith threadTI
+      (wp_fptr (σ.(genv_tu).(types)) entry_type f [] (fun _ => Q)).
+
   (** Passing a function lvalue binds a function reference directly, without
       an intermediate function-pointer object. The child receives its mutex
       namespace pool before running the entry point. Resources that the entry
