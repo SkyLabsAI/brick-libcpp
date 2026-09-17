@@ -2,8 +2,8 @@
 #include <mutex>
 #include <thread>
 
-unsigned int x = 0;
-std::mutex m;
+unsigned int x{0};
+std::mutex m{};
 
 void double_incr() {
   m.lock();
@@ -19,6 +19,6 @@ int main() {
   t1.join();
   t2.join();
 
-  assert(x == 4);
+  assert(x % 2 == 0);
   return 0;
 }

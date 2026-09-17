@@ -282,15 +282,17 @@ Module CustomMutexPreds <: MUTEX_PREDS.
         (pool : iprop.gname) (P : mpred) :
       WeaklyObjective P ->
       this |-> R old 1$m emp ** token old 1$m ** ▷P |--
-        (|={⊤}=> ∃ g, this |-> R g 1$m P ** token g 1$m).
+        (|={⊤}=> ∃ g, [| pool_name g = pool |] **
+          this |-> R g 1$m P ** token g 1$m).
     Proof.
       intros HP. iIntros "(HR & T & P)".
       iEval (rewrite /R _at_sep _at_as_Rep) in "HR".
       iDestruct "HR" as "(S & #CI & CO)".
       iMod (cinv_cancel with "CI CO") as "Inv"; [done..|].
-      iMod (alloc_state pool) as (gs) "(_ & Tnew & Stnew)".
+      iMod (alloc_state pool) as (gs) "(%Hpool & Tnew & Stnew)".
       iMod (cinv_alloc with "[Inv P Stnew T]") as (gi) "[#CInew COnew]"; last first.
       - iModIntro. iExists (MkGname gs gi).
+        iSplit; first (iPureIntro; exact Hpool).
         rewrite /R _at_sep _at_as_Rep /token /mutex_inv /=.
         iFrame "CInew S COnew Tnew".
       - iNext. rewrite /mutex_inv.
