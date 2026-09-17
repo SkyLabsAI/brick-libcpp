@@ -71,7 +71,7 @@ Section with_cpp.
      \require child <> parent
      \post this |-> R None ** Q).
 
-  cpp.spec "std::thread::thread<void (*&)(), ...<>, void>(void (*&)())" as ctor_spec from source with
+  cpp.spec "std::thread::thread<void ( *&)(), ...<>, void>(void ( *&)())" as ctor_spec from source with
       (\exact Reduce spawn_spec_body).
 
   cpp.spec "std::thread::thread<void (&)(), ...<>, void>(void (&)())"
