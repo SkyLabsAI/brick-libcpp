@@ -2,6 +2,10 @@
 
 Specifications of the C++ standard library in BRiCk.
 
+The [all_of, any_of, and none_of specifications](rocq-brick-libstdcpp/proof/all_any_none_of/README.md)
+currently cover only the C++20 non-policy instantiations with
+`const unsigned char*` iterators and a `bool (*)(unsigned char)` predicate.
+
 ## Development
 
 To develop on these specifications, you'll need clang, the GNU C++ library (not
