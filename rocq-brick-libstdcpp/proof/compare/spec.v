@@ -98,6 +98,7 @@ Section with_cpp.
       \prepost{q v} this |-> weak_orderingR q v
       \post{result}[Vptr result] result |-> partial_orderingR 1$m (Some v)).
 
+  #[ignore_missing]
   cpp.spec "std::__cmp_cat::__unspec::__unspec(std::__cmp_cat::__unspec*)" as unspec_ctor from source with (
     \this this
     \arg{p} "" (Vptr p)
@@ -109,6 +110,7 @@ Section with_cpp.
     \pre this |-> unspecR 1$m
     \post emp).
 
+  #[ignore_missing]
   cpp.spec "std::operator==(std::partial_ordering, std::__cmp_cat::__unspec)" as partial_ordering_eq_unspec from source with (
     \arg{lhs} "" (Vptr lhs)
     \arg{rhs} "" (Vptr rhs)
@@ -116,6 +118,7 @@ Section with_cpp.
     \pre{q_rhs} rhs |-> unspecR q_rhs
     \post[Vbool (bool_decide (lhs_v = Some Eq))] rhs |-> unspecR q_rhs).
 
+  #[ignore_missing]
   cpp.spec "std::operator<(std::partial_ordering, std::__cmp_cat::__unspec)" as partial_ordering_lt_unspec from source with (
     \arg{lhs} "" (Vptr lhs)
     \arg{rhs} "" (Vptr rhs)
@@ -123,6 +126,7 @@ Section with_cpp.
     \pre{q_rhs} rhs |-> unspecR q_rhs
     \post[Vbool (bool_decide (lhs_v = Some Lt))] rhs |-> unspecR q_rhs).
 
+  #[ignore_missing]
   cpp.spec "std::operator>(std::partial_ordering, std::__cmp_cat::__unspec)" as partial_ordering_gt_unspec from source with (
     \arg{lhs} "" (Vptr lhs)
     \arg{rhs} "" (Vptr rhs)
@@ -130,6 +134,7 @@ Section with_cpp.
     \pre{q_rhs} rhs |-> unspecR q_rhs
     \post[Vbool (bool_decide (lhs_v = Some Gt))] rhs |-> unspecR q_rhs).
 
+  #[ignore_missing]
   cpp.spec "std::operator<=>(std::partial_ordering, std::__cmp_cat::__unspec)" as partial_ordering_cmp_unspec from source with (
     \arg{lhs} "" (Vptr lhs)
     \arg{rhs} "" (Vptr rhs)
@@ -137,6 +142,7 @@ Section with_cpp.
     \pre{q_rhs} rhs |-> unspecR q_rhs
     \post{result}[Vptr result] result |-> partial_orderingR 1$m lhs_v ** rhs |-> unspecR q_rhs).
 
+  #[ignore_missing]
   cpp.spec "std::operator<(std::strong_ordering, std::__cmp_cat::__unspec)" as strong_ordering_lt_unspec from source with (
     \arg{lhs} "" (Vptr lhs)
     \arg{rhs} "" (Vptr rhs)
@@ -144,6 +150,7 @@ Section with_cpp.
     \pre{q_rhs} rhs |-> unspecR q_rhs
     \post[Vbool (bool_decide (lhs_v = Lt))] rhs |-> unspecR q_rhs).
 
+  #[ignore_missing]
   cpp.spec "std::operator==(std::strong_ordering, std::__cmp_cat::__unspec)" as strong_ordering_eq_unspec from source with (
     \arg{lhs} "" (Vptr lhs)
     \arg{rhs} "" (Vptr rhs)
@@ -151,6 +158,7 @@ Section with_cpp.
     \pre{q_rhs} rhs |-> unspecR q_rhs
     \post[Vbool (bool_decide (lhs_v = Eq))] rhs |-> unspecR q_rhs).
 
+  #[ignore_missing]
   cpp.spec "std::operator>(std::strong_ordering, std::__cmp_cat::__unspec)" as strong_ordering_gt_unspec from source with (
     \arg{lhs} "" (Vptr lhs)
     \arg{rhs} "" (Vptr rhs)
@@ -158,6 +166,7 @@ Section with_cpp.
     \pre{q_rhs} rhs |-> unspecR q_rhs
     \post[Vbool (bool_decide (lhs_v = Gt))] rhs |-> unspecR q_rhs).
 
+  #[ignore_missing]
   cpp.spec "std::operator<=>(std::strong_ordering, std::__cmp_cat::__unspec)" as strong_ordering_cmp_unspec from source with (
     \arg{lhs} "" (Vptr lhs)
     \arg{rhs} "" (Vptr rhs)
@@ -165,6 +174,7 @@ Section with_cpp.
     \pre{q_rhs} rhs |-> unspecR q_rhs
     \post{result}[Vptr result] result |-> strong_orderingR 1$m lhs_v ** rhs |-> unspecR q_rhs).
 
+  #[ignore_missing]
   cpp.spec "std::operator==(std::weak_ordering, std::__cmp_cat::__unspec)" as weak_ordering_eq_unspec from source with (
     \arg{lhs} "" (Vptr lhs)
     \arg{rhs} "" (Vptr rhs)
@@ -172,6 +182,7 @@ Section with_cpp.
     \pre{q_rhs} rhs |-> unspecR q_rhs
     \post[Vbool (bool_decide (lhs_v = Eq))] rhs |-> unspecR q_rhs).
 
+  #[ignore_missing]
   cpp.spec "std::operator>(std::weak_ordering, std::__cmp_cat::__unspec)" as weak_ordering_gt_unspec from source with (
     \arg{lhs} "" (Vptr lhs)
     \arg{rhs} "" (Vptr rhs)
@@ -179,6 +190,7 @@ Section with_cpp.
     \pre{q_rhs} rhs |-> unspecR q_rhs
     \post[Vbool (bool_decide (lhs_v = Gt))] rhs |-> unspecR q_rhs).
 
+  #[ignore_missing]
   cpp.spec "std::operator<=>(std::weak_ordering, std::__cmp_cat::__unspec)" as weak_ordering_cmp_unspec from source with (
     \arg{lhs} "" (Vptr lhs)
     \arg{rhs} "" (Vptr rhs)
@@ -186,6 +198,7 @@ Section with_cpp.
     \pre{q_rhs} rhs |-> unspecR q_rhs
     \post{result}[Vptr result] result |-> weak_orderingR 1$m lhs_v ** rhs |-> unspecR q_rhs).
 
+  #[ignore_missing]
   cpp.spec "std::operator<(std::__cmp_cat::__unspec, std::partial_ordering)" as unspec_lt_partial_ordering from source with (
     \arg{lhs} "" (Vptr lhs)
     \arg{rhs} "" (Vptr rhs)
@@ -193,6 +206,7 @@ Section with_cpp.
     \prepost{q_rhs rhs_v} rhs |-> partial_orderingR q_rhs rhs_v
     \post[Vbool (bool_decide (rhs_v = Some Gt))] lhs |-> unspecR q_lhs).
 
+  #[ignore_missing]
   cpp.spec "std::operator<=>(std::__cmp_cat::__unspec, std::partial_ordering)" as unspec_cmp_partial_ordering from source with (
     \arg{lhs} "" (Vptr lhs)
     \arg{rhs} "" (Vptr rhs)
@@ -200,6 +214,7 @@ Section with_cpp.
     \prepost{q_rhs rhs_v} rhs |-> partial_orderingR q_rhs rhs_v
     \post{result}[Vptr result] result |-> partial_orderingR 1$m (CompOpp <$> rhs_v) ** lhs |-> unspecR q_lhs).
 
+  #[ignore_missing]
   cpp.spec "std::operator>(std::__cmp_cat::__unspec, std::strong_ordering)" as unspec_gt_strong_ordering from source with (
     \arg{lhs} "" (Vptr lhs)
     \arg{rhs} "" (Vptr rhs)
@@ -207,6 +222,7 @@ Section with_cpp.
     \prepost{q_rhs rhs_v} rhs |-> strong_orderingR q_rhs rhs_v
     \post[Vbool (bool_decide (rhs_v = Lt))] lhs |-> unspecR q_lhs).
 
+  #[ignore_missing]
   cpp.spec "std::operator<=>(std::__cmp_cat::__unspec, std::strong_ordering)" as unspec_cmp_strong_ordering from source with (
     \arg{lhs} "" (Vptr lhs)
     \arg{rhs} "" (Vptr rhs)
@@ -214,6 +230,7 @@ Section with_cpp.
     \prepost{q_rhs rhs_v} rhs |-> strong_orderingR q_rhs rhs_v
     \post{result}[Vptr result] result |-> strong_orderingR 1$m (CompOpp rhs_v) ** lhs |-> unspecR q_lhs).
 
+  #[ignore_missing]
   cpp.spec "std::operator<=>(std::__cmp_cat::__unspec, std::weak_ordering)" as unspec_cmp_weak_ordering from source with (
     \arg{lhs} "" (Vptr lhs)
     \arg{rhs} "" (Vptr rhs)
