@@ -114,7 +114,7 @@ Module Type MUTEX_PREDS.
         
         Initializing [this |-> R old 1$m emp] probably depends on the mutex
         implementation. *)
-    Parameter init_R : forall (this : ptr) (old : gname)
+    Axiom init_R : forall (this : ptr) (old : gname)
         (pool : iprop.gname) (P : mpred),
       WeaklyObjective P ->
       this |-> R old 1$m emp ** token old 1$m ** ▷P |--
