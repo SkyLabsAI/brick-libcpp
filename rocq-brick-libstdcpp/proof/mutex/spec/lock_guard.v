@@ -16,10 +16,10 @@ End TO_UPSTREAM.
 Module lock_guard.
 
   sl.lock
-  Definition R `{Σ : cpp_logic, !HasStdThreads Σ} {σ : genv}
-      (mp : ptr * mutex.gname * Qp * cQp.t) (q : cQp.t) (P : mpred) : Rep :=
+  Definition R `{Σ : cpp_logic, !HasStdThreads Σ, !mutex.G Σ} {σ : genv}
+      (mp : ptr * mutex.gname * cQp.t) (q : cQp.t) (P : mpred) : Rep :=
     structR "std::lock_guard<std::mutex>" q **
-    let '(mp, g, q', _) := mp in
+    let '(mp, g, q') := mp in
     _field "std::lock_guard<std::mutex>::_M_device" |-> refR<"std::mutex"> q mp **
     pureR (
       mp |-> mutex.R g (q * q')$m P).
@@ -31,7 +31,7 @@ Module lock_guard.
     Import rep.RepFor.
     Import RepScheme.
 
-    #[global] Instance repfor `{Σ : cpp_logic, !HasStdThreads Σ} {σ : genv} :
+    #[global] Instance repfor `{Σ : cpp_logic, !HasStdThreads Σ, !mutex.G Σ} {σ : genv} :
       rep.RepFor.C "std::lock_guard<std::mutex>"
       [ArgType.Constant _; ArgType.CFrac; ArgType.Constant _]
       R := {}.
@@ -88,32 +88,32 @@ Section with_cpp.
     \this this
     \arg{mp} "m" (Vptr mp)
     \persist{thr} current_thread thr
-    \pre{g q qt P} mp |-> mutex.R g q$m P
-    \pre mutex.not_locked mp g thr qt
+    \pre{g q P} mp |-> mutex.R g q P
+    \pre{qt} mutex.not_locked mp g thr qt
     \post
-      this |-> R (mp, g, q, qt) 1$m P **
+      this |-> R (mp, g, q) 1$m P **
       P ** mutex.locked mp g thr qt
     ).
 
   cpp.spec "std::lock_guard<std::mutex>::~lock_guard()" as dtor_spec from source with (
     \this this
-    \pre{mp g q qt P} this |-> R (mp, g, q, qt) 1$m P
+    \pre{mp g q P} this |-> R (mp, g, q) 1$m P
     \persist{thr} current_thread thr
-    \pre mutex.locked mp g thr qt
+    \pre{qt} mutex.locked mp g thr qt
     \pre ▷P
     \post
       mutex.not_locked mp g thr qt **
-      mp |-> mutex.R g q$m P
+      mp |-> mutex.R g q P
   ).
 
   Section with_prelude.
 
     Import skylabs.auto.cpp.prelude.proof.
 
-    Lemma mutex_borrow mp g P (this : ptr) (q1 q2 : Qp) (qt : cQp.t) :
-      this |-> R (mp, g, (q1 + q2)%Qp, qt) 1$m P |--
+    Lemma mutex_borrow mp g P (this : ptr) (q1 q2 : Qp) :
+      this |-> R (mp, g, ((q1 + q2)$m)%cQp) 1$m P |--
       mp |-> mutex.R g q1$m P **
-      this |-> R (mp, g, q2, qt) 1$m P.
+      this |-> R (mp, g, q2$m)%cQp 1$m P.
     Proof.
       rewrite R.unlock.
       work.
