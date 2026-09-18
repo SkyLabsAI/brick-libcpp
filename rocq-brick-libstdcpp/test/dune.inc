@@ -298,6 +298,17 @@
 )
 (subdir mutex
  (rule
+  (targets double_incr_cpp.v.stderr double_incr_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input double_incr.cpp)
+   (glob_files_rec ../*.hpp))
+  (action
+   (with-stderr-to double_incr_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o double_incr_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps double_incr.cpp))
+)
+(subdir mutex
+ (rule
   (targets guard_recursive_cpp.v.stderr guard_recursive_cpp.v)
   (alias test_ast)
   (deps
