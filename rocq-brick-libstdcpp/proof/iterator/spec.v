@@ -357,9 +357,9 @@ NES.Begin std.
           iApply (observe with "A").
           auto using observe_only_provable_impl, obs_Forall2_big_sepL2. }
         f_equiv; rewrite !only_provable_True // !left_id; f_equiv.
-        rewrite big_sepL2_rangeZ_l -Hrng; last first.
-        { rewrite lengthN_rangeZ. lia. }
-        apply big_sepL_proper => k y.
+        rewrite big_sepL2_rangeZ_l -Hrng only_provable_True; last first.
+        { rewrite lengthN_rangeZ Z2N.id; lia. }
+        rewrite left_id. apply big_sepL_proper => k y.
         rewrite lookup_rangeZ => - [_ ->].
         by rewrite only_provable_True // left_id.
       Qed.
@@ -531,10 +531,11 @@ NES.Begin std.
           rewrite o_sub_sub Hi_len.
           iFrame "#".
           rewrite [ [| i ≤ j |] ] only_provable_True // left_id.
-          rewrite !big_sepL2_rangeZ_l //; last first.
-          { rewrite lengthN_rangeZ. lia. }
-          rewrite 1!big_opL_fmap.
-          rewrite (big_opL_rangeZ vs) //.
+          rewrite !big_sepL2_rangeZ_l 1!big_opL_fmap.
+          rewrite [ [| lengthZ vs = _ |] ]only_provable_True; last lia.
+          rewrite left_id.
+          rewrite (big_opL_rangeZ vs) //. rewrite -bi.sep_assoc.
+          iSplit. { iPureIntro. rewrite lengthN_rangeZ. lia. }
           rewrite -big_opL_op.
           iApply (big_sepL_mono with "SEP") => k x Hx.
           rewrite only_provable_True // left_id.
@@ -551,7 +552,9 @@ NES.Begin std.
           rewrite length_fmap -lengthZ_correct o_sub_sub.
           have -> : i + lengthZ vs = j by lia.
           iFrame "valid".
-          rewrite !big_sepL2_rangeZ_l // !big_opL_fmap.
+          rewrite !big_sepL2_rangeZ_l.
+          rewrite !only_provable_True ?left_id; try lia.
+          rewrite !big_opL_fmap.
           rewrite (big_opL_rangeZ vs) //.
           iCombine "SEP B" as "A".
           rewrite -big_opL_op.
