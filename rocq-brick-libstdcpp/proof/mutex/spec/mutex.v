@@ -125,7 +125,7 @@ Module Type MUTEX_PREDS.
     (** Register a thread by consuming its handle for this mutex's namespace
         and its token share. [my_mutexes_alloc_mutex_name] splits this handle
         from the full namespace pool supplied when the thread is spawned. *)
-    Parameter register_thread : forall
+    Axiom register_thread : forall
         (this : ptr) (g : gname) (q : cQp.t) (P : mpred)
         (th : thread_idT) (qt : cQp.t),
       this |-> R g q P ** token g qt **
