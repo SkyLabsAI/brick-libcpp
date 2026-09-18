@@ -349,6 +349,7 @@ NES.Begin std.
       Proof.
         rewrite /array_spine.
         apply observe_both with (p := is_Some (size_of σ ty)); [> apply _ .. | move => ?].
+        apply observe_both with (p := i ≤ j); [> apply _ .. | move => ?].
         apply observe_both with (p := rangeZ i j = ps); [apply _ | | move => Hrng].
         { rewrite big_sepL2_sep.
           iIntros "(%Hij & _ & _ & A & _)".
@@ -356,7 +357,9 @@ NES.Begin std.
           iApply (observe with "A").
           auto using observe_only_provable_impl, obs_Forall2_big_sepL2. }
         f_equiv; rewrite !only_provable_True // !left_id; f_equiv.
-        rewrite big_sepL2_rangeZ_l -Hrng; apply big_sepL_proper => k y.
+        rewrite big_sepL2_rangeZ_l -Hrng; last first.
+        { rewrite lengthN_rangeZ. lia. }
+        apply big_sepL_proper => k y.
         rewrite lookup_rangeZ => - [_ ->].
         by rewrite only_provable_True // left_id.
       Qed.
@@ -515,6 +518,7 @@ NES.Begin std.
         array_spine q i (rangeZ i j) j **
         [∗ list] p; v ∈ rangeZ i j; vs, deref p |-> R v.
       Proof.
+        apply observe_both with (p := i ≤ j); [> apply _ .. | move => ?].
         rewrite array_sliceR.unlock arrayR_eq/arrayR_def arrR_eq/arrR_def.
         rewrite !(_at_sep,_at_only_provable,_at_offsetR,_at_big_sepL,_at_validR).
         split'.
@@ -527,7 +531,9 @@ NES.Begin std.
           rewrite o_sub_sub Hi_len.
           iFrame "#".
           rewrite [ [| i ≤ j |] ] only_provable_True // left_id.
-          rewrite 2!big_sepL2_rangeZ_l 1!big_opL_fmap.
+          rewrite !big_sepL2_rangeZ_l //; last first.
+          { rewrite lengthN_rangeZ. lia. }
+          rewrite 1!big_opL_fmap.
           rewrite (big_opL_rangeZ vs) //.
           rewrite -big_opL_op.
           iApply (big_sepL_mono with "SEP") => k x Hx.
@@ -545,7 +551,7 @@ NES.Begin std.
           rewrite length_fmap -lengthZ_correct o_sub_sub.
           have -> : i + lengthZ vs = j by lia.
           iFrame "valid".
-          rewrite !big_sepL2_rangeZ_l !big_opL_fmap.
+          rewrite !big_sepL2_rangeZ_l // !big_opL_fmap.
           rewrite (big_opL_rangeZ vs) //.
           iCombine "SEP B" as "A".
           rewrite -big_opL_op.
