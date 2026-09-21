@@ -215,6 +215,18 @@
   	 (with-stderr-to inc_string_cpp.v.stderr (run cpp2v -v %{input} -o inc_string_cpp.v --no-elaborate --templates=inc_string_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_string.cpp))
 )
+(subdir thread
+ (rule
+  (targets inc_hpp.v.stderr inc_hpp.v inc_hpp_templates.v)
+  (alias test_ast)
+  (deps
+   (:input inc.hpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to inc_hpp.v.stderr (run cpp2v -v %{input} -o inc_hpp.v --no-elaborate --templates=inc_hpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps inc.hpp))
+)
 (subdir vector
  (rule
   (targets inc_vector_cpp.v.stderr inc_vector_cpp.v inc_vector_cpp_templates.v)
