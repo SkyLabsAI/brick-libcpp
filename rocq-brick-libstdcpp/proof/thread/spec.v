@@ -18,7 +18,7 @@ Section with_cpp.
   #[global] Hint Opaque R : sl_opacity typeclass_instances.
   #[only(type_ptr="std::thread")] derive R.
   #[global] Declare Instance R_exclusive state (this : ptr) :
-    Exclusive0 (this |-> R state).
+    Exclusive0 (R state).
 
   (** The mutex-set map tracks spawned thread IDs and supplies each child
       with its [MutexSets.my_mutexes] handle. *)
