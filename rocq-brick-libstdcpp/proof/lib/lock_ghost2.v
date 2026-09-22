@@ -167,7 +167,7 @@ End OWNER_TID.
 
 Module MutexSets : MUTEX_SETS.
   Canonical Structure cmraR : cmra :=
-    discrete_funUR (fun _ : thread_idT => coPset_disjR).
+    thread_idT -d> coPset_disjR
 
   Class G `{Σ : cpp_logic} := {
     #[local] has_own :: HasOwn (iPropI _Σ) cmraR;
