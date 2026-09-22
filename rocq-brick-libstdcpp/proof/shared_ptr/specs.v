@@ -154,11 +154,12 @@ Section specs.
     specify.template.dtor spty $
     \this this
     \pre{(null:bool) (p:ptr) (sid: if null then unit else prod CtrlBlockId nat) Rpiece}
-      this |-> (match null as b return (if b then unit else prod CtrlBlockId nat) -> Rep with
+      (* The handle lives at [this]; its outstanding payload piece lives at [p]. *)
+      (match null as b return (if b then unit else prod CtrlBlockId nat) -> mpred with
                 | false => fun sid=>
-                             SharedPtrR sid.1 Rpiece p
-                             ** Rpiece sid.2
-                | true => fun sid=> NullSharedPtrR
+                             this |-> SharedPtrR sid.1 Rpiece p
+                             ** p |-> Rpiece sid.2
+                | true => fun sid=> this |-> NullSharedPtrR
                 end) sid
 
     \post (match null as b return (if b then unit else prod CtrlBlockId nat) -> mpred with
