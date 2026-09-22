@@ -42,7 +42,7 @@ Module Type MUTEX_SETS.
       `{Σ : cpp_logic, !G Σ} γ th E : Objective (my_mutexes γ th E).
 
   Parameter my_mutexes_exclusive : forall `{Σ : cpp_logic, !G Σ} γ th (E1 E2: coPset),
-    E1 ∩ E2 <> ∅ ->
+    ~(E1 ## E2) ->
     my_mutexes γ th (CoPset E1) **
     my_mutexes γ th (CoPset E2) |-- False.
   Parameter alloc_mutex_set_map : forall `{Σ : cpp_logic, !G Σ},
