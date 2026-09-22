@@ -167,7 +167,7 @@ End OWNER_TID.
 
 Module MutexSets : MUTEX_SETS.
   Canonical Structure cmraR : cmra :=
-    thread_idT -d> coPset_disjR
+    thread_idT -d> coPset_disjR.
 
   Class G `{Σ : cpp_logic} := {
     #[local] has_own :: HasOwn (iPropI _Σ) cmraR;
@@ -209,7 +209,7 @@ Module MutexSets : MUTEX_SETS.
     Context `{Σ : cpp_logic, !G Σ}.
 
     Lemma my_mutexes_exclusive γ th (E1 E2 : coPset) :
-      E1 ∩ E2 <> ∅ ->
+      ~(E1 ## E2) ->
       my_mutexes γ th (CoPset E1) **
       my_mutexes γ th (CoPset E2) |-- False.
     Proof.
