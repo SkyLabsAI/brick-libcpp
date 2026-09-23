@@ -39,13 +39,14 @@ Proof using.
   assert (f ** (emp)%I ≡ f) as Heq by (apply right_id; eauto with typeclass_instances).
   rewrite <- Heq at 1.
   f_equiv.
-  rewrite <- big_sepL_emp with (l:=(list_difference l [x])).
+  transitivity ([∗ list] _ ∈ list_difference l [x], (emp : PROP))%I.
+  { symmetry. apply big_sepL_emp. }
   apply big_opL_proper.
   intros  ? id  Hl.
   case_decide;[ | reflexivity].
   subst.
-  apply elem_of_list_lookup_2 in Hl.
-  apply elem_of_list_difference in Hl.
+  apply list_elem_of_lookup_2 in Hl.
+  apply list_elem_of_difference in Hl.
   forward_reason.
   apply False_rect.
   simpl in *.
@@ -62,7 +63,7 @@ Section proofs.
   cpp.spec "testshared1()" as testshared1spec with (
     \pre emp
     \post{p:ptr}[Vptr p] Exists payload sid,
-       p |-> SharedPtrR "int" sid (fun ctid => if bool_decide (ctid=0%nat) then anyR "int" 1 else emp) payload
+       p |-> SharedPtrR "int" 1$m sid (fun ctid => if bool_decide (ctid=0%nat) then anyR "int" 1 else emp) payload
        ** payload |-> intR (cQp.m 1) 1
        ** ([∗ list] ctid ∈ allButFirstPieceId,
               pieceRight sid ctid)
@@ -78,7 +79,7 @@ Section proofs.
   Proof using.
     erewrite  big_opL_proper with (g := fun _ _=> emp).
     2:{ intros ? ? Hl.
-        apply elem_of_list_lookup_2 in Hl.
+        apply list_elem_of_lookup_2 in Hl.
         autorewrite with equiv in Hl.
         resolveDecide lia.
         reflexivity.
@@ -88,11 +89,11 @@ Section proofs.
   Qed.
   
   Opaque NullSharedPtrR.
-  #[global] Instance lll: LearnEq4 SharedPtrR :=
+  #[global] Instance lll: LearnEq5 SharedPtrR :=
     ltac:(solve_learnable).
 
 Set Default Goal Selector "!".  
-  Lemma prf2: verify[module] testshared1spec.
+  Lemma prf2: verify[source] testshared1spec.
   Proof using MOD.
     verify_spec.
     pose proof maxContentionLb.
@@ -136,14 +137,14 @@ Set Default Goal Selector "!".
   cpp.spec "testsharedarr()" as testsharedarrspec with (
     \pre emp
     \post{p:ptr}[Vptr p] Exists payload sid,
-       p |-> SharedPtrR "int[]" sid (fun ctid => if bool_decide (ctid=0%nat) then anyR "int[2]" 1 else emp) payload
+       p |-> SharedPtrR "int[]" 1$m sid (fun ctid => if bool_decide (ctid=0%nat) then anyR "int[2]" 1 else emp) payload
        ** payload |-> arrayR "int" (fun t => intR 1 t) [1;2]%Z
        ** ([∗ list] ctid ∈ allButFirstPieceId,
               pieceRight sid ctid)
       ).
 
   
-  Lemma prf3: (SIZE_MAX = 2^64)%N -> verify[module] testsharedarrspec.
+  Lemma prf3: (SIZE_MAX = 2^64)%N -> verify[source] testsharedarrspec.
   Proof using MOD.
     verify_spec.
     go;[lia|].
@@ -151,7 +152,6 @@ Set Default Goal Selector "!".
       set (Rpiece := r).
     iExists Rpiece.
     go.
-    iExists 2%N.
     simpl.
     eagerUnifyU.
     go.
