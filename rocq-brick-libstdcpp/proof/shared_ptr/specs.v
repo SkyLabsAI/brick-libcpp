@@ -46,6 +46,7 @@ Record CtrlBlockId : Set :=
   {
     pieceRightLocs: list gname; (* each stores a unit. N -> gname may be tricky for constructor proof *)
     dataLoc: ptr;
+    payload_type: type; (* Complete allocation type, including the length of an array. *)
   }.
 
 #[local] Open Scope N_scope.
@@ -88,7 +89,7 @@ Section specs.
     (dataLoc id),, ctrOffset |-> atomic.R "long" 1 (Z.of_N ctrVal)
          ** (if (bool_decide (ctrVal = 0))
               then emp
-              else ownedPtr |-> alloc.tokenR ty 1%Qp
+              else ownedPtr |-> alloc.tokenR (payload_type id) 1%Qp
                     ** ([∗ list] pieceid ∈ allPieceIds,
                       if pieceOut pieceid then pieceRight id pieceid else ownedPtr |-> Rpiece pieceid)).
   
@@ -98,7 +99,8 @@ Section specs.
      piece. In particular, splitting [q] does not create a [pieceRight]. *)
   Definition SharedPtrR (q : cQp.t) (id: CtrlBlockId) (Rpiece : nat -> Rep) (ownedPtr:ptr)  : Rep :=
     structR ("std::shared_ptr".<<Atype ty>>) q
-    ** [| ([∗ list] pieceid ∈ allPieceIds, Rpiece pieceid) |-- anyR ty 1 |]
+    ** [| delete_compat ty (payload_type id) |]
+    ** [| ([∗ list] pieceid ∈ allPieceIds, Rpiece pieceid) |-- anyR (payload_type id) 1 |]
     ** ownedPtrOffset |-> primR (Tptr ty) q (Vptr ownedPtr)
     ** ctrlBlockPtrOffset |-> primR (Tptr (Tnamed ("std::atomic".<<Atype "long">>))) q (Vptr (dataLoc id))
     ** [| ownedPtr<>nullptr |] (* use NullSharedPtr otherwise *)
@@ -144,6 +146,7 @@ Section specs.
     (*           ^^ if anyR is not meaningful for non-scalar types,
                  replace this with wp of default destructor *)
     \post Exists (ctrlBlockId: CtrlBlockId),
+       [| payload_type ctrlBlockId = ty |] **
        this |-> SharedPtrR 1$m ctrlBlockId Rpiece p
          ** ([∗ list] pieceid ∈ allButFirstPieceId, pieceRight ctrlBlockId pieceid)
          (*  ^ the right to create [maxContention-1] more shared_ptr objects on this payload and claim the correponsing Rpiece ownerships at copy construction *)
@@ -277,6 +280,7 @@ Section specs.
     (*           ^^ if anyR is not meaningful for non-scalar types,
                  replace this with wp of default destructor *)
     \post Exists (ctrlBlockId: CtrlBlockId),
+       [| payload_type ctrlBlockId = ty |] **
        this |-> SharedPtrR (Tincomplete_array ety) 1$m ctrlBlockId Rpiece p
          ** ([∗ list] pieceid ∈ allButFirstPieceId, pieceRight ctrlBlockId pieceid)
          (*  ^ the right to create [maxContention-1] more shared_ptr objects on this payload and claim the correponsing Rpiece ownerships at copy construction *)
