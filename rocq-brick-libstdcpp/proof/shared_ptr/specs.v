@@ -19,6 +19,10 @@ Because BRiCk only supports SC atomics, the proof only works as if the stdlib im
 - When calling the copy constructor, the caller's proof has to come up with their pieceid (< maxContention) and give up
 [pieceRight ctrlid pieceid], which they only get back when the newly constructed object is deleted.
 They get [Rpiece pieceid] in return: their piece of the ownership of the payload object.
+The new handle records [pieceid], so its destructor must return that piece.
+Identical fractional payload pieces are still interchangeable; their acquisition
+indices are not. A fractional ghost token inside each handle witnesses that
+its index is outstanding, even when ownership of the handle itself is split.
 The control block id (representing the location of the atomic reference counter) remains the same.
 The proof will atomically increment the counter to take out the Rpiece from the invariant.
 
@@ -42,6 +46,7 @@ Require Import skylabs.cpp.spec.concepts.
 Require Import skylabs.cpp.spec.concepts.experimental.
 Require Import skylabs.brick.libstdcpp.shared_ptr.inc_shared_ptr_cpp.
 Require Import iris.algebra.excl.
+Require Import iris.algebra.frac.
 
 NES.Open std.atomic.
 
@@ -49,6 +54,7 @@ NES.Open std.atomic.
 Record CtrlBlockId : Set :=
   {
     pieceRightLocs: list gname; (* each stores a unit. N -> gname may be tricky for constructor proof *)
+    pieceHandleLocs: list gname; (* Fractional outstanding-index witnesses. *)
     dataLoc: ptr;
     payload_type: type; (* Complete allocation type, including the length of an array. *)
   }.
@@ -73,6 +79,7 @@ Definition countLN {A : Type} (f : A -> bool) (l : list A) : N :=
 Section specs.
   Context `{Σ : cpp_logic, MOD:inc_shared_ptr_cpp.source ⊧ σ}.
   #[local] Existing Instance br.ghost.excl_inG.
+  #[local] Existing Instance br.ghost.frac_inG.
 
   (* The capability may capture persistent destructor specs. [destroy_val]
      already admits an initial fancy update, so callers may cancel payload
@@ -96,22 +103,43 @@ Section specs.
     | Some g => own (A := exclR unitO) g (Excl ())
     | None => emp (* bad argument, pieceid > maxContention *)
     end.
-      
+
+  (* The full token is in the invariant while this index is available, and in
+     the handle while it is outstanding. Unlike [pieceRight], this token must
+     split when a client shares read ownership of the same handle. *)
+  Definition pieceHandle ctrlid (q : Qp) pieceid : mpred :=
+    match nth_error (pieceHandleLocs ctrlid) pieceid with
+    | Some g => own (A := fracR) g q
+    | None => False
+    end.
+
+  #[global] Instance pieceHandle_fractional id i :
+    Fractional (fun q => pieceHandle id q i).
+  Proof.
+    unfold pieceHandle.
+    destruct (nth_error (pieceHandleLocs id) i) as [g |].
+    { intros q1 q2. rewrite <- own_op. reflexivity. }
+    { apply _. }
+  Qed.
 
   Definition sptrInv (id: CtrlBlockId) (Rpiece : nat -> Rep) (ownedPtr:ptr) (pieceOut : nat ->bool) : mpred :=
     let ctrVal := countLN pieceOut allPieceIds in
     (dataLoc id),, ctrOffset |-> atomic.R "long" 1 (Z.of_N ctrVal)
+         ** ([∗ list] pieceid ∈ allPieceIds,
+               if pieceOut pieceid then pieceRight id pieceid
+               else pieceHandle id 1 pieceid)
          ** (if (bool_decide (ctrVal = 0))
               then emp
               else ownedPtr |-> alloc.tokenR (payload_type id) 1%Qp
                     ** ([∗ list] pieceid ∈ allPieceIds,
-                      if pieceOut pieceid then pieceRight id pieceid else ownedPtr |-> Rpiece pieceid)).
+                      if pieceOut pieceid then emp else ownedPtr |-> Rpiece pieceid)).
   
   (** Currently, we assume the control block is just an atomic counter.
       In reality, it is probably a struct. so move the atomicR to some defn ctrlBlockR *)
   (* [q] describes this handle, not the shared control block or a payload
      piece. In particular, splitting [q] does not create a [pieceRight]. *)
-  Definition SharedPtrR (q : cQp.t) (id: CtrlBlockId) (Rpiece : nat -> Rep) (ownedPtr:ptr)  : Rep :=
+  Definition SharedPtrR (q : cQp.t) (id: CtrlBlockId) (pieceid : nat)
+      (Rpiece : nat -> Rep) (ownedPtr:ptr) : Rep :=
     structR ("std::shared_ptr".<<Atype ty>>) q
     ** [| delete_compat ty (payload_type id) |]
     ** pureR (payload_destructible (payload_type id) Rpiece)
@@ -119,6 +147,9 @@ Section specs.
     ** ctrlBlockPtrOffset |-> primR (Tptr (Tnamed ("std::atomic".<<Atype "long">>))) q (Vptr (dataLoc id))
     ** [| ownedPtr<>nullptr |] (* use NullSharedPtr otherwise *)
     ** [| lengthN (pieceRightLocs id) = Npos maxContention |]
+    ** [| lengthN (pieceHandleLocs id) = Npos maxContention |]
+    ** [| (N.of_nat pieceid < Npos maxContention)%N |]
+    ** pureR (pieceHandle id (cQp.frac q) pieceid)
     ** pureR (inv nroot (Exists (pieceOut : nat ->bool), sptrInv id Rpiece ownedPtr pieceOut)).
 
   Definition NullSharedPtrR (q : cQp.t) : Rep :=
@@ -126,11 +157,11 @@ Section specs.
     ** ownedPtrOffset |-> primR (Tptr ty) q (Vptr nullptr)
     ** ctrlBlockPtrOffset |->  primR (Tptr (Tnamed ("std::atomic".<<Atype "long">>))) q (Vptr nullptr).
 
-  #[global] Instance SharedPtrR_fractional id Rpiece p :
-    CFractional (fun q => SharedPtrR q id Rpiece p) := _.
-  #[global] Instance SharedPtrR_as_fractional q id Rpiece p :
-    AsCFractional (SharedPtrR q id Rpiece p)
-      (fun q => SharedPtrR q id Rpiece p) q.
+  #[global] Instance SharedPtrR_fractional id i Rpiece p :
+    CFractional (fun q => SharedPtrR q id i Rpiece p) := _.
+  #[global] Instance SharedPtrR_as_fractional q id i Rpiece p :
+    AsCFractional (SharedPtrR q id i Rpiece p)
+      (fun q => SharedPtrR q id i Rpiece p) q.
   Proof. split; [done | apply _]. Qed.
   #[global] Instance NullSharedPtrR_fractional :
     CFractional NullSharedPtrR := _.
@@ -158,7 +189,7 @@ Section specs.
     \pre payload_destructible ty Rpiece
     \post Exists (ctrlBlockId: CtrlBlockId),
        [| payload_type ctrlBlockId = ty |] **
-       this |-> SharedPtrR 1$m ctrlBlockId Rpiece p
+       this |-> SharedPtrR 1$m ctrlBlockId 0 Rpiece p
          ** ([∗ list] pieceid ∈ allButFirstPieceId, pieceRight ctrlBlockId pieceid)
          (*  ^ the right to create [maxContention-1] more shared_ptr objects on this payload and claim the correponsing Rpiece ownerships at copy construction *)
       ).
@@ -171,9 +202,9 @@ Section specs.
     specify.template.ctor spty [Trv_ref ((Tnamed spty))] $
     \this this
     \arg{other:ptr} "other" (Vptr other)
-    \pre{ctrlBlockId ownedPtr Rpiece} other |-> SharedPtrR 1$m ctrlBlockId Rpiece ownedPtr
+    \pre{ctrlBlockId pieceid ownedPtr Rpiece} other |-> SharedPtrR 1$m ctrlBlockId pieceid Rpiece ownedPtr
     \post other  |-> NullSharedPtrR 1$m
-          ** this |-> SharedPtrR 1$m ctrlBlockId Rpiece ownedPtr.
+          ** this |-> SharedPtrR 1$m ctrlBlockId pieceid Rpiece ownedPtr.
 
   Definition SpecFor_move_ctor := RegisterSpec move_ctor.
   #[global] Existing Instance SpecFor_move_ctor.
@@ -185,7 +216,7 @@ Section specs.
       (* The handle lives at [this]; its outstanding payload piece lives at [p]. *)
       (match null as b return (if b then unit else prod CtrlBlockId nat) -> mpred with
                 | false => fun sid=>
-                             this |-> SharedPtrR 1$m sid.1 Rpiece p
+                             this |-> SharedPtrR 1$m sid.1 sid.2 Rpiece p
                              ** p |-> Rpiece sid.2
                 | true => fun sid=> this |-> NullSharedPtrR 1$m
                 end) sid
@@ -203,11 +234,11 @@ Section specs.
     specify.template.ctor spty [Tref (Tconst (Tnamed spty))] $
     \this this
     \arg{other:ptr} "other" (Vptr other)
-    \prepost{q id p Rpiece} other |-> SharedPtrR q id Rpiece p
+    \prepost{q id source_pieceid p Rpiece} other |-> SharedPtrR q id source_pieceid Rpiece p
     \pre{pieceid} pieceRight id pieceid (* this will be returned by destructor *)
     \pre [| N.of_nat pieceid < Npos maxContention|]%N
     \post
-         p|->Rpiece pieceid ** this  |-> SharedPtrR 1$m id Rpiece p.
+         p|->Rpiece pieceid ** this  |-> SharedPtrR 1$m id pieceid Rpiece p.
                           
   Definition SpecFor_copy_ctor := RegisterSpec copy_ctor.
   #[global] Existing Instance SpecFor_copy_ctor.
@@ -239,7 +270,7 @@ Section specs.
   Definition deref :=
     specify.template.op (SP_acc 0) OOStar function_qualifiers.Nc (Tref ty) [] $
        \this this
-       \prepost{q id p Rpiece} this |-> (upcast_offset 0) |-> SharedPtrR q id Rpiece p
+       \prepost{q id pieceid p Rpiece} this |-> (upcast_offset 0) |-> SharedPtrR q id pieceid Rpiece p
        \post[Vref p] emp.
 
   Definition SpecFor_deref := RegisterSpec deref.
@@ -249,23 +280,23 @@ Section specs.
   Definition arrow :=
     specify.template.op (SP_acc 0) OOArrow function_qualifiers.Nc (Tptr ty) [] $
        \this this
-       \prepost{q id p Rpiece} this |-> (upcast_offset 0) |-> SharedPtrR q id Rpiece p
+       \prepost{q id pieceid p Rpiece} this |-> (upcast_offset 0) |-> SharedPtrR q id pieceid Rpiece p
        \post[Vptr p] emp.
 
   Definition SpecFor_arrow := RegisterSpec arrow.
   #[global] Existing Instance SpecFor_arrow.
   #[global] Hint Opaque arrow : sl_opacity.
   
-  #[global] Instance sharedR_typeptr_observe q id (p:ptr) op Rpiece
-    : Observe (type_ptr (Tnamed ("std::shared_ptr".<<Atype ty>>)) p) (p|->SharedPtrR q id Rpiece op):= _.
+  #[global] Instance sharedR_typeptr_observe q id pieceid (p:ptr) op Rpiece
+    : Observe (type_ptr (Tnamed ("std::shared_ptr".<<Atype ty>>)) p) (p|->SharedPtrR q id pieceid Rpiece op):= _.
   
-  Definition observeSharedTypeF q id t Rpiece op:= @observe_fwd _ _ _ (sharedR_typeptr_observe q id t Rpiece op).
+  Definition observeSharedTypeF q id pieceid t Rpiece op:= @observe_fwd _ _ _ (sharedR_typeptr_observe q id pieceid t Rpiece op).
 
   Definition allPiecesAndObjs Rpiece id (ownedPtr: ptr) (pieceOut: nat->bool) : Rep :=
    ([∗ list] pieceid ∈ allPieceIds,
      if pieceOut pieceid
      then pureR (ownedPtr |-> Rpiece pieceid)
-          ** pureR (Exists (base:ptr), base |->SharedPtrR 1$m id Rpiece ownedPtr)
+          ** pureR (Exists (base:ptr), base |->SharedPtrR 1$m id pieceid Rpiece ownedPtr)
      else pureR (pieceRight id pieceid)).
 
   Lemma redistributePayloadOwnership {Rpieceold Rpiecenew: nat -> Rep} (pieceOut : nat -> bool) id ownedPtr:
@@ -289,7 +320,7 @@ Section specs.
     \pre payload_destructible ty Rpiece
     \post Exists (ctrlBlockId: CtrlBlockId),
        [| payload_type ctrlBlockId = ty |] **
-       this |-> SharedPtrR (Tincomplete_array ety) 1$m ctrlBlockId Rpiece p
+       this |-> SharedPtrR (Tincomplete_array ety) 1$m ctrlBlockId 0 Rpiece p
          ** ([∗ list] pieceid ∈ allButFirstPieceId, pieceRight ctrlBlockId pieceid)
          (*  ^ the right to create [maxContention-1] more shared_ptr objects on this payload and claim the correponsing Rpiece ownerships at copy construction *)
       ).
@@ -301,7 +332,7 @@ Section specs.
     specify.template.op (SP_acc (Tincomplete_array ety) 1) OOSubscript function_qualifiers.Nc (Tref ety) ["long"%cpp_type] $
       \this this
       \arg{index} "index" (Vint index)
-      \prepost{q id p Rpiece} this |-> (upcast_offset (Tincomplete_array ety) 1) |-> SharedPtrR (Tincomplete_array ety ) q id Rpiece p
+      \prepost{q id pieceid p Rpiece} this |-> (upcast_offset (Tincomplete_array ety) 1) |-> SharedPtrR (Tincomplete_array ety ) q id pieceid Rpiece p
       \post[Vref (p.[ety ! index])] emp.
 
   Definition SpecFor_subscript := RegisterSpec subscript.
@@ -319,6 +350,6 @@ Ltac sharedPtrRpieceFromPost :=
   match goal with
     H: context[@PostCondition ?a ?b ?c ?d] |- _
     => match c with
-       | context[SharedPtrR _ _ _ ?rp _ ] => constr:(rp)
+       | context[SharedPtrR _ _ _ _ ?rp _ ] => constr:(rp)
        end                            
   end.

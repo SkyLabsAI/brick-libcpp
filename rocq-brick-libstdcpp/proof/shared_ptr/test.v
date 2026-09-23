@@ -64,7 +64,7 @@ Section proofs.
     \pre emp
     \post{p:ptr}[Vptr p] Exists payload sid,
        [| payload_type sid = "int"%cpp_type |] **
-       p |-> SharedPtrR "int" 1$m sid (fun ctid => if bool_decide (ctid=0%nat) then anyR "int" 1 else emp) payload
+       p |-> SharedPtrR "int" 1$m sid 0 (fun ctid => if bool_decide (ctid=0%nat) then anyR "int" 1 else emp) payload
        ** payload |-> intR (cQp.m 1) 1
        ** ([∗ list] ctid ∈ allButFirstPieceId,
               pieceRight sid ctid)
@@ -90,7 +90,7 @@ Section proofs.
   Qed.
   
   Opaque NullSharedPtrR.
-  #[global] Instance lll: LearnEq5 SharedPtrR :=
+  #[global] Instance lll: LearnEq6 SharedPtrR :=
     ltac:(solve_learnable).
 
 Set Default Goal Selector "!".  
@@ -143,7 +143,7 @@ Set Default Goal Selector "!".
     \pre emp
     \post{p:ptr}[Vptr p] Exists payload sid,
        [| payload_type sid = "int[2]"%cpp_type |] **
-       p |-> SharedPtrR "int[]" 1$m sid (fun ctid => if bool_decide (ctid=0%nat) then anyR "int[2]" 1 else emp) payload
+       p |-> SharedPtrR "int[]" 1$m sid 0 (fun ctid => if bool_decide (ctid=0%nat) then anyR "int[2]" 1 else emp) payload
        ** payload |-> arrayR "int" (fun t => intR 1 t) [1;2]%Z
        ** ([∗ list] ctid ∈ allButFirstPieceId,
               pieceRight sid ctid)

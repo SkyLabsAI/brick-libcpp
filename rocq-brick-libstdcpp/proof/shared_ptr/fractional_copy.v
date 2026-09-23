@@ -26,14 +26,14 @@ Section with_cpp.
   Context `{Sigma : cpp_logic, MOD : source ⊧ σ}.
 
   #[local] Hint Opaque SharedPtrR pieceRight : sl_opacity.
-  #[local] Instance learn_shared : LearnEq5 SharedPtrR :=
+  #[local] Instance learn_shared : LearnEq6 SharedPtrR :=
     ltac:(solve_learnable).
 
   cpp.spec "copy_then_destroy(const std::shared_ptr<int>&)"
     from source as copy_then_destroy_spec with (
       \arg{other : ptr} "source" (Vref other)
-      \prepost{q id p Rpiece}
-        other |-> SharedPtrR "int" q id Rpiece p
+      \prepost{q id source_pieceid p Rpiece}
+        other |-> SharedPtrR "int" q id source_pieceid Rpiece p
       \prepost{pieceid} pieceRight id pieceid
       \pre [| (N.of_nat pieceid < N.pos maxContention)%N |]
       \post emp
