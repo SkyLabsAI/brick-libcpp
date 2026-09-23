@@ -112,13 +112,17 @@ Set Default Goal Selector "!".
     rewrite <- _at_big_sepL.
     unfold allButFirstPieceId.
     rewrite allButFirstEmp. go.
-    provePure.
+    assert (Hdestroy : emp |-- payload_destructible "int" Rpiece).
     {
-      unfold allPieceIds.
+      unfold Rpiece.
+      unfold payload_destructible, allPieceIds.
       rewrite -> seqprefix with (prelen:=1%nat) by lia.
       simpl.
-      rewrite allButFirstEmp. go.
+      setoid_rewrite (allButFirstEmp "int"). go.
+      rewrite destroy_val_wp_destroy_val.
+      go.
     }
+    rewrite <- Hdestroy.
     go.
     normalize_ptrs.
     go.
@@ -166,15 +170,18 @@ Set Default Goal Selector "!".
     rewrite <- _at_big_sepL.
     unfold allButFirstPieceId.
     rewrite allButFirstEmp. go.
-    provePure.
+    assert (Hdestroy : emp |-- payload_destructible "int[2]" Rpiece).
     {
       unfold Rpiece.
-      unfold allPieceIds.
+      unfold payload_destructible, allPieceIds.
       rewrite -> seqprefix with (prelen:=1%nat) by lia.
       simpl.
-      rewrite allButFirstEmp.
+      setoid_rewrite (allButFirstEmp "int[2]").
+      go.
+      rewrite destroy_val_wp_destroy_val.
       go.
     }
+    rewrite <- Hdestroy.
     go.
     normalize_ptrs.
     go.

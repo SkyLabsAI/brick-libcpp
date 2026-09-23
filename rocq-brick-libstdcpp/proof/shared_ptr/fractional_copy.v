@@ -3,6 +3,7 @@
     returns the payload-acquisition token. It assumes the library operations;
     it does not verify libstdc++'s atomic reference-count implementation. *)
 Require Import skylabs.auto.cpp.proof.
+Require Import skylabs.auto.invariants.
 Require Import skylabs.lang.cpp.parser.plugin.cpp2v.
 Require Import skylabs.brick.libstdcpp.shared_ptr.specs.
 
@@ -46,5 +47,27 @@ Section with_cpp.
     go.
     iExists false, p, (id, pieceid), Rpiece.
     go.
+  Qed.
+
+  (* A destruction capability may recover its payload from an invariant.
+     This is the pointwise obligation in [payload_destructible], not a rule
+     turning arbitrary class bytes into a valid destructor precondition. *)
+  Lemma guarded_int_destroy (p : ptr) (gamma : gname) :
+    cinv nroot gamma (p |-> anyR "int" 1$m) ** cinv_own gamma 1
+    |-- destroy_val (genv_tu σ) "int" p emp.
+  Proof using MOD.
+    rewrite <- fupd_destroy_val.
+    eapply cinv_cancel_fwd with (P' := emp).
+    { set_solver. }
+    { go. }
+    {
+      rewrite <- fupd_destroy_val.
+      apply timeless_unlater.
+      { apply _. }
+      etrans.
+      2: { apply fupd_intro. }
+      rewrite destroy_val_wp_destroy_val.
+      go.
+    }
   Qed.
 End with_cpp.

@@ -4,8 +4,12 @@ We cover the following usage:
 - after dynamically allocating a new object (using new or new[]), it is (typicall immediately) passed to the init constructor of shared_ptr (spec in [init_ctor] below). At this time, the caller's proof needs to come up with [Rpiece: nat->Rep], defining how the ownership of this newly allocated object will be split between various shared_ptr objects that refer to it. They pass in all pieces and get back the 0th piece: [Rpiece 0] and tokens [pieceRight ctrlid 1 ... pieceRight ctrlid (maxContention-1)] which the clients can use to later obtain ownership of those [Rpiece]s by calling the copy constructor. The last argument of [pieceRight] is the piece id. The first argument, [ctrlid], identifies a single protection unit (payload object pointer) that is reference counted. "ctrl" comes from the implementation using a dynamically allocated "control block" which has an atomic counter to track how many times the copy constructor has been called minus the number of such objects that have already been destructed.
 [maxContention], chosen by the implementation, would typically be 2^64, to prevent overflow of the reference counter.
 
-To ensure the destructor proof goes through, the init ctor requires [ [∗ list] ctid ∈ allPieceIds, Rpiece ctid) |-- anyR ty 1]. This becomes a part of [SharedPtrR].
-If anyR does not make sense for Tnamed, then it should be replaced with [wp (default_ctor of Tnamed) emp].
+The init constructor requires [payload_destructible]: collecting every payload
+piece must suffice to run the managed object's destruction. This persistent
+capability becomes part of [SharedPtrR]. Unlike a plain entailment to [anyR],
+it allows ghost updates before destruction and accounts for nontrivial member
+destructors. It must be supplied by the constructor's caller, not assumed as
+an unconditional property of arbitrary payload predicates.
 
 The pieces may not always be fractional ownerships of an object (e.g. int). For example, when the shared_ptr protects an array, it is common to have every piece own an index of the array, so that different shared_ptr objects can be used to write to different indices concurrently, e.g. here: https://github.com/category-labs/monad/blob/90f8b796061aeaf78a2943c45eae5303f6ff7900/category/execution/ethereum/execute_block.cpp#L233
 
@@ -70,6 +74,16 @@ Section specs.
   Context `{Σ : cpp_logic, MOD:inc_shared_ptr_cpp.source ⊧ σ}.
   #[local] Existing Instance br.ghost.excl_inG.
 
+  (* The capability may capture persistent destructor specs. [destroy_val]
+     already admits an initial fancy update, so callers may cancel payload
+     invariants before destroying the object. Final release must first close
+     the reference-count invariant, then invoke this capability. The allocation
+     token remains separate for the subsequent deallocation. *)
+  Definition payload_destructible (ty : type) (Rpiece : nat -> Rep) : mpred :=
+    □ (Forall p : ptr,
+      p |-> ([∗ list] pieceid ∈ allPieceIds, Rpiece pieceid) -*
+      destroy_val (genv_tu σ) ty p emp).
+
 
   Section tty. Context (ty:type).
 
@@ -100,7 +114,7 @@ Section specs.
   Definition SharedPtrR (q : cQp.t) (id: CtrlBlockId) (Rpiece : nat -> Rep) (ownedPtr:ptr)  : Rep :=
     structR ("std::shared_ptr".<<Atype ty>>) q
     ** [| delete_compat ty (payload_type id) |]
-    ** [| ([∗ list] pieceid ∈ allPieceIds, Rpiece pieceid) |-- anyR (payload_type id) 1 |]
+    ** pureR (payload_destructible (payload_type id) Rpiece)
     ** ownedPtrOffset |-> primR (Tptr ty) q (Vptr ownedPtr)
     ** ctrlBlockPtrOffset |-> primR (Tptr (Tnamed ("std::atomic".<<Atype "long">>))) q (Vptr (dataLoc id))
     ** [| ownedPtr<>nullptr |] (* use NullSharedPtr otherwise *)
@@ -141,10 +155,7 @@ Section specs.
        We frame away the 0th piece in this spec. A derived spec can be proven where that framing away is not done *)
     \pre p |-> alloc.tokenR ty 1%Qp
     (* ^ gets stored in the invariant. only gets taken out when the count becomes 0, to call delete. at that time the ownership of all other pieces are also taken out from the invariant *)
-    \pre [|([∗ list] pieceid ∈ allPieceIds, Rpiece pieceid)
-             |-- anyR ty 1  |]
-    (*           ^^ if anyR is not meaningful for non-scalar types,
-                 replace this with wp of default destructor *)
+    \pre payload_destructible ty Rpiece
     \post Exists (ctrlBlockId: CtrlBlockId),
        [| payload_type ctrlBlockId = ty |] **
        this |-> SharedPtrR 1$m ctrlBlockId Rpiece p
@@ -275,10 +286,7 @@ Section specs.
     \let{len} ty := Tarray ety len
     \pre p |-> alloc.tokenR ty 1%Qp
     (* ^ gets stored in the invariant. only gets taken out when the count becomes 0, to call delete. at that time the ownership of all other pieces are also taken out from the invariant *)
-    \pre [|([∗ list] pieceid ∈ allPieceIds, Rpiece pieceid)
-             |-- anyR ty 1  |]
-    (*           ^^ if anyR is not meaningful for non-scalar types,
-                 replace this with wp of default destructor *)
+    \pre payload_destructible ty Rpiece
     \post Exists (ctrlBlockId: CtrlBlockId),
        [| payload_type ctrlBlockId = ty |] **
        this |-> SharedPtrR (Tincomplete_array ety) 1$m ctrlBlockId Rpiece p
