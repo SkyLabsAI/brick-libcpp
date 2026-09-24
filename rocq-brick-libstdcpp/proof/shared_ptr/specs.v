@@ -2,7 +2,9 @@
 We do not cover interaction with weak_ptr.
 We cover the following usage:
 - after dynamically allocating a new object (using new or new[]), it is (typicall immediately) passed to the init constructor of shared_ptr (spec in [init_ctor] below). At this time, the caller's proof needs to come up with [Rpiece: nat->Rep], defining how the ownership of this newly allocated object will be split between various shared_ptr objects that refer to it. They pass in all pieces and get back the 0th piece: [Rpiece 0] and tokens [pieceRight ctrlid 1 ... pieceRight ctrlid (maxContention-1)] which the clients can use to later obtain ownership of those [Rpiece]s by calling the copy constructor. The last argument of [pieceRight] is the piece id. The first argument, [ctrlid], identifies a single protection unit (payload object pointer) that is reference counted. "ctrl" comes from the implementation using a dynamically allocated "control block" which has an atomic counter to track how many times the copy constructor has been called minus the number of such objects that have already been destructed.
-[maxContention], chosen by the implementation, would typically be 2^64, to prevent overflow of the reference counter.
+[maxContention] bounds the number of simultaneously live handles to one control
+block. For the supported libstdc++ ABI it is [INT_MAX], not the pointer-sized
+unsigned maximum; see the definition below.
 
 The init constructor requires [payload_destructible]: collecting every payload
 piece must suffice to run the managed object's destruction. This persistent
@@ -60,7 +62,32 @@ Record CtrlBlockId : Set :=
   }.
 
 #[local] Open Scope N_scope.
-Definition maxContention : positive. Proof. Admitted.
+(** libstdc++ stores [_Sp_counted_base::_M_use_count] in [_Atomic_word], an
+    alias of signed [int] on our target. The generated C++ AST records [Tint]
+    for that field. [inc_shared_ptr.cpp] checks that [_Atomic_word] is [int]
+    and has maximum value 2147483647. A 64-bit pointer does not imply a
+    64-bit reference count.
+
+    There are exactly [maxContention] piece indices, including index zero
+    for the initial owner. Consuming an available [pieceRight] before a copy
+    means at most [maxContention - 1] handles were outstanding; incrementing
+    then remains within [INT_MAX]. Destruction returns that index, so the
+    limit concerns simultaneous handles, not the lifetime number of copies.
+
+    The previous admitted lower bound [2^32 <= maxContention] was incompatible
+    with this signed 32-bit count. Fix the capacity instead of merely weakening
+    that lower bound while leaving the actual maximum unconstrained. This is
+    a correction of the assumed library interface, not a proof of libstdc++'s
+    shared-pointer implementation. *)
+(* [Opaque] alone does not block [vm_compute]. Seal the definition so clients
+   cannot accidentally expand [seq 0 (Pos.to_nat maxContention)]. *)
+mlock Definition maxContention : positive := 2147483647%positive.
+
+Lemma maxContentionLb : 2^31 - 1 <= Npos maxContention.
+Proof. rewrite maxContention.unlock. exact (N.le_refl _). Qed.
+
+Lemma maxContention_fits_int : (0 < Z.pos maxContention < 2^31)%Z.
+Proof. rewrite maxContention.unlock. split; reflexivity. Qed.
 
 Definition ctrOffset: offset. Proof. Admitted.
 (** offset of the field storing ownedPtr in any shared_ptr object *)
@@ -68,7 +95,6 @@ Definition ownedPtrOffset: offset. Proof. Admitted.
 (** offset of the field storing ctrlBlock pointer in any shared_ptr object *)
 Definition ctrlBlockPtrOffset: offset. Proof. Admitted. 
 
-Lemma maxContentionLb : 2^32 <= Npos maxContention. Proof. Admitted.
 Definition maxContentionQp := pos_to_Qp maxContention.
 Definition allPieceIds : list nat := (seq 0 (Pos.to_nat maxContention)).
 Definition allButFirstPieceId := (seq 1 (Pos.to_nat maxContention -1 )).
