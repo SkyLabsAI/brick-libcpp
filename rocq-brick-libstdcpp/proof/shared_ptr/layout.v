@@ -132,7 +132,8 @@ Proof.
   rewrite -> complete_type.NMFacts.add_neq_o,
     complete_type.NMFacts.add_neq_o.
   { apply complete_type.NMFacts.add_eq_o, NM.E.eq_refl. }
-  all: intro H; apply NM.eqL in H; discriminate.
+  { intro H. apply NM.eqL in H. discriminate. }
+  { intro H. apply NM.eqL in H. discriminate. }
 Qed.
 
 #[local] Lemma SP_lookup_count ty :
@@ -146,7 +147,9 @@ Proof.
   rewrite -> complete_type.NMFacts.add_neq_o,
     complete_type.NMFacts.add_neq_o, complete_type.NMFacts.add_neq_o.
   { apply complete_type.NMFacts.add_eq_o, NM.E.eq_refl. }
-  all: intro H; apply NM.eqL in H; discriminate.
+  { intro H. apply NM.eqL in H. discriminate. }
+  { intro H. apply NM.eqL in H. discriminate. }
+  { intro H. apply NM.eqL in H. discriminate. }
 Qed.
 
 #[local] Hint Resolve SP_lookup_outer SP_lookup_impl SP_lookup_access
