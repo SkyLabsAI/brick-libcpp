@@ -22,7 +22,7 @@ Definition TT : tele := [tele (_ : Z) (_ : Z)].
 (** Canonical "constructor" for our telescope. *)
 Polymorphic Definition mk (a b : Z) : TT :=
   {| tele_arg_head := a; tele_arg_tail := {| tele_arg_head := b; tele_arg_tail := () |} |}.
-Succeed Definition b := recursive_mutex.Held 0 (mk 0 0).
+Succeed Definition b := std_recursive_mutex.Held 0 (mk 0 0).
 
 (** Proof that [mk] is injective. Doesn't appear to be necessary here. *)
 #[global] Instance mk_inj: Inj2 eq eq eq mk.
@@ -34,31 +34,30 @@ Definition P `{Σ : cpp_logic, σ : genv} (this : ptr) : TT -t> mpred :=
 
 sl.lock
 Definition CR
-    `{Σ : cpp_logic, σ : genv, HasOwn (iPropI _) recursive_mutex.cmraR, !recursive_mutex.lockedG Σ}
-    (γ : recursive_mutex.rmutex_gname) (q : cQp.t) : Rep :=
+    `{Σ : cpp_logic, σ : genv, !std_recursive_mutex.G Σ, !HasStdThreads Σ}
+    (γ : std_recursive_mutex.gname) (q : cQp.t) : Rep :=
   structR "C" q **
-  _field "C::mut" |-> recursive_mutex.derivedR γ q **
   as_Rep (fun this : ptr =>
-    recursive_mutex.inv_rmutex γ (∃ a_b : tele_arg _, tele_app (P this) a_b)).
+    this ,, _field "C::mut" |-> std_recursive_mutex.R γ q
+      (∃ a_b : tele_arg _, tele_app (P this) a_b)).
 
 #[only(cfractional,ascfractional,type_ptr)] derive CR.
 #[only(lazy_unfold)] derive CR.
 
-Section recursive_mutex.
-  Import recursive_mutex.
+Section std_recursive_mutex.
+  Import std_recursive_mutex.
   Context `{Σ : cpp_logic, σ : genv}.
   Context {HAS_THREADS : HasStdThreads Σ}.
-  Context {has_rmutex : HasOwn (iPropI _) recursive_mutex.cmraR}.
-  Context `{!recursive_mutex.lockedG Σ}.
+  Context `{!std_recursive_mutex.G Σ}.
 
   Lemma acquireable_update_equiv {TT : tele} γ th f t1 t2 P :
     acquire t1 t2 ->
     acquireable γ th (update f t1) P ⊣⊢ acquireable γ th (release (TT := TT) (update f t2)) P.
   Proof.
     intros.
-    by erewrite recursive_mutex.update_eq.
+    by erewrite std_recursive_mutex.update_eq.
   Qed.
-End recursive_mutex.
+End std_recursive_mutex.
 
 #[only(fwd(l2r))] derive acquireable_update_equiv.
 #[only(bwd(l2r))] derive acquireable_update_equiv.
@@ -66,8 +65,7 @@ End recursive_mutex.
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
   Context {HAS_THREADS : HasStdThreads Σ}.
-  Context {has_rmutex : HasOwn (iPropI _) recursive_mutex.cmraR}.
-  Context `{!recursive_mutex.lockedG Σ}.
+  Context `{!std_recursive_mutex.G Σ}.
 
   #[global] Instance: LearnEq2 CR'.
   Proof. solve_learnable. Qed.
@@ -76,15 +74,15 @@ Section with_cpp.
     (\this this
      \arg{x} "x" (Vint x)
      \prepost{γ q} this |-> CR γ q
-     \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (P this)
-     \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (trim 64 (a+x)) b) args) (P this)).
+     \pre{args th} std_recursive_mutex.acquireable γ th args (TT:=TT) (P this)
+     \post std_recursive_mutex.acquireable γ th (TT:=TT) (std_recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (trim 64 (a+x)) b) args) (P this)).
 
   cpp.spec "C::update_b(long)" as C_update_b from demo_cpp.source with
     (\this this
      \arg{x} "x" (Vint x)
      \prepost{γ q} this |-> CR γ q
-     \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (P this)
-     \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk a (trim 64 (b + x))) args) (P this)).
+     \pre{args th} std_recursive_mutex.acquireable γ th args (TT:=TT) (P this)
+     \post std_recursive_mutex.acquireable γ th (TT:=TT) (std_recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk a (trim 64 (b + x))) args) (P this)).
 
   #[global] Instance CR_learn : Cbn (Learn (learn_eq ==> any ==> learn_hints.fin) CR).
   Proof. solve_learnable. Qed.
@@ -143,18 +141,22 @@ Section with_cpp.
     (\this this
       \arg{x} "x" (Vint x)
       \prepost{γ q} this |-> CR γ q
-      \pre{args th} recursive_mutex.acquireable γ th args (TT:=TT) (P this)
-      \post recursive_mutex.acquireable γ th (TT:=TT) (recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (trim 64 (a+x)) (trim 64 (b-x))) args) (P this)).
+      \pre{args th} std_recursive_mutex.acquireable γ th args (TT:=TT) (P this)
+      \post std_recursive_mutex.acquireable γ th (TT:=TT) (std_recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (trim 64 (a+x)) (trim 64 (b-x))) args) (P this)).
 
   Lemma transfer_ok : verify[source] "C::transfer(int)".
   Proof.
     verify_spec; go.
     destruct args as [a [b []]]; work.
+    pose (updated := mk (trim 64 (a + x)) (trim 64 (b + (0 - x)))).
+    iExists (std_recursive_mutex.acquireable γ th
+      (std_recursive_mutex.release (std_recursive_mutex.Held n updated)) (P this)), updated, n.
+    go.
   Qed.
 
   Lemma partial_transfer_link :
     denoteModule source ∗
-      recursive_mutex.lock_spec_alt' ∗ recursive_mutex.unlock_spec_alt'
+      std_recursive_mutex.std_lock_spec_alt ∗ std_recursive_mutex.std_unlock_spec_alt
       ⊢ C_transfer_int.
   Proof.
     work.

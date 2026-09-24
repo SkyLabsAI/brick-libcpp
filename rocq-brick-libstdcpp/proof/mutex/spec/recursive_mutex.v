@@ -3,8 +3,6 @@ Require Import iris.algebra.lib.excl_auth.
 
 Require Import skylabs.bi.tls_modalities.
 Require Import skylabs.bi.tls_modalities_rep.
-Require Import skylabs.bi.weakly_objective.
-Require Import skylabs.auto.cpp.weakly_local_with.
 
 Require Import skylabs.auto.cpp.proof.
 Require Import skylabs.brick.libstdcpp.mutex.spec.mutex.
@@ -16,297 +14,22 @@ Require Import skylabs.brick.libstdcpp.mutex.inc_hpp.
 
 Import linearity.
 
-Module recursive_mutex.
+(** * This file contains:
+      - The logical states ([RecursiveMutexState])
+      - An interface of predicates [RECURSIVE_MUTEX_PREDS]
+      - Recursive mutex specs [recursive_mutex_spec]
+      - And specs that are bound to stdlib names [StdRecursiveMutex] *)
 
-  (* Not prodO thread_idTO natO. *)
-  (* A thread that has zero, locked γ th 0 does not even know which thread has non-0. *)
-  Canonical Structure phys_stateUR := authR (optionR (exclR (prodO thread_idTO natO))).
+(** The C++ class a recursive-mutex specification is stated at. *)
+Module Type MutexCPPName.
+  Parameter cpp_ty : type.
+End MutexCPPName.
 
-  (** <<locked γ th n>> <<th>> owns the mutex <<γ>> <<n>> times. *)
-  Class lockedG `{Σ : cpp_logic} := {
-    #[local] has_lock_ghost :: lock_ghost.lockG Σ;
-
-    #[local] has_phys_state :: HasOwn (iPropI _Σ) phys_stateUR;
-    #[local] has_phys_state_upd :: HasOwnUpd (iPropI _Σ) phys_stateUR;
-    #[local] has_phys_state_valid :: HasOwnValid (iPropI _Σ) phys_stateUR;
-    #[local] has_phys_state_unit :: HasOwnUnit mpredI phys_stateUR;
-  }.
-  #[global] Arguments lockedG {_ _} Σ : assert.
-
-  Record gname : Set := MkGname
-  { owned_count_id : iprop.gname;
-    locked_gname : iprop.gname;
-    inv_gname : iprop.gname;
-  }.
-
-  (** [owned_count_id_auth γ Some (th, n)] implies that the lock's count is [n + 1]. *)
-  sl.lock
-  Definition owned_count_id_auth `{Σ : cpp_logic, !lockedG Σ}
-    (γ : gname) (om : option (thread_idT * natO)) : mpred :=
-    own γ.(owned_count_id) (● (option_map Excl om)).
-  #[only(timeless)] derive owned_count_id_auth.
-
-  (** [owned_count_id_frag γ Some (th, n)] implies that the lock's count is [n + 1]. *)
-  sl.lock
-  Definition owned_count_id_frag `{Σ : cpp_logic, !lockedG Σ}
-    (γ : gname) (om : option (thread_idT * natO)) : mpred :=
-    own γ.(owned_count_id) (◯ (option_map Excl om)).
-  #[only(timeless)] derive owned_count_id_frag.
-
-  #[local] Open Scope nat_scope.
-
-  (** [locked γ th n] implies that the lock's count is [n]: see [used_threads]'s
-  definition and [owned_count_id_auth]'s informal contract. *)
-  sl.lock
-  Definition locked `{Σ : cpp_logic, !lockedG Σ}
-      (γ : gname) (th : thread_idT) (n : nat) : mpred :=
-    user γ.(locked_gname) th **
-    match n with
-    | 0 => owned_count_id_frag γ None
-    | S n => owned_count_id_frag γ (Some (th, n))
-    end.
-  #[only(timeless)] derive locked.
-
-  (* TODO: we should abstract this over the ownership that is produced and
-     then it can be used more generally. *)
-  sl.lock
-  Definition used_threads
-    `{Σ : cpp_logic, !lockedG Σ, !HasStdThreads Σ}
-    (γ : gname) (s : gset thread_idT) : mpred :=
-    lock_ghost.used_threads γ.(locked_gname) s.
-  #[only(timeless)] derive used_threads.
-
-  Section locked_with_cpp.
-    Context `{Σ : cpp_logic}.
-    Context `{!lockedG Σ}.
-    Context `{!HasStdThreads Σ}.
-
-    Lemma use_thread th g s :
-      th ∉ s ->
-      used_threads g s |--
-      (|==> used_threads g (s ∪ {[ th ]}) ** locked g th 0).
-    Proof.
-      rewrite used_threads.unlock locked.unlock owned_count_id_frag.unlock /=.
-      iIntros (Hni) "A".
-      iMod (lock_ghost.login with "A") as "[$ $]"; first done.
-      iApply own_unit.
-    Qed.
-
-    Lemma logout th g s :
-      th ∉ s ->
-      used_threads g (s ∪ {[ th ]}) ** locked g th 0 |--
-        (|==> used_threads g s ** owned_count_id_frag g None).
-    Proof.
-      rewrite used_threads.unlock locked.unlock.
-      iIntros (Hni) "(? & ? & $)".
-      iApply lock_ghost.logout; first done.
-      work.
-    Qed.
-
-    #[global] Instance owned_count_id_frag_WeaklyObjective γ om :
-      WeaklyObjective (PROP := iPropI _) (owned_count_id_frag γ om).
-    Proof. rewrite owned_count_id_frag.unlock. apply _. Qed.
-
-    #[global] Instance
-      locked_WeaklyObjective γ thr n :
-      WeaklyObjective (PROP := iPropI _) (locked γ thr n).
-    Proof. rewrite locked.unlock. apply _. Qed.
-
-    Lemma locked_excl_same_thread g th n m :
-      locked g th n ** locked g th m |-- False.
-    Proof.
-      rewrite locked.unlock.
-      work.
-      iDestruct (user_unique with "[$]") as "[]".
-    Qed.
-
-    Lemma locked_excl_different_thread g th th' n m :
-      locked g th n ** locked g th' m |-- [| n = 0 \/ m = 0 |] ** True.
-    Proof.
-      destruct (decide (th = th')) as [->|Hne]. {
-        rewrite locked_excl_same_thread. work.
-      }
-      rewrite locked.unlock.
-      iIntros "[[_ A] [_ B]]".
-      destruct n, m; try auto. iExFalso.
-      rewrite owned_count_id_frag.unlock.
-      iDestruct (own_valid_2 with "A B") as %HV; exfalso.
-      rewrite -auth_frag_op auth_frag_valid in HV.
-      done.
-    Qed.
-
-  End locked_with_cpp.
-
-(**
-Underlying pthread implementation for [PTHREAD_MUTEX_RECURSIVE_NP] case:
-
-  <<
-  /* Check whether we already hold the mutex.  */
-  if (mutex->__data.__owner == id)
-	{
-	  /* Just bump the counter.  */
-	  if (__glibc_unlikely (mutex->__data.__count + 1 == 0))
-	    /* Overflow of the counter.  */
-	    return EAGAIN;
-
-	  ++mutex->__data.__count;
-
-	  return 0;
-	}
-  (* LLL_MUTEX_LOCK_OPTIMIZED (mutex); *)
-  LLL_MUTEX_LOCK (mutex);
-  >>
-
-Informally, we can read mutex->__data.__owner atomically, and we know that
-mutex->__data.__owner == id if and only if our thread has completed locking the
-recursive mutex; hence, mutex->__data.__owner != id means that nobody is
-touching the mutex or other threads are operating on it, but at no point will they set __owner to our ID.
-
-Hence:
-1. [if (mutex->__data.__owner == id)], we can get obtain sequential ownership of
-mutex->__data.__count, and of the underlying resources, and complete the lock operation.
-2. else, we can attempt to grab the underlying non-recursive lock, and be sure we
-  won't deadlock against ourselves.
-
-Formalizing step 1 seems nontrivial, but relatively routine.
-But the full pthread implementation would add annoying details.
-
-The right invariant might resemble the following, but significant details are TBD.
-[[
-cinv (
-  \exists x,
-  mutex->__data.__owner |-> x **
-  if bool_decide (x <> 0) then
-    (sequential ownership of count ** ownership of data protected by the lock) \/
-    some exclusive token (* needed to take the sequential out *)
-  else
-    emp
-  )
-]]
-*)
-  (* the mask of recursive_mutex *)
-  Definition mask := nroot .@@ "std" .@@ "recursive_mutex" .@@ "mask".
-
-  (** We base the implementation protocol on
-  https://github.com/bminor/glibc/blob/04e750e75b73957cf1c791535a3f4319534a52fc/nptl/pthread_mutex_lock.c#L90-L112.
-
-  official mirror:
-  https://sourceware.org/git/?p=glibc.git;a=blob;f=nptl/pthread_mutex_lock.c;h=a697f2b6ca8dfa9e4557ab3f44b87bc5ceeec014;hb=HEAD#l90
-  TODO: revise.
-  *)
-
-  (* NOTE: Invariant used to protect resource [r]
-
-      [[
-      inv (r \\// exists th n, locked th (S n))
-      ]]
-   *)
-
-
-  (** Intended meaning: ownership of physical C++ state for an instance of "std::recursive_mutex". *)
-  Parameter rawR : ∀ `{Σ : cpp_logic, σ : genv}, option thread_idT -> nat -> Rep.
-  (* The thread_idT is None (0) if there is no owner. *)
-  #[only(type_ptr="std::recursive_mutex")] derive rawR.
-
-  Definition rmutex_N : namespace :=
-    nroot .@@ "std" .@@ "recursive_mutex" .@ "raw_inv".
-
-  (* recursive mutex -- ownership of the class. *)
-  sl.lock
-  Definition I `{Σ : cpp_logic, σ : genv, !lockedG Σ} (γ : gname) : Rep :=
-    type_ptrR "std::recursive_mutex" **
-    cinv rmutex_N γ.(inv_gname) (∃ owner count, rawR owner count **
-      (* We use [Nat.pred] because [owned_count_id_auth] stores [counter - 1]. *)
-      pureR (owned_count_id_auth γ ((λ t, (t, Nat.pred count)) <$> owner))).
-  (* TODO: readd [|owner = None <-> count = O|] elsewhere, as sequential invariant in [R]. *)
-  #[only(knowledge,type_ptr="std::recursive_mutex")] derive I.
-
-  sl.lock
-  Definition R `{Σ : cpp_logic, σ : genv, !lockedG Σ} (γ : gname) (q : cQp.t) : Rep :=
-    type_ptrR "std::recursive_mutex" **
-    (* TODO: add here sequential ownership of the lock, and maybe replace I by the lock invariant.
-    Something like *)
-    (* _mutex_field |-> mutex.R q ... ** *)
-    pureR (cinv_own γ.(inv_gname) q).
-  #[only(cfracsplittable,type_ptr="std::recursive_mutex")] derive R.
-
-
-  Section base_construction.
-    Context `{Σ : cpp_logic} `{MOD : source ⊧ σ}.
-    Context {HAS_THREADS : HasStdThreads Σ}.
-    Context `{!lockedG Σ}.
-
-    #[global] Instance I_learn : Cbn (Learn (learn_eq ==> learn_hints.fin) I).
-    Proof. solve_learnable. Qed.
-    #[global] Instance R_learn : Cbn (Learn (learn_eq ==> any ==> learn_hints.fin) R).
-    Proof. solve_learnable. Qed.
-
-    cpp.spec "std::recursive_mutex::recursive_mutex()" as ctor_spec with
-      (\this this
-      \post Exists g, this |-> R g 1$m ** used_threads g empty).
-
-    cpp.spec "std::recursive_mutex::~recursive_mutex()" as dtor_spec with
-      (\this this
-      \pre{g} this |-> R g 1$m
-      \pre used_threads g empty
-      \post emp).
-
-    cpp.spec "std::recursive_mutex::lock()" as lock_spec with
-      (\this this
-        \prepost{q g} this |-> R g q (* part of both pre and post *)
-        \persist{th} current_thread th
-        \pre{Q} AC << ∀ n , locked g th n >> @ top \ ↑ mask , empty
-                    << locked g th (S n) , COMM Q >>
-        \post Q).
-
-    cpp.spec "std::recursive_mutex::unlock()" as unlock_spec with
-      (\this this
-        \prepost{q g} this |-> R g q (* part of both pre and post *)
-        \persist{th} current_thread th
-        \pre{Q} AC << ∀ n , locked g th (S n) >> @ top \ ↑ mask , empty
-                    << locked g th n , COMM Q >>
-        \post Q).
-
-  End base_construction.
-
-
-  (** * Derived construction *)
-  Record rmutex_gname :=
-    { lock_gname : gname
-    ; level_gname : iprop.gname
-    ; cinv_gname : iprop.gname
-    }.
-  Definition rmutex_namespace := nroot .@@ "std" .@@ "recursive_mutex" .@@ "derived".
-
-  Canonical Structure cmraR := (excl_authR (prodO natO thread_idTO)).
-
-  sl.lock
-  Definition inv_rmutex
-      `{Σ : cpp_logic} `{!lockedG Σ} `{!HasOwn (iPropI _) cmraR}
-      (g : rmutex_gname) (P : mpred) : mpred :=
-    cinv rmutex_namespace g.(cinv_gname)
-      (Exists n th, own g.(level_gname) (●E (n, th)) **
-        match n with
-        | 0 => P ** own g.(level_gname) (◯E (n, th))
-        | S n => locked g.(lock_gname) th (S n)
-        end).
-  #[only(knowledge)] derive inv_rmutex.
-
-  (** Fractional ownership of the physical recursive mutex and of the
-   cancellable invariant that protects the custom resource P.
-   The two fractions do not have to be the same, we just choose to make them
-   equal for convenience.
-  *)
-  sl.lock
-  Definition derivedR
-      `{Σ : cpp_logic, σ : genv, !lockedG Σ}
-      (g : rmutex_gname) (q : cQp.t) : Rep :=
-    R g.(lock_gname) q **
-    pureR (cinv_own g.(cinv_gname) q).
-  #[only(cfracsplittable,type_ptr="std::recursive_mutex")] derive derivedR.
-
-  (** [acquire_state] tracks the acquisition state of a recursive_mutex.
-   *)
+(** Logical state of the recursive mutex.
+    A recursive mutex starts in NotHeld, lock increment the held count,
+    and unlock decrements it:
+      NotHeld <-> Held 0 _ <-> Held 1 _ <-> ... *)
+Module RecursiveMutexState.
   Inductive acquire_state {TT : tele} : Type :=
   | NotHeld                (* not held *)
   | Held (n : nat) (xs : TT) (* acquired [n + 1] times with quantifiers [xs] *).
@@ -341,343 +64,348 @@ cinv (
         end
     end.
 
-  sl.lock
-  Definition acquireable
-      `{Σ : cpp_logic, !lockedG Σ, !HasStdThreads Σ, !HasOwn (iPropI _) cmraR}
-      (g : rmutex_gname) (th : thread_idT) {TT: tele} (t : acquire_state TT)
-      (P : TT -t> mpred) : mpred :=
-    current_thread th **
-    match t with
-    | NotHeld => locked g.(lock_gname) th 0
-    | Held n args => own g.(level_gname) (◯E (S n, th)) ** tele_app P args
+  Lemma is_held {TT : tele} {t1 t2 : acquire_state TT} :
+    acquire t1 t2 ->
+    ∃ n xs, t2 = Held n xs /\ t1 = release t2.
+  Proof.
+    rewrite acquire.unlock release.unlock.
+    intros. destruct t1; simpl in H; eauto.
+    - exists 0. naive_solver.
+    - exists (S n). naive_solver.
+  Qed.
+
+  Definition update {TT : tele} (f : TT -t> TT)
+      (x : acquire_state TT) : acquire_state TT :=
+    match x with
+    | NotHeld => NotHeld
+    | Held n xs => Held n (tele_app f xs)
     end.
 
+  Lemma update_eq {TT : tele} f t1 t2 : acquire t1 t2 ->
+      update f t1 = release (TT := TT) (update f t2).
+  Proof.
+    by intros ([|] & ? & -> & ->)%is_held; rewrite !release.unlock.
+  Qed.
+End RecursiveMutexState.
+
+(** Predicates of a recursive_mutex. *)
+Module Type RECURSIVE_MUTEX_PREDS (T : MutexCPPName).
+  Include RecursiveMutexState.
+  Definition cpp_ty : type := T.cpp_ty.
+  Parameter gname : Set.
+  Parameter G : forall `{Σ : cpp_logic}, Type.
+  Existing Class G.
+  #[global] Arguments G {_ _} Σ : assert.
+
+  Parameter used_threads : forall `{Σ : cpp_logic, !G Σ}
+    {HAS_THREADS : HasStdThreads Σ}, gname -> gset thread_idT -> mpred.
+  Parameter held_token : forall `{Σ : cpp_logic, !G Σ},
+    gname -> thread_idT -> nat -> mpred.
+  (* [acquireable γ th s P] contains an acquire state [s] and, if the acquire
+     state is held, the resource P. *)
+  Parameter acquireable : forall `{Σ : cpp_logic, !G Σ}
+    {HAS_THREADS : HasStdThreads Σ}, gname -> thread_idT ->
+    forall {TT : tele}, acquire_state TT -> (TT -t> mpred) -> mpred.
+  (* abstract predicate of owership of a recursive mutex that protects some
+     resource [P], e.g. in the form of [inv _ P]. Note that it only represents
+     the mutex data structure, not the ownership of [P]. *)
+  Parameter R : forall `{Σ : cpp_logic, !G Σ}
+    {HAS_THREADS : HasStdThreads Σ} {σ : genv},
+    gname -> cQp.t -> mpred -> Rep.
+  #[global] Hint Opaque used_threads held_token acquireable R : sl_opacity typeclass_instances.
+
   Section with_cpp.
-    Context `{Σ : cpp_logic}.
-
-    Context `{!HasOwn (iPropI _) cmraR, !HasStdThreads Σ}.
-    Context `{!lockedG Σ}.
-
-    #[global] Instance acquireable_learn γ th TT : LearnEq2 (acquireable γ th (TT := TT)).
-    Proof. solve_learnable. Qed.
-
-    #[global] Instance acquireable_current_thread :
-      `{Observe (current_thread th) (acquireable g th (TT := TT) t P)}.
-    Proof. rewrite acquireable.unlock; apply _. Qed.
-
-    Lemma use_thread_acquirable {TT} th g m P :
-      th ∉ m ->
-      current_thread th ** used_threads g.(lock_gname) m |-- (|==>
-      used_threads g.(lock_gname) (m ∪ {[ th ]}) ** acquireable (TT := TT) g th NotHeld P).
-    Proof.
-      rewrite acquireable.unlock /=.
-      work.
-      wapply use_thread; first done.
-      work with br_erefl.
-      iModIntro; work.
-    Qed.
-  End with_cpp.
-
-  Section with_cpp.
-    Context `{Σ : cpp_logic} `{MOD : source ⊧ σ}.
+    Context `{Σ : cpp_logic, !G Σ}.
     Context {HAS_THREADS : HasStdThreads Σ}.
-    Context `{!lockedG Σ}.
-    Context `{!HasOwn (iPropI _) cmraR}.
 
-    (* Alternative style:
-       <<
-       R γ q r ** locked γ th (S n) |--| R γ q r ** r ** was_locked γ th (S n)
-       >>
+    #[global] Declare Instance held_token_timeless g th n :
+      Timeless (held_token g th n).
+    #[global] Declare Instance acquireable_current_thread :
+      `{Observe (current_thread th) (acquireable g th (TT := TT) t P)}.
 
-       possible solution: two specs/choice in the spec for unlock: either
-       <<{locked γ th (n+1)} unlock() {locked γ th n}>>
-       or
-       <<{was_locked γ th (n+2)} unlock() {locked γ th (n+1)}>>
-    *)
+    Axiom acquireable_Held : forall g th {TT : tele} n (xs : TT) P,
+      acquireable g th (Held n xs) P ⊣⊢
+        current_thread th ** held_token g th n ** tele_app P xs.
 
-    (* TODO make this into a hint *)
-    Lemma is_held {TT : tele} {t1 t2 : acquire_state TT} :
-      acquire t1 t2 ->
-      ∃ n xs, t2 = Held n xs /\
-        t1 = release t2.
-    Proof.
-      rewrite acquire.unlock release.unlock.
-      intros.
-      destruct t1; simpl in H; eauto.
-      - exists 0. naive_solver.
-      - exists (S n). naive_solver.
-    Qed.
+    Axiom use_thread_acquirable : forall {TT : tele} th g m P,
+      th ∉ m ->
+      current_thread th ** used_threads g m |-- (|==>
+        used_threads g (m ∪ {[th]}) ** acquireable (TT := TT) g th NotHeld P).
 
-    #[program]
-    Definition acquireable_is_acquired_C {TT} g th t t' P
-        (_ : acquire (TT := TT) t t') :=
-      \cancelx
-      \consuming acquireable g th t' P
-      \deduce{args} tele_app P args
-      \deduce{n} [| t' = Held n args /\ t = release t' |]
-      \deduce own g.(level_gname) (◯E (S n, th))
-      \end.
-    Next Obligation.
-      intros * (? & ? & -> & ->)%is_held.
-      rewrite acquireable.unlock.
-      ego.
-    Qed.
+    Axiom logout_acquirable : forall {TT : tele} th g m P,
+      th ∉ m ->
+      used_threads g (m ∪ {[th]}) ** acquireable (TT := TT) g th NotHeld P |--
+        (|==> used_threads g m).
 
-    #[program]
-    Definition acquireable_acquireable_C γ :=
-      \cancelx
-      \consuming{th n TT args P} acquireable (TT := TT) γ th (Held n args) P
-      \bound P'
-      \bound_existential th' args'
-      \proving acquireable γ th' args' P'
-      \instantiate th' := th
-      \instantiate args' := Held n args
-      \deduce tele_app P args
-      \through tele_app P' args
-      \end.
-    Next Obligation. rewrite acquireable.unlock; work. Qed.
+    Context {σ : genv}.
+    #[only(cfractional,cfracvalid,ascfractional)] derive R.
+    #[global] Declare Instance R_type_ptr g q P : Observe (type_ptrR cpp_ty) (R g q P).
+  End with_cpp.
+End RECURSIVE_MUTEX_PREDS.
 
-    #[program]
-    Definition own_P_is_acquireable_C {TT} g n P :=
-      \cancelx
-      \preserving{th} current_thread th
-      \consuming own g.(level_gname) (◯E (S n, th))
-      \bound n' args
-      \proving acquireable (TT := TT) g th (Held n' args) P
-      \through tele_app P args
-      \through [| n' = n |]
-      \end.
-    Next Obligation. rewrite acquireable.unlock; work. Qed.
+(** Non-atomic specifications and their automation use only the public rules. *)
+Module recursive_mutex_spec (T : MutexCPPName) (Preds : RECURSIVE_MUTEX_PREDS T).
+  Import Preds.
+  Section with_cpp.
+    Context `{Σ : cpp_logic, !G Σ}.
+    Context {HAS_THREADS : HasStdThreads Σ}.
+    Context {σ : genv}.
 
-    #[global] Instance : `{Learnable
-      (current_thread th)
-      (acquireable (TT := TT0) γ th0 args P0)
-      [th0 = th] }.
-    Proof. solve_learnable. Qed.
-
-    #[global] Instance learn_inv_rmutex_γ : `{Learnable
-      (inv_rmutex γ1 P1)
-      (inv_rmutex γ2 P2)
-      [γ2 = γ1] }.
-    Proof. solve_learnable. Qed.
-
-    #[global] Instance learn_inv_rmutex_TT : `{Learnable
-      (inv_rmutex γ (∃ xs : tele_arg TT1, tele_app P1 xs))
-      (inv_rmutex γ (∃ xs : tele_arg TT2, tele_app P2 xs))
-      [TT2 = TT1] }.
-    Proof. solve_learnable. Qed.
-
-    #[global] Instance learn_inv_rmutex_P TT : `{Learnable
-      (inv_rmutex γ1 (∃ xs : tele_arg TT, tele_app P1 xs))
-      (inv_rmutex γ2 (∃ xs : tele_arg TT, tele_app P2 xs))
-      [P2 = P1] }.
-    Proof. solve_learnable. Qed.
-
-    #[global] Instance learn_args
-      {TT: tele} (t : acquire_state TT) (P : TT -t> mpred) :
-      `{Learnable
-      (tele_app P args ** own (level_gname γ) (◯E (S n, th)))
-      (acquireable γ th t P)
-      [t = Held n args] }.
-    Proof. solve_learnable. Qed.
-
-    Definition update {TT : tele} (f : TT -t> TT)
-      (x : acquire_state TT) : acquire_state TT :=
-      match x with
-      | NotHeld => NotHeld
-      | Held n xs => Held n (tele_app f xs)
-      end.
-
-    Lemma update_eq {TT : tele} f t1 t2 : acquire t1 t2 ->
-        update f t1 = release (TT := TT) (update f t2).
-    Proof.
-      by intros ([|] & ? & -> & ->)%is_held; rewrite !release.unlock.
-    Qed.
-
-    (* this is the usable pre-condition *)
-    cpp.spec "std::recursive_mutex::recursive_mutex()" as ctor_spec' with
+    Definition ctor_spec : ptr -> WpSpec mpred val val :=
       (\this this
-      \persist{th} current_thread th
-      \pre{TT P xs} |> tele_app (TT := TT) P xs
-      \require ∀ xs, WeaklyObjective (tele_app P xs)
-      \post
-        Exists g,
-          this |-> derivedR g 1$m **
-          used_threads g.(lock_gname) empty **
-          inv_rmutex g (∃ xs, tele_app P xs)).
+       \persist{th} current_thread th
+       \pre{TT P xs} |> tele_app (TT := TT) P xs
+       \require ∀ xs, Objective (tele_app P xs)
+       \post Exists g,
+         this |-> R g 1$m (∃ xs, tele_app P xs) ** used_threads g empty).
 
-    cpp.spec "std::recursive_mutex::~recursive_mutex()" as dtor_spec' with
+    Definition dtor_spec : ptr -> WpSpec mpred val val :=
       (\this this
-      \pre{g} this |-> derivedR g 1
-      \pre used_threads g.(lock_gname) empty
-      \pre{TT P} inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
-      \post |> (Exists xs, tele_app (TT := TT) P xs)).
+       \pre{g TT P} this |-> R g 1 (∃ xs, tele_app (TT := TT) P xs)
+       \pre used_threads g empty
+       \post |> (Exists xs, tele_app (TT := TT) P xs)).
 
-    cpp.spec "std::recursive_mutex::lock()" as lock_spec' with
+    Definition lock_spec : ptr -> WpSpec mpred val val :=
       (\this this
-      \persist{g TT P} inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
-      \prepost{q} this |-> derivedR g q
-      \pre{th n} acquireable g th n P
-      \post (Exists n', [| acquire n n' |] ** ▷ acquireable g th n' P)).
-    (* to prove: this is derivable from lock_spec *)
+       \prepost{g TT P q} this |-> R g q (∃ xs, tele_app (TT := TT) P xs)
+       \pre{th n} acquireable g th n P
+       \post Exists n', [| acquire n n' |] ** ▷ acquireable g th n' P).
 
-    cpp.spec "std::recursive_mutex::unlock()" as unlock_spec' with
+    Definition unlock_spec : ptr -> WpSpec mpred val val :=
       (\this this
-      \persist{g TT P} inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
-      \prepost{q} this |-> derivedR g q
-      \pre{th n args} acquireable g th (Held n args) P
-      \post acquireable g th (release $ Held n args) P).
+       \prepost{g TT P q} this |-> R g q (∃ xs, tele_app (TT := TT) P xs)
+       \pre{th n args} acquireable g th (Held n args) P
+       \post acquireable g th (release $ Held n args) P).
 
-    Definition do_lock g K : mpred := ∃ TT P th n,
-      inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
-      ** acquireable g th n P
-      ** (
-        (* TODO readd *)
-        (* ▷ *)
-        (Exists n', [| acquire n n' |] ** ▷ acquireable g th n' P) -*
-        K).
+    Definition do_lock (lk : gname * mpred) (K : mpred) : mpred :=
+      ∃ TT P th n,
+        [| lk.2 = (∃ xs, tele_app (TT := TT) P xs)%I |] **
+        acquireable lk.1 th n P **
+        ((* TODO readd *)
+         (* ▷ *)
+          (Exists n', [| acquire n n' |] ** ▷ acquireable lk.1 th n' P) -* K).
     #[global] Arguments do_lock /.
 
-    Definition do_unlock g K : mpred := ∃ TT P th n args,
-      inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
-      ** acquireable g th (Held n args) P
-      ** (
-        (* TODO readd *)
+    Definition do_unlock (lk : gname * mpred) (K : mpred) : mpred :=
+      ∃ TT P th n args,
+        [| lk.2 = (∃ xs, tele_app (TT := TT) P xs)%I |] **
+        acquireable lk.1 th (Held n args) P **
+        ((* TODO readd *)
         (* ▷ *)
-        acquireable g th (release $ Held n args) P -*
-        K).
+        acquireable lk.1 th (release $ Held n args) P -* K).
     #[global] Arguments do_unlock /.
 
     #[global] Instance recursive_mutex_basic_lockable : BasicLockable
-      (T:=rmutex_gname) "std::recursive_mutex" (λ q g, derivedR g q) :=
-    { do_lock := fun this => do_lock
-    ; do_unlock := fun this => do_unlock }.
+      (T := gname * mpred) cpp_ty (fun q gP => R gP.1 q gP.2) :=
+      { do_lock := fun this => do_lock
+      ; do_unlock := fun this => do_unlock }.
 
-    cpp.spec "std::recursive_mutex::lock()" as lock_spec_alt' with
-    (\exact Reduce (lock_basic_lockable "std::recursive_mutex" (λ q g, derivedR g q))).
+    Definition lock_spec_alt : ptr -> WpSpec mpred val val :=
+      lock_basic_lockable cpp_ty (fun q gP => R gP.1 q gP.2).
+    Definition unlock_spec_alt : ptr -> WpSpec mpred val val :=
+      unlock_basic_lockable cpp_ty (fun q gP => R gP.1 q gP.2).
 
-    cpp.spec "std::recursive_mutex::unlock()" as unlock_spec_alt' with
-    (\exact Reduce (unlock_basic_lockable "std::recursive_mutex" (λ q g, derivedR g q))).
-
-    Lemma lock_spec'_equiv_lock_spec_alt' :
-      lock_spec' -|- lock_spec_alt'.
-    Proof. iSplit; iApply specify_mono; ework with br_erefl. Qed.
-
-    Lemma unlock_spec'_equiv_unlock_spec_alt' :
-      unlock_spec' -|- unlock_spec_alt'.
-    Proof. iSplit; iApply specify_mono; ework with br_erefl. Qed.
-
-    Definition acquireable_current_thread_F :=
-      ltac:(mk_obs_fwd acquireable_current_thread).
-    #[local] Hint Resolve acquireable_current_thread_F : br_hints.
-
-    (* TODO AUTO *)
-    #[global] Instance later_acquireable_learn γ th TT :
-      LearnEq2 (fun a b => bi_later (acquireable γ th (TT := TT) a b)).
-    Proof. solve_learnable. Qed.
-
-    Import linearity.
-
-    Context `{HOV : !HasOwnValid mpredI cmraR, HOU : !HasOwnUpd mpredI cmraR}.
-
-    Lemma ctor_spec_impl_ctor_spec' :
-      ctor_spec |-- ctor_spec'.
-    Proof using MOD HOV HOU.
-      apply specify_mono_fupd; work.
-      iModIntro; work.
-      rewrite /acquireable /=.
-      iMod (own_alloc (●E (O, th) ⋅ ◯E (O, th))) as (g) "(? & ?)".
-      { apply excl_auth_valid. }
-      wname [used_threads] "u".
-      wname [_ |-> _ _ _] "a".
-      iMod (cinv_alloc with "[-u a]") as (ginv) "(#Hinv & Hown)"; last first.
-      - iExists {| lock_gname := t; level_gname := g; cinv_gname:= ginv |}.
-        rewrite derivedR.unlock inv_rmutex.unlock /=.
-        iModIntro.
-        go with br_erefl $usenamed=true.
-      - ework with br_erefl.
-      - apply _.
+    Lemma lock_spec_equiv_lock_spec_alt this xs K :
+      lock_spec this xs K ⊣⊢ lock_spec_alt this xs K.
+    Proof.
+      unfold lock_spec, lock_spec_alt, lock_basic_lockable, do_lock.
+      cbn. iSplit.
+      - iIntros "H". iDestruct "H" as (g TT P q th n)
+          "(%Hxs & HR & HA & HK)".
+        iExists q, (g, (∃ xs, tele_app P xs)%I),
+          (Exists n', [| acquire n n' |] ** ▷ acquireable g th n' P)%I.
+        iFrame "HR HK". iSplit; first done.
+        iExists TT, P, th, n. iFrame "HA".
+        iSplit; first done. iIntros "$".
+      - iIntros "H". iDestruct "H" as (q [g J] K')
+          "(%Hxs & HR & Hdo & HK)".
+        iDestruct "Hdo" as (TT P th n) "(%Heq & HA & Hcont)".
+        simpl in *. subst J.
+        iExists g, TT, P, q, th, n. iFrame "HR HA".
+        iSplit; first done. iIntros "[HR Hac]".
+        iApply "HK". iFrame "HR". iApply "Hcont". iExact "Hac".
     Qed.
 
-    Lemma dtor_spec_impl_dtor_spec' :
-      dtor_spec |-- dtor_spec'.
-    Proof using MOD HOV HOU.
-      apply specify_mono_fupd; work.
-      rewrite derivedR.unlock inv_rmutex.unlock.
-      work.
-      iMod (cinv_cancel with "[$] [$]") as (n th) "(>? & ?)"; [done..|].
-
-      destruct n as [|n'] eqn:?; work; first last.
-      {
-        rewrite locked.unlock used_threads.unlock.
-        wapply used_threads_empty_no_not_locked; work with br_erefl.
-      }
-      iModIntro. work. iModIntro. ego with br_erefl.
-      (* _now_ we just need to leak ghost state and that's okay *)
-      wname [cinv] "I"; wname [own] "L1"; wname [own] "L2"; iCombine "L1 L2" as "L".
-      iApply (affine with "L"). apply mpred_BiAffine.
+    Lemma unlock_spec_equiv_unlock_spec_alt this xs K :
+      unlock_spec this xs K ⊣⊢ unlock_spec_alt this xs K.
+    Proof.
+      unfold unlock_spec, unlock_spec_alt, unlock_basic_lockable, do_unlock.
+      cbn. iSplit.
+      - iIntros "H". iDestruct "H" as (g TT P q th n args)
+          "(%Hxs & HR & HA & HK)".
+        iExists q, (g, (∃ xs, tele_app P xs)%I),
+          (acquireable g th (release $ Held n args) P).
+        iFrame "HR HK". iSplit; first done.
+        iExists TT, P, th, n, args. iFrame "HA".
+        iSplit; first done. iIntros "$".
+      - iIntros "H". iDestruct "H" as (q [g J] K')
+          "(%Hxs & HR & Hdo & HK)".
+        iDestruct "Hdo" as (TT P th n args) "(%Heq & HA & Hcont)".
+        simpl in *. subst J.
+        iExists g, TT, P, q, th, n, args. iFrame "HR HA".
+        iSplit; first done. iIntros "[HR Hac]".
+        iApply "HK". iFrame "HR". iApply "Hcont". iExact "Hac".
     Qed.
 
-    Lemma lock_spec_impl_lock_spec' :
-      lock_spec |-- lock_spec'.
-    Proof using MOD HOV HOU.
-      apply specify_mono; rewrite derivedR.unlock; work.
-      iExists q, (cinv_own g.(cinv_gname) q **
-        (∃ t, [| acquire n t |] ∗ ▷ acquireable g th t P))%I.
-      wname [bi_wand] "W"; wfocus (bi_wand _ _) "W". { work $usenamed=true. }
-      rewrite inv_rmutex.unlock acquireable.unlock.
-      work; iAcIntro; rewrite /commit_acc/=; work.
-      iInv rmutex_namespace as "[(%n' & %th' & >Hn & Hcases) ?]" "Hclose".
-      destruct n as [|n args]; simpl; [iExists 0 | iExists (S n)]; work.
-      2: iDestruct (own_valid_2 with "Hn [$]") as %[=]%excl_auth_agree_L; subst.
-      all: work $usenamed=true; iApply fupd_mask_intro; first set_solver;
-        iIntros "Hclose'"; work; iMod "Hclose'" as "_".
-      - destruct n'; first last. {
-          iMod "Hcases".
-          iDestruct (locked_excl_different_thread with "[$]") as (?) "?".
-          exfalso. lia.
-        }
-        rewrite bi.later_sep bi.later_exist_except_0.
-        iDestruct "Hcases" as "(>(%args & ?) & >Hcase)".
-        iMod (own_update_2 with "Hn Hcase") as "(Hg & ?)";
-          first apply (excl_auth_update _ _ (1, th)).
-        wname [recursive_mutex.locked _ th _] "Hlocked";
-          iMod ("Hclose" with "[$Hg $Hlocked //]") as "_"; iModIntro.
-        iExists (Held 0 args). work.
-      - iMod (own_update_2 with "Hn [$]") as "(Hg & ?)";
-          first apply (excl_auth_update _ _ (S (S n), th)).
-        wname [recursive_mutex.locked _ th _] "Hlocked";
-          iMod ("Hclose" with "[$Hg $Hlocked //]") as "_"; iModIntro.
-        iExists (Held (S n) args). work.
-    Qed.
+    Section proof_automation.
+      #[global] Instance R_learn :
+        Cbn (Learn (learn_eq ==> any ==> learn_eq ==> learn_hints.fin) R).
+      Proof. solve_learnable. Qed.
+      (** Recover the resource telescope before matching its arguments. *)
+      #[global] Instance R_learn_TT : `{Learnable
+        (R g q1 (∃ xs : tele_arg TT1, tele_app P1 xs))
+        (R g q2 (∃ xs : tele_arg TT2, tele_app P2 xs))
+        [TT2 = TT1] }.
+      Proof. solve_learnable. Qed.
 
-    Lemma unlock_spec_impl_unlock_spec' :
-      unlock_spec |-- unlock_spec'.
-    Proof using MOD HOV HOU.
-      apply specify_mono; rewrite derivedR.unlock; work.
-      iExists q, (cinv_own g.(cinv_gname) q **
-        acquireable g th (release $ Held n args) P)%I.
-      wname [bi_wand] "W"; wfocus (bi_wand _ _) "W". { work $usenamed=true. }
-      rewrite inv_rmutex.unlock acquireable.unlock.
-      work; iAcIntro; rewrite /commit_acc/=; work.
-      iInv rmutex_namespace as "[(%n' & %th' & >Hn & Hcases) ?]" "Hclose".
-      iDestruct (own_valid_2 with "Hn [$]") as %[=]%excl_auth_agree_L; subst.
-      iMod "Hcases".
-      iApply fupd_mask_intro; first set_solver; iIntros "Hclose'".
-      iExists n; work $usenamed=true.
-      iMod "Hclose'" as "_".
-      iMod (own_update_2 with "Hn [$]") as "(Hg & Hcase)";
-        first apply (excl_auth_update _ _ (n, th)).
-      rewrite release.unlock; destruct n; iFrame "#∗".
-      all: iMod ("Hclose" with "[-]") as "_";
-        ework $usenamed=true with br_erefl; done.
-    Qed.
+      #[global] Instance R_learn_P TT : `{Learnable
+        (R g q1 (∃ xs : tele_arg TT, tele_app P1 xs))
+        (R g q2 (∃ xs : tele_arg TT, tele_app P2 xs))
+        [P2 = P1] }.
+      Proof. solve_learnable. Qed.
 
+      (** The mutex representation remembers the resource after clients open it. *)
+      #[global] Instance R_acquireable_learn_TT (this : ptr) : `{Learnable
+        (this |-> R g q (∃ xs : tele_arg TT1, tele_app P1 xs))
+        (acquireable g th (TT := TT2) t P2)
+        [TT2 = TT1] }.
+      Proof. solve_learnable. Qed.
+
+      #[global] Instance R_acquireable_learn_P TT (this : ptr) : `{Learnable
+        (this |-> R g q (∃ xs : tele_arg TT, tele_app P1 xs))
+        (acquireable g th (TT := TT) t P2)
+        [P2 = P1] }.
+      Proof. solve_learnable. Qed.
+
+      #[global] Instance acquireable_learn_TT : `{Learnable
+        (acquireable g th (TT := TT1) t1 P1)
+        (acquireable g th (TT := TT2) t2 P2)
+        [TT2 = TT1] }.
+      Proof. solve_learnable. Qed.
+
+      #[global] Instance acquireable_learn γ th TT :
+        LearnEq2 (acquireable γ th (TT := TT)).
+      Proof. solve_learnable. Qed.
+      #[global] Instance held_token_learn γ th : LearnEq1 (held_token γ th).
+      Proof. solve_learnable. Qed.
+      #[global] Instance later_acquireable_learn γ th TT :
+        LearnEq2 (fun a b => bi_later (acquireable γ th (TT := TT) a b)).
+      Proof. solve_learnable. Qed.
+
+      #[global] Instance : `{Learnable
+        (current_thread th)
+        (acquireable (TT := TT0) γ th0 args P0)
+        [th0 = th] }.
+      Proof. solve_learnable. Qed.
+
+      #[global] Instance learn_args
+        {TT : tele} (t : acquire_state TT) (P : TT -t> mpred) :
+        `{Learnable
+          (tele_app P args ** held_token γ th n)
+          (acquireable γ th t P)
+          [t = Held n args] }.
+      Proof. solve_learnable. Qed.
+
+      Definition acquireable_current_thread_F :=
+        ltac:(mk_obs_fwd acquireable_current_thread).
+
+      #[program]
+      Definition acquireable_is_acquired_C {TT} g th t t' P
+          (_ : acquire (TT := TT) t t') :=
+        \cancelx
+        \consuming acquireable g th t' P
+        \deduce{args} tele_app P args
+        \deduce{n} [| t' = Held n args /\ t = release t' |]
+        \deduce held_token g th n
+        \end.
+      Next Obligation.
+        intros * (? & ? & -> & ->)%is_held.
+        rewrite acquireable_Held. ego.
+      Qed.
+
+      #[program]
+      Definition acquireable_acquireable_C γ :=
+        \cancelx
+        \consuming{th n TT args P} acquireable (TT := TT) γ th (Held n args) P
+        \bound P'
+        \bound_existential th' args'
+        \proving acquireable γ th' args' P'
+        \instantiate th' := th
+        \instantiate args' := Held n args
+        \deduce tele_app P args
+        \through tele_app P' args
+        \end.
+      Next Obligation. intros. rewrite acquireable_Held; work; rewrite acquireable_Held; work. Qed.
+
+      #[program]
+      Definition own_P_is_acquireable_C {TT} g n P :=
+        \cancelx
+        \preserving{th} current_thread th
+        \consuming held_token g th n
+        \bound n' args
+        \proving acquireable (TT := TT) g th (Held n' args) P
+        \through tele_app P args
+        \through [| n' = n |]
+        \end.
+      Next Obligation.
+        intros. iIntros "[#Hth Htoken]" (n' args) "[HP %Heq]".
+        subst n'. rewrite acquireable_Held. iFrame "#∗".
+      Qed.
+    End proof_automation.
   End with_cpp.
 
-  #[global] Hint Resolve acquireable_acquireable_C : br_hints.
-  #[global] Hint Resolve acquireable_is_acquired_C : br_hints.
-  #[global] Hint Resolve own_P_is_acquireable_C : br_hints.
-  #[global] Hint Resolve acquireable_current_thread_F : br_hints.
+  #[global] Hint Resolve acquireable_acquireable_C acquireable_is_acquired_C
+    own_P_is_acquireable_C acquireable_current_thread_F : br_hints.
+End recursive_mutex_spec.
 
-End recursive_mutex.
+Module StdRecursiveMutexName.
+  Definition cpp_ty : type := "std::recursive_mutex"%cpp_type.
+  #[global] Hint Opaque cpp_ty : sl_opacity.
+  Definition cpp_N : bs := "std::recursive_mutex".
+End StdRecursiveMutexName.
+
+
+(** Bind the reusable specifications to std::recursive_mutex names, but with 
+    a parametrized RECURSIVE_MUTEX_PREDS. *)
+Module StdRecursiveMutex
+    (Preds : RECURSIVE_MUTEX_PREDS StdRecursiveMutexName).
+  Include Preds.
+  #[global] Hint Opaque cpp_ty : sl_opacity.
+  Module Spec := recursive_mutex_spec StdRecursiveMutexName Preds.
+  Include Spec.
+
+  Section with_cpp.
+    Context `{Σ : cpp_logic, !G Σ}.
+    Context {HAS_THREADS : HasStdThreads Σ}.
+    Context `{MOD : source ⊧ σ}.
+
+    cpp.spec "std::recursive_mutex::recursive_mutex()" as std_ctor_spec with
+      (\exact Reduce Spec.ctor_spec).
+    cpp.spec "std::recursive_mutex::~recursive_mutex()" as std_dtor_spec with
+      (\exact Reduce Spec.dtor_spec).
+    cpp.spec "std::recursive_mutex::lock()" as std_lock_spec with
+      (\exact Reduce Spec.lock_spec).
+    cpp.spec "std::recursive_mutex::unlock()" as std_unlock_spec with
+      (\exact Reduce Spec.unlock_spec).
+    cpp.spec "std::recursive_mutex::lock()" as std_lock_spec_alt with
+      (\exact Reduce Spec.lock_spec_alt).
+    cpp.spec "std::recursive_mutex::unlock()" as std_unlock_spec_alt with
+      (\exact Reduce Spec.unlock_spec_alt).
+
+    Lemma std_lock_spec_equiv_std_lock_spec_alt : std_lock_spec -|- std_lock_spec_alt.
+    Proof.
+      iSplit; iApply specify_mono; intros this xs K;
+        rewrite Spec.lock_spec_equiv_lock_spec_alt; done.
+    Qed.
+    Lemma std_unlock_spec_equiv_std_unlock_spec_alt : std_unlock_spec -|- std_unlock_spec_alt.
+    Proof.
+      iSplit; iApply specify_mono; intros this xs K;
+        rewrite Spec.unlock_spec_equiv_unlock_spec_alt; done.
+    Qed.
+  End with_cpp.
+End StdRecursiveMutex.
+
+(* export a recursive_mutex module bound to StdRecursiveMutexName but
+   RECURSIVE_MUTEX_PREDS is still abstract.*)
+Declare Module StdRecursiveMutexPreds : RECURSIVE_MUTEX_PREDS StdRecursiveMutexName.
+Module std_recursive_mutex := StdRecursiveMutex StdRecursiveMutexPreds.
