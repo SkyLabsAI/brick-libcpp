@@ -47,11 +47,15 @@ Require Import skylabs.brick.libstdcpp.new.hints.
 Require Import skylabs.cpp.spec.concepts.
 Require Import skylabs.cpp.spec.concepts.experimental.
 Require Import skylabs.brick.libstdcpp.shared_ptr.inc_shared_ptr_cpp.
+Require Export skylabs.brick.libstdcpp.shared_ptr.layout.
 Require Import iris.algebra.excl.
 Require Import iris.algebra.frac.
 
 NES.Open std.atomic.
 
+(* Preserve the names previously defined in this module. *)
+Abbreviation SP_impl := layout.SP_impl.
+Abbreviation SP_acc := layout.SP_acc.
 
 Record CtrlBlockId : Set :=
   {
@@ -90,10 +94,6 @@ Lemma maxContention_fits_int : (0 < Z.pos maxContention < 2^31)%Z.
 Proof. rewrite maxContention.unlock. split; reflexivity. Qed.
 
 Definition ctrOffset: offset. Proof. Admitted.
-(** offset of the field storing ownedPtr in any shared_ptr object *)
-Definition ownedPtrOffset: offset. Proof. Admitted. 
-(** offset of the field storing ctrlBlock pointer in any shared_ptr object *)
-Definition ctrlBlockPtrOffset: offset. Proof. Admitted. 
 
 Definition maxContentionQp := pos_to_Qp maxContention.
 Definition allPieceIds : list nat := (seq 0 (Pos.to_nat maxContention)).
@@ -160,17 +160,15 @@ Section specs.
                     ** ([∗ list] pieceid ∈ allPieceIds,
                       if pieceOut pieceid then emp else ownedPtr |-> Rpiece pieceid)).
   
-  (** Currently, we assume the control block is just an atomic counter.
-      In reality, it is probably a struct. so move the atomicR to some defn ctrlBlockR *)
+  (** The control-block model above remains abstract. [SharedPtrHandleR]
+      describes the complete handle, not the object its [_M_pi] points to. *)
   (* [q] describes this handle, not the shared control block or a payload
      piece. In particular, splitting [q] does not create a [pieceRight]. *)
   Definition SharedPtrR (q : cQp.t) (id: CtrlBlockId) (pieceid : nat)
       (Rpiece : nat -> Rep) (ownedPtr:ptr) : Rep :=
-    structR ("std::shared_ptr".<<Atype ty>>) q
+    SharedPtrHandleR ty q ownedPtr (dataLoc id)
     ** [| delete_compat ty (payload_type id) |]
     ** pureR (payload_destructible (payload_type id) Rpiece)
-    ** ownedPtrOffset |-> primR (Tptr ty) q (Vptr ownedPtr)
-    ** ctrlBlockPtrOffset |-> primR (Tptr (Tnamed ("std::atomic".<<Atype "long">>))) q (Vptr (dataLoc id))
     ** [| ownedPtr<>nullptr |] (* use NullSharedPtr otherwise *)
     ** [| lengthN (pieceRightLocs id) = Npos maxContention |]
     ** [| lengthN (pieceHandleLocs id) = Npos maxContention |]
@@ -179,9 +177,7 @@ Section specs.
     ** pureR (inv nroot (Exists (pieceOut : nat ->bool), sptrInv id Rpiece ownedPtr pieceOut)).
 
   Definition NullSharedPtrR (q : cQp.t) : Rep :=
-    structR ("std::shared_ptr".<<Atype ty>>) q
-    ** ownedPtrOffset |-> primR (Tptr ty) q (Vptr nullptr)
-    ** ctrlBlockPtrOffset |->  primR (Tptr (Tnamed ("std::atomic".<<Atype "long">>))) q (Vptr nullptr).
+    SharedPtrHandleR ty q nullptr nullptr.
 
   #[global] Instance SharedPtrR_fractional id i Rpiece p :
     CFractional (fun q => SharedPtrR q id i Rpiece p) := _.
@@ -194,6 +190,27 @@ Section specs.
   #[global] Instance NullSharedPtrR_as_fractional q :
     AsCFractional (NullSharedPtrR q) NullSharedPtrR q.
   Proof. split; [done | apply _]. Qed.
+
+  #[local] Definition SharedPtrHandleR_const_C :=
+    [CANCEL] SharedPtrHandleR_const.
+  #[local] Hint Opaque pieceHandle payload_destructible sptrInv : sl_opacity.
+
+  Lemma SharedPtrR_const id pieceid Rpiece ownedPtr :
+    const.CONST (shared_ptr_const_tu ty) (Tnamed (SP_name ty))
+      (fun q => SharedPtrR q id pieceid Rpiece ownedPtr).
+  Proof.
+    const.prove.
+    unfold SharedPtrR.
+    go using SharedPtrHandleR_const_C.
+  Qed.
+
+  Lemma NullSharedPtrR_const :
+    const.CONST (shared_ptr_const_tu ty) (Tnamed (SP_name ty))
+      NullSharedPtrR.
+  Proof. apply SharedPtrHandleR_const. Qed.
+
+  Definition SharedPtrR_const_C := [CANCEL] SharedPtrR_const.
+  Definition NullSharedPtrR_const_C := [CANCEL] NullSharedPtrR_const.
 
 
   Definition init_ctor :=
@@ -279,22 +296,12 @@ Section specs.
     \post this  |-> NullSharedPtrR 1$m.
                
 
-  Definition SP_acc (mid: Z) := ("std::__shared_ptr_access" .<< 
-                           Atype ty,
-                           Avalue (Eint 2 "enum __gnu_cxx::_Lock_policy"),
-                           Avalue (Eint mid "bool"),
-                           Avalue (Eint 0 "bool") >>)%cpp_name.
-
-  Definition SP_impl := ("std::__shared_ptr" .<< 
-                           Atype ty,
-                           Avalue (Eint 2 "enum __gnu_cxx::_Lock_policy") >>)%cpp_name.
-
   (** Reconstruct the most-derived object pointer from the base-subobject "this". *)
   Definition upcast_offset (mid: Z) : offset :=
-    (o_derived σ (SP_acc mid) SP_impl ,, o_derived σ SP_impl spty).
+    (o_derived σ (SP_acc ty mid) (SP_impl ty) ,, o_derived σ (SP_impl ty) spty).
 
   Definition deref :=
-    specify.template.op (SP_acc 0) OOStar function_qualifiers.Nc (Tref ty) [] $
+    specify.template.op (SP_acc ty 0) OOStar function_qualifiers.Nc (Tref ty) [] $
        \this this
        \prepost{q id pieceid p Rpiece} this |-> (upcast_offset 0) |-> SharedPtrR q id pieceid Rpiece p
        \post[Vref p] emp.
@@ -304,7 +311,7 @@ Section specs.
   #[global] Hint Opaque deref : sl_opacity.
 
   Definition arrow :=
-    specify.template.op (SP_acc 0) OOArrow function_qualifiers.Nc (Tptr ty) [] $
+    specify.template.op (SP_acc ty 0) OOArrow function_qualifiers.Nc (Tptr ty) [] $
        \this this
        \prepost{q id pieceid p Rpiece} this |-> (upcast_offset 0) |-> SharedPtrR q id pieceid Rpiece p
        \post[Vptr p] emp.
@@ -370,6 +377,8 @@ Section specs.
     : sl_opacity.
 
 End specs.
+#[global] Hint Opaque SharedPtrR NullSharedPtrR : sl_opacity.
+#[global] Hint Resolve SharedPtrR_const_C NullSharedPtrR_const_C : sl_opacity.
 #[global]
   Hint Resolve observeSharedTypeF : sl_opacity.
 Ltac sharedPtrRpieceFromPost :=
