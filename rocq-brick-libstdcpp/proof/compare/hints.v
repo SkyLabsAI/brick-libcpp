@@ -56,6 +56,8 @@ Section with_cpp.
   Section with_resolve.
     Variables (tu : translation_unit) (ρ : region).
 
+    Variable (Hsubmod : sub_module inc_compare_cpp.source tu).
+
     #[local] Abbreviation wp_init := (wp_init tu ρ).
     #[local] Abbreviation wp_operand := (wp_operand tu ρ).
     #[local] Open Scope free_scope.
@@ -149,7 +151,12 @@ Section with_cpp.
         (* XXX [(1 >*> 1) >*>] is unfortunate temporary noise *)
         (Q ((1 >*> 1) >*> free)))
     |-- wp_init ty addr (Ebinop Bcmp e1 e2 ty) Q.
-    Proof.
+    Proof using Hsubmod.
+      have ?: invoke.CheckCtorCallOf tu std.compare.strong_ordering_copy_ctor
+        by apply: (invoke.sub_module_preserve_CheckCtorCall Hsubmod).
+      have ?: invoke.CheckCtorCallOf tu std.compare.partial_ordering_copy_ctor
+        by apply: (invoke.sub_module_preserve_CheckCtorCall Hsubmod).
+
       rewrite /cmp_expected_cls !RedEq_eq_iff; intros ?? Htype.
       clear Htype. (* actual typechecking's trivial. *)
       rewrite -wp_init_binop_spaceship /=; last congruence.
