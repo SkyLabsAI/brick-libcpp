@@ -130,6 +130,8 @@ Section specs.
     | None => emp (* bad argument, pieceid > maxContention *)
     end.
 
+  #[global] Hint Opaque pieceRight : sl_opacity.
+
   (* The full token is in the invariant while this index is available, and in
      the handle while it is outstanding. Unlike [pieceRight], this token must
      split when a client shares read ownership of the same handle. *)
