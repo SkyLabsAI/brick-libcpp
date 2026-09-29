@@ -366,13 +366,13 @@ Module RecursiveMutexPreds (T : MutexCPPName) <: RECURSIVE_MUTEX_PREDS T.
   Proof. rewrite /token /at_specs.token. apply _. Qed.
   #[global] Hint Opaque token : sl_opacity typeclass_instances.
 
-  Definition held_token `{Σ : cpp_logic, !G Σ}
+  Definition given_token `{Σ : cpp_logic, !G Σ}
       (g : gname) (qt : cQp.t) (th : thread_idT) (n : nat) : mpred :=
     own g.(level_gname) (◯E (S n, th, qt)).
-  #[global] Hint Opaque held_token : sl_opacity typeclass_instances.
-  #[global] Instance held_token_timeless `{Σ : cpp_logic, !G Σ} g qt th n :
-    Timeless (held_token g qt th n).
-  Proof. rewrite /held_token. apply _. Qed.
+  #[global] Hint Opaque given_token : sl_opacity typeclass_instances.
+  #[global] Instance given_token_timeless `{Σ : cpp_logic, !G Σ} g qt th n :
+    Timeless (given_token g qt th n).
+  Proof. rewrite /given_token. apply _. Qed.
 
   Definition acquireable `{Σ : cpp_logic, !G Σ, !HasStdThreads Σ}
       (g : gname) (qt : cQp.t) (th : thread_idT) {TT : tele} (t : acquire_state TT)
@@ -381,7 +381,7 @@ Module RecursiveMutexPreds (T : MutexCPPName) <: RECURSIVE_MUTEX_PREDS T.
     match t with
     | NotHeld => token g qt ** MutexSets.my_mutexes (pool_name g) th
         (CoPset $ ↑rmutex_inv_namespace g)
-    | Held n args => held_token g qt th n ** tele_app P args
+    | Held n args => given_token g qt th n ** tele_app P args
     end.
 
   #[global] Hint Opaque acquireable : sl_opacity typeclass_instances.
@@ -393,29 +393,20 @@ Module RecursiveMutexPreds (T : MutexCPPName) <: RECURSIVE_MUTEX_PREDS T.
       `{Observe (current_thread th) (acquireable g qt th (TT := TT) t P)}.
     Proof. rewrite /acquireable; apply _. Qed.
 
-    (** Registration consumes a token share and the namespace permission split
-        from the thread's pool. Unregistering returns both resources. *)
     Lemma register_thread (g : gname) (qt : cQp.t) (th : thread_idT)
         {TT : tele} (P : TT -t> mpred) :
       current_thread th ** token g qt **
-      MutexSets.my_mutexes (pool_name g) th (CoPset $ ↑rmutex_inv_namespace g) |--
+      MutexSets.my_mutexes (pool_name g) th (CoPset $ ↑rmutex_inv_namespace g) ⊣⊢
       acquireable g qt th NotHeld P.
-    Proof. by rewrite /acquireable. Qed.
-
-    Lemma unregister_thread (g : gname) (qt : cQp.t) (th : thread_idT)
-        {TT : tele} (P : TT -t> mpred) :
-      acquireable g qt th NotHeld P |--
-      current_thread th ** token g qt **
-      MutexSets.my_mutexes (pool_name g) th (CoPset $ ↑rmutex_inv_namespace g).
     Proof. by rewrite /acquireable. Qed.
 
     Context {σ : genv}.
 
     Lemma locked_contradict_full_token (this : ptr) g q qt th n P :
-      this |-> R g q P ** token g 1$m ** held_token g qt th n |--
+      this |-> R g q P ** token g 1$m ** given_token g qt th n |--
       (|={⊤}=> False).
     Proof.
-      rewrite /R /token /held_token !_at_sep !_at_pureR inv_rmutex.unlock.
+      rewrite /R /token /given_token !_at_sep !_at_pureR inv_rmutex.unlock.
       iIntros "((HR & Hown & #Hinv) & Htoken & Hheld)".
       iInv rmutex_namespace as "[(%n' & %th' & %qt' & >Hauth & Hcase) Hown]".
       iDestruct (own_valid_2 with "Hauth Hheld") as %[=]%excl_auth_agree_L; subst.
@@ -454,7 +445,7 @@ Section with_cpp.
       current_thread th **
       match s with
       | NotHeld => at_specs.locked g.(lock_gname) qt th 0
-      | Held n xs => held_token g qt th n ** tele_app P xs
+      | Held n xs => given_token g qt th n ** tele_app P xs
       end.
   Proof.
     destruct s; rewrite /acquireable /=; last done.
@@ -520,7 +511,7 @@ Section with_cpp.
     iExists q, qt, (cinv_own g.(cinv_gname) q **
       (∃ t, [| acquire n t |] ∗ ▷ acquireable g qt th t P))%I.
     wname [bi_wand] "W"; wfocus (bi_wand _ _) "W". { work $usenamed=true. }
-    rewrite inv_rmutex.unlock !acquireable_atomic /held_token /token.
+    rewrite inv_rmutex.unlock !acquireable_atomic /given_token /token.
     work; iAcIntro; rewrite /commit_acc/=; work.
     iInv rmutex_namespace as "[(%n' & %th' & %qt' & >Hn & Hcases) ?]" "Hclose".
     destruct n as [|n args]; simpl; [iExists 0 | iExists (S n)]; work.
@@ -538,12 +529,12 @@ Section with_cpp.
         first apply (excl_auth_update _ _ (1, th, qt)).
       wname [Preds.at_specs.locked _ qt th _] "Hlocked";
         iMod ("Hclose" with "[$Hg $Hlocked //]") as "_"; iModIntro.
-      iExists (Held 0 args). rewrite /acquireable /held_token /=. work.
+      iExists (Held 0 args). rewrite /acquireable /given_token /=. work.
     - iMod (own_update_2 with "Hn [$]") as "(Hg & ?)";
         first apply (excl_auth_update _ _ (S (S n), th, qt)).
       wname [Preds.at_specs.locked _ qt th _] "Hlocked";
         iMod ("Hclose" with "[$Hg $Hlocked //]") as "_"; iModIntro.
-      iExists (Held (S n) args). rewrite /acquireable /held_token /=. work.
+      iExists (Held (S n) args). rewrite /acquireable /given_token /=. work.
   Qed.
 
   Lemma at_spec_impl_na_spec_unlock this (xs : list val) (K : val -> mpred) :
@@ -559,7 +550,7 @@ Section with_cpp.
     iExists q, qt, (cinv_own g.(cinv_gname) q **
       acquireable g qt th (release $ Held n args) P)%I.
     wname [bi_wand] "W"; wfocus (bi_wand _ _) "W". { work $usenamed=true. }
-    rewrite inv_rmutex.unlock !acquireable_atomic /held_token /token.
+    rewrite inv_rmutex.unlock !acquireable_atomic /given_token /token.
     work; iAcIntro; rewrite /commit_acc/=; work.
     iInv rmutex_namespace as "[(%n' & %th' & %qt' & >Hn & Hcases) ?]" "Hclose".
     iDestruct (own_valid_2 with "Hn [$]") as %[=]%excl_auth_agree_L; subst.
@@ -569,7 +560,7 @@ Section with_cpp.
     iMod "Hclose'" as "_".
     iMod (own_update_2 with "Hn [$]") as "(Hg & Hcase)";
       first apply (excl_auth_update _ _ (n, th, qt)).
-    rewrite acquireable_atomic /held_token release.unlock; destruct n; iFrame "#∗".
+    rewrite acquireable_atomic /given_token release.unlock; destruct n; iFrame "#∗".
     all: iMod ("Hclose" with "[-]") as "_";
       ework $usenamed=true with br_erefl; done.
   Qed.
