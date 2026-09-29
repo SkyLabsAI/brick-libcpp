@@ -66,7 +66,7 @@ Definition account_balanceR `{Σ : cpp_logic, σ : genv} (n : Z) : Rep :=
   _field "C::balance" |-> ulongR 1$m n.
 #[only(lazy_unfold(export),timeless)] derive account_balanceR.
 
-(* knowledge of [this] and [this->mutex] *)
+(* ownership of [this->mutex] and balanceR proctected by the mutex *)
 sl.lock
 Definition account_mutexR
     `{Σ : cpp_logic, σ : genv, !std_recursive_mutex.G Σ, !HasStdThreads Σ}
@@ -78,7 +78,7 @@ Definition account_mutexR
         tele_app (TT := balance_args) (fun n : Z => this |-> account_balanceR n) args)).
 #[only(cfractional,ascfractional,type_ptr,lazy_unfold(export))] derive account_mutexR.
 
-(** account_mutexR and balanceR protected by the mutex *)
+(** The account rep. Everything that the constructor of [C] returns. *)
 sl.lock
 Definition accountR
     `{Σ : cpp_logic, σ : genv, !std_recursive_mutex.G Σ, !HasStdThreads Σ}
@@ -89,7 +89,7 @@ Definition accountR
               std_recursive_mutex.rmutex_inv_namespace g = N |].
 #[only(type_ptr="C")] derive accountR.
 
-(** A thread's registered account handle, ready for acquisition. *)
+(** The user handle of the account. *)
 sl.lock
 Definition account_acquireableR
     `{Σ : cpp_logic, σ : genv, !std_recursive_mutex.G Σ, !HasStdThreads Σ}
