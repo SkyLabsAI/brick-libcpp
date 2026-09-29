@@ -52,11 +52,28 @@ Module Type MUTEX_SETS.
     mutex_set_map γ T |--
       (|==> mutex_set_map γ (T ∪ {[th]}) **
               my_mutexes γ th (CoPset ⊤)).
+  Parameter mutex_sets_free_thread : forall `{Σ : cpp_logic, !G Σ} γ T th,
+    th ∈ T ->
+    mutex_set_map γ T ** my_mutexes γ th (CoPset ⊤) |--
+      mutex_set_map γ (T \ {[th]}).
+  Parameter mutex_set_map_empty_no_my_mutexes :
+    forall `{Σ : cpp_logic, !G Σ} γ th (N : namespace),
+    mutex_set_map γ ∅ ** my_mutexes γ th (CoPset (↑N)) |-- False.
   Parameter my_mutexes_alloc_mutex_name : forall `{Σ : cpp_logic, !G Σ}
       γ th (E N : coPset),
     N ⊆ E ->
     my_mutexes γ th (CoPset E) |--
       my_mutexes γ th (CoPset (E \ N)) ** my_mutexes γ th (CoPset N).
+  Parameter my_mutexes_split : forall `{Σ : cpp_logic, !G Σ}
+      γ th (E1 E2 : coPset),
+    E1 ## E2 ->
+    my_mutexes γ th (CoPset (E1 ∪ E2)) ⊣⊢
+      my_mutexes γ th (CoPset E1) ** my_mutexes γ th (CoPset E2).
+  Parameter my_mutexes_join_mutex_name : forall `{Σ : cpp_logic, !G Σ}
+      γ th (E N : coPset),
+    N ⊆ E ->
+    my_mutexes γ th (CoPset (E \ N)) ** my_mutexes γ th (CoPset N) |--
+      my_mutexes γ th (CoPset E).
 
   (* an example that two threads can allocate the same namespace token. *)
   Lemma my_mutexes_alloc_eg : forall `{Σ : cpp_logic, !G Σ}
@@ -258,6 +275,45 @@ Module MutexSets : MUTEX_SETS.
       iModIntro. iFrame.
     Qed.
 
+    Lemma mutex_sets_free_thread γ T th :
+      th ∈ T ->
+      mutex_set_map γ T ** my_mutexes γ th (CoPset ⊤) |--
+        mutex_set_map γ (T \ {[th]}).
+    Proof.
+      intros Hmember.
+      rewrite /mutex_set_map /my_mutexes -own_op.
+      have Heq : reserve T ⋅ discrete_fun_singleton th (CoPset ⊤) ≡
+          reserve (T \ {[th]}).
+      { intros th'.
+        rewrite discrete_fun_lookup_op.
+        destruct (decide (th = th')) as [<-|Hne].
+        - rewrite discrete_fun_lookup_singleton /reserve.
+          rewrite decide_True; last done.
+          rewrite decide_False; last set_solver.
+          by rewrite left_id.
+        - rewrite discrete_fun_lookup_singleton_ne; last done.
+          rewrite right_id /reserve.
+          destruct (decide (th' ∈ T)).
+          + rewrite !decide_True; try set_solver.
+          + rewrite !decide_False; try set_solver.
+      }
+      by rewrite Heq.
+    Qed.
+
+    Lemma mutex_set_map_empty_no_my_mutexes γ th (N : namespace) :
+      mutex_set_map γ ∅ ** my_mutexes γ th (CoPset (↑N)) |-- False.
+    Proof.
+      rewrite /mutex_set_map /my_mutexes.
+      iIntros "[Hmap Hmy]".
+      iDestruct (own_valid_2 with "Hmap Hmy") as %Hvalid.
+      iPureIntro.
+      specialize (Hvalid th).
+      rewrite discrete_fun_lookup_op discrete_fun_lookup_singleton /reserve in Hvalid.
+      rewrite coPset_disj_valid_op in Hvalid.
+      have Hnonempty := nclose_non_empty N.
+      set_solver.
+    Qed.
+
     Lemma my_mutexes_alloc_mutex_name γ th (E N : coPset) :
       N ⊆ E ->
       my_mutexes γ th (CoPset E) |--
@@ -266,6 +322,28 @@ Module MutexSets : MUTEX_SETS.
       intros Hsub.
       rewrite /my_mutexes -own_op discrete_fun_singleton_op.
       rewrite coPset_disj_union; last set_solver.
+      rewrite difference_union_L.
+      have -> : E ∪ N = E by set_solver.
+      done.
+    Qed.
+
+    Lemma my_mutexes_split γ th (E1 E2 : coPset) :
+      E1 ## E2 ->
+      my_mutexes γ th (CoPset (E1 ∪ E2)) ⊣⊢
+        my_mutexes γ th (CoPset E1) ** my_mutexes γ th (CoPset E2).
+    Proof.
+      intros Hdisjoint.
+      rewrite /my_mutexes -own_op discrete_fun_singleton_op.
+      by rewrite coPset_disj_union.
+    Qed.
+
+    Lemma my_mutexes_join_mutex_name γ th (E N : coPset) :
+      N ⊆ E ->
+      my_mutexes γ th (CoPset (E \ N)) ** my_mutexes γ th (CoPset N) |--
+        my_mutexes γ th (CoPset E).
+    Proof.
+      intros Hsub.
+      rewrite -my_mutexes_split; last set_solver.
       rewrite difference_union_L.
       have -> : E ∪ N = E by set_solver.
       done.
