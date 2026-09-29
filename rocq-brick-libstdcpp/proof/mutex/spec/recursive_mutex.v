@@ -98,7 +98,7 @@ Module Type RECURSIVE_MUTEX_PREDS (T : MutexCPPName).
   Existing Class G.
   #[global] Arguments G {_ _} Σ : assert.
 
-  (** A pool is shared by mutexes; each mutex reserves its own namespace. *)
+  (** Ghost name of the ghost state that keeps track of a pool of gnames for each thread. *)
   Parameter pool_name : gname -> iprop.gname.
   Parameter rmutex_inv_namespace : gname -> namespace.
   #[global] Declare Instance sets_G `{Σ : cpp_logic, !G Σ} : MutexSets.G Σ.
