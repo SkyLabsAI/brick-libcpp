@@ -170,7 +170,6 @@ Module recursive_mutex_spec (T : MutexCPPName) (Preds : RECURSIVE_MUTEX_PREDS T)
 
     Definition ctor_spec : ptr -> WpSpec mpred val val :=
       (\this this
-       \persist{th} current_thread th
        \pre{pool N TT P xs} |> tele_app (TT := TT) P xs
        \require ∀ xs, Objective (tele_app P xs)
        \post Exists g,
