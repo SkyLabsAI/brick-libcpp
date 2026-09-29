@@ -463,6 +463,8 @@ Section with_cpp.
     iModIntro; work.
     iExists pool, N. work.
     rewrite /acquireable /=.
+    (* The owner slot is unused while the initial count is zero. *)
+    set th : thread_idT := inhabitant.
     iMod (own_alloc (●E (O, th, (1$m)%cQp) ⋅ ◯E (O, th, (1$m)%cQp))) as (g) "(? & ?)".
     { apply excl_auth_valid. }
     wname [_ |-> _ _ _] "a".
