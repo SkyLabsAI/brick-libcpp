@@ -130,7 +130,7 @@ Section class_C.
     destruct Hg as [Hgpool HN].
     iExists g. rewrite !_at_sep !_at_pureR !_at_as_Rep.
     iFrame "HR". iSplitL "Htoken Hname"; last done.
-    iApply std_recursive_mutex.register_thread.
+    rewrite -std_recursive_mutex.register_thread.
     rewrite Hgpool HN. iFrame "#∗".
   Qed.
 
@@ -143,8 +143,8 @@ Section class_C.
     iIntros "(%g & HR)".
     iEval (rewrite !_at_sep !_at_pureR !_at_as_Rep) in "HR".
     iDestruct "HR" as "(HR & Hacquireable & %Hg)".
-    iDestruct (std_recursive_mutex.unregister_thread with "Hacquireable")
-      as "(_ & Htoken & Hname)".
+    iEval (rewrite -std_recursive_mutex.register_thread) in "Hacquireable".
+    iDestruct "Hacquireable" as "(_ & Htoken & Hname)".
     destruct Hg as [Hgpool HN].
     rewrite Hgpool HN. iFrame "Hname".
     iExists g. rewrite !_at_sep !_at_pureR. iFrame. done.

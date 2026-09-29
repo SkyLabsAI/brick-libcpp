@@ -16,8 +16,8 @@ Require Import skylabs.brick.libstdcpp.lib.lock_ghost2.
 
 Import linearity.
 
-(** A MUTEX_PREDS says a mutex spec is parametrized by some `token`, `not_locked`
-  and `locked`. The exact model depends on the implementation. *)
+(** A MUTEX_PREDS module says a mutex spec is parametrized by some `token`,
+  `not_locked` and `locked`. The exact model depends on the implementation. *)
 
 Module Type MUTEX_PREDS.
   Parameter gname : Set.
@@ -57,7 +57,7 @@ Module Type MUTEX_PREDS.
       `{Σ : cpp_logic, !G Σ} {σ : genv} this γ :
     Exclusive2 (locked this γ).
 
-  (** The thread-registration pool used by this mutex. *)
+  (** Ghost name of the ghost state that keeps track of a pool of gnames for each thread. *)
   Parameter pool_name : gname -> iprop.gname.
 
   Section with_cpp.
@@ -122,15 +122,15 @@ Module Type MUTEX_PREDS.
           [| pool_name g = pool |] **
           this |-> R g 1$m P ** token g 1$m).
 
-    (** Register a thread by consuming its handle for this mutex's namespace
-        and its token share. [my_mutexes_alloc_mutex_name] splits this handle
-        from the full namespace pool supplied when the thread is spawned. *)
+    (** A thread's handle to the mutex is equivalent to a fractional ownership
+        of the [mutex] and a fraction of [token], and its [my_mutexes] with the
+        same namespace. *)
     Axiom register_thread : forall
         (this : ptr) (g : gname) (q : cQp.t) (P : mpred)
         (th : thread_idT) (qt : cQp.t),
       this |-> R g q P ** token g qt **
       MutexSets.my_mutexes (pool_name g) th
-        (coPset.CoPset $ ↑mutex_inv_namespace) |--
+        (coPset.CoPset $ ↑mutex_inv_namespace) ⊣⊢
       this |-> R g q P ** not_locked this g th qt.
 
   End with_cpp.

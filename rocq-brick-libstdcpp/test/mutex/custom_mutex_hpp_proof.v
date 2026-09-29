@@ -199,10 +199,10 @@ Module CustomMutexPreds <: MUTEX_PREDS.
   Proof.
     intros q1 q2. rewrite /not_locked /not_locked_ghost.
     iIntros "[F1 _] [F2 _]".
-    have Hnonempty : (↑ mutex_inv_namespace : coPset) ∩ ↑ mutex_inv_namespace ≠ ∅.
-    { rewrite intersection_idemp_L. apply nclose_non_empty. }
+    have Hoverlap : ~ ((↑ mutex_inv_namespace : coPset) ## ↑ mutex_inv_namespace).
+    { have Hnonempty := nclose_non_empty mutex_inv_namespace. set_solver. }
     iDestruct (MutexSets.my_mutexes_exclusive _ th
-      (↑ mutex_inv_namespace) (↑ mutex_inv_namespace) Hnonempty
+      (↑ mutex_inv_namespace) (↑ mutex_inv_namespace) Hoverlap
       with "[$F1 $F2]") as %[].
   Qed.
   #[global] Instance locked_timeless `{Σ : cpp_logic, !G Σ} {σ : genv}
@@ -310,11 +310,11 @@ Module CustomMutexPreds <: MUTEX_PREDS.
         (th : thread_idT) (qt : cQp.t) :
       this |-> R g q P ** token g qt **
       MutexSets.my_mutexes (pool_name g) th
-        (coPset.CoPset $ ↑mutex_inv_namespace) |--
+        (coPset.CoPset $ ↑mutex_inv_namespace) ⊣⊢
       this |-> R g q P ** not_locked this g th qt.
     Proof.
       rewrite /not_locked /not_locked_ghost /token /state_token /pool_name.
-      iIntros "($ & T & M)". iFrame.
+      iSplit; iIntros "($ & ? & ?)"; iFrame.
     Qed.
   End with_Σ.
 End CustomMutexPreds.
