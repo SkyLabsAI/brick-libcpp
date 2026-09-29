@@ -120,34 +120,27 @@ Section class_C.
 
   Lemma account_register_thread (this : ptr) gpool N q th :
     current_thread th ** this |-> accountR gpool N q **
-    MutexSets.my_mutexes gpool th (coPset.CoPset (↑N)) |--
+    MutexSets.my_mutexes gpool th (coPset.CoPset (↑N)) ⊣⊢
     this |-> account_acquireableR gpool N q th.
   Proof.
     rewrite accountR.unlock account_acquireableR.unlock !_at_exists.
-    iIntros "(#Hth & (%g & HR) & Hname)".
-    iEval (rewrite !_at_sep !_at_pureR) in "HR".
-    iDestruct "HR" as "(HR & Htoken & %Hg)".
-    destruct Hg as [Hgpool HN].
-    iExists g. rewrite !_at_sep !_at_pureR !_at_as_Rep.
-    iFrame "HR". iSplitL "Htoken Hname"; last done.
-    rewrite -std_recursive_mutex.register_thread.
-    rewrite Hgpool HN. iFrame "#∗".
-  Qed.
-
-  Lemma account_unregister_thread (this : ptr) gpool N q th :
-    this |-> account_acquireableR gpool N q th |--
-    this |-> accountR gpool N q **
-    MutexSets.my_mutexes gpool th (coPset.CoPset (↑N)).
-  Proof.
-    rewrite accountR.unlock account_acquireableR.unlock !_at_exists.
-    iIntros "(%g & HR)".
-    iEval (rewrite !_at_sep !_at_pureR !_at_as_Rep) in "HR".
-    iDestruct "HR" as "(HR & Hacquireable & %Hg)".
-    iEval (rewrite -std_recursive_mutex.register_thread) in "Hacquireable".
-    iDestruct "Hacquireable" as "(_ & Htoken & Hname)".
-    destruct Hg as [Hgpool HN].
-    rewrite Hgpool HN. iFrame "Hname".
-    iExists g. rewrite !_at_sep !_at_pureR. iFrame. done.
+    iSplit.
+    - iIntros "(#Hth & (%g & HR) & Hname)".
+      iEval (rewrite !_at_sep !_at_pureR) in "HR".
+      iDestruct "HR" as "(HR & Htoken & %Hg)".
+      destruct Hg as [Hgpool HN].
+      iExists g. rewrite !_at_sep !_at_pureR !_at_as_Rep.
+      iFrame "HR". iSplitL "Htoken Hname"; last done.
+      rewrite -std_recursive_mutex.register_thread.
+      rewrite Hgpool HN. iFrame "#∗".
+    - iIntros "(%g & HR)".
+      iEval (rewrite !_at_sep !_at_pureR !_at_as_Rep) in "HR".
+      iDestruct "HR" as "(HR & Hacquireable & %Hg)".
+      iEval (rewrite -std_recursive_mutex.register_thread) in "Hacquireable".
+      iDestruct "Hacquireable" as "(#Hth & Htoken & Hname)".
+      destruct Hg as [Hgpool HN].
+      rewrite Hgpool HN. iFrame "Hth Hname".
+      iExists g. rewrite !_at_sep !_at_pureR. iFrame. done.
   Qed.
 
   #[local] Instance balanceR_learn : LearnEq2 account_balanceR.
@@ -486,16 +479,20 @@ Section clients.
       with "Hnames") as "[Hnames Hto]".
     iDestruct select (_ |-> accountR gpool (nroot .@@ "transfer" .@ "from") _) as "Hfrom_account".
     iDestruct select (_ |-> accountR gpool (nroot .@@ "transfer" .@ "to") _) as "Hto_account".
-    iDestruct (account_register_thread with "[$Hfrom_account $Hfrom]") as "Hfrom_account"; first go.
-    iDestruct (account_register_thread with "[$Hto_account $Hto]") as "Hto_account"; first go.
+    iDestruct (bi.equiv_entails_1_1 _ _ (account_register_thread _ _ _ _ _)
+      with "[$Hfrom_account $Hfrom]") as "Hfrom_account"; first go.
+    iDestruct (bi.equiv_entails_1_1 _ _ (account_register_thread _ _ _ _ _)
+      with "[$Hto_account $Hto]") as "Hto_account"; first go.
     iDestruct "Hfrom_account" as "?". iDestruct "Hto_account" as "?".
     go. iExists (1$m)%cQp, (1$m)%cQp. go.
     iDestruct select (_ |-> account_acquireableR gpool (nroot .@@ "transfer" .@ "from") _ th)
       as "Hfrom_account".
     iDestruct select (_ |-> account_acquireableR gpool (nroot .@@ "transfer" .@ "to") _ th)
       as "Hto_account".
-    iDestruct (account_unregister_thread with "Hfrom_account") as "[Hfrom_account Hfrom]".
-    iDestruct (account_unregister_thread with "Hto_account") as "[Hto_account Hto]".
+    iEval (rewrite -account_register_thread) in "Hfrom_account".
+    iEval (rewrite -account_register_thread) in "Hto_account".
+    iDestruct "Hfrom_account" as "(_ & Hfrom_account & Hfrom)".
+    iDestruct "Hto_account" as "(_ & Hto_account & Hto)".
     iDestruct "Hfrom_account" as "?". iDestruct "Hto_account" as "?".
     go.
     iDestruct (MutexSets.my_mutexes_join_mutex_name gpool th
