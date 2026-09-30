@@ -48,14 +48,15 @@ void unlock(){
 \end{figure} %Both this implementation and a more sophisticated one that checks thread IDs meet our specifications. Show the code for both, and note that the latter doesn't meet the standard HeapLang lock specs.
 
 We begin by examining \lstinline{std::mutex}, the basic lock class. The class contains methods \lstinline{lock}, \lstinline{unlock}, and \lstinline{try_lock}, as well as a constructor and destructor. The intended behavior is simply to provide mutual exclusion; a simple implementation could be a spinlock as shown in Figure~\ref{mutex-simple}, although more realistic implementations use OS primitives for efficiency. While \lstinline{std::mutex} is the library class corresponding to a standard lock, its informal specification has three restrictions that do not appear in the standard separation logic treatment:
-\begin{itemize}
+\begin{enumerate}
 \item When a thread calls \lstinline{unlock}, it must own the mutex (i.e., it must have been the thread that most recently called \lstinline{lock}).
 \item When a thread calls \lstinline{lock}, it must \emph{not} own the mutex.
 \item When a mutex is destroyed, it must not be owned by any threads.
-\end{itemize}
+\end{enumerate}
 A program that violates any of these conditions has \emph{undefined behavior} according to the library specification, so our program logic must ensure that they are respected. %include checks in toy implementation, or just mention that they could be added?
 
-The representation for a mutex has the same shape as a standard lock: we write $m \mapsto \mutex{\gamma}{P}$ for a mutex at $m$ associated with ghost identifier $\gamma$ and protected resources $P$. However, we must extend the specifications of the mutex operations to enforce the requirements above. One of the original selling points of CSL was that it could naturally verify \emph{daring} concurrency patterns~\cite{csl} in which a lock acquired by one thread is released by another; in fact, in ordinary separation logics every predicate is freely transferable between threads. Fortunately, as mentioned in Section~\ref{brick}, the design of the BRiCk logic supports a non-transferable predicate $\currentthread{t}$ asserting that the current thread is $t$, which we can use to tie resources to a specific thread.
+The representation predicate for a mutex has the same shape as a standard lock: we write $m \mapsto \mutex{\gamma}{P}$ for a mutex at $m$ associated with ghost identifier $\gamma$ and protected resources $P$. However, we must extend the specifications of the mutex operations to enforce the requirements above. The third property is the simplest, from a separation logic perspective: we can define a fractional resource $\mathsf{token}_q$ that a thread must give up in order to acquire the mutex, and require full ownership $\mathsf{token}_1$ in the precondition of the destructor. The first two properties are more complicated, since they check whether a thread performing an operation is \emph{the same thread} as one that performed a previous operation. Our basic approach is to define predicates $\notlocked{\gamma}{t}$ and $\locked{\gamma}{t}$ such that a thread $t$ exchanges $\notlocked{\gamma}{t}$ for $\locked{\gamma}{t}$ when acquiring the mutex, and vice versa when releasing it. However, these predicates, like any other CSL predicate, can be transferred between threads when they synchronize: how can we ensure that the thread that owns $\notlocked{\gamma}{t}$ is actually thread $t$? For this, we use BRiCk's non-transferable predicate $\currentthread{t}$ described in Section~\ref{brick}: a thread must own both $\currentthread{t}$ and $\notlocked{\gamma}{t}$ (resp. $\locked{\gamma}{t}$) to acquire (resp. release) the mutex, proving that it is in fact the thread identified by the predicate.
+%talk about my_mutexes and the spawn/join specs here or later?
 \ignore{When we spawn a thread $t$ that will using the mutex, it will receive a predicate $\notlocked{\gamma}{t}$, which it exchanges for another predicate $\locked{\gamma}{t}$ when it locks the mutex. A matching predicate $\usedthreads{\gamma}{T}$ will hold the set of all threads that are currently using the mutex, and the precondition of the destructor will require $\usedthreads{\gamma}{\emptyset}$, ensuring that no thread currently holds the lock. This leads to the following specifications for thread creation and joining:
 \[\begin{array}{c}
 \{ \usedthreads{\gamma}{T} \ast P \ast \{\currentthread{t} \ast \notlocked{\gamma}{t} \ast P \}\ f\ \{ \notlocked{\gamma}{t} \ast Q \} \}\\ \texttt{std::thread(}f\texttt{)}\\ \{ \usedthreads{\gamma}{T \cup \{t\}} \ast t \mapsto \mathsf{thread}(Q) \} \vspace{1em} \\ %use wp instead? constructor notation?
@@ -68,23 +69,26 @@ The $\mathsf{locked}$ and $\mathsf{not\_locked}$ predicates must also satisfy th
 Formally, these predicates satisfy the following properties:
 %make this a figure?
 \begin{mathpar}
-\inferrule{t \not\in T}{\usedthreads{\gamma}{T} \vs \usedthreads{\gamma}{T \cup \{t\}} \ast \notlocked{\gamma}{t}} \and
-\usedthreads{\gamma}{T} \ast \notlocked{\gamma}{t} \vdash t \in T \and
-\usedthreads{\gamma}{T} \ast \notlocked{\gamma}{t} \vs \usedthreads{\gamma}{T \setminus \{t\}} \and
+%\inferrule{t \not\in T}{\usedthreads{\gamma}{T} \vs \usedthreads{\gamma}{T \cup \{t\}} \ast \notlocked{\gamma}{t}} \and
+%\usedthreads{\gamma}{T} \ast \notlocked{\gamma}{t} \vdash t \in T \and
+%\usedthreads{\gamma}{T} \ast \notlocked{\gamma}{t} \vs \usedthreads{\gamma}{T \setminus \{t\}} \and
 \notlocked{\gamma}{t} \ast \notlocked{\gamma}{t} \vdash \mathsf{False} \and \notlocked{\gamma}{t} \ast \locked{\gamma}{t} \vdash \mathsf{False} \and \locked{\gamma}{t_1} \ast \locked{\gamma}{t_2} \vdash \mathsf{False} %anything else we need?
+\and \mathsf{token}_1 \ast \locked{\gamma}{t} \vdash \mathsf{False}
 \end{mathpar} %explain a little more, and explain view shifts
-This user-tracking pattern is very useful for describing thread-specific properties of mutexes; we will extend it for the following mutex types, and explain its implementation in Section~\ref{login}.
+This owner-tracking pattern is very useful for describing thread-specific properties of mutexes; we will extend it for the following mutex types, and explain its implementation in Section~\ref{login}.
 
 We can then specify the mutex as follows:
 \[\begin{array}{c}
+% TODO: update constructor with my_mutexes
 \{\later P\}\\ \texttt{mutex()}\\ \{\exists \gamma.\ \mutex{\gamma}{P} \ast \usedthreads{\gamma}{\emptyset}\} \vspace{1em}\\%constructor notation?
+%% TODO: add token(q) or add a fraction to not_locked/locked
 \{\currentthread{t} \ast m \mapsto_q \mutex{\gamma}{P}\ast\notlocked{\gamma}{t}\}\\ {m\texttt{.lock()}} \\ \{m \mapsto_q \mutex{\gamma}{P}\ast P\ast\locked{\gamma}{t}\}  \vspace{1em}\\
     \{\currentthread{t} \ast m \mapsto_q \mutex{\gamma}{P}\ast\locked{\gamma}{t}
       \ast\triangleright P\}\\ {m\texttt{.unlock}()}\\
     \{m \mapsto_q \mutex{\gamma}{P}\ast\notlocked{\gamma}{t}\}  \vspace{1em} \\
-\{m \mapsto \mutex{\gamma}{P} \ast \usedthreads{\gamma}{\emptyset}\}\\ \sim m()\\ \{P\} %destructor notation?
+\{m \mapsto \mutex{\gamma}{P} \ast \mathsf{token}_1\}\\ \sim m()\\ \{P\} %destructor notation?
 \end{array}\] %note that current_thread is persistent
-A thread $t$ exchanges $\notlocked{\gamma}{t}$ for $\locked{\gamma}{t}$ when acquiring the mutex and vice versa when releasing; these predicates are freely transferable, but $\currentthread{t}$ ensures that each thread holds its own predicate when calling \lstinline{lock} or \lstinline{unlock}, and the laws of $\mathsf{m\_locked}$ and $\mathsf{not\_locked}$ ensure that no two threads hold the mutex at once and that a thread cannot simultaneously be $\mathsf{m\_locked}$ and $\mathsf{not\_locked}$. Finally, the $\usedthreads{\gamma}{\emptyset}$ in the precondition of the destructor ensures that all threads have been removed from the set of users (and thus cannot hold the mutex) before deallocation. When these specifications are used in proofs, the thread that allocates the mutex will acquire and hold $\usedthreads{\gamma}{T}$, and generate a $\notlocked{\gamma}{t}$ predicate for each thread $t$ participating in the mutex; when those threads terminate, the main thread will recollect all the $\notlocked{}{}$ predicates and remove them from $\usedthreads{}{}$ before the mutex is destroyed.
+A thread $t$ exchanges $\notlocked{\gamma}{t}$ for $\locked{\gamma}{t}$ when acquiring the mutex and vice versa when releasing; these predicates are freely transferable, but $\currentthread{t}$ ensures that each thread holds its own predicate when calling \lstinline{lock} or \lstinline{unlock}, and the laws of $\mathsf{m\_locked}$ and $\mathsf{not\_locked}$ ensure that no two threads hold the mutex at once and that a thread cannot simultaneously be $\mathsf{m\_locked}$ and $\mathsf{not\_locked}$. Finally, the $\mathsf{token}_1$ in the precondition of the destructor ensures that no threads hold the mutex before deallocation. %When these specifications are used in proofs, the thread that allocates the mutex will acquire and hold $\usedthreads{\gamma}{T}$, and generate a $\notlocked{\gamma}{t}$ predicate for each thread $t$ participating in the mutex; when those threads terminate, the main thread will recollect all the $\notlocked{}{}$ predicates and remove them from $\usedthreads{}{}$ before the mutex is destroyed.
 
 \ignore{
 \begin{mathpar}
@@ -148,7 +152,7 @@ A thread $t$ exchanges $\notlocked{\gamma}{t}$ for $\locked{\gamma}{t}$ when acq
 \end{figure}
 Figure~\ref{mutex-ex} shows a simple application of \lstinline{mutex}. The mutex \lstinline{m} protects the variable \lstinline{x}, which is incremented by two separate threads. We sketch a proof with the lock invariant $P \triangleq \exists n.\ \texttt{x} \mapsto n \ast \mathsf{even}(n)$; we could use ghost state to show that \lstinline{x} is exactly 4 at the end of the program, but this is orthogonal to the novelties of our mutex specification. The proof is outlined in Figure~\ref{mutex-ex-proof}. The main thread registers itself and the thread to be spawned with $\mathsf{all\_users}$, obtaining $\mathsf{not\_locked}$ predicates for each of them. When a thread locks \lstinline{m} it exchanges its $\mathsf{not\_locked}$ for $\mathsf{locked}$ and ownership of $P$; unlocking \lstinline{m} performs the same operation in reverse. Finally, the main thread joins with the spawned thread, recollects its $\mathsf{not\_locked}$ predicate, and unregisters both threads from $\mathsf{all\_users}$, so that at the end of \lstinline{main} the precondition of \lstinline{m}'s destructor (namely, $\usedthreads{\gamma}{\emptyset}$) is satisfied, guaranteeing that no thread holds the lock.
 
-\begin{figure}[htb]
+\begin{figure}[htb] %% TODO: update this with my_mutexes
 \begin{lstlisting}[escapeinside    = {(*@}{@*)}]
   unsigned int x = 0;
   std::mutex m;
@@ -501,9 +505,6 @@ Our specifications of C++ mutexes capture the informal specifications of the mut
 
 \subsection{The User Library}
 \label{login}
-
-TODO cite the Iris reader/writer lock library
-TODO mutex is not implemented with the user library yet
 
 All three of our mutex specifications use thread-specific predicates ($\mathsf{not\_locked}$, $\mathsf{locked}$, $\mathsf{holds}$, etc.) to enforce the mutexes' requirements on thread behavior. Here we describe a general ghost construction that we use to implement all of our thread-specific predicates.
 
