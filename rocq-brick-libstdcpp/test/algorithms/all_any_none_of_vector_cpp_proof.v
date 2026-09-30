@@ -7,7 +7,7 @@ Require Import skylabs.cpp.spec.concepts.
 Require Import skylabs.brick.libstdcpp.allocator.spec.
 Require Import skylabs.brick.libstdcpp.cassert.spec.
 Require Import skylabs.brick.libstdcpp.vector.spec.
-Require Import skylabs.brick.libstdcpp.algorithms.spec.
+Require Import skylabs.brick.libstdcpp.algorithms.hints.
 Require Import skylabs.brick.libstdcpp.test.algorithms.all_any_none_of_vector_cpp.
 
 Require Import skylabs.auto.cpp.prelude.test.
@@ -19,7 +19,8 @@ Section with_cpp.
   #[local] Abbreviation alloc_int := (std.allocator.T "int").
   #[local] Abbreviation iter_int := (std.vector.iterator.T "int").
 
-  #[local] Set Warnings "-sl-transparent-constants".
+  (** The adapter dereferences the library iterator, so it relies on its <<operator*>>. *)
+  #[local] Instance : std.IteratorDeps iter_int (std.vector.iterator.iter_deref false "int" alloc_int) := {}.
 
   #[local] Instance Positive_rep : BundledRep "Positive" unit :=
     {| objR q _ := structR "Positive" q |}.
@@ -45,23 +46,14 @@ Section with_cpp.
   Definition positive_dtor_B := [LINK] positive_dtor_ok.
   #[local] Hint Resolve positive_dtor_B : sl_opacity.
 
-  (** The adapter dereferences the library iterator, so it relies on its <<operator*>>. *)
-  Lemma positive_call_ok :
-    denoteModule source ⊢
-      □ std.vector.iterator.iter_deref false "int" alloc_int -∗
-      std.predicate_call true iter_int "Positive" (fun q x => intR q x).
-  Proof using MOD. std.verify_predicate_call positive_ok. Qed.
-
-  cpp.spec "TestVector()" as test_vector with (\post emp).
+  cpp.spec "TestVector()" as test_vector with
+    (\persist positive_spec
+     \persist std.vector.iterator.iter_deref false "int" alloc_int
+     \post emp).
   Lemma test_vector_ok : verify[source] test_vector.
   Proof using MOD.
     verify_spec. go.
-    iExists (std.vector.base_pointer st', 0%Z). go.
-    iRename select (denoteModule _) into "Hmodule".
-    iRename select (std.vector.iterator.iter_deref _ _ _) into "Hderef".
-    iPoseProof (positive_call_ok with "Hmodule Hderef") as "#Hcall".
-    iExists tt, (fun q x => intR q x), 1$m%cQp, 2%Z, 1%Z.
-    go $usenamed=true.
+    iExists tt. go.
     iExists (std.vector.base_pointer st', 2%Z), (std.vector.base_pointer st', 0%Z). go.
   Qed.
 
@@ -69,7 +61,10 @@ Section with_cpp.
   Definition test_vector_B := [LINK] test_vector_ok.
   #[local] Hint Resolve positive_B test_vector_B : sl_opacity.
 
-  cpp.spec "main()" as main_spec with (\post[Vint 0] emp).
+  cpp.spec "main()" as main_spec with
+    (\persist positive_spec
+     \persist std.vector.iterator.iter_deref false "int" alloc_int
+     \post[Vint 0] emp).
 
   Lemma main_ok : verify[source] main_spec.
   Proof using MOD. verify_spec. go. Qed.
