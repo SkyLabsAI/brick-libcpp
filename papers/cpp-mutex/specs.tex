@@ -72,7 +72,8 @@ Formally, these predicates satisfy the following properties:
 %\inferrule{t \not\in T}{\usedthreads{\gamma}{T} \vs \usedthreads{\gamma}{T \cup \{t\}} \ast \notlocked{\gamma}{t}} \and
 %\usedthreads{\gamma}{T} \ast \notlocked{\gamma}{t} \vdash t \in T \and
 %\usedthreads{\gamma}{T} \ast \notlocked{\gamma}{t} \vs \usedthreads{\gamma}{T \setminus \{t\}} \and
-\notlocked{\gamma}{t} \ast \notlocked{\gamma}{t} \vdash \mathsf{False} \and \notlocked{\gamma}{t} \ast \locked{\gamma}{t} \vdash \mathsf{False} \and \locked{\gamma}{t_1} \ast \locked{\gamma}{t_2} \vdash \mathsf{False} %anything else we need?
+\notlocked{\gamma}{t} \ast \notlocked{\gamma}{t} \vdash \mathsf{False} \and %\notlocked{\gamma}{t} \ast \locked{\gamma}{t} \vdash \mathsf{False} \and
+\locked{\gamma}{t_1} \ast \locked{\gamma}{t_2} \vdash \mathsf{False} %anything else we need?
 \and \mathsf{token}_1 \ast \locked{\gamma}{t} \vdash \mathsf{False}
 \end{mathpar} %explain a little more, and explain view shifts
 This owner-tracking pattern is very useful for describing thread-specific properties of mutexes; we will extend it for the following mutex types, and explain its implementation in Section~\ref{login}.
@@ -503,43 +504,34 @@ Figure~\ref{shared-mutex-ex-proof} shows an example using \lstinline{shared_mute
 \section{Implementing the Mutex Specifications}
 Our specifications of C++ mutexes capture the informal specifications of the mutexes and can be used to verify client programs. Ideally, we would next show that standard library implementations actually meet our specifications. However, the widely used implementations of the C++ standard library would be difficult to verify---they use Pthread implementations of the corresponding mutex types, which have nearly the same specifications as the standard library mutexes, and the Pthread implementations in turn make heavy use of operating system primitives with complicated low-level specifications (e.g., Linux's \lstinline{futex}). In this section, we instead verify simple and portable implementations of the mutexes that synchronize using atomic operations instead of OS primitives. We first describe the ghost state construction that underlies the $\mathsf{locked}$ and $\mathsf{not\_locked}$ predicates for each mutex, and then show that our simple implementation of each mutex meets the specifications of the previous section.
 
-\subsection{The User Library}
+\subsection{The User(?) Library}
 \label{login}
 
-All three of our mutex specifications use thread-specific predicates ($\mathsf{not\_locked}$, $\mathsf{locked}$, $\mathsf{holds}$, etc.) to enforce the mutexes' requirements on thread behavior. Here we describe a general ghost construction that we use to implement all of our thread-specific predicates.
+\newcommand{\mutexperm}[2]{\ensuremath{\mathsf{mutex\_perm}_{#1}(#2)}}
 
-The $\mathsf{not\_locked}$ ghost state provides an interface that allows a thread to acquire
-locked resources at most once regardless of the mutex kinds. Each flavor of mutex
-is associated with a disjoint set of thread IDs, managed by one
-authoritative piece \allusers\ and fragment pieces \notlocked{\gamma}{t}:
-\begin{align*}
-  \usedthreads{\gamma}{T}
-    &\eqdef \ownGhost{\gamma}{\mathord{\bullet}T} \\
-  % \mathsf{users}^{\gamma}(T)
-  %   &\eqdef \mathsf{own}^{\gamma}(\mathord{\circ}T), \\
-  \notlocked{\gamma}{t}
-    &\eqdef \ownGhost{\gamma}{\mathord{\circ}\{t\}}
-\end{align*}
-The \allusers{T} ghost state tracks all "logged-in" threads $T$. Each thread with thread ID $t$ can get
-a \notlocked{\gamma}{t} handle for that mutex with the \texttt{login} rule, and the handle is
-unique for each thread (not-locked-unique). %write out all these rules!
+All three of our mutex specifications use thread-specific predicates ($\mathsf{not\_locked}$, $\mathsf{m\_locked}$, $\mathsf{holds}$, etc.) to enforce the mutexes' requirements on thread behavior. Here we describe a general ghost construction that we use to implement all of our thread-specific predicates.
 
-The mutex invariants are slightly
-different for different kinds of mutexes, but they all ensure that a thread
-must trade in its unique \notlocked{\gamma}{t} handle to acquire protected resources.
-This ensures that a thread can't acquire protected resources if it already has
-some, and unsafe programs that calls \texttt{mutex.lock()} or
-\texttt{shared\_mutex.lock\_shared()} twice consecutively in a single thread
-would get stuck. Notably, for recursive mutexes, if a thread already has the
-resource, it is safe to \texttt{lock()} again, and the thread simply does not
-exchange anything with the invariant.
+In order to acquire a non-recursive mutex, a thread needs to prove that it does not own that mutex: in separation-logic terms, it needs to own a resource demonstrating that it is not the current holder of the mutex. This means that each thread must own, or be able to create, a not-the-owner resource (call it a ``mutex permission'') %name?
+for every mutex it does not currently hold. We model this using disjoint infinite sets as ghost state: each thread $t$ is created with a resource $\mutexperm{t}{\top}$, where $\top$ is the universe of possible mutex names, and $\ownGhost{}{\mutexperm{t}{A \uplus B}} \dashv\vdash \ownGhost{}{\mutexperm{t}{A}} \ast \ownGhost{}{\mutexperm{t}{B}}$ (where $A \uplus B$ is only defined if $A$ and $B$ are disjoint). Then we can implement $\notlocked{\gamma}{t}$ as precisely $\ownGhost{}{\mutexperm{t}{\{\gamma\}}}$. %update with token ownership
+When a thread wants to interact with a mutex $\gamma$, it detaches $\mutexperm{t}{\{\gamma\}}$ from its set and uses it as permission to acquire $\gamma$; disjointness guarantees that each thread can only have one such permission.
+%contrast with the less-good user library approach?
 
-A thread can also "logout" and turn in its \notlocked{\gamma}{t} handle. Deallocation
-of any kind of mutex requires no "logged-in" users
-($\allusers^{\gamma}(\varnothing)$), enforcing that any allocated
-\notlocked{\gamma}{t} handle is deallocated with \texttt{logout}
-(\texttt{all-not\_locked-logged-out}), and so the mutex is not held
-by any thread, thus safe to deallocate.
+%The mutex invariants are slightly
+%different for different kinds of mutexes, but they all ensure that a thread
+%must trade in its unique \notlocked{\gamma}{t} handle to acquire protected resources.
+%This ensures that a thread can't acquire protected resources if it already has
+%some, and unsafe programs that calls \texttt{mutex.lock()} or
+%\texttt{shared\_mutex.lock\_shared()} twice consecutively in a single thread
+%would get stuck. Notably, for recursive mutexes, if a thread already has the
+%resource, it is safe to \texttt{lock()} again, and the thread simply does not
+%exchange anything with the invariant.
+
+%A thread can also "logout" and turn in its \notlocked{\gamma}{t} handle. Deallocation
+%of any kind of mutex requires no "logged-in" users
+%($\allusers^{\gamma}(\varnothing)$), enforcing that any allocated
+%\notlocked{\gamma}{t} handle is deallocated with \texttt{logout}
+%(\texttt{all-not\_locked-logged-out}), and so the mutex is not held
+%by any thread, thus safe to deallocate.
 
 %specific locked instances here or below?
 
