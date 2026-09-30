@@ -12,7 +12,7 @@ struct Positive {
 
 // Counts its calls through a pointer that all copies share.
 struct CountingPositive {
-    int* calls;
+    unsigned* calls;
     bool operator()(int x) const {
         ++*calls;
         return x > 0;
@@ -55,7 +55,7 @@ TestFunctionPointer() {
 void
 TestCounting() {
     int a[] = {1, 0, 2};
-    int calls = 0;
+    unsigned calls = 0;
     assert(!std::all_of(a, a + 3, CountingPositive{&calls}));
     assert(calls <= 3);
 }

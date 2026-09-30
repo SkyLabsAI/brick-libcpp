@@ -13,9 +13,10 @@ Require Import skylabs.auto.cpp.prelude.test.
 (** The closure type of the lambda in <<TestLambda>> has no C++ spelling, so
     [cpp.spec] cannot name its members. Its name is the first anonymous entity
     nested in the function, as in the generated AST. *)
-Definition lambda_name : name :=
-  Nscoped (Nglobal (Nfunction function_qualifiers.N "TestLambda" nil)) (Nanon 0).
-Definition lambda_ty : type := Tnamed lambda_name.
+Abbreviation lambda_name :=
+  (Nscoped (Nglobal (Nfunction function_qualifiers.N "TestLambda" nil)) (Nanon 0))
+  (only parsing).
+Abbreviation lambda_ty := (Tnamed lambda_name) (only parsing).
 
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
@@ -35,14 +36,14 @@ Section with_cpp.
 
   (** Discharges a call of an algorithm on the whole array [basep] of length [n]
       holding [xs], with element ownership [intR 1$m], using the adapter proof
-      [Hcall] (with no extra premise); restores the array afterwards. *)
+      [Hcall : denoteModule source ⊢ std.predicate_call ...]; restores the array
+      afterwards. *)
   Ltac call_on_array basep n xs model Hcall :=
+    iDestruct (Hcall with "[]") as "#?"; [iAssumption|];
     (* [go] instantiates the predicate model when it can read it off the object. *)
     first
-      [ iExists basep, 0%Z, n, 1$m%cQp, model, (fun q x => intR q x), 1$m%cQp, xs,
-          (std.Build_PredicateCall source MOD emp%I Hcall)
-      | iExists basep, 0%Z, n, 1$m%cQp, (fun q x => intR q x), 1$m%cQp, xs,
-          (std.Build_PredicateCall source MOD emp%I Hcall) ];
+      [ iExists basep, 0%Z, n, model, 1$m%cQp, (fun q x => intR q x), 1$m%cQp, xs
+      | iExists basep, 0%Z, n, 1$m%cQp, (fun q x => intR q x), 1$m%cQp, xs ];
     go;
     iSplitR; [by iPureIntro; rewrite offset_ptr_sub_0|];
     iRename select (basep |-> array_sliceR _ _ _ _ _) into "Ha";
@@ -84,52 +85,51 @@ Section with_cpp.
   Definition positive_dtor_B := [LINK] positive_dtor_ok.
   #[local] Hint Resolve positive_dtor_B : sl_opacity.
 
-  Lemma positive_call_ok negated p xs :
-    denoteModule source ⊢ □ emp -∗
-      std.predicate_call negated (Tptr "int") "Positive" (fun q x => intR q x) p xs.
+  Lemma positive_call_ok negated :
+    denoteModule source ⊢
+      std.predicate_call negated (Tptr "int") "Positive" (fun q x => intR q x).
   Proof using MOD. destruct negated; std.verify_predicate_call positive_ok. Qed.
 
   cpp.spec "TestAllOf()" as test_all_of with (\post emp).
   Lemma test_all_of_ok : verify[source] test_all_of.
   Proof using MOD.
     verify_spec. go.
-    call_on_array a_addr 2%Z [1; 2]%Z tt (positive_call_ok true tt [1; 2]%Z).
-    call_on_array b_addr 2%Z [1; 0]%Z tt (positive_call_ok true tt [1; 0]%Z).
+    call_on_array a_addr 2%Z [1; 2]%Z tt (positive_call_ok true).
+    call_on_array b_addr 2%Z [1; 0]%Z tt (positive_call_ok true).
   Qed.
 
   cpp.spec "TestAnyOf()" as test_any_of with (\post emp).
   Lemma test_any_of_ok : verify[source] test_any_of.
   Proof using MOD.
     verify_spec. go.
-    call_on_array a_addr 2%Z [0; 3]%Z tt (positive_call_ok false tt [0; 3]%Z).
-    call_on_array b_addr 2%Z [0; -1]%Z tt (positive_call_ok false tt [0; -1]%Z).
+    call_on_array a_addr 2%Z [0; 3]%Z tt (positive_call_ok false).
+    call_on_array b_addr 2%Z [0; -1]%Z tt (positive_call_ok false).
   Qed.
 
   cpp.spec "TestNoneOf()" as test_none_of with (\post emp).
   Lemma test_none_of_ok : verify[source] test_none_of.
   Proof using MOD.
     verify_spec. go.
-    call_on_array a_addr 2%Z [0; -1]%Z tt (positive_call_ok false tt [0; -1]%Z).
+    call_on_array a_addr 2%Z [0; -1]%Z tt (positive_call_ok false).
   Qed.
 
-  (** A predicate that counts its calls through a pointer shared by all copies:
-      its model is that pointer and [pred_inv] owns the counter. *)
+  (** A predicate that counts its calls, modulo [2^32], through a pointer shared by
+      all copies: its model is that pointer and [pred_inv] owns the counter. *)
   #[local] Instance Counting_rep : BundledRep "CountingPositive" ptr :=
     {| objR q cp :=
          structR "CountingPositive" q **
-         _field "CountingPositive::calls" |-> ptrR<"int"> q cp |}.
+         _field "CountingPositive::calls" |-> ptrR<"unsigned"> q cp |}.
   #[local] Instance Counting_pred : std.Predicate "CountingPositive" ptr Z :=
     {| std.pred_test _ x := bool_decide (x > 0)%Z;
-       std.pred_inv cp k := cp |-> intR 1$m k |}.
+       std.pred_inv cp k := cp |-> uintR 1$m (trim 32 k) |}.
 
   cpp.spec "CountingPositive::operator()(int) const" as counting_spec with
     (\this this
      \arg{x} "x" (Vint x)
      \prepost{q cp} this |-> (structR "CountingPositive" q **
-                              _field "CountingPositive::calls" |-> ptrR<"int"> q cp)
-     \pre{n} cp |-> intR 1$m n
-     \require (0 <= n < 3)%Z
-     \post[Vbool (bool_decide (x > 0)%Z)] cp |-> intR 1$m (n + 1)).
+                              _field "CountingPositive::calls" |-> ptrR<"unsigned"> q cp)
+     \pre{n} cp |-> uintR 1$m n
+     \post[Vbool (bool_decide (x > 0)%Z)] cp |-> uintR 1$m (trim 32 (n + 1))).
 
   Lemma counting_ok : verify[source] counting_spec.
   Proof using MOD. verify_spec. go. Qed.
@@ -137,7 +137,7 @@ Section with_cpp.
   cpp.spec "CountingPositive::~CountingPositive()" as counting_dtor_spec with
     (\this this
      \pre{cp} this |-> (structR "CountingPositive" 1$m **
-                        _field "CountingPositive::calls" |-> ptrR<"int"> 1$m cp)
+                        _field "CountingPositive::calls" |-> ptrR<"unsigned"> 1$m cp)
      \post emp).
 
   Lemma counting_dtor_ok : verify[source] counting_dtor_spec.
@@ -145,25 +145,22 @@ Section with_cpp.
   Definition counting_dtor_B := [LINK] counting_dtor_ok.
   #[local] Hint Resolve counting_dtor_B : sl_opacity.
 
-  (** The counter cannot overflow: the algorithm makes at most [length xs] calls. *)
-  Lemma counting_call_ok cp xs :
-    lengthZ xs <= 3 ->
-    denoteModule source ⊢ □ emp -∗
-      std.predicate_call true (Tptr "int") "CountingPositive" (fun q x => intR q x) cp xs.
-  Proof using MOD. intros Hlen. std.verify_predicate_call counting_ok. Qed.
+  Lemma counting_call_ok :
+    denoteModule source ⊢
+      std.predicate_call true (Tptr "int") "CountingPositive" (fun q x => intR q x).
+  Proof using MOD. std.verify_predicate_call counting_ok. Qed.
 
   cpp.spec "TestCounting()" as test_counting with (\post emp).
   Lemma test_counting_ok : verify[source] test_counting.
   Proof using MOD.
     verify_spec. go.
-    call_on_array a_addr 3%Z [1; 0; 2]%Z calls_addr
-      (counting_call_ok calls_addr [1; 0; 2]%Z ltac:(done)).
+    call_on_array a_addr 3%Z [1; 0; 2]%Z calls_addr counting_call_ok.
   Qed.
 
-  (** A function pointer: its model is the pointer. *)
-  #[local] Instance fnptr_rep : BundledRep "bool(*)(int)" ptr :=
-    {| objR q f := primR "bool(*)(int)" q (Vptr f) |}.
-  #[local] Instance is_zero_pred : std.Predicate "bool(*)(int)" ptr Z :=
+  (** A pointer to [is_zero]. *)
+  #[local] Instance fnptr_rep : BundledRep "bool(*)(int)" unit :=
+    {| objR q _ := primR "bool(*)(int)" q (Vptr (_global "is_zero(int)")) |}.
+  #[local] Instance is_zero_pred : std.Predicate "bool(*)(int)" unit Z :=
     std.pure_predicate (fun _ x => bool_decide (x = 0)%Z).
 
   cpp.spec "is_zero(int)" as is_zero_spec with
@@ -173,17 +170,16 @@ Section with_cpp.
   Lemma is_zero_ok : verify[source] is_zero_spec.
   Proof using MOD. verify_spec. go. Qed.
 
-  Lemma is_zero_call_ok xs :
-    denoteModule source ⊢ □ emp -∗
-      std.predicate_call true (Tptr "int") "bool(*)(int)" (fun q x => intR q x)
-        (_global "is_zero(int)") xs.
+  Lemma is_zero_call_ok :
+    denoteModule source ⊢
+      std.predicate_call true (Tptr "int") "bool(*)(int)" (fun q x => intR q x).
   Proof using MOD. std.verify_predicate_call is_zero_ok. Qed.
 
   cpp.spec "TestFunctionPointer()" as test_function_pointer with (\post emp).
   Lemma test_function_pointer_ok : verify[source] test_function_pointer.
   Proof using MOD.
     verify_spec. go.
-    call_on_array a_addr 2%Z [0; 0]%Z tt (is_zero_call_ok [0; 0]%Z).
+    call_on_array a_addr 2%Z [0; 0]%Z tt is_zero_call_ok.
   Qed.
 
   (** A captureless closure: no state, so its model is [unit]. *)
@@ -228,9 +224,9 @@ Section with_cpp.
   Lemma lambda_dtor_ok : verify[source] lambda_dtor_spec.
   Proof using MOD. rewrite /lambda_dtor_spec. verify_spec. go. Qed.
 
-  Lemma lambda_call_ok p xs :
-    denoteModule source ⊢ □ emp -∗
-      std.predicate_call false (Tptr "int") lambda_ty (fun q x => intR q x) p xs.
+  Lemma lambda_call_ok :
+    denoteModule source ⊢
+      std.predicate_call false (Tptr "int") lambda_ty (fun q x => intR q x).
   Proof using MOD. std.verify_predicate_call lambda_ok. Qed.
 
   (** The closure's copy constructor and destructor are stated with [specify], so
@@ -244,9 +240,9 @@ Section with_cpp.
     iPoseProof (lambda_copy_ok with "Hmodule") as "#Hcopy".
     iPoseProof (lambda_dtor_ok with "Hmodule") as "#Hdtor".
     go $usenamed=true.
-    call_on_array a_addr 2%Z [1; 2]%Z tt (lambda_call_ok tt [1; 2]%Z).
+    call_on_array a_addr 2%Z [1; 2]%Z tt lambda_call_ok.
     go $usenamed=true.
-    call_on_array a_addr 2%Z [1; 2]%Z tt (lambda_call_ok tt [1; 2]%Z).
+    call_on_array a_addr 2%Z [1; 2]%Z tt lambda_call_ok.
     go $usenamed=true.
   Qed.
 
