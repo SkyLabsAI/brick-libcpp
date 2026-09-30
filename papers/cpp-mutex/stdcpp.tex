@@ -449,9 +449,49 @@ The abstract state of a \lstinline{unique_lock} is of type $\mathsf{option}\ M$,
 As discussed in Section~\ref{basic-lockable}, the \lstinline{BasicLockable} requirement does not explicitly require that \lstinline{lock} lead to mutual exclusion, and indeed recursive mutexes can be \lstinline{lock}ed multiple times without being \lstinline{unlock}ed. This interacts in an interesting and useful way with \lstinline{unique_lock}'s acquisition tracking (the $\mathsf{held}$ predicate in our specifications): each \lstinline{unique_lock} can only acquire its mutex at most once, but we can construct multiple \lstinline{unique_lock}s around a single recursive mutex, each of which manages a single acquisition. %Is this equally true of lock_guard? We could call unlock once manually to illustrate the point.
 The code in Figure~\ref{unique-recursive} shows how this can be used. When \lstinline{answer} is called, it acquires the recursive mutex \lstinline{m} by constructing a \lstinline{unique_lock} around it; it then calls \lstinline{inc}, which constructs another \lstinline{unique_lock} that acquires \lstinline{m} a second time. When each method returns, its \lstinline{unique_lock} is destroyed and \lstinline{m} is released once, so that \lstinline{m} is no longer locked after \lstinline{answer} returns. Our specifications can be used to verify this program. %proof outline?
 
-\section{Case Studies?}
-\input{ring_buffer.tex}
+\section{Case Study: Mutex Encapsulation}
+%\input{ring_buffer.tex}
 %TODO: find or make some interesting examples
+
+We have seen that enforcing the requirements of C++ mutexes requires the management of thread-specific permission predicates that must be transferred between threads and locks. We have demonstrated that this is possible in simple examples of each mutex type, but we also want to know that our approach scales to programs with multiple mutex-carrying objects. %rephrase
+There are at least two possible pitfalls. First, it might be difficult for a thread to acquire two different mutexes, because we need to manually prove that the second mutex is not the same as the first. Second and more subtly, thread-specific predicates might leak through layers of abstraction. Our mutex specifications must include predicates like $\notlocked{\gamma}{t}$ that explicitly mention thread IDs, but a data structure that uses a mutex internally should not need to expose thread IDs in its interface; it should be possible to share the data structure among threads exactly as one would a non-mutex-based implementation, without extra registration steps. In this section, we verify a case study showing that we avoid both these pitfalls, suggesting that our mutex specifications can indeed be used for modular verification.
+
+\begin{figure}[htb]
+\begin{lstlisting}
+class C {
+private:
+  unsigned long balance;
+  std::recursive_mutex mut; // protects balance
+
+public:
+  explicit C(unsigned long initial_balance) : balance(initial_balance) {}
+
+  void incr_balance(unsigned long i) {
+    std::lock_guard<std::recursive_mutex> lg(mut);
+    balance += i;
+  }
+
+  void transfer_to(C target, unsigned long i) {
+    std::lock_guard<std::recursive_mutex> lg(mut);
+    balance -= i;
+    target.incr_balance(i);
+  }
+
+}
+
+int main() {
+  C from{4};
+  C to{2};
+  from.transfer(to, 3);
+  return 0;
+}
+\end{lstlisting}
+\caption{The code of our case study}
+\label{transfer}
+\end{figure}
+
+
+The code of our case study is shown in Figure~\ref{transfer}. 
 
 \section{BRiCk Formalization}
 
