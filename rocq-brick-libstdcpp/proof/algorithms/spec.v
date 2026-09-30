@@ -92,4 +92,152 @@ Section with_cpp.
 
 End with_cpp.
 
+(** * <<std::all_of>>, <<std::any_of>>, <<std::none_of>>
+
+    Generic in the iterator type (any [HasRanges]) and the predicate type. The result
+    is [forallb], [existsb], [negb ∘ existsb] of [pred_test] over the range, with at
+    most [length xs] predicate calls ([alg.all.of], [alg.any.of], [alg.none.of]).
+
+    libstdc++ 12 calls the predicate only in <<__gnu_cxx::__ops::_Iter_pred>> /
+    <<_Iter_negate>>; the specs assume [predicate_call] for it, which the hints in
+    [hints.v] prove from the callable's own specification. The rest of the algorithm
+    is trusted, as for <<std::find>>.
+
+    LIMITATION: iterator operations and copies of the predicate are trusted. The
+    predicate may not modify the elements or keep state inside itself (use
+    [pred_inv]). Exceptions, <<ExecutionPolicy>> overloads and <<std::ranges>> are
+    not covered.
+
+    NOTE: one section per [algorithms] subclause; a subclause that outgrows this file
+    moves to <<proof/algorithms/<subclause>.v>>, re-exported here. *)
+
+(** [pred_test p x]: the answer on [x]. [pred_inv p k]: state owned after [k] calls. *)
+Class Predicate `{Σ : cpp_logic} (pred_ty : type) (Pred Elem : Type) : Type := {
+  pred_test : Pred -> Elem -> bool;
+  pred_inv : Pred -> Z -> mpred
+}.
+#[global] Arguments Predicate {_ _ _} pred_ty Pred Elem : assert.
+#[global] Hint Mode Predicate - - - + - - : typeclass_instances.
+#[global] Arguments pred_test {_ _ _} pred_ty {Pred Elem _} p x : assert.
+#[global] Arguments pred_inv {_ _ _} pred_ty {Pred Elem _} p k : assert.
+
+(** A predicate without effects. *)
+Definition pure_predicate `{Σ : cpp_logic} {pred_ty : type} {Pred Elem : Type}
+    (test : Pred -> Elem -> bool) : Predicate pred_ty Pred Elem :=
+  {| pred_test := test; pred_inv _ _ := emp |}.
+
+Section predicate_call.
+  Context `{Σ : cpp_logic, σ : genv}.
+
+  (** <<__gnu_cxx::__ops::_Iter_negate<pred_ty>>> or <<_Iter_pred<pred_ty>>>. *)
+  Definition ops_adapter (negated : bool) (pred_ty : type) : name :=
+    Ninst
+      (Nscoped (Nscoped (Nglobal (Nid "__gnu_cxx"%pstring)) (Nid "__ops"%pstring))
+         (Nid (if negated then "_Iter_negate"%pstring else "_Iter_pred"%pstring)))
+      [Atype pred_ty].
+
+  Definition ops_adapter_call (negated : bool) (it_ty pred_ty : type) : name :=
+    Ninst
+      (Nscoped (ops_adapter negated pred_ty) (Nop function_qualifiers.N OOCall [it_ty]))
+      [Atype it_ty].
+
+  Definition ops_adapterR (negated : bool) (pred_ty : type) {Pred : Type}
+      `{!BundledRep pred_ty Pred} (q : cQp.t) (p : Pred) : Rep :=
+    structR (ops_adapter negated pred_ty) q **
+    _field (Nscoped (ops_adapter negated pred_ty) (Nid "_M_pred"%pstring)) |-> objR pred_ty q p.
+
+  (** The [k]-th call on an element [x]. *)
+  Definition predicate_call_body (negated : bool) (it_ty pred_ty : type)
+      {C : Set} {Iter P V : Type}
+      `{!BundledRep it_ty (C * Iter)%type, !HasRanges it_ty C Iter,
+        !BundledRep pred_ty P, !Predicate pred_ty P V}
+      (R : V -> Rep) (this : ptr) :
+      WpSpec mpred ptr ptr :=
+    \arg{itp : ptr} "__it" itp
+    \prepost{c i} itp |-> objR it_ty 1$m (c, i)
+    \prepost{x} dereference it_ty c i |-> R x
+    \prepost{p} this |-> ops_adapterR negated pred_ty 1$m p
+    \with (k : Z)
+    \require (0 <= k)%Z
+    \pre pred_inv pred_ty p k
+    \post{retp : ptr}[retp]
+      retp |-> boolR 1$m (xorb negated (pred_test pred_ty p x)) **
+      pred_inv pred_ty p (k + 1).
+
+  Definition predicate_call (negated : bool) (it_ty pred_ty : type)
+      {C : Set} {Iter P V : Type}
+      `{!BundledRep it_ty (C * Iter)%type, !HasRanges it_ty C Iter,
+        !BundledRep pred_ty P, !Predicate pred_ty P V}
+      (R : V -> Rep) : mpred :=
+    specify_raw
+      {| info_name := ops_adapter_call negated it_ty pred_ty;
+         info_type := tMethod (ops_adapter negated pred_ty) QM Tbool [it_ty] |}
+      (predicate_call_body negated it_ty pred_ty R).
+End predicate_call.
+
+Section all_any_none_of.
+  Context `{Σ : cpp_logic, σ : genv}.
+  Import specify_notation.
+
+  (** Shared by the three algorithms. *)
+  Definition algorithm_spec (negated : bool) (it_ty pred_ty : type)
+      {C : Set} {Iter P V : Type}
+      `{!BundledRep it_ty (C * Iter)%type, !HasRanges it_ty C Iter,
+        !BundledRep pred_ty P, !Predicate pred_ty P V}
+      (result : (V -> bool) -> list V -> bool) : WpSpec mpred ptr ptr :=
+    \with c
+    \arg{firstp : ptr} "first" firstp
+    \prepost{itb} firstp |-> objR it_ty 1$m (c, itb)
+    \arg{lastp : ptr} "last" lastp
+    \prepost{ite} lastp |-> objR it_ty 1$m (c, ite)
+    \arg{predp : ptr} "pred" predp
+    \prepost{p} predp |-> objR pred_ty 1$m p
+    \prepost{q ps} range it_ty c q itb ps ite
+    \prepost{(R : V -> Rep) xs} payload it_ty c R ps xs
+    \persist predicate_call negated it_ty pred_ty R
+    \pre pred_inv pred_ty p 0
+    \post{retp : ptr}[retp]
+      retp |-> boolR 1$m (result (pred_test pred_ty p) xs) **
+      ∃ k : Z, [| (0 <= k <= lengthZ xs)%Z |] ** pred_inv pred_ty p k.
+
+  Context (it_ty pred_ty : type).
+
+  #[materialized]
+  cpp.spec "std::all_of<$it_ty, $pred_ty>($it_ty, $it_ty, $pred_ty)"
+    as all_of_spec
+    from inc_algorithms_cpp.source
+    templates inc_algorithms_cpp_templates.templates
+    ( \\requires{C Iter} BundledRep it_ty (C * Iter)%type
+      \\requires HasRanges it_ty C Iter
+      \\requires{P} BundledRep pred_ty P
+      \\requires{V} Predicate pred_ty P V
+      \\with \exact Reduce (algorithm_spec true it_ty pred_ty (fun test xs => forallb test xs)) ).
+
+  #[materialized]
+  cpp.spec "std::any_of<$it_ty, $pred_ty>($it_ty, $it_ty, $pred_ty)"
+    as any_of_spec
+    from inc_algorithms_cpp.source
+    templates inc_algorithms_cpp_templates.templates
+    ( \\requires{C Iter} BundledRep it_ty (C * Iter)%type
+      \\requires HasRanges it_ty C Iter
+      \\requires{P} BundledRep pred_ty P
+      \\requires{V} Predicate pred_ty P V
+      \\with \exact Reduce (algorithm_spec false it_ty pred_ty (fun test xs => existsb test xs)) ).
+
+  #[materialized]
+  cpp.spec "std::none_of<$it_ty, $pred_ty>($it_ty, $it_ty, $pred_ty)"
+    as none_of_spec
+    from inc_algorithms_cpp.source
+    templates inc_algorithms_cpp_templates.templates
+    ( \\requires{C Iter} BundledRep it_ty (C * Iter)%type
+      \\requires HasRanges it_ty C Iter
+      \\requires{P} BundledRep pred_ty P
+      \\requires{V} Predicate pred_ty P V
+      \\with \exact Reduce (algorithm_spec false it_ty pred_ty (fun test xs => negb (existsb test xs))) ).
+
+  #[global] Arguments all_of_spec tu {C Iter _IterRep _IterRanges} {P _PredRep} {V _Pred} : rename.
+  #[global] Arguments any_of_spec tu {C Iter _IterRep _IterRanges} {P _PredRep} {V _Pred} : rename.
+  #[global] Arguments none_of_spec tu {C Iter _IterRep _IterRanges} {P _PredRep} {V _Pred} : rename.
+End all_any_none_of.
+
 NES.End std.
