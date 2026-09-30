@@ -99,8 +99,8 @@ End with_cpp.
     most [length xs] predicate calls ([alg.all.of], [alg.any.of], [alg.none.of]).
 
     libstdc++ 12 calls the predicate only in <<__gnu_cxx::__ops::_Iter_pred>> /
-    <<_Iter_negate>>; [PredicateCall] proves that call against the program's code.
-    The rest of the algorithm is trusted, as for <<std::find>>.
+    <<_Iter_negate>>; callers assume [predicate_call] for it, and the linking proof
+    discharges it. The rest of the algorithm is trusted, as for <<std::find>>.
 
     LIMITATION: iterator operations and copies of the predicate are trusted. The
     predicate may not modify the elements or keep state inside itself (use
@@ -145,20 +145,19 @@ Section predicate_call.
     structR (ops_adapter negated pred_ty) q **
     _field (Nscoped (ops_adapter negated pred_ty) (Nid "_M_pred"%pstring)) |-> objR pred_ty q p.
 
-  (** The [k]-th call, [k < length xs], on an element [x] of [xs]. *)
+  (** The [k]-th call on an element [x]. *)
   Definition predicate_call_body (negated : bool) (it_ty pred_ty : type)
       {C : Set} {Iter P V : Type}
       `{!BundledRep it_ty (C * Iter)%type, !HasRanges it_ty C Iter,
         !BundledRep pred_ty P, !Predicate pred_ty P V}
-      (R : cQp.t -> V -> Rep) (p : P) (xs : list V) (this : ptr) :
+      (R : cQp.t -> V -> Rep) (this : ptr) :
       WpSpec mpred ptr ptr :=
     \arg{itp : ptr} "__it" itp
     \prepost{c i} itp |-> objR it_ty 1$m (c, i)
     \prepost{q x} dereference it_ty c i |-> R q x
-    \require x ∈ xs
-    \prepost this |-> ops_adapterR negated pred_ty 1$m p
+    \prepost{p} this |-> ops_adapterR negated pred_ty 1$m p
     \with (k : Z)
-    \require (0 <= k < lengthZ xs)%Z
+    \require (0 <= k)%Z
     \pre pred_inv pred_ty p k
     \post{retp : ptr}[retp]
       retp |-> boolR 1$m (xorb negated (pred_test pred_ty p x)) **
@@ -168,30 +167,15 @@ Section predicate_call.
       {C : Set} {Iter P V : Type}
       `{!BundledRep it_ty (C * Iter)%type, !HasRanges it_ty C Iter,
         !BundledRep pred_ty P, !Predicate pred_ty P V}
-      (R : cQp.t -> V -> Rep) (p : P) (xs : list V) : mpred :=
+      (R : cQp.t -> V -> Rep) : mpred :=
     specify_raw
       {| info_name := ops_adapter_call negated it_ty pred_ty;
          info_type := tMethod (ops_adapter negated pred_ty) QM Tbool [it_ty] |}
-      (predicate_call_body negated it_ty pred_ty R p xs).
-
-  (** [predicate_call] proved from the program's code and from [pc_deps], library
-      specifications the caller holds. *)
-  Record PredicateCall (negated : bool) (it_ty pred_ty : type)
-      {C : Set} {Iter P V : Type}
-      `{!BundledRep it_ty (C * Iter)%type, !HasRanges it_ty C Iter,
-        !BundledRep pred_ty P, !Predicate pred_ty P V}
-      (R : cQp.t -> V -> Rep) (p : P) (xs : list V) : Type := {
-    pc_tu : translation_unit;
-    pc_loaded : pc_tu ⊧ σ;
-    pc_deps : mpred;
-    pc_ok : denoteModule pc_tu ⊢ □ pc_deps -∗ predicate_call negated it_ty pred_ty R p xs
-  }.
-  #[global] Arguments pc_deps {_ _ _ _ _ _ _ _ _ _ _ _ _ _} _ : assert.
-  #[global] Arguments Build_PredicateCall {_ _ _ _ _ _ _ _ _ _ _ _ _ _} _ _ _ _ : assert.
+      (predicate_call_body negated it_ty pred_ty R).
 End predicate_call.
 
-(** Proves [pc_ok] from [Hspec], the predicate's own verified specification.
-    Needs the warning [sl-transparent-constants] disabled. *)
+(** Proves [predicate_call] from [Hspec], the predicate's own verified
+    specification. Needs the warning [sl-transparent-constants] disabled. *)
 Ltac verify_predicate_call Hspec :=
   rewrite /predicate_call /predicate_call_body /ops_adapterR
     /ops_adapter_call /ops_adapter /=;
@@ -219,8 +203,7 @@ Section all_any_none_of.
     \prepost{p} predp |-> objR pred_ty 1$m p
     \prepost{q ps} range it_ty c q itb ps ite
     \prepost{(R : cQp.t -> V -> Rep) objq xs} payload it_ty c (R objq) ps xs
-    \with (call : PredicateCall negated it_ty pred_ty R p xs)
-    \prepost □ pc_deps call
+    \persist predicate_call negated it_ty pred_ty R
     \pre pred_inv pred_ty p 0
     \post{retp : ptr}[retp]
       retp |-> boolR 1$m (result (pred_test pred_ty p) xs) **

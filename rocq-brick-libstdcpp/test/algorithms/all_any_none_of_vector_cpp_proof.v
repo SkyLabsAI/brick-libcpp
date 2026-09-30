@@ -46,10 +46,10 @@ Section with_cpp.
   #[local] Hint Resolve positive_dtor_B : sl_opacity.
 
   (** The adapter dereferences the library iterator, so it relies on its <<operator*>>. *)
-  Lemma positive_call_ok p xs :
+  Lemma positive_call_ok :
     denoteModule source ⊢
       □ std.vector.iterator.iter_deref false "int" alloc_int -∗
-      std.predicate_call true iter_int "Positive" (fun q x => intR q x) p xs.
+      std.predicate_call true iter_int "Positive" (fun q x => intR q x).
   Proof using MOD. std.verify_predicate_call positive_ok. Qed.
 
   cpp.spec "TestVector()" as test_vector with (\post emp).
@@ -57,9 +57,11 @@ Section with_cpp.
   Proof using MOD.
     verify_spec. go.
     iExists (std.vector.base_pointer st', 0%Z). go.
-    iExists tt, (fun q x => intR q x), 1$m%cQp, 2%Z, 1%Z,
-      (std.Build_PredicateCall source MOD _ (positive_call_ok tt [1; 2]%Z)).
-    go.
+    iRename select (denoteModule _) into "Hmodule".
+    iRename select (std.vector.iterator.iter_deref _ _ _) into "Hderef".
+    iPoseProof (positive_call_ok with "Hmodule Hderef") as "#Hcall".
+    iExists tt, (fun q x => intR q x), 1$m%cQp, 2%Z, 1%Z.
+    go $usenamed=true.
     iExists (std.vector.base_pointer st', 2%Z), (std.vector.base_pointer st', 0%Z). go.
   Qed.
 
