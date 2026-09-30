@@ -458,32 +458,30 @@ There are at least two possible pitfalls. First, it might be difficult for a thr
 
 \begin{figure}[htb]
 \begin{lstlisting}
-class C {
+class Account {
 private:
   unsigned long balance;
   std::recursive_mutex mut; // protects balance
 
 public:
-  explicit C(unsigned long initial_balance) : balance(initial_balance) {}
+  explicit Account(unsigned long initial_balance) : balance(initial_balance) {}
 
   void incr_balance(unsigned long i) {
     std::lock_guard<std::recursive_mutex> lg(mut);
     balance += i;
   }
 
-  void transfer_to(C target, unsigned long i) {
+  void transfer_to(Account target, unsigned long i) {
     std::lock_guard<std::recursive_mutex> lg(mut);
     balance -= i;
     target.incr_balance(i);
   }
-
 }
 
 int main() {
-  C from{4};
-  C to{2};
-  from.transfer(to, 3);
-  return 0;
+  Account from{4};
+  Account to{2};
+  from.transfer_to(to, 3);
 }
 \end{lstlisting}
 \caption{The code of our case study}
@@ -491,7 +489,13 @@ int main() {
 \end{figure}
 
 
-The code of our case study is shown in Figure~\ref{transfer}. 
+The code of our case study is shown in Figure~\ref{transfer}. Each object of class \lstinline{Account} has a \lstinline{balance} protected by a mutex (in this code we use a \lstinline{recursive_mutex}, but any form of mutex would work). %make generic?
+The \lstinline{transfer_to} method decrements the host object's %terminology?
+balance and increments the target object's balance, acquiring both mutexes in the process. Our questions are then:
+\begin{enumerate}
+\item How do we prove that we can acquire \lstinline{target}'s mutex, given that we already hold the host's mutex?
+\item Can we use a representation predicate for \lstinline{Account} that is freely transferable between threads and does not take a thread ID as a parameter?
+\end{enumerate}
 
 \section{BRiCk Formalization}
 
