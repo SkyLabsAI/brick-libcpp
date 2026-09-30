@@ -5,7 +5,7 @@
  *)
 Require Import skylabs.cpp.spec.concepts.
 Require Import skylabs.brick.libstdcpp.cassert.spec.
-Require Import skylabs.brick.libstdcpp.algorithms.spec.
+Require Import skylabs.brick.libstdcpp.algorithms.hints.
 Require Import skylabs.brick.libstdcpp.test.algorithms.all_any_none_of_cpp.
 
 Require Import skylabs.auto.cpp.prelude.test.
@@ -21,44 +21,6 @@ Abbreviation lambda_ty := (Tnamed lambda_name) (only parsing).
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
   Context `{MOD : all_any_none_of_cpp.source ⊧ σ}.
-
-  (** Raw <<int*>> iterators into an array. *)
-  #[local] Instance int_ptr_rep : BundledRep (Tptr "int") (ptr * Z) :=
-    {| objR q st := ptrR<"int"> q (st.1 .[ "int" ! st.2 ]) |}.
-  #[local] Instance int_ptr_ranges : std.HasRanges (Tptr "int") ptr Z :=
-    std.array_ranges "int" (Tptr "int").
-
-  Lemma int_array_restore basep n xs :
-    std.array_spine "int" basep 1$m 0 (rangeZ 0 n) n **
-    std.payload (Tptr "int") basep (fun x => intR 1$m x) (rangeZ 0 n) xs |--
-    basep |-> array_sliceR "int" 0 n (fun v => intR 1$m v) xs.
-  Proof. by rewrite (std.array_sliceR_eqv_spine_payload_rangeZ "int" (Tptr "int") 1$m). Qed.
-
-  (** Discharges a call of an algorithm on the whole array [basep] of length [n]
-      holding [xs], with element ownership [intR 1$m], using the adapter proof
-      [Hcall : denoteModule source ⊢ std.predicate_call ...]; restores the array
-      afterwards. *)
-  Ltac call_on_array basep n xs model Hcall :=
-    iDestruct (Hcall with "[]") as "#?"; [iAssumption|];
-    (* [go] instantiates the predicate model when it can read it off the object. *)
-    first
-      [ iExists basep, 0%Z, n, model, 1$m%cQp, (fun q x => intR q x), 1$m%cQp, xs
-      | iExists basep, 0%Z, n, 1$m%cQp, (fun q x => intR q x), 1$m%cQp, xs ];
-    go;
-    iSplitR; [by iPureIntro; rewrite offset_ptr_sub_0|];
-    iRename select (basep |-> array_sliceR _ _ _ _ _) into "Ha";
-    iEval (rewrite (std.array_sliceR_eqv_spine_payload_rangeZ "int" (Tptr "int") 1$m)) in "Ha";
-    iDestruct "Ha" as "[#Hs Hpay]";
-    go;
-    iFrame "Hs Hpay";
-    iIntros (?) "(? & ? & ? & _ & Hpay & ? & ?)";
-    iDestruct (int_array_restore with "[$Hs $Hpay]") as "?";
-    iClear "Hs";
-    go.
-
-  (** The adapter proofs unfold [std.predicate_call], which is stated with
-      [specify_raw]. *)
-  #[local] Set Warnings "-sl-transparent-constants".
 
   (** A pure predicate with a member <<operator()>>. *)
   #[local] Instance Positive_rep : BundledRep "Positive" unit :=
@@ -85,32 +47,25 @@ Section with_cpp.
   Definition positive_dtor_B := [LINK] positive_dtor_ok.
   #[local] Hint Resolve positive_dtor_B : sl_opacity.
 
-  Lemma positive_call_ok negated :
-    denoteModule source ⊢
-      std.predicate_call negated (Tptr "int") "Positive" (fun q x => intR q x).
-  Proof using MOD. destruct negated; std.verify_predicate_call positive_ok. Qed.
-
-  cpp.spec "TestAllOf()" as test_all_of with (\post emp).
+  cpp.spec "TestAllOf()" as test_all_of with
+    (\persist positive_spec \post emp).
   Lemma test_all_of_ok : verify[source] test_all_of.
   Proof using MOD.
-    verify_spec. go.
-    call_on_array a_addr 2%Z [1; 2]%Z tt (positive_call_ok true).
-    call_on_array b_addr 2%Z [1; 0]%Z tt (positive_call_ok true).
+    verify_spec. go. iExists tt. go. iExists tt. go.
   Qed.
 
-  cpp.spec "TestAnyOf()" as test_any_of with (\post emp).
+  cpp.spec "TestAnyOf()" as test_any_of with
+    (\persist positive_spec \post emp).
   Lemma test_any_of_ok : verify[source] test_any_of.
   Proof using MOD.
-    verify_spec. go.
-    call_on_array a_addr 2%Z [0; 3]%Z tt (positive_call_ok false).
-    call_on_array b_addr 2%Z [0; -1]%Z tt (positive_call_ok false).
+    verify_spec. go. iExists tt. go. iExists tt. go.
   Qed.
 
-  cpp.spec "TestNoneOf()" as test_none_of with (\post emp).
+  cpp.spec "TestNoneOf()" as test_none_of with
+    (\persist positive_spec \post emp).
   Lemma test_none_of_ok : verify[source] test_none_of.
   Proof using MOD.
-    verify_spec. go.
-    call_on_array a_addr 2%Z [0; -1]%Z tt (positive_call_ok false).
+    verify_spec. go. iExists tt. go.
   Qed.
 
   (** A predicate that counts its calls, modulo [2^32], through a pointer shared by
@@ -145,16 +100,11 @@ Section with_cpp.
   Definition counting_dtor_B := [LINK] counting_dtor_ok.
   #[local] Hint Resolve counting_dtor_B : sl_opacity.
 
-  Lemma counting_call_ok :
-    denoteModule source ⊢
-      std.predicate_call true (Tptr "int") "CountingPositive" (fun q x => intR q x).
-  Proof using MOD. std.verify_predicate_call counting_ok. Qed.
-
-  cpp.spec "TestCounting()" as test_counting with (\post emp).
+  cpp.spec "TestCounting()" as test_counting with
+    (\persist counting_spec \post emp).
   Lemma test_counting_ok : verify[source] test_counting.
   Proof using MOD.
     verify_spec. go.
-    call_on_array a_addr 3%Z [1; 0; 2]%Z calls_addr counting_call_ok.
   Qed.
 
   (** A pointer to [is_zero]. *)
@@ -170,16 +120,14 @@ Section with_cpp.
   Lemma is_zero_ok : verify[source] is_zero_spec.
   Proof using MOD. verify_spec. go. Qed.
 
-  Lemma is_zero_call_ok :
-    denoteModule source ⊢
-      std.predicate_call true (Tptr "int") "bool(*)(int)" (fun q x => intR q x).
-  Proof using MOD. std.verify_predicate_call is_zero_ok. Qed.
+  (** A pointer type does not name its callee. *)
+  #[local] Instance is_zero_callable : std.CallableSpec "bool(*)(int)" is_zero_spec := {}.
 
-  cpp.spec "TestFunctionPointer()" as test_function_pointer with (\post emp).
+  cpp.spec "TestFunctionPointer()" as test_function_pointer with
+    (\persist is_zero_spec \post emp).
   Lemma test_function_pointer_ok : verify[source] test_function_pointer.
   Proof using MOD.
-    verify_spec. go.
-    call_on_array a_addr 2%Z [0; 0]%Z tt is_zero_call_ok.
+    verify_spec. go. iExists tt. go.
   Qed.
 
   (** A captureless closure: no state, so its model is [unit]. *)
@@ -224,26 +172,24 @@ Section with_cpp.
   Lemma lambda_dtor_ok : verify[source] lambda_dtor_spec.
   Proof using MOD. rewrite /lambda_dtor_spec. verify_spec. go. Qed.
 
-  Lemma lambda_call_ok :
-    denoteModule source ⊢
-      std.predicate_call false (Tptr "int") lambda_ty (fun q x => intR q x).
-  Proof using MOD. std.verify_predicate_call lambda_ok. Qed.
+  #[local] Hint Opaque lambda_spec lambda_copy_spec lambda_dtor_spec : sl_opacity.
+
+  (** [lambda_spec] is not registered with [cpp.spec]. *)
+  #[local] Instance lambda_callable : std.CallableSpec lambda_ty lambda_spec := {}.
 
   (** The closure's copy constructor and destructor are stated with [specify], so
       [verify_spec] does not find them: [verify?] only warns, and the proof poses
       them from the module. *)
-  cpp.spec "TestLambda()" as test_lambda with (\post emp).
+  cpp.spec "TestLambda()" as test_lambda with
+    (\persist lambda_spec \post emp).
   Lemma test_lambda_ok : verify?[source] test_lambda.
   Proof using MOD.
     verify_spec. go.
     iRename select (denoteModule _) into "Hmodule".
     iPoseProof (lambda_copy_ok with "Hmodule") as "#Hcopy".
     iPoseProof (lambda_dtor_ok with "Hmodule") as "#Hdtor".
-    go $usenamed=true.
-    call_on_array a_addr 2%Z [1; 2]%Z tt lambda_call_ok.
-    go $usenamed=true.
-    call_on_array a_addr 2%Z [1; 2]%Z tt lambda_call_ok.
-    go $usenamed=true.
+    go $usenamed=true. iExists tt. go $usenamed=true.
+    iExists tt. go $usenamed=true.
   Qed.
 
   Definition test_all_of_B := [LINK] test_all_of_ok.
@@ -258,7 +204,11 @@ Section with_cpp.
   #[local] Hint Resolve test_all_of_B test_any_of_B test_none_of_B
     test_function_pointer_B test_counting_B test_lambda_B positive_B counting_B is_zero_B : sl_opacity.
 
-  cpp.spec "main()" as main_spec with (\post[Vint 0] emp).
+  (** The callables' specifications are assumed, as for virtual calls ([vptrI]). *)
+  cpp.spec "main()" as main_spec with
+    (\persist positive_spec \persist counting_spec \persist is_zero_spec
+     \persist lambda_spec
+     \post[Vint 0] emp).
 
   Lemma main_ok : verify[source] main_spec.
   Proof using MOD. verify_spec. go. Qed.

@@ -99,8 +99,9 @@ End with_cpp.
     most [length xs] predicate calls ([alg.all.of], [alg.any.of], [alg.none.of]).
 
     libstdc++ 12 calls the predicate only in <<__gnu_cxx::__ops::_Iter_pred>> /
-    <<_Iter_negate>>; callers assume [predicate_call] for it, and the linking proof
-    discharges it. The rest of the algorithm is trusted, as for <<std::find>>.
+    <<_Iter_negate>>; the specs assume [predicate_call] for it, which the hints in
+    [hints.v] prove from the callable's own specification. The rest of the algorithm
+    is trusted, as for <<std::find>>.
 
     LIMITATION: iterator operations and copies of the predicate are trusted. The
     predicate may not modify the elements or keep state inside itself (use
@@ -150,11 +151,11 @@ Section predicate_call.
       {C : Set} {Iter P V : Type}
       `{!BundledRep it_ty (C * Iter)%type, !HasRanges it_ty C Iter,
         !BundledRep pred_ty P, !Predicate pred_ty P V}
-      (R : cQp.t -> V -> Rep) (this : ptr) :
+      (R : V -> Rep) (this : ptr) :
       WpSpec mpred ptr ptr :=
     \arg{itp : ptr} "__it" itp
     \prepost{c i} itp |-> objR it_ty 1$m (c, i)
-    \prepost{q x} dereference it_ty c i |-> R q x
+    \prepost{x} dereference it_ty c i |-> R x
     \prepost{p} this |-> ops_adapterR negated pred_ty 1$m p
     \with (k : Z)
     \require (0 <= k)%Z
@@ -167,22 +168,12 @@ Section predicate_call.
       {C : Set} {Iter P V : Type}
       `{!BundledRep it_ty (C * Iter)%type, !HasRanges it_ty C Iter,
         !BundledRep pred_ty P, !Predicate pred_ty P V}
-      (R : cQp.t -> V -> Rep) : mpred :=
+      (R : V -> Rep) : mpred :=
     specify_raw
       {| info_name := ops_adapter_call negated it_ty pred_ty;
          info_type := tMethod (ops_adapter negated pred_ty) QM Tbool [it_ty] |}
       (predicate_call_body negated it_ty pred_ty R).
 End predicate_call.
-
-(** Proves [predicate_call] from [Hspec], the predicate's own verified
-    specification. Needs the warning [sl-transparent-constants] disabled. *)
-Ltac verify_predicate_call Hspec :=
-  rewrite /predicate_call /predicate_call_body /ops_adapterR
-    /ops_adapter_call /ops_adapter /=;
-  verify_spec;
-  iRename select (denoteModule _) into "Hmodule";
-  iDestruct (Hspec with "Hmodule") as "#?";
-  go $usenamed=true.
 
 Section all_any_none_of.
   Context `{Σ : cpp_logic, σ : genv}.
@@ -202,7 +193,7 @@ Section all_any_none_of.
     \arg{predp : ptr} "pred" predp
     \prepost{p} predp |-> objR pred_ty 1$m p
     \prepost{q ps} range it_ty c q itb ps ite
-    \prepost{(R : cQp.t -> V -> Rep) objq xs} payload it_ty c (R objq) ps xs
+    \prepost{(R : V -> Rep) xs} payload it_ty c R ps xs
     \persist predicate_call negated it_ty pred_ty R
     \pre pred_inv pred_ty p 0
     \post{retp : ptr}[retp]
