@@ -423,7 +423,7 @@ The abstract state of a \lstinline{unique_lock} is of type $\mathsf{option}\ M$,
 \{u \mapsto \ulock(m)\ast \neg \mathsf{held}(m) \ast \dolock{\mathsf{ptr}(m)}{\mathsf{m}(m)}{K}\}\\ {\texttt{u.lock()}} \\ \{m \mapsto \ulock(m[\mathsf{held} := \mathsf{true}]) \ast K\}  \vspace{1em}\\
     \{u \mapsto \ulock(m)\ast \mathsf{held}(m) \ast \dounlock{\mathsf{ptr}(m)}{\mathsf{m}(m)}{K}\}\\ {\texttt{u.unlock}()}\\
     \{m \mapsto \ulock(m[\mathsf{held} := \mathsf{false}]) \ast K\}  \vspace{1em} \\
-\{u \mapsto \ulock() \ast (\text{if } \mathsf{held}(m) \text{ then } \dounlock{\mathsf{ptr}(m)}{\mathsf{m}(m)}{K}\} \text{ else } K)\}\\ \texttt{u.}\!\!\sim\texttt{unique\_lock}()\\ \{K \ast \text{if } m \text{ then } \mathsf{ptr}(m) \mapsto R(\mathsf{q}(m), \mathsf{m}(m)) \text { else } \mathsf{emp}\} %destructor notation, Some/None notation
+\{u \mapsto \ulock() \ast (\text{if } \mathsf{held}(m) \text{ then } \dounlock{\mathsf{ptr}(m)}{\mathsf{m}(m)}{K}\} \text{ else } K)\}\\ \texttt{u.}\!\!\sim\!\texttt{unique\_lock}()\\ \{K \ast \text{if } m \text{ then } \mathsf{ptr}(m) \mapsto R(\mathsf{q}(m), \mathsf{m}(m)) \text { else } \mathsf{emp}\} %destructor notation, Some/None notation
 \end{array}\]
 %verify the code from cppreference or a similar example?
 
