@@ -59,8 +59,8 @@ public:
   void unlock() {
     m_count--;
     if (m_count == 0) {
-      m_lock.unlock();
       m_owner = id_hash;
+      m_lock.unlock();
     }
   }
 };
