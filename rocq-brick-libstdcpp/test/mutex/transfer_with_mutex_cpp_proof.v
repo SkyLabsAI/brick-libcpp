@@ -78,7 +78,9 @@ Definition account_mutexR
         tele_app (TT := balance_args) (fun n : Z => this |-> account_balanceR n) args)).
 #[only(cfractional,ascfractional,type_ptr,lazy_unfold(export))] derive account_mutexR.
 
-(** The account rep. Everything that the constructor of [C] returns. *)
+(** The account rep. Everything that the constructor of [C] returns.
+    The recursive mutex ctor can allocate a [cinv] assocaited with any given 
+    [N : namespace], and returns (most of) account_mutexR. *)
 sl.lock
 Definition accountR
     `{Σ : cpp_logic, σ : genv, !std_recursive_mutex.G Σ, !HasStdThreads Σ}
