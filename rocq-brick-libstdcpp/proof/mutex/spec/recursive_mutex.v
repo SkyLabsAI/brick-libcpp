@@ -154,6 +154,8 @@ Module Type RECURSIVE_MUTEX_PREDS (T : MutexCPPName).
 
     (** Owning any given_token (which implies [th] holds the lock) contradicts
         resources needed to destruct the lock. *)
+    (* FIXME should the following be [acquireable Held] instead of [given_token]
+       and [given_token] be removed from this module?  *)
     Parameter locked_contradict_full_token : forall (this : ptr) g q qt th n P,
       this |-> R g q P ** token g 1$m ** given_token g qt th n |--
       (|={⊤}=> False).
