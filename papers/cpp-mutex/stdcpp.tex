@@ -419,11 +419,11 @@ The abstract state of a \lstinline{unique_lock} is of type $\mathsf{option}\ M$,
 
 %how much of this detail is useful? There are a lot of variations.
 \[\begin{array}{c}
-\{p \mapsto R(q, m) \ast \dolock{p}{m}{K}\}\\ \texttt{unique\_lock(p)}\\ \{\ulock(\mathsf{Some}\ (\mathsf{false}, p, q, m))\} \vspace{1em}\\%constructor notation?
-\{u \mapsto \ulock(m)\ast \neg \mathsf{held}(m) \ast \dolock{\mathsf{ptr}(m)}{\mathsf{m}(m)}{K}\}\\ {u\texttt{.lock()}} \\ \{m \mapsto \ulock(m[\mathsf{held} := \mathsf{true}]) \ast K\}  \vspace{1em}\\
-    \{u \mapsto \ulock(m)\ast \mathsf{held}(m) \ast \dounlock{\mathsf{ptr}(m)}{\mathsf{m}(m)}{K}\}\\ {u\texttt{.unlock}()}\\
+\{p \mapsto R(q, m) \ast \dolock{p}{m}{K}\}\\ \texttt{unique\_lock(p)}\\ \{u.\ u \mapsto \ulock(\mathsf{Some}\ (\mathsf{false}, p, q, m))\} \vspace{1em}\\%constructor notation?
+\{u \mapsto \ulock(m)\ast \neg \mathsf{held}(m) \ast \dolock{\mathsf{ptr}(m)}{\mathsf{m}(m)}{K}\}\\ {\texttt{u.lock()}} \\ \{m \mapsto \ulock(m[\mathsf{held} := \mathsf{true}]) \ast K\}  \vspace{1em}\\
+    \{u \mapsto \ulock(m)\ast \mathsf{held}(m) \ast \dounlock{\mathsf{ptr}(m)}{\mathsf{m}(m)}{K}\}\\ {\texttt{u.unlock}()}\\
     \{m \mapsto \ulock(m[\mathsf{held} := \mathsf{false}]) \ast K\}  \vspace{1em} \\
-\{u \mapsto \ulock() \ast (\text{if } \mathsf{held}(m) \text{ then } \dounlock{\mathsf{ptr}(m)}{\mathsf{m}(m)}{K}\} \text{ else } K)\}\\ \sim u()\\ \{K \ast \text{if } m \text{ then } \mathsf{ptr}(m) \mapsto R(\mathsf{q}(m), \mathsf{m}(m)) \text { else } \mathsf{emp}\} %destructor notation, Some/None notation
+\{u \mapsto \ulock() \ast (\text{if } \mathsf{held}(m) \text{ then } \dounlock{\mathsf{ptr}(m)}{\mathsf{m}(m)}{K}\} \text{ else } K)\}\\ \texttt{u.}\!\!\sim\texttt{unique\_lock}()\\ \{K \ast \text{if } m \text{ then } \mathsf{ptr}(m) \mapsto R(\mathsf{q}(m), \mathsf{m}(m)) \text { else } \mathsf{emp}\} %destructor notation, Some/None notation
 \end{array}\]
 %verify the code from cppreference or a similar example?
 
@@ -490,14 +490,35 @@ int main() {
 
 
 The code of our case study is shown in Figure~\ref{transfer}. Each object of class \lstinline{Account} has a \lstinline{balance} protected by a mutex (in this code we use a \lstinline{recursive_mutex}, but any form of mutex would work). %make generic?
-The \lstinline{transfer_to} method decrements the host object's %terminology?
+The \lstinline{transfer_to} method decrements the receiver's %terminology?
 balance and increments the target object's balance, acquiring both mutexes in the process. Our questions are then:
 \begin{enumerate}
-\item How do we prove that we can acquire \lstinline{target}'s mutex, given that we already hold the host's mutex?
+\item How do we prove that we can acquire \lstinline{target}'s mutex, given that we already hold the receiver's mutex?
 \item Can we use a representation predicate for \lstinline{Account} that is freely transferable between threads and does not take a thread ID as a parameter?
 \end{enumerate}
 
+%how much do we need to explain namespaces?
+
+For question 2, recall that our specifications for \lstinline{recursive_mutex} are:
+\[\begin{array}{c}
+\{\currentthread{t} \ast m \mapsto_q \rmutex{\gamma}{P}\ast\acquirable{\gamma}{t}{n}{P}{a}\}\\ {\texttt{m.lock()}} \\ \{m \mapsto_q \rmutex{\gamma}{P}\ast \exists a'.\ \mathsf{acquire}(n, a, a') \ast \acquirable{\gamma}{t}{n+1}{P}{a'}\}  \vspace{1em}\\
+    \{\currentthread{t} \ast m \mapsto_q \rmutex{\gamma}{P}\ast\acquirable{\gamma}{t}{n+1}{P}{a}\}\\ {\texttt{m.unlock}()}\\
+    \{m \mapsto_q \rmutex{\gamma}{P}\ast\acquirable{\gamma}{t}{n}{P}{a}\}
+\end{array}\]
+The $\mathsf{holds}$ predicate takes a thread $t$ that must match the current thread, and we must have it at line 15 %confirm
+in order to acquire \lstinline{mut}. On the other hand, \lstinline{transfer_to} is a function that can be called by any thread that has access to the two accounts involved, and should have a specification like
+\[ \{ a \mapsto_q \mathsf{account}{\gamma_a} \ast b \mapsto_q \mathsf{account}{\gamma_b} \}\ \texttt{a.transfer\_to(b, n)}\ \{ a \mapsto_q \mathsf{account}{\gamma_a} \ast b \mapsto_q \mathsf{account}{\gamma_b} \}\]
+In particular, if $\mathsf{account}$ takes a thread $t$ as an argument, then we will not be able to freely transfer ownership of it between threads (since it would only be usable by that thread $t$). The mutex permission library allows us to isolate this thread-local information. 
+
+If the precondition of \lstinline{transfer_to} includes $\mathsf{holds}$, then it will also need to mention the thread $t$, and so will not be freely 
+
+The representation predicate for \lstinline{Account} is defined as
+\[p \mapsto_q \mathsf{account}(\gamma) \triangleq p.\texttt{mut} \mapsto \rmutex{\gamma}{\lambda n.\ p.\texttt{balance} \mapsto n} \ast \mathsf{token}_\gamma(q)
+\]
+Ownership of an \lstinline{Account} is simply ownership of the mutex protecting the \lstinline{balance} field, plus ownership of the $\mathsf{token}$ that tracks whether the lock is held. In particular, it makes no mention of the $\mathsf{holds}$ predicate that appears in the precondition of the \lstinline{recursive_mutex} specifications (and explicitly takes a thread $t$ as an argument). Then, how does 
+
 \section{BRiCk Formalization}
+note that BRiCk itself is an axiomatic semantics
 
 \section{Conclusion and Future Work}
 ...
