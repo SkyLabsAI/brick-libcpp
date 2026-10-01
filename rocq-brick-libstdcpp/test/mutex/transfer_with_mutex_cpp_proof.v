@@ -89,19 +89,12 @@ Definition accountR
               std_recursive_mutex.rmutex_inv_namespace g = N |].
 #[only(type_ptr="C")] derive accountR.
 
-(** The user handle of the account. *)
-sl.lock
-Definition account_acquireableR
-    `{Σ : cpp_logic, σ : genv, !std_recursive_mutex.G Σ, !HasStdThreads Σ}
-    (gpool : iprop.gname) (N : namespace) (q : cQp.t) (th : thread_idT) : Rep :=
-  Exists g,
-    account_mutexR g q **
-    as_Rep (fun this : ptr =>
-      std_recursive_mutex.acquireable (TT := balance_args) g q th
-        std_recursive_mutex.NotHeld (fun n : Z => this |-> account_balanceR n)) **
-    pureR [| std_recursive_mutex.pool_name g = gpool /\
-              std_recursive_mutex.rmutex_inv_namespace g = N |].
-#[only(type_ptr="C")] derive account_acquireableR.
+(** The two account mutexes use distinct namespaces. *)
+Definition from_namespace : namespace := nroot .@@ "transfer" .@ "from".
+Definition to_namespace : namespace := nroot .@@ "transfer" .@ "to".
+
+Lemma transfer_namespaces_disjoint : (↑from_namespace : coPset) ## ↑to_namespace.
+Proof. rewrite /from_namespace /to_namespace. solve_ndisj. Qed.
 
 (** Names of the two closure types and their instantiated [C::call] methods. *)
 Definition outer_lambda : name :=
@@ -117,31 +110,6 @@ Section class_C.
   Context `{Σ : cpp_logic, σ : genv}.
   Context {HAS_THREADS : HasStdThreads Σ}.
   Context `{!std_recursive_mutex.G Σ}.
-
-  Lemma account_register_thread (this : ptr) gpool N q th :
-    current_thread th ** this |-> accountR gpool N q **
-    MutexSets.my_mutexes gpool th (coPset.CoPset (↑N)) ⊣⊢
-    this |-> account_acquireableR gpool N q th.
-  Proof.
-    rewrite accountR.unlock account_acquireableR.unlock !_at_exists.
-    iSplit.
-    - iIntros "(#Hth & (%g & HR) & Hname)".
-      iEval (rewrite !_at_sep !_at_pureR) in "HR".
-      iDestruct "HR" as "(HR & Htoken & %Hg)".
-      destruct Hg as [Hgpool HN].
-      iExists g. rewrite !_at_sep !_at_pureR !_at_as_Rep.
-      iFrame "HR". iSplitL "Htoken Hname"; last done.
-      rewrite -std_recursive_mutex.register_thread.
-      rewrite Hgpool HN. iFrame "#∗".
-    - iIntros "(%g & HR)".
-      iEval (rewrite !_at_sep !_at_pureR !_at_as_Rep) in "HR".
-      iDestruct "HR" as "(HR & Hacquireable & %Hg)".
-      iEval (rewrite -std_recursive_mutex.register_thread) in "Hacquireable".
-      iDestruct "Hacquireable" as "(#Hth & Htoken & Hname)".
-      destruct Hg as [Hgpool HN].
-      rewrite Hgpool HN. iFrame "Hth Hname".
-      iExists g. rewrite !_at_sep !_at_pureR. iFrame. done.
-  Qed.
 
   #[local] Instance balanceR_learn : LearnEq2 account_balanceR.
   Proof. solve_learnable. Qed.
@@ -225,7 +193,8 @@ Section class_C.
      \arg{f} "f" (Vptr f)
      \persist type_ptr (Tnamed cl) f
      \persist{th} current_thread th
-     \prepost{gpool N q} this |-> account_acquireableR gpool N q th
+     \prepost{gpool N q} this |-> accountR gpool N q **
+       MutexSets.my_mutexes gpool th (coPset.CoPset (↑N))
      \pre{K} ∀ v : Z,
        this |-> account_balanceR v -*
        balance_callback cl f (this ,, _field "C::balance")
@@ -245,11 +214,16 @@ Section class_C.
     cbn.
     iIntros "H".
     iDestruct "H" as (f th gpool N q K)
-      "(%Hargs & #Hf & #Hth & HR & Hcallback & Hpost)".
-    iEval (rewrite account_acquireableR.unlock _at_exists) in "HR".
+      "(%Hargs & #Hf & #Hth & (HR & Hnames) & Hcallback & Hpost)".
+    iEval (rewrite accountR.unlock _at_exists) in "HR".
     iDestruct "HR" as (g) "HR".
-    iEval (rewrite !_at_sep !_at_pureR _at_as_Rep) in "HR".
-    iDestruct "HR" as "(HR & Hacquireable & %Hg)".
+    iEval (rewrite !_at_sep !_at_pureR) in "HR".
+    iDestruct "HR" as "(HR & Htoken & %Hg)".
+    iAssert (std_recursive_mutex.acquireable (TT := balance_args) g q th
+      std_recursive_mutex.NotHeld (fun n : Z => this |-> account_balanceR n))%I
+      with "[Htoken Hnames]" as "Hacquireable".
+    { rewrite -std_recursive_mutex.register_thread.
+      destruct Hg as [Hgpool HN]. rewrite Hgpool HN. iFrame "#∗". }
     iExists f, g, q,
       (std_recursive_mutex.acquireable (TT := balance_args) g q th
          std_recursive_mutex.NotHeld (fun n : Z => this |-> account_balanceR n) ** K)%I.
@@ -281,9 +255,12 @@ Section class_C.
       iFrame.
     - iIntros "(HR & Hacquireable & HK)".
       iApply "Hpost". iFrame "HK".
-      rewrite account_acquireableR.unlock _at_exists. iExists g.
-      rewrite !_at_sep !_at_pureR _at_as_Rep.
-      iFrame. done.
+      iEval (rewrite -std_recursive_mutex.register_thread) in "Hacquireable".
+      iDestruct "Hacquireable" as "(_ & Htoken & Hnames)".
+      destruct Hg as [Hgpool HN].
+      iEval (rewrite Hgpool HN) in "Hnames". iFrame "Hnames".
+      rewrite accountR.unlock _at_exists. iExists g.
+      rewrite !_at_sep !_at_pureR. iFrame. done.
   Qed.
 
   Local Lemma outer_call_refines : outer_call_internal_spec |-- outer_call_spec.
@@ -297,6 +274,78 @@ Section class_C.
 
   Lemma inner_call_ok : verify?[source] inner_call_spec.
   Proof. work. wapply inner_call_refines. wapply inner_call_internal_ok. work. Qed.
+
+  cpp.spec "C::transfer(C&, unsigned long)" as C_transfer_spec from source with (
+    \this from
+    \arg{to} "to" (Vptr to)
+    \arg{i} "i" (Vint i)
+    \persist{th} current_thread th
+    \prepost{gpool qfrom qto}
+      from |-> accountR gpool from_namespace qfrom **
+      MutexSets.my_mutexes gpool th (coPset.CoPset (↑from_namespace)) **
+      to |-> accountR gpool to_namespace qto **
+      MutexSets.my_mutexes gpool th (coPset.CoPset (↑to_namespace))
+    \post emp
+  ).
+
+  Lemma C_transfer_ok : verify[source] C_transfer_spec.
+  Proof.
+    verify_spec; go.
+    rewrite accountR.unlock. go.
+    lazymatch goal with
+    | |- context[transfer_lock_guard.R (this ,, _) ?gfrom _ _] =>
+        rename gfrom into source_g
+    end.
+    iDestruct select (MutexSets.my_mutexes _ th
+      (coPset.CoPset (↑from_namespace))) as "Hfrom_names".
+    iEval (rewrite -b) in "Hfrom_names".
+    iDestruct (bi.equiv_entails_1_1 _ _
+      (std_recursive_mutex.register_thread source_g qfrom th (TT := balance_args)
+        (fun n : Z => this |-> account_balanceR n)%I)
+      with "[$]") as "?"; first go.
+    iDestruct select (MutexSets.my_mutexes _ th
+      (coPset.CoPset (↑to_namespace))) as "Hto_names".
+    iEval (rewrite -a -b0) in "Hto_names".
+    iDestruct (bi.equiv_entails_1_1 _ _
+      (std_recursive_mutex.register_thread g qto th (TT := balance_args)
+        (fun n : Z => to |-> account_balanceR n)%I)
+      with "[$]") as "?"; first go.
+    go.
+    rewrite std_recursive_mutex.acquire.unlock in H1, H2.
+    destruct H1 as [[from_balance []] Hfrom]. inversion Hfrom; subst.
+    destruct H2 as [[to_balance []] Hto]. inversion Hto; subst.
+    go.
+    (* Return the updated destination balance when lg_to is destroyed. *)
+    iExists (cQp.scale (1 / 2) qto),
+      (std_recursive_mutex.acquireable (TT := balance_args) g qto th
+        std_recursive_mutex.NotHeld (fun n : Z => to |-> account_balanceR n))%I.
+    rewrite std_recursive_mutex.release.unlock /=. go.
+    iSplitL ""; first by iIntros "$".
+    go.
+    (* Return the updated source balance when lg_from is destroyed. *)
+    iExists (cQp.scale (1 / 2) qfrom),
+      (std_recursive_mutex.acquireable (TT := balance_args) source_g qfrom th
+        std_recursive_mutex.NotHeld (fun n : Z => this |-> account_balanceR n))%I.
+    rewrite std_recursive_mutex.release.unlock /=. go.
+    iSplitL ""; first by iIntros "$".
+    go.
+    rewrite accountR.unlock /std_recursive_mutex.acquireable. go with br_erefl.
+    rewrite a b b0. go.
+  Qed.
+
+  (** Link the C implementation and both lock-guard operations. *)
+  Lemma C_transfer_link :
+    denoteModule source 
+    ** std_recursive_mutex.std_lock_spec_alt 
+    ** std_recursive_mutex.std_unlock_spec_alt
+    |-- C_transfer_spec.
+  Proof.
+    work.
+    wapply C_transfer_ok.
+    wapply transfer_lock_guard.ctor_ok.
+    wapply transfer_lock_guard.dtor_ok.
+    work.
+  Qed.
 
   #[local] Instance balanceR_tele_timeless (this : ptr) args :
     Timeless (tele_app (TT := balance_args) (fun n : Z => this |-> account_balanceR n) args).
@@ -359,10 +408,6 @@ Section clients.
     Cbn (Learn (learn_eq ==> learn_eq ==> any ==> learn_hints.fin) accountR).
   Proof. solve_learnable. Qed.
 
-  #[local] Instance account_acquireableR_learn :
-    Cbn (Learn (learn_eq ==> learn_eq ==> any ==> learn_eq ==> learn_hints.fin) account_acquireableR).
-  Proof. solve_learnable. Qed.
-
   cpp.spec (lambda_call outer_lambda) from source inline.
   cpp.spec (lambda_call inner_lambda) from source inline.
   cpp.spec (Nscoped outer_lambda Ndtor) from source inline.
@@ -381,15 +426,17 @@ Section clients.
   Lemma transfer_seq_ok : verify[source] transfer_seq_spec.
   Proof. verify_spec; go. Qed.
 
-  (** Transfer balances using the two accounts' acquisition handles. *)
-  cpp.spec "transfer(C&, C&, unsigned long)" as transfer_spec from source with (
+  (** Transfer balances using account ownership and per-thread namespace resources. *)
+  cpp.spec "transfer(C&, C&, unsigned long)" as transfer_general_spec from source with (
     \arg{from} "from" (Vptr from)
     \arg{to} "to" (Vptr to)
     \arg{i} "i" (Vint i)
     \persist{th} current_thread th
     \prepost{gpool Nfrom Nto qfrom qto}
-      from |-> account_acquireableR gpool Nfrom qfrom th **
-      to |-> account_acquireableR gpool Nto qto th
+      from |-> accountR gpool Nfrom qfrom **
+      MutexSets.my_mutexes gpool th (coPset.CoPset (↑Nfrom)) **
+      to |-> accountR gpool Nto qto **
+      MutexSets.my_mutexes gpool th (coPset.CoPset (↑Nto))
     \post emp).
 
   Local Lemma call_with_continuation (A : mpred -> mpred) R Q :
@@ -399,16 +446,17 @@ Section clients.
     iIntros "[HR HK]". iApply "HK". iFrame.
   Qed.
 
-  Lemma transfer_ok : inner_call_spec ** transfer_seq_spec |-- verify[source] transfer_spec.
+  Lemma transfer_general_ok : inner_call_spec ** transfer_seq_spec |-- verify[source] transfer_general_spec.
   Proof.
     verify_shift; go.
     iExists qfrom. go.
     iApply call_with_continuation.
     iIntros (v1) "Hfrom_balance".
-    (* The outer acquisition exposes from's balance; to retains its handle. *)
-    wname [account_acquireableR] "Hto".
-    iAssert (from |-> account_balanceR v1 ** to |-> account_acquireableR gpool Nto qto th)%I
-      with "[$Hfrom_balance $Hto]" as "Hafter_from".
+    (* The outer acquisition exposes from's balance; to retains its account and namespace. *)
+    wname [accountR] "Hto".
+    iAssert (from |-> account_balanceR v1 ** to |-> accountR gpool Nto qto **
+      MutexSets.my_mutexes gpool th (coPset.CoPset (↑Nto)))%I
+      with "[$]" as "Hafter_from".
     iDestruct "Hafter_from" as "[? ?]".
     rewrite /balance_callback. iIntros (Qfrom) "HKfrom". go.
     iExists qto. go.
@@ -426,29 +474,65 @@ Section clients.
       with "[$]" as "Hafter_transfer".
     iDestruct "Hafter_transfer" as "[? ?]".
     iApply "HKto". go.
-    (* Returning from to.call restores its fractional account and acquisition handle. *)
+    (* Returning from to.call restores its account and namespace resource. *)
     iAssert (from ,, _field "C::balance" |-> ulongR 1$m (trim 64 (v1 - i)) **
-      to |-> account_acquireableR gpool Nto qto th)%I
+      to |-> accountR gpool Nto qto **
+      MutexSets.my_mutexes gpool th (coPset.CoPset (↑Nto)))%I
       with "[$]" as "Hafter_to".
-    iDestruct "Hafter_to" as "[Hfrom_balance Hto]".
+    iDestruct "Hafter_to" as "(Hfrom_balance & Hto & Hto_names)".
     iApply "HKfrom". iExists (trim 64 (v1 - i)).
     iSplitL "Hfrom_balance".
     { iDestruct "Hfrom_balance" as "?". go. }
-    iIntros "Hfrom".
-    (* Returning from from.call restores both fractional accounts. *)
-    iAssert (from |-> account_acquireableR gpool Nfrom qfrom th ** to |-> account_acquireableR gpool Nto qto th)%I
-      with "[$Hfrom $Hto]" as "Hafter_from".
+    iIntros "(Hfrom & Hfrom_names)".
+    (* Returning from from.call restores both accounts and namespace resources. *)
+    iAssert (from |-> accountR gpool Nfrom qfrom **
+      MutexSets.my_mutexes gpool th (coPset.CoPset (↑Nfrom)) **
+      to |-> accountR gpool Nto qto **
+      MutexSets.my_mutexes gpool th (coPset.CoPset (↑Nto)))%I
+      with "[$Hfrom $Hfrom_names $Hto $Hto_names]" as "Hafter_from".
     iDestruct "Hafter_from" as "[? ?]". go.
     wname [bi_wand] "Hpost".
     iSpecialize ("Hpost" with "[$]").
     iModIntro. iNext. iApply "Hpost". go.
   Qed.
 
+  Lemma transfer_general_link :
+    denoteModule source ** outer_call_spec ** inner_call_spec |-- transfer_general_spec.
+  Proof.
+    work. wapply transfer_general_ok. wapply transfer_seq_ok. work.
+  Qed.
+
+  (** Choose both mutex namespaces for the callback-based transfer. *)
+  Definition transfer_body : WpSpec mpred val val :=
+    (
+  \arg{from} "from" (Vptr from)
+  \arg{to} "to" (Vptr to)
+  \arg{i} "i" (Vint i)
+  \persist{th} current_thread th
+  \prepost{gpool qfrom qto}
+    from |-> accountR gpool from_namespace qfrom **
+    MutexSets.my_mutexes gpool th (coPset.CoPset (↑from_namespace)) **
+    to |-> accountR gpool to_namespace qto **
+    MutexSets.my_mutexes gpool th (coPset.CoPset (↑to_namespace))
+  \post emp
+    ).
+
+  cpp.spec "transfer(C&, C&, unsigned long)" as transfer_spec from source with
+    (\exact Reduce transfer_body).
+
+  Lemma transfer_specialize : transfer_general_spec |-- transfer_spec.
+  Proof.
+    apply specify_mono. intros args post. cbn.
+    work.
+    iExists qfrom, qto. work.
+  Qed.
+
+  Lemma transfer_ok : inner_call_spec ** transfer_seq_spec |-- verify[source] transfer_spec.
+  Proof. work. wapply transfer_specialize. wapply transfer_general_ok. work. Qed.
+
   Lemma transfer_link :
     denoteModule source ** outer_call_spec ** inner_call_spec |-- transfer_spec.
-  Proof.
-    work. wapply transfer_ok. wapply transfer_seq_ok. work.
-  Qed.
+  Proof. work. wapply transfer_specialize. wapply transfer_general_link. work. Qed.
 
   cpp.spec "main()" as main_spec from source with (
     \persist{th} current_thread th
@@ -466,41 +550,24 @@ Section clients.
       with "Hmap") as "[Hmap Hnames]".
     iEval (rewrite left_id_L) in "Hmap".
     go.
-    iExists gpool, (nroot .@@ "transfer" .@ "from"); go.
-    iExists gpool, (nroot .@@ "transfer" .@ "to"); go.
-    have Hdisjoint : (↑(nroot .@@ "transfer" .@ "from") : coPset) ##
-      ↑(nroot .@@ "transfer" .@ "to") by solve_ndisj.
+    iExists gpool, from_namespace; go.
+    iExists gpool, to_namespace; go.
+    have Hdisjoint := transfer_namespaces_disjoint.
     iDestruct (MutexSets.my_mutexes_alloc_mutex_name gpool th ⊤
-      (↑(nroot .@@ "transfer" .@ "from")) ltac:(set_solver)
+      (↑from_namespace) ltac:(set_solver)
       with "Hnames") as "[Hnames Hfrom]".
     iDestruct (MutexSets.my_mutexes_alloc_mutex_name gpool th
-      (⊤ ∖ ↑(nroot .@@ "transfer" .@ "from"))
-      (↑(nroot .@@ "transfer" .@ "to")) ltac:(set_solver)
+      (⊤ ∖ ↑from_namespace)
+      (↑to_namespace) ltac:(set_solver)
       with "Hnames") as "[Hnames Hto]".
-    iDestruct select (_ |-> accountR gpool (nroot .@@ "transfer" .@ "from") _) as "Hfrom_account".
-    iDestruct select (_ |-> accountR gpool (nroot .@@ "transfer" .@ "to") _) as "Hto_account".
-    iDestruct (bi.equiv_entails_1_1 _ _ (account_register_thread _ _ _ _ _)
-      with "[$Hfrom_account $Hfrom]") as "Hfrom_account"; first go.
-    iDestruct (bi.equiv_entails_1_1 _ _ (account_register_thread _ _ _ _ _)
-      with "[$Hto_account $Hto]") as "Hto_account"; first go.
-    iDestruct "Hfrom_account" as "?". iDestruct "Hto_account" as "?".
+    iDestruct "Hfrom" as "?". iDestruct "Hto" as "?".
     go. iExists (1$m)%cQp, (1$m)%cQp. go.
-    iDestruct select (_ |-> account_acquireableR gpool (nroot .@@ "transfer" .@ "from") _ th)
-      as "Hfrom_account".
-    iDestruct select (_ |-> account_acquireableR gpool (nroot .@@ "transfer" .@ "to") _ th)
-      as "Hto_account".
-    iEval (rewrite -account_register_thread) in "Hfrom_account".
-    iEval (rewrite -account_register_thread) in "Hto_account".
-    iDestruct "Hfrom_account" as "(_ & Hfrom_account & Hfrom)".
-    iDestruct "Hto_account" as "(_ & Hto_account & Hto)".
-    iDestruct "Hfrom_account" as "?". iDestruct "Hto_account" as "?".
-    go.
     iDestruct (MutexSets.my_mutexes_join_mutex_name gpool th
-      (⊤ ∖ ↑(nroot .@@ "transfer" .@ "from"))
-      (↑(nroot .@@ "transfer" .@ "to")) ltac:(set_solver)
+      (⊤ ∖ ↑from_namespace)
+      (↑to_namespace) ltac:(set_solver)
       with "[$]") as "Hnames".
     iDestruct (MutexSets.my_mutexes_join_mutex_name gpool th ⊤
-      (↑(nroot .@@ "transfer" .@ "from")) ltac:(set_solver)
+      (↑from_namespace) ltac:(set_solver)
       with "[$]") as "Hnames".
     iDestruct (MutexSets.mutex_sets_free_thread gpool {[th]} th
       ltac:(set_solver) with "[$]") as "Hmap".

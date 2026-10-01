@@ -28,6 +28,13 @@ public:
     std::lock_guard<std::recursive_mutex> lg(mut);
     std::printf("Balance: %lu\n", balance);
   }
+
+  void transfer(C& to, unsigned long i) {
+    std::lock_guard<std::recursive_mutex> lg_from(mut);
+    std::lock_guard<std::recursive_mutex> lg_to(to.mut);
+    this->balance -= i;
+    to.balance += i;
+  }
 };
 
 
