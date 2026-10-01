@@ -153,7 +153,7 @@ Finally, the main thread joins with the spawned thread and recollects its shares
   unsigned int x = 0;
   std::mutex m;
 
-  (*@ $\{ \currentthread{t} \ast \texttt{m} \mapsto_\pi \mutex{\gamma}{P} \ast \token{\gamma}{q} \ast \mutexperm{t}{\mutexname{\gamma}}$ @*)
+  (*@ $\{ \currentthread{t} \ast \texttt{m} \mapsto_\pi \mutex{\gamma}{P} \ast \token{\gamma}{q} \ast \mutexperm{t}{\mutexname{\gamma}} \}$ @*)
   void double_incr() {
     (*@ $\Rightarrow \{ \currentthread{t} \ast \texttt{m} \mapsto_\pi \mutex{\gamma}{P} \ast \notlocked{\gamma}{t}{q} \}$ @*)
     m.lock();
@@ -170,7 +170,7 @@ Finally, the main thread joins with the spawned thread and recollects its shares
     (*@ $\{ \currentthread{t_1} \ast \texttt{m} \mapsto \mutex{\gamma}{P} \ast \token{\gamma}{1} \ast \mutexperm{t}{\top} \}$ @*)
     std::thread t(double_incr);
     (*@ $\{ \currentthread{t_1} \ast \texttt{m} \mapsto_{.5} \mutex{\gamma}{P} \ast \token{\gamma}{.5} \ast \mutexperm{t}{\top} \} \Rightarrow$ @*)
-    (*@ $\{ \currentthread{t_1} \ast \texttt{m} \mapsto_{.5} \mutex{\gamma}{P} \ast \mutexperm{t}{\top \setminus \{\mutexname{\gamma}\}} \ast \notlocked{\gamma}{t_1}{.5} \}$ @*)
+    (*@ $\{ \currentthread{t_1} \ast \texttt{m} \mapsto_{.5} \mutex{\gamma}{P} \ast \mutexperm{t}{\top \setminus \mutexname{\gamma}} \ast \notlocked{\gamma}{t_1}{.5} \}$ @*)
     m.lock();
     (*@ $\{ ... \ast P \ast \locked{\gamma}{t_1}{.5} \}$ @*)
     x += 2;
