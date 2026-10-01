@@ -3,10 +3,11 @@
 #include <thread>
 #include <cassert>
 
+size_t id_hash = std::hash<std::thread::id>{}(std::thread::id{});
 #pragma once
 class MyRecursiveMutex {
   // not protected by the lock, but atomic
-  std::atomic<std::thread::id> m_owner{};
+  std::atomic<size_t> m_owner{id_hash};
 
   // protected by the lock
   unsigned long long m_count{0};
@@ -18,7 +19,7 @@ public:
   // TODO: add the token/given_token accounting, maybe with q*tickets
 
   void lock() {
-    std::thread::id this_id{std::this_thread::get_id()};
+    size_t this_id = std::hash<std::thread::id>{}(std::this_thread::get_id());
     // Open cinv
     if (m_owner != this_id) {
       // here, m_owner is:
@@ -59,7 +60,7 @@ public:
     m_count--;
     if (m_count == 0) {
       m_lock.unlock();
-      m_owner = std::thread::id{};
+      m_owner = id_hash;
     }
   }
 };
