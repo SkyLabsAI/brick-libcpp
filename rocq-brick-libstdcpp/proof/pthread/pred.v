@@ -65,6 +65,9 @@ End with_cpp.
 End pthread_attr.
 
 Module pthread.
+  Import auto.telescopes auto.telescopes.TeleNotations.
+
+  Record gname := { _ghost : iprop.gname }.
 
   (** pthread_join, some error codes are returned via a void pointer. *)
   mlock
@@ -87,4 +90,63 @@ Module pthread.
   Instance affine_canceled `{Σ : cpp_logic, σ : genv} p : Affine (pthread.canceled p).
   Proof. rewrite pthread.canceled.unlock /=; apply  _. Qed.
 
+  Variant thread_state := RunningOrCompleted | CanceledOrCompleted.
+
+  (** [handle γ spawner tid P Pc] is a token returned when thread creation succeeds. [P] and [Pc]
+      are respectively the postcondition of the thread and its cancelation postcondition. [handle]
+      can be given to <<pthread_join>> to retrieve ownership of left by a thread's termination. It
+      can also be given to <<pthread_cancel>> to retrieve resources from the aborted thread.
+
+      [handle] also specifies the thread id of the spawning thread so that the precondition of [pthread_join]
+      can rule out two threads trying to mutually join with each other.  *)
+  Parameter handle : forall `{Σ : cpp_logic,!HasStdThreads Σ}
+                       (γ : gname) (spawner tid : thread_idT)
+                       (state : thread_state)
+                       (Post : ptr -> mpred)
+                       (Post_cancel : mpred), mpred.
+
+  (** [cancelation γ tid Pc] is a token given to a newly created thread which allows it to test for
+      pending cancelation and return resources ownership. *)
+  Parameter cancelation : forall `{Σ : cpp_logic,!HasStdThreads Σ}
+                             (γ : gname) (tid : thread_idT)
+                             {T : tele} (Post_cancel : T -> mpred), mpred.
+
+  mlock
+  Definition R `{Σ : cpp_logic, σ : genv} (q : cQp.t) (id : thread_idT) :=
+    ulongR q (unwrapN id).
+  #[only(cfractional,cfracvalid,ascfractional,type_ptr,lazy_unfold)] derive R.
+
+  (* TODO: fix [lazy_unfold] derivation. [q] and [q'] need to be distinct variables. *)
+  #[global] Instance R_defined_using' `{Σ : cpp_logic, σ : genv} (q q' : cQp.t) (id : thread_idT) (arg : val) :
+    lazy_unfold.AutoUnlocking.DefinedUsing
+      (pthread.R q id)
+      (primR "unsigned long" q' arg) := {}.
+
+Section with_cpp.
+  Import rep.RepFor.
+  Import RepScheme.
+
+  Context `{Σ : cpp_logic,σ : genv,!HasStdThreads Σ}.
+
+  #[global] Instance R_learnable :
+      Cbn (Learn (learn_eq ==> any ==> learn_eq ==> learn_hints.fin) R) := ltac:(solve_learnable).
+
+
+  Definition learn_eq_dep {T U V} : Learning V → Learning (forall x : T, U x → V) :=
+    fun '{|unLearning := k|} =>
+      {|unLearning := fun L R ls => forall a a' b b', k (L a b) (R a' b') ((existT a b = existT a' b') :: ls) |}.
+
+  #[global] Instance cancelation_learnable :
+    Cbn (Learn (learn_eq ==> req_eq ==> learn_eq_dep ==> learn_hints.fin)
+           pthread.cancelation) := ltac:(solve_learnable).
+
+  #[global] Instance handle_learnable :
+    Cbn (Learn (learn_eq ==> learn_eq ==> req_eq ==> learn_eq ==> learn_eq ==> learn_eq ==> learn_hints.fin)
+           pthread.handle) := ltac:(solve_learnable).
+
+  #[global] Instance repfor `{!HasStdThreads Σ} {σ : genv} :
+    rep.RepFor.C "pthread_t" [ArgType.CFrac; ArgType.Model _]
+      R := {}.
+
+End with_cpp.
 End pthread.
