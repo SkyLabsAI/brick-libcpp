@@ -9,13 +9,12 @@ Require Import skylabs.auto.cpp.prelude.proof.
 Require Import skylabs.auto.core.hints.cancelx_notation.
 Require Import skylabs.iris.extra.proofmode.proofmode.
 
-Parameter thread_idT : Type.
-#[global] Declare Instance thread_idT_inh : Inhabited thread_idT.
-#[global] Declare Instance thread_idT_eq_dec : EqDecision thread_idT.
-#[global] Declare Instance thread_idT_countable : Countable thread_idT.
+Import wrap.
+
+Variant ThreadIdT := .
+Definition thread_idT := WrapN ThreadIdT.
 
 Canonical Structure thread_idTO := leibnizO thread_idT.
-
 Canonical Structure thread_idT_bi_index : biIndex := BiIndex thread_idT _ eq _.
 
 Parameter HasStdThreads : forall `{Σ : cpp_logic}, Type.
