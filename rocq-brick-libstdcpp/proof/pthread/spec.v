@@ -74,6 +74,17 @@ Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
   Context `{!HasStdThreads Σ}.
 
+  cpp.spec "pthread_t::pthread_t()"
+    from source
+    as ctor_spec
+    with ( \this this
+           \post ∃ tid, this |-> pthread.R 1$m tid ).
+
+  cpp.spec "pthread_t::~pthread_t()"
+    from source
+    as dtor_spec
+    inline.
+
   cpp.spec "pthread_create"
      as create_spec
      from source
