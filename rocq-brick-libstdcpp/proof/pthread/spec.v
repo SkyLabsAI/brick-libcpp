@@ -101,5 +101,30 @@ Section with_cpp.
                  Pre argp arg ∗
                  idp |-> oprimR "unsigned long" 1$m id0 ).
 
+  cpp.spec "pthread_join"
+     as join_spec
+     from source
+     with ( \arg{tid}      "tid"   (Vthread tid)
+            \arg{retp}     "ret"   (Vptr retp)
+            \pre{ret0}      retp |-> oprimR "void*" 1$m ret0
+            \prepost{this_thread} current_thread this_thread
+            \pre{γ s P Pc}  pthread.handle γ this_thread tid s P Pc
+            \post[Vint 0] (* the precondition rules out the errors that [pthread_join] can report:
+                              - deadlocks
+                              - thread is not joinable (our specs don't allow us to create such threads yet)
+                              - thread id does not designate an existing thread
+                              - thread is being joined by other thread *)
+               ∃ ret,
+                 retp |-> ptrR<"void"> 1$m ret ∗
+                 match s with
+                 | RunningOrCompleted => P ret
+                 | CanceledOrCompleted =>
+                   ∃ pCANCELED,
+                     canceled pCANCELED ∗
+                     if bool_decide (ret = pCANCELED)
+                       then Pc
+                       else P ret
+                 end ).
+
 End with_cpp.
 End pthread.
