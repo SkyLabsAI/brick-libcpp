@@ -3,7 +3,7 @@ Require Import skylabs.bi.tls_modalities_rep.
 Require Import skylabs.bi.weakly_objective.
 Require Import skylabs.auto.cpp.weakly_local_with.
 
-Require Import skylabs.auto.cpp.prelude.pred.
+Require Export skylabs.auto.cpp.prelude.pred.
 Require Import skylabs.auto.cpp.prelude.proof.
 
 Require Import skylabs.auto.core.hints.cancelx_notation.
