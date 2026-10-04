@@ -28,6 +28,9 @@ Existing Class HasStdThreads.
   *)
 Parameter threadTI : forall `{HasStdThreads}, thread_info -ml> thread_idT_bi_index.
 
+Definition Vthread (tid : thread_idT) := Vn (unwrapN tid).
+#[global] Instance Vthread_type_compat : TypeCompat "unsigned long" Vthread := {}.
+
 (** [current_thread thr] means that the current thread is [thr].
 
     For more information on monalities, consult tls_modalities.
