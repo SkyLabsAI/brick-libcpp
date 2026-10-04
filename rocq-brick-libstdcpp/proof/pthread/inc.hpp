@@ -5,3 +5,8 @@
  */
 
 #include <pthread.h>
+#include <errno.h>
+
+enum pthread_errno : int {
+    CANCELED = -1, // same as PTHREAD_CANCELED but it is not a valid way to define an enum,
+};

@@ -18,6 +18,8 @@ Import wrap.
 #[global] Hint Extern 0 (CFractional (fun q => match ?x with | _ => _ end)) =>
   destruct x : typeclass_instances.
 
+cpp.enum "pthread_errno" from source variant.
+
 Module pthread_attr.
 
   (** cpp.class does not support unions *)
@@ -61,3 +63,28 @@ Section with_cpp.
 
 End with_cpp.
 End pthread_attr.
+
+Module pthread.
+
+  (** pthread_join, some error codes are returned via a void pointer. *)
+  mlock
+  Definition canceled `{Σ : cpp_logic,σ : genv} (p : ptr) : mpred :=
+    let int_size := int_rank.bitsN int_rank.Iint in
+    let addr := trim int_size (pthread_errno.to_Z pthread_errno.CANCELED) in
+    pinned_ptr (Z.to_N addr) p.
+
+  #[global] Instance learn_canceled `{Σ : cpp_logic, σ : genv} p0 p1 :
+    Learnable
+      (pthread.canceled p0)
+      (pthread.canceled p1)
+      [p0 = p1] := ltac:(solve_learnable).
+
+  #[global]
+  Instance pers_canceled `{Σ : cpp_logic, σ : genv} p : Persistent (pthread.canceled p).
+  Proof. rewrite pthread.canceled.unlock /=; apply  _. Qed.
+
+  #[global]
+  Instance affine_canceled `{Σ : cpp_logic, σ : genv} p : Affine (pthread.canceled p).
+  Proof. rewrite pthread.canceled.unlock /=; apply  _. Qed.
+
+End pthread.
