@@ -41,3 +41,65 @@ Module pthread_attr.
           \post[Vint 0] ∃ x, pattr |-> pthread_attr.R 1$m x).
 
 End pthread_attr.
+
+Module pthread.
+  Export pthread.
+  Import auto.telescopes auto.telescopes.TeleNotations.
+
+  Definition starter_kind : okind :=
+      tFunction (cc:=CC_C) "void*" ["void*"%cpp_type].
+
+  Definition starter_spec `{Σ : cpp_logic, σ : genv} `{!HasStdThreads Σ}
+      (argT stateT : tele)
+      (Pre : ptr -> argT -> mpred)
+      (Post : ptr -> argT -> ptr -> mpred)
+      (Post_c : ptr -> argT -> stateT -> mpred) : WpSpec_cpp_val :=
+    \arg{argp} "arg" (Vptr argp)
+    \pre{arg} Pre argp arg
+    \prepost{tid} current_thread tid
+    \prepost{γ}   pthread.cancelation γ tid (Post_c argp arg)
+    \post{retp}[Vptr retp] Post argp arg retp.
+
+  mlock
+  Definition starter_specR `{Σ : cpp_logic, σ : genv} `{!HasStdThreads Σ}
+      (argT stateT : tele)
+      (Pre : ptr -> argT -> mpred)
+      (Post : ptr -> argT -> ptr -> mpred)
+      (Post_c : ptr -> argT -> stateT -> mpred) : Rep :=
+    unmaterialized_specR starter_kind
+      (starter_spec argT stateT Pre Post Post_c)  .
+
+Section with_cpp.
+
+  Context `{Σ : cpp_logic, σ : genv}.
+  Context `{!HasStdThreads Σ}.
+
+  cpp.spec "pthread_create"
+     as create_spec
+     from source
+     with ( \arg{idp}        "tid"   (Vptr idp)
+            \pre{id0}         idp |-> oprimR "unsigned long" 1$m id0
+            \arg{attrp}      "attr"  (Vptr attrp)
+            \let attr := pthread_attr.default (* we limit ourselves to the standard flags for now *)
+            \prepost{q_attr}  attrp |-> pthread_attr.R q_attr (Some attr)
+            \arg{starterp}   "start" (Vptr starterp)
+            \with argT stateT Pre Post Post_c
+            \pre              starterp |-> starter_specR argT stateT Pre Post Post_c
+            \arg{argp}       "arg"   (Vptr argp)
+            \pre{arg : argT}  Pre argp arg
+            \prepost{this_thread} current_thread this_thread
+            \require WeaklyLocalWith procTI (Pre argp arg)
+            \require forall retp, WeaklyLocalWith procTI (Post argp arg retp)
+            \require ∀p.. s, WeaklyLocalWith procTI (Post_c argp arg s)
+            \post{err}[Vint err]
+               if bool_decide (err = 0) then
+                 ∃ γt tid,
+                   pthread.handle γt this_thread tid RunningOrCompleted
+                       (Post argp arg) (bi_texist (Post_c argp arg)) ∗
+                   idp |-> pthread.R 1$m tid
+               else
+                 Pre argp arg ∗
+                 idp |-> oprimR "unsigned long" 1$m id0 ).
+
+End with_cpp.
+End pthread.
