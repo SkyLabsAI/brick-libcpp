@@ -11,8 +11,13 @@ Require Import skylabs.iris.extra.proofmode.proofmode.
 
 Import wrap.
 
+Variant ProcIdT := .
+Definition proc_idT := WrapN ProcIdT.
 Variant ThreadIdT := .
 Definition thread_idT := WrapN ThreadIdT.
+
+Canonical Structure proc_idTO := leibnizO proc_idT.
+Canonical Structure proc_idT_bi_index : biIndex := BiIndex proc_idT _ eq _.
 
 Canonical Structure thread_idTO := leibnizO thread_idT.
 Canonical Structure thread_idT_bi_index : biIndex := BiIndex thread_idT _ eq _.
@@ -21,11 +26,13 @@ Parameter HasStdThreads : forall `{Σ : cpp_logic}, Type.
 #[global] Arguments HasStdThreads {_ _} Σ.
 Existing Class HasStdThreads.
 
-(** The projection of the thread from the thread information.
+(** The projection of respectively the process id and thread id from the
+    thread information.
 
   NOTE: This is effectively a field of `HasStdThreads`, but since that
   is registered as an Axiom, we use another Parameter for this.
   *)
+Parameter procTI : forall `{HasStdThreads}, thread_info -ml> proc_idT_bi_index.
 Parameter threadTI : forall `{HasStdThreads}, thread_info -ml> thread_idT_bi_index.
 
 Definition Vthread (tid : thread_idT) := Vn (unwrapN tid).
