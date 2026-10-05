@@ -42,6 +42,10 @@ void multithreaded_ok () {
     if (pthread_create(&child1, &attr, thread_fn, &counter1) != 0)
         return;
     if (pthread_create(&child2, &attr, cancelable_thread, &counter2) != 0) {
+        // Here, it is important that the precondition of `pthread_join` excludes dead-lock because
+        // otherwise, we could not retrieve the ownership of the local variable `counter1` when a
+        // deadlock is detected. The absence of deadlock is assured by requiring the thread that
+        // spawned a thread to also be the one to join it.
         pthread_join(child1, nullptr);
         return;
     }
