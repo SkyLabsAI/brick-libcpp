@@ -75,8 +75,8 @@ Section with_cpp.
             \pre{arg : argT}  Pre argp arg
             \with this_thread
             \prepost          current_thread this_thread
-            \require WeaklyLocalWith procTI (Pre argp arg)
-            \require forall tid, WeaklyLocalWith procTI (Post argp arg tid)
+            \require LocalWith procTI (Pre argp arg)
+            \require forall tid, LocalWith procTI (Post argp arg tid)
             \post{err}[Vint err]
                if bool_decide (err = 0) then
                  ∃ γt tid,

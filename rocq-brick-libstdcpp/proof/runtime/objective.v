@@ -16,19 +16,19 @@ Section proc_objective_axiom.
   Context `{Σ : !cpp_logic ti Σ0, σ : genv, !HasStdThreads Σ}.
 
   #[global] Declare Instance tptsto_pd_local_weakly_obj p ty q a :
-      WeaklyLocalWith procTI (tptsto ty q p a).
+      LocalWith procTI (tptsto ty q p a).
   #[global] Declare Instance padding_pd_local_weakly_obj q cls :
-      WeaklyLocalWithR procTI (structR cls q).
+      LocalWithR procTI (structR cls q).
   #[global] Declare Instance mdc_path_pd_local_weakly_obj n path q p :
-      WeaklyLocalWith procTI (mdc_path n path q p).
+      LocalWith procTI (mdc_path n path q p).
   #[global] Declare Instance type_ptr_pd_local_weakly_obj p ty :
-      WeaklyLocalWith procTI (type_ptr ty p).
+      LocalWith procTI (type_ptr ty p).
   #[global] Declare Instance valid_ptr_pd_local_weakly_obj p ty :
-      WeaklyLocalWith procTI (_valid_ptr ty p).
+      LocalWith procTI (_valid_ptr ty p).
   #[global] Declare Instance anyR_pd_local_weakly_obj ty q :
-      WeaklyLocalWithR procTI (anyR ty q).
+      LocalWithR procTI (anyR ty q).
   #[global] Declare Instance has_type_pd_weakly_obj v ty :
-      WeaklyLocalWith procTI (has_type v ty).
+      LocalWith procTI (has_type v ty).
 End proc_objective_axiom.
 End PROC_OBJECTIVE_AXIOM_TYPE.
 
@@ -36,137 +36,195 @@ Declare Module Export PROC_OBJECTIVE_AXIOM : PROC_OBJECTIVE_AXIOM_TYPE.
 
 Section upstream.
 
-  Lemma weakly_objective_of_obs {ix} {PROP : bi} {P : ix -mon> PROP} Q :
-    (Q -> WeaklyObjective P) ->
+  Context {PROP : bi}.
+  Context {I J K : biIndex}.
+
+  Lemma objective_of_obs {P : I -mon> PROP} Q :
+    (Q -> Objective P) ->
     Observe [| Q |] P ->
-    WeaklyObjective P.
+    Objective P.
   Proof.
-    move => HP /observe_monPred_at Hobs i j Hij.
+    move => HP /observe_monPred_at Hobs i j.
     iIntros "A"%string. iDestruct (Hobs with "A") as %?.
     by iStopProof; apply: HP.
   Qed.
 
-  Lemma weakly_objectiveR_of_obs {ix jx} {PROP : bi} {P : ix -mon> jx -mon> PROP} Q :
-    (Q -> WeaklyObjectiveR P) ->
-    Observe [| Q |] P ->
-    WeaklyObjectiveR P.
-  Proof.
-    rewrite !WeaklyObjectiveR_monPred_at => HP Hobs p.
-    eapply weakly_objective_of_obs, _ => HQ.
-    by apply: HP.
-  Qed.
+  Section LocalWith.
 
-  Lemma weakly_local_of_obs {ix jx} {PROP : bi} {P : ix -mon> PROP} Q (L : ix -ml> jx) :
-    (Q -> WeaklyLocalWith L P) ->
-    Observe [| Q |] P ->
-    WeaklyLocalWith L P.
-  Proof.
-    rewrite -!weakly_objective_weakly_local_with => HP Hobs j.
-    apply weakly_objective_of_obs with (Q := Q), _ => HQ.
-    by apply: HP.
-  Qed.
+    Lemma LocalWith_of_obs {P : I -mon> PROP} Q {L : I -ml> K} :
+      (Q -> LocalWith L P) ->
+      Observe [| Q |] P ->
+      LocalWith L P.
+    Proof.
+      rewrite -!objective_local_with => HP Hobs j.
+      apply objective_of_obs with (Q := Q), _ => HQ.
+      by apply: HP.
+    Qed.
 
-  Lemma weakly_localR_of_obs {ix jx kx} {PROP : bi} {P : ix -mon> jx -mon> PROP} Q (L : jx -ml> kx) :
-    (Q -> WeaklyLocalWithR L P) ->
-    Observe [| Q |] P ->
-    WeaklyLocalWithR L P.
-  Proof.
-    rewrite !WeaklyLocalWithR_monPred_at => HP Hobs p.
-    eapply weakly_local_of_obs, _ => HQ.
-    by apply: HP.
-  Qed.
+    #[global] Instance LocalWith_only_provable P {L : I -ml> K} :
+      LocalWith (PROP := PROP) L [| P |].
+    Proof.
+      rewrite -objective_local_with => ?.
+      rewrite monPred_exactly_at_only_provable.
+      apply _.
+    Qed.
+
+  End LocalWith.
+  Section LocalWithR.
+
+    Lemma LocalWithR_of_obs {P : J -mon> I -mon> PROP} Q {L : I -ml> K} :
+      (Q -> LocalWithR L P) ->
+      Observe [| Q |] P ->
+      LocalWithR L P.
+    Proof.
+      rewrite !LocalWithR_monPred_at => HP Hobs p.
+      eapply LocalWith_of_obs, _ => HQ.
+      by apply: HP.
+    Qed.
+
+    #[global] Instance LocalWithR_only_provable P {L : I -ml> J} :
+      LocalWithR (PROP := PROP) L [| P |].
+    Proof.
+      rewrite -objective_local_withR => ? ?.
+      rewrite monPred_at_only_provable.
+      rewrite monPred_exactly_at_only_provable.
+      apply _.
+    Qed.
+
+  End LocalWithR.
 
 End upstream.
 
-Section derived_pd_local_weakly_local_withR.
+Section derived_local_withR.
   Context `{Σ : !cpp_logic ti Σ0, σ : genv, !HasStdThreads Σ}.
+  Implicit Types p : ptr.
 
-  Lemma WeaklyLocalWithR_iff_WeaklyObjective_at (R : Rep) :
-    WeaklyLocalWithR procTI R <-> forall (p : ptr) pd, WeaklyObjective (@(procTI, pd) p |-> R).
+  Section upstream.
+
+    Lemma LocalWithR_iff_LocalWith_at (R : Rep) {J} {L : ti -ml> J} :
+      LocalWithR L R <-> forall p, LocalWith L (p |-> R).
+    Proof.
+      rewrite -objective_local_withR; apply forall_proper => p.
+      by rewrite !objective_local_with plogic.monPred_at_at.
+    Qed.
+
+    Lemma LocalWithR_iff_Objective_at (R : Rep) {J} {L : ti -ml> J} :
+      LocalWithR L R <-> forall (p : ptr) i, Objective (@(L, i) p |-> R).
+    Proof.
+      rewrite -objective_local_withR; apply forall_proper => p.
+      by rewrite !objective_local_with plogic.monPred_at_at.
+    Qed.
+
+    #[global] Instance LocalWithR_as_Rep (P : ptr -> mpred) {J} {L : ti -ml> J} :
+      (forall p, LocalWith L (P p)) ->
+      LocalWithR L (as_Rep P).
+    Proof.
+      rewrite LocalWithR_iff_LocalWith_at => Hp p.
+      by rewrite _at_as_Rep.
+    Qed.
+
+    Section LocalWith.
+
+      #[global] Instance LocalWith_at (R : Rep) {J} {L : ti -ml> J} :
+        LocalWithR L R -> forall p, LocalWith L (p |-> R).
+      Proof. rewrite LocalWithR_iff_LocalWith_at; apply _. Qed.
+
+    End LocalWith.
+
+    Section LocalWithR.
+
+      #[global] Instance LocalWithR_offsetR (R : Rep) {J} {L : ti -ml> J} :
+        LocalWithR L R -> forall o : offset, LocalWithR L (o |-> R).
+      Proof.
+        rewrite LocalWithR_iff_LocalWith_at => HR o.
+        rewrite LocalWithR_iff_LocalWith_at => p.
+        by rewrite _at_offsetR.
+      Qed.
+
+    End LocalWithR.
+
+  End upstream.
+
+  #[global] Instance validR_pd_local_obj :
+    LocalWithR procTI validR.
   Proof.
-    rewrite WeaklyLocalWithR_iff_WeaklyLocalWith_at; apply forall_proper => p.
-    by rewrite -weakly_objective_weakly_local_with.
+    rewrite LocalWithR_iff_LocalWith_at => p.
+    rewrite _at_validR; apply _.
   Qed.
 
-  #[global] Instance validR_pd_local_weakly_obj :
-    WeaklyLocalWithR procTI validR.
-  Proof. rewrite validR_eq /validR_def /=. apply _. Qed.
-
-  #[global] Instance tptstoR_pd_local_weakly_obj ty q v :
-    WeaklyLocalWithR procTI (tptstoR ty q v).
+  #[global] Instance tptstoR_pd_local_obj ty q v :
+    LocalWithR procTI (tptstoR ty q v).
   Proof.
-    rewrite WeaklyLocalWithR_iff_WeaklyLocalWith_at => p.
+    rewrite LocalWithR_iff_LocalWith_at => p.
     rewrite _at_tptstoR; apply _.
   Qed.
 
-  #[global] Instance tptsto_fuzzyR_pd_local_weakly_obj ty q v :
-    WeaklyLocalWithR procTI (tptsto_fuzzyR ty q v).
+  #[global] Instance tptsto_fuzzyR_pd_local_obj ty q v :
+    LocalWithR procTI (tptsto_fuzzyR ty q v).
   Proof.
-    rewrite WeaklyLocalWithR_iff_WeaklyLocalWith_at => p.
+    rewrite LocalWithR_iff_LocalWith_at => p.
     rewrite _at_tptsto_fuzzyR; apply _.
   Qed.
 
-  #[global] Instance primR_pd_local_weakly_obj ty q v :
-    WeaklyLocalWithR procTI (primR ty q v).
+  #[global] Instance primR_pd_local_obj ty q v :
+    LocalWithR procTI (primR ty q v).
   Proof.
-    rewrite WeaklyLocalWithR_iff_WeaklyLocalWith_at => p.
+    rewrite LocalWithR_iff_LocalWith_at => p.
     rewrite _at_primR; apply _.
   Qed.
 
-  #[global] Instance uninitR_pd_local_weakly_obj ty q :
-    WeaklyLocalWithR procTI (uninitR ty q).
+  #[global] Instance uninitR_pd_local_obj ty q :
+    LocalWithR procTI (uninitR ty q).
   Proof. rewrite uninitR.unlock; apply _. Qed.
 
-  #[global] Instance type_ptrR_pd_local_weakly_obj ty :
-    WeaklyLocalWithR procTI (type_ptrR ty).
-  Proof. rewrite type_ptrR_eq /type_ptrR_def; apply _. Qed.
+  #[global] Instance type_ptrR_pd_local_obj ty :
+    LocalWithR procTI (type_ptrR ty).
+  Proof. rewrite type_ptrR_eq /type_ptrR_def. apply _. Qed.
 
-  #[global] Instance derivationR_pd_local_weakly_obj n path q :
-    WeaklyLocalWithR procTI (derivationR n path q).
+  #[global] Instance derivationR_pd_local_obj n path q :
+    LocalWithR procTI (derivationR n path q).
   Proof. rewrite derivationR.unlock. apply _. Qed.
 
-  Lemma arrayR_pd_local_weakly_obj_lookup
+  (** TODO: allow references to list in assumptions:
+      << (∀ i x, xs !! i = Some x -> LocalWithR procTI (Rs x)) >>
+   *)
+  Lemma arrayR_pd_local_obj_lookup
     {X} ty (Rs : X → Rep) (xs : list X) :
-    (∀ n x, xs !! n = Some x →
-            WeaklyLocalWithR procTI ((.[ ty ! n ]) |-> Rs x)) →
-    WeaklyLocalWithR procTI (arrayR ty Rs xs).
+    (∀ x, LocalWithR procTI (Rs x)) →
+    LocalWithR procTI (arrayR ty Rs xs).
   Proof.
     intros HRs.
     rewrite arrayR_eq /arrayR_def arrR_eq /arrR_def.
-    repeat first [ apply sep_weakly_local_withR | apply _ ].
-    apply big_sepL_weakly_local_withR_lookup => n R.
-    rewrite list_lookup_fmap fmap_Some _offsetR_sep => - [x] [Hx ->].
-    apply sep_weakly_local_withR, HRs; [apply _ | ].
-    rewrite lookupZ_Some_to_nat !Nat2Z.id.
-    by split; first lia.
+    repeat first [ apply sep_local_withR | apply _ ].
+    rewrite big_opL_fmap.
+    apply _.
   Qed.
 
-  Lemma array_sliceR_pd_local_weakly_obj_lookup m n
+  (** TODO: allow references to list in assumptions:
+      << (∀ i x, xs !! i = Some x -> LocalWithR procTI (Rs x)) >>
+   *)
+  Lemma array_sliceR_pd_local_obj_lookup m n
     {X} ty (Rs : X → Rep) (xs : list X) :
-    (∀ i x, xs !! i = Some x →
-            (0 ≤ i < n - m)%Z ->
-            WeaklyLocalWithR procTI ((.[ ty ! i ]) |-> Rs x)) →
-    WeaklyLocalWithR procTI (array_sliceR ty m n Rs xs).
+    (∀ x, LocalWithR procTI (Rs x)) →
+    LocalWithR procTI (array_sliceR ty m n Rs xs).
   Proof.
     intros HR.
-    apply weakly_localR_of_obs with (Q := lengthZ xs = (n - m)%Z), _ => Hlen.
     rewrite array_sliceR.unlock.
-    apply sep_weakly_local_withR; first apply _.
-    apply WeaklyLocalWithR_offsetR, arrayR_pd_local_weakly_obj_lookup => i x Hix.
-    have ? := lookupZ_Some Hix.
-    by apply HR; last lia.
+    apply sep_local_withR; first apply _.
+    apply LocalWithR_offsetR, arrayR_pd_local_obj_lookup => x.
+    apply _.
   Qed.
 
-  #[global] Instance arrayR_pd_local_weakly_obj
+  #[global] Instance arrayR_pd_local_obj
     {X} ty (Rs : X → Rep) (xs : list X)
-    `{∀ (x : X), WeaklyLocalWithR procTI (Rs x)} :
-    WeaklyLocalWithR procTI (arrayR ty Rs xs).
-  Proof. by apply arrayR_pd_local_weakly_obj_lookup, _. Qed.
+    `{∀ (x : X), LocalWithR procTI (Rs x)} :
+    LocalWithR procTI (arrayR ty Rs xs).
+  Proof. by apply arrayR_pd_local_obj_lookup, _. Qed.
 
-  #[global] Instance array_sliceR_pd_local_weakly_obj
+  #[global] Instance array_sliceR_pd_local_obj
     {X} ty (Rs : X → Rep) (xs : list X) m n
-    `{∀ (x : X), WeaklyLocalWithR procTI (Rs x)} :
-    WeaklyLocalWithR procTI (array_sliceR ty m n Rs xs).
-  Proof. by apply array_sliceR_pd_local_weakly_obj_lookup, _. Qed.
+    `{∀ (x : X), LocalWithR procTI (Rs x)} :
+    LocalWithR procTI (array_sliceR ty m n Rs xs).
+  Proof. by apply array_sliceR_pd_local_obj_lookup, _. Qed.
 
-End derived_pd_local_weakly_local_withR.
+End derived_local_withR.
