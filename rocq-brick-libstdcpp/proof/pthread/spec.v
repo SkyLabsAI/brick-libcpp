@@ -137,22 +137,6 @@ Section with_cpp.
                        else P ret
                  end ).
 
-  cpp.spec "pthread_cancel"
-     as cancel_spec
-     from source
-     with ( \arg{tid}     "tid"   (Vthread tid)
-            \with spawner
-            \pre{γ P Pc}  pthread.handle γ spawner tid RunningOrCompleted P Pc
-            \post[Vint 0]
-               pthread.handle γ spawner tid CanceledOrCompleted P Pc ).
-
-  cpp.spec "pthread_testcancel"
-     as testcancel_spec
-     from source
-     with ( \prepost{γ tid T Pc}  pthread.cancelation γ tid (T := T) Pc
-            \prepost              current_thread tid
-            \prepost{s}           Pc s
-            \post emp ).
 
 End with_cpp.
 End pthread.
