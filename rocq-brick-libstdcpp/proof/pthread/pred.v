@@ -69,29 +69,6 @@ Module pthread.
 
   Record gname := { _ghost : iprop.gname }.
 
-  (** pthread_join, some error codes are returned via a void pointer. *)
-  mlock
-  Definition canceled `{Σ : cpp_logic,σ : genv} (p : ptr) : mpred :=
-    let int_size := int_rank.bitsN int_rank.Iint in
-    let addr := trim int_size (pthread_errno.to_Z pthread_errno.CANCELED) in
-    pinned_ptr (Z.to_N addr) p.
-
-  #[global] Instance learn_canceled `{Σ : cpp_logic, σ : genv} p0 p1 :
-    Learnable
-      (pthread.canceled p0)
-      (pthread.canceled p1)
-      [p0 = p1] := ltac:(solve_learnable).
-
-  #[global]
-  Instance pers_canceled `{Σ : cpp_logic, σ : genv} p : Persistent (pthread.canceled p).
-  Proof. rewrite pthread.canceled.unlock /=; apply  _. Qed.
-
-  #[global]
-  Instance affine_canceled `{Σ : cpp_logic, σ : genv} p : Affine (pthread.canceled p).
-  Proof. rewrite pthread.canceled.unlock /=; apply  _. Qed.
-
-  Variant thread_state := RunningOrCompleted | CanceledOrCompleted.
-
   (** [handle γ spawner tid P Pc] is a token returned when thread creation succeeds. [P] and [Pc]
       are respectively the postcondition of the thread and its cancelation postcondition. [handle]
       can be given to <<pthread_join>> to retrieve ownership of left by a thread's termination. It
@@ -101,15 +78,7 @@ Module pthread.
       can rule out two threads trying to mutually join with each other.  *)
   Parameter handle : forall `{Σ : cpp_logic,!HasStdThreads Σ}
                        (γ : gname) (spawner tid : thread_idT)
-                       (state : thread_state)
-                       (Post : ptr -> mpred)
-                       (Post_cancel : mpred), mpred.
-
-  (** [cancelation γ tid Pc] is a token given to a newly created thread which allows it to test for
-      pending cancelation and return resources ownership. *)
-  Parameter cancelation : forall `{Σ : cpp_logic,!HasStdThreads Σ}
-                             (γ : gname) (tid : thread_idT)
-                             {T : tele} (Post_cancel : T -> mpred), mpred.
+                       (Post : mpred), mpred.
 
   mlock
   Definition R `{Σ : cpp_logic, σ : genv} (q : cQp.t) (id : thread_idT) :=
@@ -136,12 +105,12 @@ Section with_cpp.
     fun '{|unLearning := k|} =>
       {|unLearning := fun L R ls => forall a a' b b', k (L a b) (R a' b') ((existT a b = existT a' b') :: ls) |}.
 
-  #[global] Instance cancelation_learnable :
-    Cbn (Learn (learn_eq ==> req_eq ==> learn_eq_dep ==> learn_hints.fin)
-           pthread.cancelation) := ltac:(solve_learnable).
+  #[global] Instance handle_learnable_1 :
+    Cbn (Learn (learn_eq ==> learn_eq ==> req_eq ==> learn_eq ==> learn_hints.fin)
+           pthread.handle) := ltac:(solve_learnable).
 
-  #[global] Instance handle_learnable :
-    Cbn (Learn (learn_eq ==> learn_eq ==> req_eq ==> learn_eq ==> learn_eq ==> learn_eq ==> learn_hints.fin)
+  #[global] Instance handle_learnable_2 :
+    Cbn (Learn (req_eq ==> learn_eq ==> learn_eq ==> learn_eq ==> learn_hints.fin)
            pthread.handle) := ltac:(solve_learnable).
 
   #[global] Instance repfor `{!HasStdThreads Σ} {σ : genv} :
