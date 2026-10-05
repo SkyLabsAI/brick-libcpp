@@ -502,31 +502,12 @@ Our specifications of C++ mutexes capture the informal specifications of the mut
 \subsection{The Mutex Name Library}
 \label{login}
 
-All three of our mutex specifications use thread-specific predicates ($\mathsf{not\_locked}$, $\mathsf{m\_locked}$, $\mathsf{holds}$, etc.) to enforce the mutexes' requirements on thread behavior. Here we describe a general ghost construction that we use to implement all of our thread-specific predicates.
+All three of our mutex specifications use thread-specific predicates ($\mathsf{not\_locked}$, $\mathsf{m\_locked}$, $\mathsf{holds}$, etc.) to enforce the mutexes' requirements on thread behavior. In this section we describe a general ghost construction that we use to implement all of our thread-specific predicates. In order to register itself with a mutex and obtain its $\mathsf{not\_locked}$ predicate (or $\mathsf{holds}(0)$ for a recursive mutex), a thread needs to prove that it does not own that mutex: in separation-logic terms, it needs to own a resource demonstrating that it is not the current holder of the mutex. This means that each thread must own, or be able to create, a not-the-owner resource (call it a ``mutex permission'' \kedu{"mutex deposit"?}) %name?
+for every mutex it does not currently hold. We model this using an assertion $\mutexperm{t}{A}$, where $A$ is a set of possible mutex names; %mention that it could be expanded beyond mutexes
+each thread begins with $A = \top$.
 
-In order to acquire a non-recursive mutex, a thread needs to prove that it does not own that mutex: in separation-logic terms, it needs to own a resource demonstrating that it is not the current holder of the mutex. This means that each thread must own, or be able to create, a not-the-owner resource (call it a ``mutex permission'' \kedu{"mutex deposit"?}) %name?
-for every mutex it does not currently hold. We model this using disjoint infinite sets as ghost state: each thread $t$ is created with a resource $\mutexperm{t}{\top}$, where $\top$ is the universe of possible mutex names, and $\ownGhost{}{\mutexperm{t}{A \uplus B}} \dashv\vdash \ownGhost{}{\mutexperm{t}{A}} \ast \ownGhost{}{\mutexperm{t}{B}}$ (where $A \uplus B$ is only defined if $A$ and $B$ are disjoint). Then we can implement $\notlocked{\gamma}{t}$ as precisely $\ownGhost{}{\mutexperm{t}{\{\gamma\}}}$. %update with token ownership
-When a thread wants to interact with a mutex $\gamma$, it detaches $\mutexperm{t}{\{\gamma\}}$ from its set and uses it as permission to acquire $\gamma$; disjointness guarantees that each thread can only have one such permission.
-%contrast with the less-good user library approach?
-
-%The mutex invariants are slightly
-%different for different kinds of mutexes, but they all ensure that a thread
-%must trade in its unique \notlocked{\gamma}{t} handle to acquire protected resources.
-%This ensures that a thread can't acquire protected resources if it already has
-%some, and unsafe programs that calls \texttt{mutex.lock()} or
-%\texttt{shared\_mutex.lock\_shared()} twice consecutively in a single thread
-%would get stuck. Notably, for recursive mutexes, if a thread already has the
-%resource, it is safe to \texttt{lock()} again, and the thread simply does not
-%exchange anything with the invariant.
-
-%A thread can also "logout" and turn in its \notlocked{\gamma}{t} handle. Deallocation
-%of any kind of mutex requires no "logged-in" users
-%($\allusers^{\gamma}(\varnothing)$), enforcing that any allocated
-%\notlocked{\gamma}{t} handle is deallocated with \texttt{logout}
-%(\texttt{all-not\_locked-logged-out}), and so the mutex is not held
-%by any thread, thus safe to deallocate.
-
-%specific locked instances here or below?
+In Iris, we can implement this assertion using resource algebras (RAs), specifically the RA of functions from thread IDs to disjoint infinite sets. The thread creation library holds the resource $\ownGhost{}{\lambda t.\ \text{if } t \in T \text{ then } \emptyset \text{ else } \top}$, where $T$ is the set of currently existing thread IDs; each time we spawn a new thread $t_i$, we add $t_i$ to $T$ and withdraw the singleton function $\ownGhost{}{\{ t_i \mapsto \top \}}$ from the thread library. We can then define $\mutexperm{t}{A} \triangleq \ownGhost{}{\{ t \mapsto A \}}$, and see that each thread $t_i$ begins with $\mutexperm{t_i}{\top}$. The disjoint set algebra gives us that $\ownGhost{}{\mutexperm{t}{A \uplus B}} \dashv\vdash \ownGhost{}{\mutexperm{t}{A}} \ast \ownGhost{}{\mutexperm{t}{B}}$ (where $A \uplus B$ is only defined if $A$ and $B$ are disjoint), so a thread can split off permissions for a specific name or set of names $B$. Then we can implement $\notlocked{\gamma}{t}{q}$ as precisely $\ownGhost{}{\mutexperm{t}{\mutexname{\gamma}}} \ast \token{\gamma}{q}$. This gives us the properties required in Section~\ref{mutex-spec}: $\notlocked{\gamma}{t}{q_1} \ast \notlocked{\gamma}{t}{q_2} \vdash \mathsf{False}$ because $\ownGhost{}{\mutexperm{t}{\mutexname{\gamma}}} \ast \ownGhost{}{\mutexperm{t}{\mutexname{\gamma}}}$ (by disjointness), and $\mutexperm{t}{\mutexname{\gamma}} \ast \token{\gamma}{q} \dashv \vdash \notlocked{\gamma}{t}{q}$ by definition.
+When a thread $t$ wants to interact with a mutex $\gamma$, it separates $\mutexperm{t}{\mutexname{\gamma}}$ from its set and uses it as permission to acquire $\gamma$; this is possible as long as $t$ has not already used $\mutexname{\gamma}$. %more on namespaces?
 
 \subsection{Mutex Implementations}
 \subsubsection{\lstinline{std::mutex}}
