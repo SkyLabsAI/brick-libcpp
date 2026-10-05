@@ -145,7 +145,7 @@ A thread $t$ exchanges $\notlocked{\gamma}{t}{q}$ for $\locked{\gamma}{t}{q}$ wh
 \caption{An example using \lstinline{std::mutex}}
 \label{mutex-ex}
 \end{figure}
-Figure~\ref{mutex-ex} shows a simple application of \lstinline{mutex}. The mutex \lstinline{m} protects the variable \lstinline{x}, which is incremented by two separate threads. We sketch a proof with the lock invariant $P \triangleq \exists n.\ \texttt{x} \mapsto n \ast \mathsf{even}(n)$; we could use ghost state to show that \lstinline{x} is exactly 4 at the end of the program, but this is orthogonal to the novelties of our mutex specification. The proof is outlined in Figure~\ref{mutex-ex-proof}. When the main thread spawns a new thread executing \lstinline{double_incr}, it gives the new thread partial ownership of the mutex and its token; it does not need to give up $\currentthread{t_1}$ or $\mutexperm{t}{\top}$\kedu{this sentence is a bit strange to me, but I don't have a better alternative right now}, because the new thread automatically receives its own thread-specific resources at spawn time. Before calling \lstinline{m.lock}, each thread registers with the mutex, exchanging $\mutexperm{}{\mutexname{\gamma}}$ and a piece of the token for a $\mathsf{not\_locked}$ predicate. When a thread locks \lstinline{m} it exchanges its $\mathsf{not\_locked}$ for $\mathsf{m\_locked}$ and ownership of $P$; unlocking \lstinline{m} performs the same operation in reverse. After each thread finishes using \lstinline{m}, it unregisters and recovers its token and mutex permission.
+Figure~\ref{mutex-ex} shows a simple application of \lstinline{mutex}. The mutex \lstinline{m} protects the variable \lstinline{x}, which is incremented by two separate threads. We sketch a proof with the lock invariant $P \triangleq \exists n.\ \texttt{x} \mapsto n \ast \mathsf{even}(n)$; we could use ghost state to show that \lstinline{x} is exactly 4 at the end of the program, but this is orthogonal to the novelties of our mutex specification. The proof is outlined in Figure~\ref{mutex-ex-proof}. When the main thread spawns a new thread executing \lstinline{double_incr}, it gives the new thread partial ownership of the mutex and its token; it retains $\currentthread{t_0}$ or $\mutexperm{t_0}{\top}$, and the new thread receives its own thread-specific resources when spawned. Before calling \lstinline{m.lock}, each thread registers with the mutex, exchanging $\mutexperm{}{\mutexname{\gamma}}$ and a piece of the token for a $\mathsf{not\_locked}$ predicate. When a thread locks \lstinline{m} it exchanges its $\mathsf{not\_locked}$ for $\mathsf{m\_locked}$ and ownership of $P$; unlocking \lstinline{m} performs the same operation in reverse. After each thread finishes using \lstinline{m}, it unregisters and recovers its token and mutex permission.
 Finally, the main thread joins with the spawned thread and recollects its shares of the mutex and token; the full $\token{\gamma}{1}$ guarantees that no thread holds the lock, satisfying the precondition of \lstinline{m}'s destructor.
 
 \begin{figure}[htb]
@@ -167,22 +167,22 @@ Finally, the main thread joins with the spawned thread and recollects its shares
   (*@ $\{ \texttt{m} \mapsto_\pi \mutex{\gamma}{P} \ast \token{\gamma}{q} \ast \mutexperm{t}{\mutexname{\gamma}} \}$ @*)
 
   void main() {
-    (*@ $\{ \currentthread{t_1} \ast \texttt{m} \mapsto \mutex{\gamma}{P} \ast \token{\gamma}{1} \ast \mutexperm{t}{\top} \}$ @*)
+    (*@ $\{ \currentthread{t_0} \ast \texttt{m} \mapsto \mutex{\gamma}{P} \ast \token{\gamma}{1} \ast \mutexperm{t_0}{\top} \}$ @*)
     std::thread t(double_incr);
-    (*@ $\{ \currentthread{t_1} \ast \texttt{m} \mapsto_{.5} \mutex{\gamma}{P} \ast \token{\gamma}{.5} \ast \mutexperm{t}{\top} \} \Rightarrow$ @*)
-    (*@ $\{ \currentthread{t_1} \ast \texttt{m} \mapsto_{.5} \mutex{\gamma}{P} \ast \mutexperm{t}{\top \setminus \mutexname{\gamma}} \ast \notlocked{\gamma}{t_1}{.5} \}$ @*)
+    (*@ $\{ \currentthread{t_0} \ast \texttt{m} \mapsto_{.5} \mutex{\gamma}{P} \ast \token{\gamma}{.5} \ast \mutexperm{t_0}{\top} \} \Rightarrow$ @*)
+    (*@ $\{ \currentthread{t_0} \ast \texttt{m} \mapsto_{.5} \mutex{\gamma}{P} \ast \mutexperm{t_0}{\top \setminus \mutexname{\gamma}} \ast \notlocked{\gamma}{t_0}{.5} \}$ @*)
     m.lock();
-    (*@ $\{ ... \ast P \ast \locked{\gamma}{t_1}{.5} \}$ @*)
+    (*@ $\{ ... \ast P \ast \locked{\gamma}{t_0}{.5} \}$ @*)
     x += 2;
-    (*@ $\{ ... \ast P \ast \locked{\gamma}{t_1}{.5} \}$ @*)
+    (*@ $\{ ... \ast P \ast \locked{\gamma}{t_0}{.5} \}$ @*)
     m.unlock();
-    (*@ $\{ ... \ast \notlocked{\gamma}{t_1}{.5} \} \Rightarrow$ @*)
-    (*@ $\{ ... \ast \token{\gamma}{.5} \ast \mutexperm{t}{\top} \}$ @*)
+    (*@ $\{ ... \ast \notlocked{\gamma}{t_0}{.5} \} \Rightarrow$ @*)
+    (*@ $\{ ... \ast \token{\gamma}{.5} \ast \mutexperm{t_0}{\top} \}$ @*)
     t.join();
-    (*@ $\{ \texttt{m} \mapsto \mutex{\gamma}{P} \ast \token{\gamma}{1} \ast \mutexperm{t}{\top} \}$ @*)
+    (*@ $\{ \texttt{m} \mapsto \mutex{\gamma}{P} \ast \token{\gamma}{1} \ast \mutexperm{t_0}{\top} \}$ @*)
   }
 \end{lstlisting}
-\caption{The proof outline for the example\kedu{can we use t0 for the main thread, t1 for the spawned thread, and t for a general thread (used in double\_incr)?}}
+\caption{The proof outline for the example\kedu{can we use t0 for the main thread, t1 for the spawned thread, and t for a general thread (used in double\_incr)?} \wm{We can, but the spawned thread's ID never actually appears, since it just runs a thread-generic function.}}
 \label{mutex-ex-proof}
 \end{figure}
 
