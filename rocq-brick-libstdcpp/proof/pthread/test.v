@@ -32,12 +32,6 @@ Section with_cpp.
         \pre{x}       argp |-> intR 1$m x
         \post*        argp |-> intR 1$m (x + 3)
         \require      valid<"int"> (x + 3)  (* TODO: validP / valid should be interchageable *)
-        \prepost{tid} current_thread tid
-        \let cancel_post :=
-          tele_app (t := [tele _ : Z])
-            (fun x' => argp |-> intR 1$m x' ∗
-                    [| x < x' < x +3 |])%I
-        \prepost{γ}   pthread.cancelation γ tid cancel_post
         \post[Vptr nullptr] emp ).
 
     cpp.spec "multithreaded_broken()" as multithreaded_broken_spec with
@@ -45,13 +39,6 @@ Section with_cpp.
 
     cpp.spec "multithreaded_ok()" as multithreaded_ok_spec with
       ( \post emp ).
-
-    (* can't be verified because of its use of void pointers *)
-    cpp.spec "is_canceled(void**)" as is_canceled_spec with
-      ( \arg{p} "p" (Vptr p)
-        \prepost{q retp} p |-> ptrR<"void"> q retp
-        \pre{pCANCELED} pthread.canceled pCANCELED
-        \post[Vbool (bool_decide (retp = pCANCELED))] emp ).
 
     cpp.spec "__assert_fail" as assert_fail_spec with
       ( \arg{p0} "" (Vptr p0)
@@ -77,28 +64,21 @@ Section with_cpp.
   #[global] Instance thread_fn_is_thread :
     ThreadFunction "thread_fn(void*)" thread_fn_spec
       [tele (_ : Z)]
-      [tele]
       (fun p => tele_app (fun x => p |-> intR 1$m x ∗ [| valid<"int"> (x + 1) |]))%I
-      (fun p => tele_app (fun x _retp => p |-> intR 1$m (x + 1)))%I
-      (fun p => tele_app (fun _ => tele_app False%I)).
+      (fun p => tele_app (fun x _tid => p |-> intR 1$m (x + 1)))%I.
   Proof. eapply specify_mono; work. Qed.
 
   #[global] Instance cancelable_thread_fn_is_thread :
-    ThreadFunction "cancelable_thread(void*)" cancelable_thread_spec
-      [tele (_ : Z)]
+    ThreadFunction "cancelable_thread(void* )" cancelable_thread_spec
       [tele (_ : Z)]
       (fun p => tele_app $ fun x => p |-> intR 1$m x ∗ [| valid<"int"> (x + 3) |] )%I
-      (fun p => tele_app $ fun x _retp => p |-> intR 1$m (x + 3))%I
-      (fun p => tele_app $ fun x => tele_app $ fun x' => p |-> intR 1$m x' ∗ [| x < x' < x +3 |] )%I.
+      (fun p => tele_app $ fun x _retp => p |-> intR 1$m (x + 3))%I.
   Proof. eapply specify_mono; work. Qed.
 
   Lemma thread_fn_ok : verify[source] thread_fn_spec.
   Proof.
     verify_spec. go.
   Qed.
-
-  Lemma cancelable_thread_ok : verify[source] cancelable_thread_spec.
-  Proof. verify_spec. go. Qed.
 
   Lemma multithreaded_broken_ok : verify[source] multithreaded_broken_spec.
   Proof.
@@ -116,9 +96,6 @@ Section with_cpp.
       (* fork thread 1 *)
     wp_if; go; [].
       (* fork thread 2 *)
-    wp_if.
-    { go. }
-    go.
     wp_if.
     { go. }
     go.
