@@ -44,7 +44,7 @@
 %% for your publication.
 %%
 %%
-\documentclass[sigplan,screen]{acmart}
+\documentclass[acmsmall,screen,review,anonymous]{acmart}
 \usepackage{iris}
 \usepackage{mathpartir}
 \usepackage{cuted}
@@ -258,7 +258,7 @@
 %% The abstract is a short summary of the work to be presented in the
 %% article.
 \begin{abstract}
-The basic theory of threads and locks in separation logic is well understood. However, locks as they are actually implemented have further variations and subtleties, including restrictions on transferring locks between threads, recursive mutexes, and classes designed for RAII patterns. In this paper, we present separation logic specifications for the C++ mutex library in the BRiCk logic. We identify and abstract out common patterns, and verify implementations of higher-level constructs (e.g., a RAII class for unique ownership) using lower-level ones (e.g., basic, shared, and recursive mutexes). ... %we verify examples taken from real-world code, and show that proofs can mostly be automated?
+The basic theory of threads and locks in separation logic is well understood. However, locks as they are actually implemented have further variations and subtleties, including restrictions on transferring locks between threads, recursive mutexes, and classes designed for RAII patterns. In this paper, we present separation logic specifications for the C++ mutex library in the BRiCk logic. We identify and abstract out common patterns, including a mechanism for tracking a thread's mutex ownership, which can be used to enforce the mutex library's requirements. We show in a case study that this additional tracking is modular, so that even when mutexes require thread-specific predicates, the fact that a class uses a mutex internally can be hidden from the class's clients. %qualify a little -- we do need my_mutexes
 \end{abstract}
 
 %new specifications for kinds of mutexes, formalizing the no-transfer and release-before-free requirements, RAII, 
@@ -528,6 +528,8 @@ note that BRiCk itself is an axiomatic semantics
 condition variables, futures, shared pointers, ...
 
 verified Pthread?
+
+\section{Data-Availability Statement}
 
 %%
 %% The acknowledgments section is defined using the "acks" environment
