@@ -75,7 +75,6 @@ Using the $\mathsf{m\_locked}$ and $\mathsf{not\_locked}$ predicates, we can spe
 \[\begin{array}{c}
 % TODO: update constructor with my_mutexes
 \{\later P\}\\ \texttt{mutex()}\\ \{m.\ \exists \gamma.\ m \mapsto \mutex{\gamma}{P} \ast \token{\gamma}{1}\} \vspace{1em}\\%constructor notation?
-%% TODO: add token(q) or add a fraction to not_locked/locked
 \{\currentthread{t} \ast m \mapsto_\pi \mutex{\gamma}{P}\ast\notlocked{\gamma}{t}{q}\}\\ {\texttt{m.lock()}} \\ \{m \mapsto_\pi \mutex{\gamma}{P}\ast P\ast\locked{\gamma}{t}{q}\}  \vspace{1em}\\
     \{\currentthread{t} \ast m \mapsto_\pi \mutex{\gamma}{P}\ast\locked{\gamma}{t}{q}
       \ast\triangleright P\}\\ {\texttt{m.unlock}()}\\
@@ -538,6 +537,8 @@ class Mutex2 {
   std::atomic<bool> lock;
   std::thread::id owner;
 
+  Mutex2() { lock = false; owner = std::thread::id(); }
+
   void lock(){
     while(lock.exchange(true)) { yield(); }
     owner = get_id();
@@ -588,7 +589,46 @@ The mutex invariant must manage both the fractional token and the thread ownersh
 %Now we can define $\locked{\gamma}{t}$ as $\notlocked{\gamma}{t} \ast \texttt{owner} \mapsto t$. We include $\mathsf{not\_locked}$ in $\mathsf{m\_locked}$ because this immediately gives us $\notlocked{\gamma}{t} \ast \locked{\gamma}{t} \vdash \mathsf{False}$, and the exclusivity of $\mapsto$ guarantees that $\notlocked{\gamma}{t_1} \ast \locked{\gamma}{t_2} \vdash \mathsf{False}$. Furthermore, $\currentthread{t} \ast \locked{\gamma}{t}$ guarantees that \lstinline{owner} is precisely the current thread $t$, so the precondition of \lstinline{unlock} is sufficient to ensure that the \lstinline{assert} will succeed. %But this doesn't seem to be enough to pass !lock in the destructor -- we need something in the true case that's inconsistent with used_threads(\empty). Maybe use some extra ghost state to split not_locked and put half into the invariant.
 Finally, to allow destruction, the invariant is \emph{cancelable}: threads that know of the mutex hold some share $\pi$ of it, and a thread with full ownership can cancel the invariant and recover its contents. The representation predicate is then exactly $\mutex{\gamma}{P}_q \triangleq I(P)_\pi$.
 
-With these definitions, we can prove that each method meets its specification: ...
+\begin{figure}[htb]
+\begin{lstlisting}[escapeinside    = {(*@}{@*)}]
+class Mutex2 {
+  std::atomic<bool> lock;
+  std::thread::id owner;
+
+  (*@ $\{ \later P \}$ @*)
+  Mutex2() { lock = false; owner = std::thread::id(); }
+  (*@ $\{ m.\ \exists \gamma.\ m \mapsto \mutex{\gamma}{P} \ast \token{\gamma}{1} \}$ @*)
+
+  (*@ $\{\currentthread{t} \ast m \mapsto_\pi \mutex{\gamma}{P}\ast\notlocked{\gamma}{t}{q}\}$ @*)
+  void lock(){
+    while(lock.exchange(true)) { yield(); }
+    (*@ $\{ m \mapsto_\pi \mutex{\gamma}{P}\ast P \ast \ownGhost{}{\authfrag \bot} \ast \giventoken{\gamma}{q} \ast \texttt{owner} \mapsto \bot \}$ @*)
+    owner = get_id();
+  }
+  (*@ $\{m \mapsto_\pi \mutex{\gamma}{P}\ast P\ast\locked{\gamma}{t}{q}\}$ @*)
+
+  (*@ $\{\currentthread{t} \ast m \mapsto_\pi \mutex{\gamma}{P}\ast\locked{\gamma}{t}{q}
+      \ast\triangleright P\}$ @*)
+  void unlock(){
+    assert(owner == get_id());
+    owner = std::thread::id();
+    lock = false;
+  }
+  (*@ $\{m \mapsto_\pi \mutex{\gamma}{P}\ast\notlocked{\gamma}{t}{q}\}$ @*)
+  
+  (*@ $\{m \mapsto \mutex{\gamma}{P} \ast \token{\gamma}{1}\}$ @*)
+  ~Mutex2() {
+    assert(!lock);
+    assert(owner == std::thread::id()); //unowned
+  }
+  (*@ $\{P\}$ @*)
+}
+\end{lstlisting}
+\caption{The proof of the mutex implementation}
+\label{mutex-proof}
+\end{figure}
+
+With these definitions, we can prove that each method meets its specification. The proofs are outlined in Figure~\ref{mutex-proof}. In the constructor, we allocate $I(P)$ in its $\mathsf{false}$ state, with default owner and $\giventoken{\gamma}{1}$ held in the invariant, and return $\token{\gamma}{1}$ to the caller. In \lstinline{lock}, when the \lstinline{exchange} succeeds, we exchange $\notlocked{\gamma}{t}{q}$ for the resources in the $\mathsf{false}$ state and use them to assemble $\locked{\gamma}{t}{q}$ once \lstinline{owner} is set to $t$. In \lstinline{unlock}, since $\locked{gamma}{t}{q}$ includes $\texttt{owner} \mapsto t$, we know that \lstinline{assert(owner == get_id())} will succeed.
 
 \subsubsection{\lstinline{std::recursive_mutex}}
 \begin{figure}[htb]
