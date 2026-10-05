@@ -258,7 +258,8 @@
 %% The abstract is a short summary of the work to be presented in the
 %% article.
 \begin{abstract}
-The basic theory of threads and locks in separation logic is well understood. However, locks as they are actually implemented have further variations and subtleties, including restrictions on transferring locks between threads, recursive mutexes, and classes designed for RAII patterns. In this paper, we present separation logic specifications for the C++ mutex library in the BRiCk logic. We identify and abstract out common patterns, including a mechanism for tracking a thread's mutex ownership, which can be used to enforce the mutex library's requirements. We show in a case study that this additional tracking is modular, so that even when mutexes require thread-specific predicates, the fact that a class uses a mutex internally can be hidden from the class's clients. %qualify a little -- we do need my_mutexes
+The basic theory of threads and locks in separation logic is well understood. However, locks as they are actually implemented have further variations and subtleties, including restrictions on transferring locks between threads, recursive mutexes, and classes designed for RAII patterns. In this paper, we present separation logic specifications for the C++ mutex library in the BRiCk logic. We identify and abstract out common patterns, including a mechanism for tracking a thread's mutex ownership, which can be used to enforce the mutex library's requirements. We demonstrate that our specifications are satisfied by implementations that explicitly track and check the owning thread, and thus do not satisfy the standard separation logic specifications for locks. We also
+show in a case study that our thread-tracking logic is modular, so that even though mutexes require thread-specific predicates, the fact that a class uses a mutex internally can be hidden from the class's clients. %qualify a little -- we do need my_mutexes
 \end{abstract}
 
 %new specifications for kinds of mutexes, formalizing the no-transfer and release-before-free requirements, RAII, 
@@ -284,7 +285,7 @@ The basic theory of threads and locks in separation logic is well understood. Ho
 %%
 %% Keywords. The author(s) should pick words that accurately describe
 %% the work being presented. Separate the keywords with commas.
-\keywords{concurrent separation logic, C++}
+\keywords{concurrent separation logic, mutual exclusion, C++}
 
 %%
 %% This command processes the author and affiliation and title
@@ -303,9 +304,10 @@ Finally, the standard library includes a collection of mutex container classes f
 In summary, our contributions are:
 \begin{itemize}
 \item Specifications of standard, recursive, and shared mutexes as described in the C++ standard library.
-\item A ghost-state library for thread identity tracking that we use to build the basic ownership predicates of the lock specifications.
+\item Implementations of each mutex type that follow the library standard and thus do not satisfy the usual SL lock specifications, but are proven to satisfy our specifications.
+\item A ghost-state library for thread identity tracking that we use to build the basic ownership predicates of the mutex specifications.
 \item A generic interface for mutexes, corresponding to the \lstinline{BasicLockable} named requirement, and specifications for C++'s lock management objects that are parameterized by this interface.
-\item example?
+\item A case study showing that thread-tracking predicates can be encapsulated inside an object, so that ownership of the object itself can be transferred between threads in the standard SL manner.
 \end{itemize}
 
 \section{Background}
