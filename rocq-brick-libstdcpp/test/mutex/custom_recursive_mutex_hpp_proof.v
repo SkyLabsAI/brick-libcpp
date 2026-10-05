@@ -63,7 +63,7 @@ Module custom_recursive_mutex.
       (* ** std_recursive_mutex.token γ.(rec_gname) (* ? *) *)
       \\//
       exclusive_token γ.(excl_gname)
-      (* ** std_recursive_mutex.given_token γ.(rec_gname) (* ? *) *)
+      (* ** std_recursive_mutex.locked γ.(rec_gname) (* ? *) *)
       ) **
       cinv lock_namespace γ.(cinv_gname) (∃ count owner,
         count_frag count **
