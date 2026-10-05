@@ -44,7 +44,7 @@
 %% for your publication.
 %%
 %%
-\documentclass[sigplan,screen]{acmart}
+\documentclass[acmsmall,screen,review,anonymous]{acmart}
 \usepackage{iris}
 \usepackage{mathpartir}
 \usepackage{cuted}
@@ -258,7 +258,8 @@
 %% The abstract is a short summary of the work to be presented in the
 %% article.
 \begin{abstract}
-The basic theory of threads and locks in separation logic is well understood. However, locks as they are actually implemented have further variations and subtleties, including restrictions on transferring locks between threads, recursive mutexes, and classes designed for RAII patterns. In this paper, we present separation logic specifications for the C++ mutex library in the BRiCk logic. We identify and abstract out common patterns, and verify implementations of higher-level constructs (e.g., a RAII class for unique ownership) using lower-level ones (e.g., basic, shared, and recursive mutexes). ... %we verify examples taken from real-world code, and show that proofs can mostly be automated?
+The basic theory of threads and locks in separation logic is well understood. However, locks as they are actually implemented have further variations and subtleties, including restrictions on transferring locks between threads, recursive mutexes, and classes designed for RAII patterns. In this paper, we present separation logic specifications for the C++ mutex library in the BRiCk logic. We identify and abstract out common patterns, including a mechanism for tracking a thread's mutex ownership, which can be used to enforce the mutex library's requirements. We demonstrate that our specifications are satisfied by implementations that explicitly track and check the owning thread, and thus do not satisfy the standard separation logic specifications for locks. We also
+show in a case study that our thread-tracking logic is modular, so that even though mutexes require thread-specific predicates, the fact that a class uses a mutex internally can be hidden from the class's clients. %qualify a little -- we do need my_mutexes
 \end{abstract}
 
 %new specifications for kinds of mutexes, formalizing the no-transfer and release-before-free requirements, RAII, 
@@ -284,7 +285,7 @@ The basic theory of threads and locks in separation logic is well understood. Ho
 %%
 %% Keywords. The author(s) should pick words that accurately describe
 %% the work being presented. Separate the keywords with commas.
-\keywords{concurrent separation logic, C++}
+\keywords{concurrent separation logic, mutual exclusion, C++}
 
 %%
 %% This command processes the author and affiliation and title
@@ -303,9 +304,10 @@ Finally, the standard library includes a collection of mutex container classes f
 In summary, our contributions are:
 \begin{itemize}
 \item Specifications of standard, recursive, and shared mutexes as described in the C++ standard library.
-\item A ghost-state library for thread identity tracking that we use to build the basic ownership predicates of the lock specifications.
+\item Implementations of each mutex type that follow the library standard and thus do not satisfy the usual SL lock specifications, but are proven to satisfy our specifications.
+\item A ghost-state library for thread identity tracking that we use to build the basic ownership predicates of the mutex specifications.
 \item A generic interface for mutexes, corresponding to the \lstinline{BasicLockable} named requirement, and specifications for C++'s lock management objects that are parameterized by this interface.
-\item example?
+\item A case study showing that thread-tracking predicates can be encapsulated inside an object, so that ownership of the object itself can be transferred between threads in the standard SL manner.
 \end{itemize}
 
 \section{Background}
@@ -419,11 +421,11 @@ The abstract state of a \lstinline{unique_lock} is of type $\mathsf{option}\ M$,
 
 %how much of this detail is useful? There are a lot of variations.
 \[\begin{array}{c}
-\{p \mapsto R(q, m) \ast \dolock{p}{m}{K}\}\\ \texttt{unique\_lock(p)}\\ \{\ulock(\mathsf{Some}\ (\mathsf{false}, p, q, m))\} \vspace{1em}\\%constructor notation?
-\{u \mapsto \ulock(m)\ast \neg \mathsf{held}(m) \ast \dolock{\mathsf{ptr}(m)}{\mathsf{m}(m)}{K}\}\\ {u\texttt{.lock()}} \\ \{m \mapsto \ulock(m[\mathsf{held} := \mathsf{true}]) \ast K\}  \vspace{1em}\\
-    \{u \mapsto \ulock(m)\ast \mathsf{held}(m) \ast \dounlock{\mathsf{ptr}(m)}{\mathsf{m}(m)}{K}\}\\ {u\texttt{.unlock}()}\\
+\{p \mapsto R(q, m) \ast \dolock{p}{m}{K}\}\\ \texttt{unique\_lock(p)}\\ \{u.\ u \mapsto \ulock(\mathsf{Some}\ (\mathsf{false}, p, q, m))\} \vspace{1em}\\%constructor notation?
+\{u \mapsto \ulock(m)\ast \neg \mathsf{held}(m) \ast \dolock{\mathsf{ptr}(m)}{\mathsf{m}(m)}{K}\}\\ {\texttt{u.lock()}} \\ \{m \mapsto \ulock(m[\mathsf{held} := \mathsf{true}]) \ast K\}  \vspace{1em}\\
+    \{u \mapsto \ulock(m)\ast \mathsf{held}(m) \ast \dounlock{\mathsf{ptr}(m)}{\mathsf{m}(m)}{K}\}\\ {\texttt{u.unlock}()}\\
     \{m \mapsto \ulock(m[\mathsf{held} := \mathsf{false}]) \ast K\}  \vspace{1em} \\
-\{u \mapsto \ulock() \ast (\text{if } \mathsf{held}(m) \text{ then } \dounlock{\mathsf{ptr}(m)}{\mathsf{m}(m)}{K}\} \text{ else } K)\}\\ \sim u()\\ \{K \ast \text{if } m \text{ then } \mathsf{ptr}(m) \mapsto R(\mathsf{q}(m), \mathsf{m}(m)) \text { else } \mathsf{emp}\} %destructor notation, Some/None notation
+\{u \mapsto \ulock() \ast (\text{if } \mathsf{held}(m) \text{ then } \dounlock{\mathsf{ptr}(m)}{\mathsf{m}(m)}{K}\} \text{ else } K)\}\\ \texttt{u.}\!\!\sim\!\texttt{unique\_lock}()\\ \{K \ast \text{if } m \text{ then } \mathsf{ptr}(m) \mapsto R(\mathsf{q}(m), \mathsf{m}(m)) \text { else } \mathsf{emp}\} %destructor notation, Some/None notation
 \end{array}\]
 %verify the code from cppreference or a similar example?
 
@@ -449,18 +451,87 @@ The abstract state of a \lstinline{unique_lock} is of type $\mathsf{option}\ M$,
 As discussed in Section~\ref{basic-lockable}, the \lstinline{BasicLockable} requirement does not explicitly require that \lstinline{lock} lead to mutual exclusion, and indeed recursive mutexes can be \lstinline{lock}ed multiple times without being \lstinline{unlock}ed. This interacts in an interesting and useful way with \lstinline{unique_lock}'s acquisition tracking (the $\mathsf{held}$ predicate in our specifications): each \lstinline{unique_lock} can only acquire its mutex at most once, but we can construct multiple \lstinline{unique_lock}s around a single recursive mutex, each of which manages a single acquisition. %Is this equally true of lock_guard? We could call unlock once manually to illustrate the point.
 The code in Figure~\ref{unique-recursive} shows how this can be used. When \lstinline{answer} is called, it acquires the recursive mutex \lstinline{m} by constructing a \lstinline{unique_lock} around it; it then calls \lstinline{inc}, which constructs another \lstinline{unique_lock} that acquires \lstinline{m} a second time. When each method returns, its \lstinline{unique_lock} is destroyed and \lstinline{m} is released once, so that \lstinline{m} is no longer locked after \lstinline{answer} returns. Our specifications can be used to verify this program. %proof outline?
 
-\section{Case Studies?}
-\input{ring_buffer.tex}
+\section{Case Study: Mutex Encapsulation}
+%\input{ring_buffer.tex}
 %TODO: find or make some interesting examples
 
+We have seen that enforcing the requirements of C++ mutexes requires the management of thread-specific permission predicates that must be transferred between threads and locks. We have demonstrated that this is possible in simple examples of each mutex type, but we also want to know that our approach scales to programs with multiple mutex-carrying objects. %rephrase
+There are at least two possible pitfalls. First, it might be difficult for a thread to acquire two different mutexes, because we need to manually prove that the second mutex is not the same as the first. Second and more subtly, thread-specific predicates might leak through layers of abstraction. Our mutex specifications must include predicates like $\notlocked{\gamma}{t}$ that explicitly mention thread IDs, but a data structure that uses a mutex internally should not need to expose thread IDs in its interface; it should be possible to share the data structure among threads exactly as one would a non-mutex-based implementation, without extra registration steps. In this section, we verify a case study showing that we avoid both these pitfalls, suggesting that our mutex specifications can indeed be used for modular verification.
+
+\begin{figure}[htb]
+\begin{lstlisting}
+class Account {
+private:
+  unsigned long balance;
+  std::recursive_mutex mut; // protects balance
+
+public:
+  explicit Account(unsigned long initial_balance) : balance(initial_balance) {}
+
+  void incr_balance(unsigned long i) {
+    std::lock_guard<std::recursive_mutex> lg(mut);
+    balance += i;
+  }
+
+  void transfer_to(Account target, unsigned long i) {
+    std::lock_guard<std::recursive_mutex> lg(mut);
+    balance -= i;
+    target.incr_balance(i);
+  }
+}
+
+int main() {
+  Account from{4};
+  Account to{2};
+  from.transfer_to(to, 3);
+}
+\end{lstlisting}
+\caption{The code of our case study}
+\label{transfer}
+\end{figure}
+
+
+The code of our case study is shown in Figure~\ref{transfer}. Each object of class \lstinline{Account} has a \lstinline{balance} protected by a mutex (in this code we use a \lstinline{recursive_mutex}, but any form of mutex would work). %make generic?
+The \lstinline{transfer_to} method decrements the receiver's %terminology?
+balance and increments the target object's balance, acquiring both mutexes in the process. Our questions are then:
+\begin{enumerate}
+\item How do we prove that we can acquire \lstinline{target}'s mutex, given that we already hold the receiver's mutex?
+\item Can we use a representation predicate for \lstinline{Account} that is freely transferable between threads and does not take a thread ID as a parameter?
+\end{enumerate}
+
+%how much do we need to explain namespaces?
+
+For question 2, recall that our specifications for \lstinline{recursive_mutex} are:
+\[\begin{array}{c}
+\{\currentthread{t} \ast m \mapsto_q \rmutex{\gamma}{P}\ast\acquirable{\gamma}{t}{n}{P}{a}\}\\ {\texttt{m.lock()}} \\ \{m \mapsto_q \rmutex{\gamma}{P}\ast \exists a'.\ \mathsf{acquire}(n, a, a') \ast \acquirable{\gamma}{t}{n+1}{P}{a'}\}  \vspace{1em}\\
+    \{\currentthread{t} \ast m \mapsto_q \rmutex{\gamma}{P}\ast\acquirable{\gamma}{t}{n+1}{P}{a}\}\\ {\texttt{m.unlock}()}\\
+    \{m \mapsto_q \rmutex{\gamma}{P}\ast\acquirable{\gamma}{t}{n}{P}{a}\}
+\end{array}\]
+The $\mathsf{holds}$ predicate takes a thread $t$ that must match the current thread, and we must have it at line 15 %confirm
+in order to acquire \lstinline{mut}. On the other hand, \lstinline{transfer_to} is a function that can be called by any thread that has access to the two accounts involved, and should have a specification like
+\[ \{ a \mapsto_q \mathsf{account}{\gamma_a} \ast b \mapsto_q \mathsf{account}{\gamma_b} \}\ \texttt{a.transfer\_to(b, n)}\ \{ a \mapsto_q \mathsf{account}{\gamma_a} \ast b \mapsto_q \mathsf{account}{\gamma_b} \}\]
+In particular, if $\mathsf{account}$ takes a thread $t$ as an argument, then we will not be able to freely transfer ownership of it between threads (since it would only be usable by that thread $t$). The mutex permission library allows us to isolate this thread-local information. 
+
+If the precondition of \lstinline{transfer_to} includes $\mathsf{holds}$, then it will also need to mention the thread $t$, and so will not be freely 
+
+The representation predicate for \lstinline{Account} is defined as
+\[p \mapsto_q \mathsf{account}(\gamma) \triangleq p.\texttt{mut} \mapsto \rmutex{\gamma}{\lambda n.\ p.\texttt{balance} \mapsto n} \ast \mathsf{token}_\gamma(q)
+\]
+Ownership of an \lstinline{Account} is simply ownership of the mutex protecting the \lstinline{balance} field, plus ownership of the $\mathsf{token}$ that tracks whether the lock is held. In particular, it makes no mention of the $\mathsf{holds}$ predicate that appears in the precondition of the \lstinline{recursive_mutex} specifications (and explicitly takes a thread $t$ as an argument). Then, how does 
+
 \section{BRiCk Formalization}
+note that BRiCk itself is an axiomatic semantics
 
 \section{Conclusion and Future Work}
 ...
 
+%the client problem: all preconditions need not_locked, can't be transferred between threads, so if we include it in an abstract predicate that predicate can't be transferred either (even if it uses locks in a way that would never allow double acquire)
+
 condition variables, futures, shared pointers, ...
 
 verified Pthread?
+
+\section{Data-Availability Statement}
 
 %%
 %% The acknowledgments section is defined using the "acks" environment
