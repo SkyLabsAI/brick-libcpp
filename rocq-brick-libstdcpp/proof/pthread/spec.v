@@ -10,38 +10,6 @@ Require Export skylabs.bi.tls_modalities.
 
 Require Import skylabs.auto.cpp.prelude.spec.
 
-Module pthread_attr.
-  Export pthread_attr.
-
-  cpp.spec "pthread_attr_t::pthread_attr_t()"
-    from source
-    as ctor_spec
-    with ( \this this
-           \post this |-> pthread_attr.R 1$m None ).
-
-  cpp.spec "pthread_attr_t::~pthread_attr_t()"
-    from source
-    as dtor_spec
-    with ( \this this
-           \pre{x} this |-> pthread_attr.R 1$m x
-           \post emp ).
-
-  cpp.spec "pthread_attr_init"
-    as init_spec
-    from source
-    with (\arg{pattr} "attr" (Vptr pattr)
-          \pre{attr}    pattr |-> pthread_attr.R 1$m attr
-          \post[Vint 0] pattr |-> pthread_attr.R 1$m (Some pthread_attr.default)).
-
-  cpp.spec "pthread_attr_destroy"
-    as destroy_spec
-    from source
-    with (\arg{pattr} "attr" (Vptr pattr)
-          \pre{attr}    pattr |-> pthread_attr.R 1$m attr
-          \post[Vint 0] ∃ x, pattr |-> pthread_attr.R 1$m x).
-
-End pthread_attr.
-
 Module pthread.
   Export pthread.
   Import auto.telescopes auto.telescopes.TeleNotations.
@@ -99,9 +67,7 @@ Section with_cpp.
      from source
      with ( \arg{idp}        "tid"   (Vptr idp)
             \pre{id0}         idp |-> oprimR "unsigned long" 1$m id0
-            \arg{attrp}      "attr"  (Vptr attrp)
-            \let attr := pthread_attr.default (* we limit ourselves to the standard flags for now *)
-            \prepost{q_attr}  attrp |-> pthread_attr.R q_attr (Some attr)
+            \arg             "attr"  (Vptr nullptr)
             \arg{starterp}   "start" (Vptr starterp)
             \with argT Pre Post
             \pre              starterp |-> starter_specR argT Pre Post
