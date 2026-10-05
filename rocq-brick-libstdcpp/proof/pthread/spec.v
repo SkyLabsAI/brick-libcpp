@@ -46,28 +46,37 @@ Module pthread.
   Export pthread.
   Import auto.telescopes auto.telescopes.TeleNotations.
 
+  (** [pthread] specs
+
+      This module specifies thread creation and joining. Unsupported are the following features of
+      pthread:
+      - detaching threads;
+      - canceling threads;
+      - joining a thread by threads other than their creator.
+
+      This prevents possible deadlocks when joining threads or race conditions when two threads both
+      try to cancel the same thread.
+   *)
+
   Definition starter_kind : okind :=
       tFunction (cc:=CC_C) "void*" ["void*"%cpp_type].
 
   Definition starter_spec `{Σ : cpp_logic, σ : genv} `{!HasStdThreads Σ}
-      (argT stateT : tele)
+      (argT : tele)
       (Pre : ptr -> argT -> mpred)
-      (Post : ptr -> argT -> ptr -> mpred)
-      (Post_c : ptr -> argT -> stateT -> mpred) : WpSpec_cpp_val :=
+      (Post : ptr -> argT -> thread_idT -> mpred) : WpSpec_cpp_val :=
     \arg{argp} "arg" (Vptr argp)
-    \pre{arg} Pre argp arg
     \prepost{tid} current_thread tid
-    \prepost{γ}   pthread.cancelation γ tid (Post_c argp arg)
-    \post{retp}[Vptr retp] Post argp arg retp.
+    \pre{arg} Pre argp arg
+    \post[Vptr nullptr] Post argp arg tid.
 
   mlock
   Definition starter_specR `{Σ : cpp_logic, σ : genv} `{!HasStdThreads Σ}
-      (argT stateT : tele)
+      (argT : tele)
       (Pre : ptr -> argT -> mpred)
-      (Post : ptr -> argT -> ptr -> mpred)
-      (Post_c : ptr -> argT -> stateT -> mpred) : Rep :=
+      (Post : ptr -> argT -> thread_idT -> mpred) : Rep :=
     unmaterialized_specR starter_kind
-      (starter_spec argT stateT Pre Post Post_c)  .
+      (starter_spec argT Pre Post)  .
 
 Section with_cpp.
 
@@ -94,19 +103,18 @@ Section with_cpp.
             \let attr := pthread_attr.default (* we limit ourselves to the standard flags for now *)
             \prepost{q_attr}  attrp |-> pthread_attr.R q_attr (Some attr)
             \arg{starterp}   "start" (Vptr starterp)
-            \with argT stateT Pre Post Post_c
-            \pre              starterp |-> starter_specR argT stateT Pre Post Post_c
+            \with argT Pre Post
+            \pre              starterp |-> starter_specR argT Pre Post
             \arg{argp}       "arg"   (Vptr argp)
             \pre{arg : argT}  Pre argp arg
-            \prepost{this_thread} current_thread this_thread
+            \with this_thread
+            \prepost          current_thread this_thread
             \require WeaklyLocalWith procTI (Pre argp arg)
-            \require forall retp, WeaklyLocalWith procTI (Post argp arg retp)
-            \require ∀p.. s, WeaklyLocalWith procTI (Post_c argp arg s)
+            \require forall tid, WeaklyLocalWith procTI (Post argp arg tid)
             \post{err}[Vint err]
                if bool_decide (err = 0) then
                  ∃ γt tid,
-                   pthread.handle γt this_thread tid RunningOrCompleted
-                       (Post argp arg) (bi_texist (Post_c argp arg)) ∗
+                   pthread.handle γt this_thread tid (Post argp arg tid) ∗
                    idp |-> pthread.R 1$m tid
                else
                  Pre argp arg ∗
@@ -116,27 +124,15 @@ Section with_cpp.
      as join_spec
      from source
      with ( \arg{tid}      "tid"   (Vthread tid)
-            \arg{retp}     "ret"   (Vptr retp)
-            \pre{ret0}      retp |-> oprimR "void*" 1$m ret0
+            \arg           "ret"   (Vptr nullptr)
             \prepost{this_thread} current_thread this_thread
-            \pre{γ s P Pc}  pthread.handle γ this_thread tid s P Pc
+            \pre{γ P}      pthread.handle γ this_thread tid P
             \post[Vint 0] (* the precondition rules out the errors that [pthread_join] can report:
                               - deadlocks
                               - thread is not joinable (our specs don't allow us to create such threads yet)
                               - thread id does not designate an existing thread
                               - thread is being joined by other thread *)
-               ∃ ret,
-                 retp |-> ptrR<"void"> 1$m ret ∗
-                 match s with
-                 | RunningOrCompleted => P ret
-                 | CanceledOrCompleted =>
-                   ∃ pCANCELED,
-                     canceled pCANCELED ∗
-                     if bool_decide (ret = pCANCELED)
-                       then Pc
-                       else P ret
-                 end ).
-
+                 P ).
 
 End with_cpp.
 End pthread.

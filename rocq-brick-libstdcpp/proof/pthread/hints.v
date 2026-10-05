@@ -15,29 +15,26 @@ Section with_cpp.
   Context `{!HasStdThreads Σ}.
 
   Class ThreadFunction (nm : globname) (P : mpred)
-      (argT stateT : tele)
+      (argT : tele)
       (Pre : ptr -> argT -> mpred)
-      (Post : ptr -> argT -> ptr -> mpred)
-      (Post_c : ptr -> argT -> stateT -> mpred) :=
-    thread_function : P |-- _global nm |-> unmaterialized_specR starter_kind (starter_spec _ _ Pre Post Post_c).
-  #[global] Hint Mode ThreadFunction + + - - - - - : typeclass_instances.
+      (Post : ptr -> argT -> thread_idT -> mpred) :=
+    thread_function : P |-- _global nm |-> unmaterialized_specR starter_kind (starter_spec _ Pre Post).
+  #[global] Hint Mode ThreadFunction + + - - - : typeclass_instances.
 
   #[program]
-  Definition fptr_spec_C P nm argT' stateT' Pre' Post' Post_c' :=
+  Definition fptr_spec_C P nm argT' Pre' Post' :=
     \cancelx
     \using P
-    \guard ThreadFunction nm P argT' stateT' Pre' Post' Post_c'
-    \bound argT stateT Pre Post Post_c
-    \proving _global nm |-> starter_specR argT stateT Pre Post Post_c
+    \guard ThreadFunction nm P argT' Pre' Post'
+    \bound argT Pre Post
+    \proving _global nm |-> starter_specR argT Pre Post
     \let P0 := fun t => ptr → tele_arg t → mpred
-    \let P1 := fun t => ptr → tele_arg t → ptr → mpred
-    \let P2 := fun t0 t1 => ptr -> tele_arg t0 → tele_arg t1 → mpred
+    \let P1 := fun t => ptr → tele_arg t → thread_idT → mpred
+    (* \let P2 := fun t0 t1 => ptr -> tele_arg t0 → tele_arg t1 → mpred *)
     (* \let x := existT (P := fun t => ptr → tele_arg t → ptr → mpred) argT  *)
     (* \through [|  = existT argT' Pre' |] *)
     \through [| existT (P := P0) argT Pre = existT argT' Pre' |]
     \through [| existT (P := P1) argT Post = existT argT' Post' |]
-    \through [| existT (P := fun x => sigT (P2 x)) argT (existT (P := P2 _) stateT Post_c) =
-                existT argT' (existT stateT' Post_c') |]
     \end.
   Admit Obligations.
 
