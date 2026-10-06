@@ -16,6 +16,9 @@ class MyRecursiveMutex {
   std::mutex m_lock{};
 
 public:
+  // Explicitly define the constructor so that compiler emits constructor code
+  MyRecursiveMutex() {}
+
   // TODO: add the token/given_token accounting, maybe with q*tickets
 
   void lock() {
