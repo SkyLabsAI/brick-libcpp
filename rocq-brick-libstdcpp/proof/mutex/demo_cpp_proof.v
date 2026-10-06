@@ -50,9 +50,9 @@ Section std_recursive_mutex.
   Context {HAS_THREADS : HasStdThreads Σ}.
   Context `{!std_recursive_mutex.G Σ}.
 
-  Lemma acquireable_update_equiv {TT : tele} γ qt th f t1 t2 P :
+  Lemma acquireable_update_equiv {TT : tele} this γ qt th f t1 t2 P :
     acquire t1 t2 ->
-    acquireable γ qt th (update f t1) P ⊣⊢ acquireable γ qt th (release (TT := TT) (update f t2)) P.
+    acquireable this γ qt th (update f t1) P ⊣⊢ acquireable this γ qt th (release (TT := TT) (update f t2)) P.
   Proof.
     intros.
     by erewrite std_recursive_mutex.update_eq.
@@ -74,15 +74,15 @@ Section with_cpp.
     (\this this
      \arg{x} "x" (Vint x)
      \prepost{γ q} this |-> CR γ q
-     \pre{args qt th} std_recursive_mutex.acquireable γ qt th args (TT:=TT) (P this)
-     \post std_recursive_mutex.acquireable γ qt th (TT:=TT) (std_recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (trim 64 (a+x)) b) args) (P this)).
+     \pre{args qt th} std_recursive_mutex.acquireable (this ,, _field "C::mut") γ qt th args (TT:=TT) (P this)
+     \post std_recursive_mutex.acquireable (this ,, _field "C::mut") γ qt th (TT:=TT) (std_recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (trim 64 (a+x)) b) args) (P this)).
 
   cpp.spec "C::update_b(long)" as C_update_b from demo_cpp.source with
     (\this this
      \arg{x} "x" (Vint x)
      \prepost{γ q} this |-> CR γ q
-     \pre{args qt th} std_recursive_mutex.acquireable γ qt th args (TT:=TT) (P this)
-     \post std_recursive_mutex.acquireable γ qt th (TT:=TT) (std_recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk a (trim 64 (b + x))) args) (P this)).
+     \pre{args qt th} std_recursive_mutex.acquireable (this ,, _field "C::mut") γ qt th args (TT:=TT) (P this)
+     \post std_recursive_mutex.acquireable (this ,, _field "C::mut") γ qt th (TT:=TT) (std_recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk a (trim 64 (b + x))) args) (P this)).
 
   #[global] Instance CR_learn : Cbn (Learn (learn_eq ==> any ==> learn_hints.fin) CR).
   Proof. solve_learnable. Qed.
@@ -141,15 +141,15 @@ Section with_cpp.
     (\this this
       \arg{x} "x" (Vint x)
       \prepost{γ q} this |-> CR γ q
-      \pre{args qt th} std_recursive_mutex.acquireable γ qt th args (TT:=TT) (P this)
-      \post std_recursive_mutex.acquireable γ qt th (TT:=TT) (std_recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (trim 64 (a+x)) (trim 64 (b-x))) args) (P this)).
+      \pre{args qt th} std_recursive_mutex.acquireable (this ,, _field "C::mut") γ qt th args (TT:=TT) (P this)
+      \post std_recursive_mutex.acquireable (this ,, _field "C::mut") γ qt th (TT:=TT) (std_recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (trim 64 (a+x)) (trim 64 (b-x))) args) (P this)).
 
   Lemma transfer_ok : verify[source] "C::transfer(int)".
   Proof.
     verify_spec; go.
     destruct args as [a [b []]]; work.
     pose (updated := mk (trim 64 (a + x)) (trim 64 (b + (0 - x)))).
-    iExists (std_recursive_mutex.acquireable γ qt th
+    iExists (std_recursive_mutex.acquireable (this ,, _field "C::mut") γ qt th
       (std_recursive_mutex.release (std_recursive_mutex.Held n updated)) (P this)), updated, n.
     go.
   Qed.
