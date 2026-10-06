@@ -542,19 +542,17 @@ Section clients.
 
   cpp.spec "main()" as main_spec from source with (
     \persist{th} current_thread th
+    \prepost{gpool} MutexSets.my_mutexes gpool th (coPset.CoPset ⊤)
     \post[Vint 0] emp
   ).
 
   Lemma main_ok : verify[source] main_spec.
   Proof.
     verify_spec.
-    let rec allocate_pool :=
-      first [iMod MutexSets.alloc_mutex_set_map as (gpool) "Hmap"
-            | progress go1; allocate_pool] in
-    allocate_pool.
-    iMod (MutexSets.mutex_sets_alloc_thread gpool ∅ th ltac:(set_solver)
-      with "Hmap") as "[Hmap Hnames]".
-    iEval (rewrite left_id_L) in "Hmap".
+    let rec expose_names :=
+      first [iDestruct select (MutexSets.my_mutexes gpool th _) as "Hnames"
+            | progress go1; expose_names] in
+    expose_names.
     go.
     iExists gpool, from_namespace; go.
     iExists gpool, to_namespace; go.
@@ -575,12 +573,7 @@ Section clients.
     iDestruct (MutexSets.my_mutexes_join_mutex_name gpool th ⊤
       (↑from_namespace) ltac:(set_solver)
       with "[$]") as "Hnames".
-    iDestruct (MutexSets.mutex_sets_free_thread gpool {[th]} th
-      ltac:(set_solver) with "[$]") as "Hmap".
-    iEval (rewrite difference_diag_L) in "Hmap".
-    iDestruct "Hmap" as "?".
-    iDestruct select (MutexSets.mutex_set_map _ _) as "Hmap".
-    iApply (affine with "Hmap"). apply mpred_BiAffine.
+    iFrame "Hnames".
   Qed.
 
   (* FIXME do we need this? *)
