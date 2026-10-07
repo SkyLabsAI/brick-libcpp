@@ -1,6 +1,6 @@
 
 #include <pthread.h>
-#include <assert.h>
+#include <cassert>
 
 void* thread_fn(void* data) {
     int* counter = static_cast<int*>(data);
