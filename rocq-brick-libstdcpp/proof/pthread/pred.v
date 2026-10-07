@@ -40,31 +40,31 @@ Module pthread.
       (pthread.R q id)
       (primR "unsigned long" q' arg) := {}.
 
-Section with_cpp.
-  Import rep.RepFor.
-  Import RepScheme.
+  Section with_cpp.
+    Import rep.RepFor.
+    Import RepScheme.
 
-  Context `{Σ : cpp_logic,σ : genv,!HasStdThreads Σ}.
+    Context `{Σ : cpp_logic,σ : genv,!HasStdThreads Σ}.
 
-  #[global] Instance R_learnable :
-      Cbn (Learn (learn_eq ==> any ==> learn_eq ==> learn_hints.fin) R) := ltac:(solve_learnable).
+    #[global] Instance R_learnable :
+        Cbn (Learn (learn_eq ==> any ==> learn_eq ==> learn_hints.fin) R) := ltac:(solve_learnable).
 
 
-  Definition learn_eq_dep {T U V} : Learning V → Learning (forall x : T, U x → V) :=
-    fun '{|unLearning := k|} =>
-      {|unLearning := fun L R ls => forall a a' b b', k (L a b) (R a' b') ((existT a b = existT a' b') :: ls) |}.
+    Definition learn_eq_dep {T U V} : Learning V → Learning (forall x : T, U x → V) :=
+      fun '{|unLearning := k|} =>
+        {|unLearning := fun L R ls => forall a a' b b', k (L a b) (R a' b') ((existT a b = existT a' b') :: ls) |}.
 
-  #[global] Instance handle_learnable_1 :
-    Cbn (Learn (learn_eq ==> learn_eq ==> req_eq ==> learn_eq ==> learn_hints.fin)
-           pthread.handle) := ltac:(solve_learnable).
+    #[global] Instance handle_learnable_1 :
+      Cbn (Learn (learn_eq ==> learn_eq ==> req_eq ==> learn_eq ==> learn_hints.fin)
+             pthread.handle) := ltac:(solve_learnable).
 
-  #[global] Instance handle_learnable_2 :
-    Cbn (Learn (req_eq ==> learn_eq ==> learn_eq ==> learn_eq ==> learn_hints.fin)
-           pthread.handle) := ltac:(solve_learnable).
+    #[global] Instance handle_learnable_2 :
+      Cbn (Learn (req_eq ==> learn_eq ==> learn_eq ==> learn_eq ==> learn_hints.fin)
+             pthread.handle) := ltac:(solve_learnable).
 
-  #[global] Instance repfor `{!HasStdThreads Σ} {σ : genv} :
-    rep.RepFor.C "pthread_t" [ArgType.CFrac; ArgType.Model _]
-      R := {}.
+    #[global] Instance repfor `{!HasStdThreads Σ} {σ : genv} :
+      rep.RepFor.C "pthread_t" [ArgType.CFrac; ArgType.Model _]
+        R := {}.
 
-End with_cpp.
+  End with_cpp.
 End pthread.
