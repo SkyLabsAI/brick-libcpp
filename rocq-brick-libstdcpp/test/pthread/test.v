@@ -8,8 +8,9 @@ Require Import skylabs.brick.libstdcpp.mutex.requirements.
 Require Import skylabs.brick.libstdcpp.pthread.pred.
 Require Import skylabs.brick.libstdcpp.pthread.spec.
 Require Import skylabs.brick.libstdcpp.pthread.hints.
+Require Import skylabs.brick.libstdcpp.cassert.spec.
 
-Require Import skylabs.brick.libstdcpp.pthread.test_cpp.
+Require Import skylabs.brick.libstdcpp.test.pthread.test_cpp.
 
 Require Import skylabs.auto.cpp.prelude.proof.
 
@@ -39,14 +40,6 @@ Section with_cpp.
 
     cpp.spec "multithreaded_ok()" as multithreaded_ok_spec with
       ( \post emp ).
-
-    cpp.spec "__assert_fail" as assert_fail_spec with
-      ( \arg{p0} "" (Vptr p0)
-        \arg{p1} "" (Vptr p1)
-        \arg{n}  "" (Vint n)
-        \arg{p3} "" (Vptr p3)
-        \require False
-        \post emp ).
 
 End with_cpp.
 
