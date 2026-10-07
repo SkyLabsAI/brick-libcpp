@@ -27,7 +27,7 @@ Module pthread.
    *)
 
   Definition starter_kind : okind :=
-      tFunction (cc:=CC_C) "void*" ["void*"%cpp_type].
+    tFunction (cc:=CC_C) "void*" ["void*"%cpp_type].
 
   Definition starter_spec `{Σ : cpp_logic, σ : genv} `{!HasStdThreads Σ}
       (argT : tele)
