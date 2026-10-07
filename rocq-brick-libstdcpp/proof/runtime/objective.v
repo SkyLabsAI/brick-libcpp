@@ -5,7 +5,7 @@ Require Import skylabs.bi.tls_modalities.
 Require Import skylabs.bi.tls_modalities_rep.
 Require Import skylabs.bi.weakly_objective.
 Require Import skylabs.cpp.slice.
-Require Import skylabs.auto.cpp.weakly_local_with.
+Require Import skylabs.auto.cpp.local_with.
 
 Require Export skylabs.brick.libstdcpp.runtime.pred.
 
@@ -34,116 +34,9 @@ End PROC_OBJECTIVE_AXIOM_TYPE.
 
 Declare Module Export PROC_OBJECTIVE_AXIOM : PROC_OBJECTIVE_AXIOM_TYPE.
 
-Section upstream.
-
-  Context {PROP : bi}.
-  Context {I J K : biIndex}.
-
-  Lemma objective_of_obs {P : I -mon> PROP} Q :
-    (Q -> Objective P) ->
-    Observe [| Q |] P ->
-    Objective P.
-  Proof.
-    move => HP /observe_monPred_at Hobs i j.
-    iIntros "A"%string. iDestruct (Hobs with "A") as %?.
-    by iStopProof; apply: HP.
-  Qed.
-
-  Section LocalWith.
-
-    Lemma LocalWith_of_obs {P : I -mon> PROP} Q {L : I -ml> K} :
-      (Q -> LocalWith L P) ->
-      Observe [| Q |] P ->
-      LocalWith L P.
-    Proof.
-      rewrite -!objective_local_with => HP Hobs j.
-      apply objective_of_obs with (Q := Q), _ => HQ.
-      by apply: HP.
-    Qed.
-
-    #[global] Instance LocalWith_only_provable P {L : I -ml> K} :
-      LocalWith (PROP := PROP) L [| P |].
-    Proof.
-      rewrite -objective_local_with => ?.
-      rewrite monPred_exactly_at_only_provable.
-      apply _.
-    Qed.
-
-  End LocalWith.
-  Section LocalWithR.
-
-    Lemma LocalWithR_of_obs {P : J -mon> I -mon> PROP} Q {L : I -ml> K} :
-      (Q -> LocalWithR L P) ->
-      Observe [| Q |] P ->
-      LocalWithR L P.
-    Proof.
-      rewrite !LocalWithR_monPred_at => HP Hobs p.
-      eapply LocalWith_of_obs, _ => HQ.
-      by apply: HP.
-    Qed.
-
-    #[global] Instance LocalWithR_only_provable P {L : I -ml> J} :
-      LocalWithR (PROP := PROP) L [| P |].
-    Proof.
-      rewrite -objective_local_withR => ? ?.
-      rewrite monPred_at_only_provable.
-      rewrite monPred_exactly_at_only_provable.
-      apply _.
-    Qed.
-
-  End LocalWithR.
-
-End upstream.
-
 Section derived_local_withR.
   Context `{Σ : !cpp_logic ti Σ0, σ : genv, !HasStdThreads Σ}.
   Implicit Types p : ptr.
-
-  Section upstream.
-
-    Lemma LocalWithR_iff_LocalWith_at (R : Rep) {J} {L : ti -ml> J} :
-      LocalWithR L R <-> forall p, LocalWith L (p |-> R).
-    Proof.
-      rewrite -objective_local_withR; apply forall_proper => p.
-      by rewrite !objective_local_with plogic.monPred_at_at.
-    Qed.
-
-    Lemma LocalWithR_iff_Objective_at (R : Rep) {J} {L : ti -ml> J} :
-      LocalWithR L R <-> forall (p : ptr) i, Objective (@(L, i) p |-> R).
-    Proof.
-      rewrite -objective_local_withR; apply forall_proper => p.
-      by rewrite !objective_local_with plogic.monPred_at_at.
-    Qed.
-
-    #[global] Instance LocalWithR_as_Rep (P : ptr -> mpred) {J} {L : ti -ml> J} :
-      (forall p, LocalWith L (P p)) ->
-      LocalWithR L (as_Rep P).
-    Proof.
-      rewrite LocalWithR_iff_LocalWith_at => Hp p.
-      by rewrite _at_as_Rep.
-    Qed.
-
-    Section LocalWith.
-
-      #[global] Instance LocalWith_at (R : Rep) {J} {L : ti -ml> J} :
-        LocalWithR L R -> forall p, LocalWith L (p |-> R).
-      Proof. rewrite LocalWithR_iff_LocalWith_at; apply _. Qed.
-
-    End LocalWith.
-
-    Section LocalWithR.
-
-      #[global] Instance LocalWithR_offsetR (R : Rep) {J} {L : ti -ml> J} :
-        LocalWithR L R -> forall o : offset, LocalWithR L (o |-> R).
-      Proof.
-        rewrite LocalWithR_iff_LocalWith_at => HR o.
-        rewrite LocalWithR_iff_LocalWith_at => p.
-        by rewrite _at_offsetR.
-      Qed.
-
-    End LocalWithR.
-
-  End upstream.
 
   #[global] Instance validR_pd_local_obj :
     LocalWithR procTI validR.
