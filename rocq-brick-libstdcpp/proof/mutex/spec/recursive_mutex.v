@@ -137,7 +137,7 @@ Module Type RECURSIVE_MUTEX_PREDS (T : MutexCPPName).
     #[global] Declare Instance R_type_ptr g q P : Observe (type_ptrR cpp_ty) (R g q P).
 
     (** FIXME maybe not_locked should just be a definition in the spec section? *)
-    Parameter register_thread : forall
+    Axiom register_thread : forall
         (this : ptr) (g : gname) (th : thread_idT) (qt : cQp.t),
       token g qt ** MutexSets.my_mutexes (pool_name g) th
         (CoPset $ ↑rmutex_inv_namespace g) ⊣⊢
