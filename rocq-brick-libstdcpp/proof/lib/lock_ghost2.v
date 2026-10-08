@@ -248,18 +248,17 @@ Module MutexSets : MUTEX_SETS.
       iModIntro. iExists γ. iExact "Hmap".
     Qed.
 
-    Lemma mutex_sets_alloc_thread γ T th :
+    (* does not need the update, but is implementation detail. *)
+    Lemma mutex_sets_alloc_thread' γ T th :
       th ∉ T ->
       mutex_set_map γ T |--
-        (|==> mutex_set_map γ (T ∪ {[th]}) **
-                my_mutexes γ th (CoPset ⊤)).
+        mutex_set_map γ (T ∪ {[th]}) ** my_mutexes γ th (CoPset ⊤).
     Proof.
-      rewrite /mutex_set_map /my_mutexes.
-      iIntros (Hfresh) "Hmap".
-      iMod (own_update γ _ (reserve (T ∪ {[th]}) ⋅
-        discrete_fun_singleton th (CoPset ⊤))
-        with "Hmap") as "[Hmap Ht]".
-      { apply discrete_fun_update. intros th'.
+      intros Hfresh.
+      rewrite /mutex_set_map /my_mutexes -own_op.
+      have Heq : reserve T ≡
+          reserve (T ∪ {[th]}) ⋅ discrete_fun_singleton th (CoPset ⊤).
+      { intros th'.
         rewrite discrete_fun_lookup_op.
         destruct (decide (th = th')) as [<-|Hne].
         - rewrite discrete_fun_lookup_singleton /reserve.
@@ -272,7 +271,17 @@ Module MutexSets : MUTEX_SETS.
           + rewrite !decide_True; try set_solver.
           + rewrite !decide_False; try set_solver.
       }
-      iModIntro. iFrame.
+      by rewrite Heq.
+    Qed.
+
+    Lemma mutex_sets_alloc_thread γ T th :
+      th ∉ T ->
+      mutex_set_map γ T |--
+        (|==> mutex_set_map γ (T ∪ {[th]}) **
+                my_mutexes γ th (CoPset ⊤)).
+    Proof.
+      iIntros (Hfresh) "Hmap". iModIntro.
+      iApply (mutex_sets_alloc_thread' γ T th Hfresh with "Hmap").
     Qed.
 
     Lemma mutex_sets_free_thread γ T th :
