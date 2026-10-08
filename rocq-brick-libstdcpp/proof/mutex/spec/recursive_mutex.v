@@ -110,8 +110,10 @@ Module Type RECURSIVE_MUTEX_PREDS (T : MutexCPPName).
   #[global] Declare Instance token_timeless
       `{Σ : cpp_logic, !G Σ} g qt : Timeless (token g qt).
 
-  Parameter not_locked : forall `{Σ : cpp_logic, !G Σ, σ : genv},
-    ptr -> gname -> cQp.t -> thread_idT -> mpred.
+  Definition not_locked `{Σ : cpp_logic, !G Σ, σ : genv}
+      (this : ptr) (g : gname) (qt : cQp.t) (th : thread_idT) : mpred :=
+    token g qt ** MutexSets.my_mutexes (pool_name g) th
+      (CoPset $ ↑rmutex_inv_namespace g).
   Parameter locked : forall `{Σ : cpp_logic, !G Σ, σ : genv},
     ptr -> gname -> cQp.t -> thread_idT -> nat -> mpred.
 
@@ -126,8 +128,9 @@ Module Type RECURSIVE_MUTEX_PREDS (T : MutexCPPName).
   Section with_cpp.
     Context `{Σ : cpp_logic, !G Σ}.
 
-    #[global] Declare Instance not_locked_timeless {σ : genv} this g qt th :
+    #[global] Instance not_locked_timeless {σ : genv} this g qt th :
       Timeless (not_locked this g qt th).
+    Proof. rewrite /not_locked. apply _. Qed.
 
     Context {HAS_THREADS : HasStdThreads Σ} {σ : genv}.
 
@@ -136,13 +139,6 @@ Module Type RECURSIVE_MUTEX_PREDS (T : MutexCPPName).
 
     #[only(cfractional,cfracvalid,ascfractional)] derive R.
     #[global] Declare Instance R_type_ptr g q P : Observe (type_ptrR cpp_ty) (R g q P).
-
-    (** FIXME maybe not_locked should just be a definition in the spec section? *)
-    Axiom register_thread : forall
-        (this : ptr) (g : gname) (th : thread_idT) (qt : cQp.t),
-      token g qt ** MutexSets.my_mutexes (pool_name g) th
-        (CoPset $ ↑rmutex_inv_namespace g) ⊣⊢
-      not_locked this g qt th.
 
   End with_cpp.
 End RECURSIVE_MUTEX_PREDS.
