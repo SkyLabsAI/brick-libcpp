@@ -16,13 +16,16 @@ Require Import skylabs.brick.libstdcpp.lib.lock_ghost2.
 
 Import linearity.
 
-(** A MUTEX_PREDS module says a mutex spec is parametrized by some `token`,
-  `not_locked` and `locked`. The exact model depends on the implementation. *)
+(** A MUTEX_PREDS module says a mutex spec is parametrized by some `token` and
+  `locked`. The exact model depends on the implementation. *)
 
 Module Type MUTEX_PREDS.
   Parameter gname : Set.
   Parameter cpp_ty : type.
   Parameter mutex_inv_namespace : gname -> namespace.
+
+  (** Ghost name of the ghost state that keeps track of a pool of gnames for each thread. *)
+  Parameter pool_name : gname -> iprop.gname.
 
   Parameter G : forall `{Σ : cpp_logic}, Type.
   Existing Class G.
@@ -35,20 +38,36 @@ Module Type MUTEX_PREDS.
       The permission might involve points-to, so use cQp.t instead of QP. *)
   Parameter token : forall `{Σ : cpp_logic, !G Σ},
     gname -> cQp.t -> mpred.
-  Parameter not_locked locked : forall `{Σ : cpp_logic, !G Σ} {σ : genv},
+  Definition not_locked `{Σ : cpp_logic, !G Σ} {σ : genv}
+      (this : ptr) (g : gname) (th : thread_idT) (qt : cQp.t) : mpred :=
+    token g qt ** MutexSets.my_mutexes (pool_name g) th
+      (coPset.CoPset $ ↑mutex_inv_namespace g).
+  #[global] Hint Opaque not_locked : sl_opacity typeclass_instances.
+
+  Parameter locked : forall `{Σ : cpp_logic, !G Σ} {σ : genv},
     ptr -> gname -> thread_idT -> cQp.t -> mpred.
 
   #[global] Declare Instance token_fractional
       `{Σ : cpp_logic, !G Σ} γ : CFractional (token γ).
   #[global] Declare Instance token_timeless
       `{Σ : cpp_logic, !G Σ} γ q : Timeless (token γ q).
-  #[global] Declare Instance not_locked_timeless
+  #[global] Instance not_locked_timeless
       `{Σ : cpp_logic, !G Σ} {σ : genv} this γ th q :
     Timeless (not_locked this γ th q).
+  Proof. rewrite /not_locked. apply _. Qed.
   (** Each thread has at most one handle to attempt locking this mutex. *)
-  #[global] Declare Instance not_locked_exclusive
+  #[global] Instance not_locked_exclusive
       `{Σ : cpp_logic, !G Σ} {σ : genv} this γ th :
     Exclusive1 (not_locked this γ th).
+  Proof.
+    intros q1 q2. rewrite /not_locked.
+    iIntros "[_ H1] [_ H2]".
+    have Hoverlap : ~ ((↑mutex_inv_namespace γ : coPset) ## ↑mutex_inv_namespace γ).
+    { have Hnonempty := nclose_non_empty (mutex_inv_namespace γ). set_solver. }
+    iDestruct (MutexSets.my_mutexes_exclusive _ th
+      (↑mutex_inv_namespace γ) (↑mutex_inv_namespace γ) Hoverlap
+      with "[$H1 $H2]") as %[].
+  Qed.
   #[global] Declare Instance locked_timeless
       `{Σ : cpp_logic, !G Σ} {σ : genv} this γ th q :
     Timeless (locked this γ th q).
@@ -59,9 +78,6 @@ Module Type MUTEX_PREDS.
   #[global] Declare Instance locked_WeaklyObjective
       `{Σ : cpp_logic, !G Σ} {σ : genv} this γ th q :
     WeaklyObjective (locked this γ th q).
-
-  (** Ghost name of the ghost state that keeps track of a pool of gnames for each thread. *)
-  Parameter pool_name : gname -> iprop.gname.
 
   Section with_cpp.
     Context `{Σ : cpp_logic}.
@@ -125,13 +141,6 @@ Module Type MUTEX_PREDS.
           [| pool_name g = pool /\ mutex_inv_namespace g = N |] **
           this |-> R g 1$m P ** token g 1$m).
 
-    (** FIXME maybe not_locked should just be a definition. *)
-    Axiom register_thread : forall
-        (this : ptr) (g : gname) (th : thread_idT) (qt : cQp.t),
-      token g qt ** MutexSets.my_mutexes (pool_name g) th
-        (coPset.CoPset $ ↑mutex_inv_namespace g) ⊣⊢
-      not_locked this g th qt.
-
     (** FIXME do we really need this? *)
     Axiom locked_my_mutexes_exclusive : forall
         `{Σ : cpp_logic, !G Σ} {σ : genv} this g th qt,
@@ -156,7 +165,7 @@ Section with_cpp.
   Lemma locked_not_locked_exclusive (this : ptr) g th qt qt' :
     locked this g th qt ** not_locked this g th qt' |-- False.
   Proof.
-    rewrite -register_thread. iIntros "[HL [_ Hnames]]".
+    rewrite /not_locked. iIntros "[HL [_ Hnames]]".
     iApply (locked_my_mutexes_exclusive with "[$HL $Hnames]").
   Qed.
 

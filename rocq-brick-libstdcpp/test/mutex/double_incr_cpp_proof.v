@@ -105,8 +105,9 @@ Section with_cpp.
     iDestruct (MutexSets.my_mutexes_alloc_mutex_name (mutex.pool_name g)
       child ⊤ (↑mutex.mutex_inv_namespace g) ltac:(set_solver)
       with "Hset") as "[Hrest Hname]".
-    iCombine "Htoken Hname" as "Hnotlocked".
-    iEval (rewrite (mutex.register_thread (_global "m"))) in "Hnotlocked".
+    iAssert (mutex.not_locked (_global "m") g child ((1 / 2)$m)%cQp)
+      with "[Htoken Hname]" as "Hnotlocked".
+    { rewrite /mutex.not_locked. iFrame. }
     iEval (unfold double_incr_spec_body, specify, unmaterialized_specR) in "Hcode".
     iApply (invoke.use_cptrR with "Hcode"). cbn.
     iSplitR; first done.

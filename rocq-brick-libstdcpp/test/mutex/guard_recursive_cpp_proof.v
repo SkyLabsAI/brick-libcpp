@@ -176,7 +176,7 @@ Section with_cpp.
       (TT := TT) t 1$m thr std_recursive_mutex.NotHeld (P c_addr))%I
       with "[Htoken Hname]" as "Hacquireable".
     { rewrite /std_recursive_mutex.acquireable /=
-        -std_recursive_mutex.register_thread. iFrame "#∗". }
+        /std_recursive_mutex.not_locked. iFrame "#∗". }
     iDestruct "Hacquireable" as "?". go.
     destruct args as [a []].
     rewrite P.unlock /=.
@@ -214,7 +214,7 @@ Section with_cpp.
     match goal with g : std_recursive_mutex.gname |- _ => rename g into γ end.
     iDestruct select (std_recursive_mutex.acquireable _ _ _ _ _ _) as "Hacquireable".
     iEval (rewrite /std_recursive_mutex.acquireable /=
-      -std_recursive_mutex.register_thread) in "Hacquireable".
+      /std_recursive_mutex.not_locked) in "Hacquireable".
     iDestruct "Hacquireable" as "(_ & Htoken & Hname)".
     iDestruct (MutexSets.my_mutexes_join_mutex_name
       (std_recursive_mutex.pool_name γ) thr ⊤
