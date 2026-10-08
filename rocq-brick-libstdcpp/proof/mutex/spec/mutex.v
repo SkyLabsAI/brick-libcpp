@@ -22,8 +22,7 @@ Import linearity.
 Module Type MUTEX_PREDS.
   Parameter gname : Set.
   Parameter cpp_ty : type.
-  (** Mutex-set pool agreed before mutex creation. *)
-  Parameter mutex_inv_namespace : namespace.
+  Parameter mutex_inv_namespace : gname -> namespace.
 
   Parameter G : forall `{Σ : cpp_logic}, Type.
   Existing Class G.
@@ -56,6 +55,10 @@ Module Type MUTEX_PREDS.
   #[global] Declare Instance locked_exclusive
       `{Σ : cpp_logic, !G Σ} {σ : genv} this γ :
     Exclusive2 (locked this γ).
+
+  #[global] Declare Instance locked_WeaklyObjective
+      `{Σ : cpp_logic, !G Σ} {σ : genv} this γ th q :
+    WeaklyObjective (locked this γ th q).
 
   (** Ghost name of the ghost state that keeps track of a pool of gnames for each thread. *)
   Parameter pool_name : gname -> iprop.gname.
@@ -109,29 +112,32 @@ Module Type MUTEX_PREDS.
           Lockable (T:=gname * mpred) cpp_ty (λ q γP, R γP.1 q γP.2) :=
         { do_try_lock := do_try_lock }.
 
-    (** Install [P] in an initialized mutex using its full representation and
-        token. The physical mutex remains initialized and unlocked.
+    (** Can switch the protected resource from [emp] to [P].
+        FIXME maybe it should be any [P'] to [P]?
         
         Initializing [this |-> R old 1$m emp] probably depends on the mutex
         implementation. *)
     Axiom init_R : forall (this : ptr) (old : gname)
-        (pool : iprop.gname) (P : mpred),
+        (pool : iprop.gname) (N : namespace) (P : mpred),
       WeaklyObjective P ->
       this |-> R old 1$m emp ** token old 1$m ** ▷P |--
         (|={⊤}=> ∃ g,
-          [| pool_name g = pool |] **
+          [| pool_name g = pool /\ mutex_inv_namespace g = N |] **
           this |-> R g 1$m P ** token g 1$m).
 
-    (** A thread's handle to the mutex is equivalent to a fractional ownership
-        of the [mutex] and a fraction of [token], and its [my_mutexes] with the
-        same namespace. *)
+    (** FIXME maybe not_locked should just be a definition. *)
     Axiom register_thread : forall
-        (this : ptr) (g : gname) (q : cQp.t) (P : mpred)
-        (th : thread_idT) (qt : cQp.t),
-      this |-> R g q P ** token g qt **
-      MutexSets.my_mutexes (pool_name g) th
-        (coPset.CoPset $ ↑mutex_inv_namespace) ⊣⊢
-      this |-> R g q P ** not_locked this g th qt.
+        (this : ptr) (g : gname) (th : thread_idT) (qt : cQp.t),
+      token g qt ** MutexSets.my_mutexes (pool_name g) th
+        (coPset.CoPset $ ↑mutex_inv_namespace g) ⊣⊢
+      not_locked this g th qt.
+
+    (** FIXME do we really need this? *)
+    Axiom locked_my_mutexes_exclusive : forall
+        `{Σ : cpp_logic, !G Σ} {σ : genv} this g th qt,
+      locked this g th qt **
+        MutexSets.my_mutexes (pool_name g) th
+          (coPset.CoPset $ ↑mutex_inv_namespace g) |-- False.
 
   End with_cpp.
 End MUTEX_PREDS.
@@ -146,6 +152,13 @@ Section with_cpp.
   Context `{!G Σ}.
   Context {HAS_THREADS : HasStdThreads Σ}.
 
+
+  Lemma locked_not_locked_exclusive (this : ptr) g th qt qt' :
+    locked this g th qt ** not_locked this g th qt' |-- False.
+  Proof.
+    rewrite -register_thread. iIntros "[HL [_ Hnames]]".
+    iApply (locked_my_mutexes_exclusive with "[$HL $Hnames]").
+  Qed.
 
   (** The guarded predicate must be weakly objective for invariant allocation,
       which R likely has. *)

@@ -103,11 +103,10 @@ Section with_cpp.
     iModIntro.
     iDestruct "Hstart" as "(Hm & Htoken & Hfrac)".
     iDestruct (MutexSets.my_mutexes_alloc_mutex_name (mutex.pool_name g)
-      child ⊤ (↑mutex.mutex_inv_namespace) ltac:(set_solver)
+      child ⊤ (↑mutex.mutex_inv_namespace g) ltac:(set_solver)
       with "Hset") as "[Hrest Hname]".
-    iCombine "Hm Htoken Hname" as "Hm".
-    iEval (rewrite mutex.register_thread) in "Hm".
-    iDestruct "Hm" as "[Hm Hnotlocked]".
+    iCombine "Htoken Hname" as "Hnotlocked".
+    iEval (rewrite (mutex.register_thread (_global "m"))) in "Hnotlocked".
     iEval (unfold double_incr_spec_body, specify, unmaterialized_specR) in "Hcode".
     iApply (invoke.use_cptrR with "Hcode"). cbn.
     iSplitR; first done.
@@ -146,11 +145,11 @@ Section with_cpp.
     iMod (thread.spec.spawned_threads_inv_alloc thread_pool_namespace)
       as (pool) "#Hpool".
     (* Logical invariant setup for the already initialized mutex. *)
-    iMod (mutex.init_R (_global "m") γold pool
+    iMod (mutex.init_R (_global "m") γold pool (mutex.mutex_inv_namespace γold)
       (double_incr_protocol.protected γ (_global "x")) ltac:(apply _)
-      with "[Hm Htoken HP]") as (g) "(%Hpool_name & Hm & Htoken)".
+      with "[Hm Htoken HP]") as (g) "(%Hnames & Hm & Htoken)".
     { iFrame "Hm Htoken". iNext. done. }
-    subst pool.
+    destruct Hnames as [Hpool_name _]. subst pool.
     iDestruct "Hm" as "[Hm1 Hm2]".
     iEval (rewrite (cfractional_split_half (mutex.token g))
       cQp.scale_mut Qp.mul_1_r) in "Htoken".

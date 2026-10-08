@@ -374,14 +374,15 @@ Module RecursiveMutexPreds (T : MutexCPPName) <: RECURSIVE_MUTEX_PREDS T.
     Timeless (given_token g qt th n).
   Proof. rewrite /given_token. apply _. Qed.
 
-  Definition not_locked `{Σ : cpp_logic, !G Σ}
-      (g : gname) (th : thread_idT) (E : coPset_disj) : mpred :=
-    MutexSets.my_mutexes (pool_name g) th E.
+  Definition not_locked `{Σ : cpp_logic, !G Σ, σ : genv}
+      (_this : ptr) (g : gname) (qt : cQp.t) (th : thread_idT) : mpred :=
+    token g qt **
+    MutexSets.my_mutexes (pool_name g) th (CoPset $ ↑rmutex_inv_namespace g).
   Definition locked `{Σ : cpp_logic, !G Σ, σ : genv}
       (_this : ptr) (g : gname) (qt : cQp.t) (th : thread_idT) (n : nat) : mpred :=
     given_token g qt th n.
-  #[global] Instance not_locked_timeless `{Σ : cpp_logic, !G Σ} g th E :
-    Timeless (not_locked g th E).
+  #[global] Instance not_locked_timeless `{Σ : cpp_logic, !G Σ, σ : genv} this g qt th :
+    Timeless (not_locked this g qt th).
   Proof. rewrite /not_locked. apply _. Qed.
   #[global] Instance locked_timeless `{Σ : cpp_logic, !G Σ, σ : genv} this g qt th n :
     Timeless (locked this g qt th n).
@@ -391,12 +392,13 @@ Module RecursiveMutexPreds (T : MutexCPPName) <: RECURSIVE_MUTEX_PREDS T.
   Section rules.
     Context `{Σ : cpp_logic, !G Σ}.
 
-    Lemma register_thread g th :
-      MutexSets.my_mutexes (pool_name g) th (CoPset $ ↑rmutex_inv_namespace g) ⊣⊢
-      not_locked g th (CoPset $ ↑rmutex_inv_namespace g).
-    Proof. by rewrite /not_locked. Qed.
-
     Context `{!HasStdThreads Σ} {σ : genv}.
+
+    Lemma register_thread (this : ptr) g th qt :
+      token g qt **
+      MutexSets.my_mutexes (pool_name g) th (CoPset $ ↑rmutex_inv_namespace g) ⊣⊢
+      not_locked this g qt th.
+    Proof. by rewrite /not_locked. Qed.
 
     Lemma locked_contradict_full_token (this : ptr) g q qt th n P :
       this |-> R g q P ** token g 1$m ** locked this g qt th n |--
