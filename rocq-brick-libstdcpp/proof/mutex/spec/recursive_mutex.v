@@ -99,6 +99,7 @@ Module Type RECURSIVE_MUTEX_PREDS (T : MutexCPPName).
   Existing Class G.
   #[global] Arguments G {_ _} Σ : assert.
 
+  (* FIXME (pool_name g) should be a singleton gname  *)
   (** Ghost name of the ghost state that keeps track of a pool of gnames for each thread. *)
   Parameter pool_name : gname -> iprop.gname.
   Parameter rmutex_inv_namespace : gname -> namespace.
