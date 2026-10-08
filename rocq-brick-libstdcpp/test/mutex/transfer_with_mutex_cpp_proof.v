@@ -224,7 +224,7 @@ Section class_C.
     iAssert (std_recursive_mutex.acquireable (this ,, _field "C::mut") (TT := balance_args) g q th
       std_recursive_mutex.NotHeld (fun n : Z => this |-> account_balanceR n))%I
       with "[Htoken Hnames]" as "Hacquireable".
-    { rewrite /std_recursive_mutex.acquireable /= -std_recursive_mutex.register_thread.
+    { rewrite /std_recursive_mutex.acquireable /= /std_recursive_mutex.not_locked.
       destruct Hg as [Hgpool HN]. rewrite Hgpool HN. iFrame "#∗". }
     iExists f, g, q,
       (std_recursive_mutex.acquireable (this ,, _field "C::mut") (TT := balance_args) g q th
@@ -258,7 +258,7 @@ Section class_C.
     - iIntros "(HR & Hacquireable & HK)".
       iApply "Hpost". iFrame "HK".
       iEval (rewrite /std_recursive_mutex.acquireable /=
-        -std_recursive_mutex.register_thread) in "Hacquireable".
+        /std_recursive_mutex.not_locked) in "Hacquireable".
       iDestruct "Hacquireable" as "(_ & Htoken & Hnames)".
       destruct Hg as [Hgpool HN].
       iEval (rewrite Hgpool HN) in "Hnames". iFrame "Hnames".
@@ -306,7 +306,7 @@ Section class_C.
     iAssert (std_recursive_mutex.acquireable (this ,, _field "C::mut") (TT := balance_args) source_g qfrom th
       std_recursive_mutex.NotHeld (fun n : Z => this |-> account_balanceR n))%I
       with "[Hfrom_names Hfrom_token]" as "?".
-    { rewrite /std_recursive_mutex.acquireable /= -std_recursive_mutex.register_thread. iFrame "#∗". }
+    { rewrite /std_recursive_mutex.acquireable /= /std_recursive_mutex.not_locked. iFrame "#∗". }
     iDestruct select (MutexSets.my_mutexes _ th
       (coPset.CoPset (↑to_namespace))) as "Hto_names".
     iEval (rewrite -a -b0) in "Hto_names".
@@ -314,7 +314,7 @@ Section class_C.
     iAssert (std_recursive_mutex.acquireable (to ,, _field "C::mut") (TT := balance_args) g qto th
       std_recursive_mutex.NotHeld (fun n : Z => to |-> account_balanceR n))%I
       with "[Hto_names Hto_token]" as "?".
-    { rewrite /std_recursive_mutex.acquireable /= -std_recursive_mutex.register_thread. iFrame "#∗". }
+    { rewrite /std_recursive_mutex.acquireable /= /std_recursive_mutex.not_locked. iFrame "#∗". }
     go.
     rewrite std_recursive_mutex.acquire.unlock in H1, H2.
     destruct H1 as [[from_balance []] Hfrom]. inversion Hfrom; subst.
@@ -331,7 +331,7 @@ Section class_C.
         std_recursive_mutex.NotHeld (fun n : Z => this |-> account_balanceR n))%I.
     rewrite std_recursive_mutex.release.unlock /=. go.
     rewrite accountR.unlock /std_recursive_mutex.acquireable /=
-      -!std_recursive_mutex.register_thread. go with br_erefl.
+      /std_recursive_mutex.not_locked. go with br_erefl.
     rewrite a b b0. go.
   Qed.
 

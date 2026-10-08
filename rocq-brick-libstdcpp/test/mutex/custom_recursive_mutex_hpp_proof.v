@@ -246,16 +246,6 @@ Module CustomRecursiveMutexPreds
       WeaklyObjective (protected this go P).
   Proof. rewrite /protected. apply _. Qed.
 
-  Lemma register_thread `{Σ : cpp_logic, !G Σ, σ : genv}
-      (this : ptr) g th qt :
-    token g qt **
-    MutexSets.my_mutexes (pool_name g) th (CoPset $ ↑rmutex_inv_namespace g) ⊣⊢
-    not_locked this g qt th.
-  Proof.
-    rewrite /token /not_locked /pool_name /rmutex_inv_namespace.
-    apply mutex.register_thread.
-  Qed.
-
 End CustomRecursiveMutexPreds.
 
 Module custom_recursive_mutex.

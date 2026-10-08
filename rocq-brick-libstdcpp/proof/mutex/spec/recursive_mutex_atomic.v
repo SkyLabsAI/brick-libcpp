@@ -394,12 +394,6 @@ Module RecursiveMutexPreds (T : MutexCPPName) <: RECURSIVE_MUTEX_PREDS T.
 
     Context `{!HasStdThreads Σ} {σ : genv}.
 
-    Lemma register_thread (this : ptr) g th qt :
-      token g qt **
-      MutexSets.my_mutexes (pool_name g) th (CoPset $ ↑rmutex_inv_namespace g) ⊣⊢
-      not_locked this g qt th.
-    Proof. by rewrite /not_locked. Qed.
-
     Lemma locked_contradict_full_token (this : ptr) g q qt th n P :
       this |-> R g q P ** token g 1$m ** locked this g qt th n |--
       (|={⊤}=> False).
