@@ -109,8 +109,8 @@ Module Type RECURSIVE_MUTEX_PREDS (T : MutexCPPName).
   #[global] Declare Instance token_timeless
       `{Σ : cpp_logic, !G Σ} g qt : Timeless (token g qt).
 
-  Parameter not_locked : forall `{Σ : cpp_logic, !G Σ},
-    gname -> thread_idT -> coPset_disj -> mpred.
+  Parameter not_locked : forall `{Σ : cpp_logic, !G Σ, σ : genv},
+    ptr -> gname -> cQp.t -> thread_idT -> mpred.
   Parameter locked : forall `{Σ : cpp_logic, !G Σ, σ : genv},
     ptr -> gname -> cQp.t -> thread_idT -> nat -> mpred.
 
@@ -125,8 +125,8 @@ Module Type RECURSIVE_MUTEX_PREDS (T : MutexCPPName).
   Section with_cpp.
     Context `{Σ : cpp_logic, !G Σ}.
 
-    #[global] Declare Instance not_locked_timeless g th E :
-      Timeless (not_locked g th E).
+    #[global] Declare Instance not_locked_timeless {σ : genv} this g qt th :
+      Timeless (not_locked this g qt th).
 
     Context {HAS_THREADS : HasStdThreads Σ} {σ : genv}.
 
@@ -135,6 +135,13 @@ Module Type RECURSIVE_MUTEX_PREDS (T : MutexCPPName).
 
     #[only(cfractional,cfracvalid,ascfractional)] derive R.
     #[global] Declare Instance R_type_ptr g q P : Observe (type_ptrR cpp_ty) (R g q P).
+
+    (** FIXME maybe not_locked should just be a definition in the spec section? *)
+    Parameter register_thread : forall
+        (this : ptr) (g : gname) (th : thread_idT) (qt : cQp.t),
+      token g qt ** MutexSets.my_mutexes (pool_name g) th
+        (CoPset $ ↑rmutex_inv_namespace g) ⊣⊢
+      not_locked this g qt th.
 
   End with_cpp.
 End RECURSIVE_MUTEX_PREDS.
@@ -152,8 +159,7 @@ Module recursive_mutex_spec (T : MutexCPPName)
         (P : TT -t> mpred) : mpred :=
       current_thread th **
       match s with
-      | NotHeld => token g qt ** not_locked g th
-          (CoPset $ ↑rmutex_inv_namespace g)
+      | NotHeld => not_locked this g qt th
       | Held n xs => locked this g qt th n ** tele_app P xs
       end.
     #[global] Hint Opaque acquireable : sl_opacity typeclass_instances.
@@ -297,6 +303,8 @@ Module recursive_mutex_spec (T : MutexCPPName)
       #[global] Instance acquireable_learn this γ th TT :
         LearnEq3 (fun qt s P => acquireable this γ qt th (TT := TT) s P).
       Proof. solve_learnable. Qed.
+      #[global] Instance not_locked_learn this γ th : LearnEq1 (fun qt => not_locked this γ qt th).
+      Proof. solve_learnable. Qed.
       #[global] Instance locked_learn this γ th : LearnEq2 (fun qt n => locked this γ qt th n).
       Proof. solve_learnable. Qed.
       #[global] Instance later_acquireable_learn this γ th TT :
@@ -423,55 +431,7 @@ Module StdRecursiveMutex
   End with_cpp.
 End StdRecursiveMutex.
 
-(** The standard-library boundary instantiates the same interface. Its
-    registration permission is a namespace handle. *)
-Module StdRecursiveMutexPreds <: RECURSIVE_MUTEX_PREDS StdRecursiveMutexName.
-  Include RecursiveMutexState.
-  Definition cpp_ty : type := StdRecursiveMutexName.cpp_ty.
-  Parameter gname : Set.
-  Parameter G : forall `{Σ : cpp_logic}, Type.
-  Existing Class G.
-  #[global] Arguments G {_ _} Σ : assert.
-  Parameter pool_name : gname -> iprop.gname.
-  Parameter rmutex_inv_namespace : gname -> namespace.
-  #[global] Declare Instance sets_G `{Σ : cpp_logic, !G Σ} : MutexSets.G Σ.
-  Parameter token : forall `{Σ : cpp_logic, !G Σ}, gname -> cQp.t -> mpred.
-  #[global] Declare Instance token_fractional
-      `{Σ : cpp_logic, !G Σ} g : CFractional (token g).
-  #[global] Declare Instance token_timeless
-      `{Σ : cpp_logic, !G Σ} g qt : Timeless (token g qt).
-
-  Definition not_locked `{Σ : cpp_logic, !G Σ}
-      (g : gname) (th : thread_idT) (E : coPset_disj) : mpred :=
-    MutexSets.my_mutexes (pool_name g) th E.
-  Parameter locked : forall `{Σ : cpp_logic, !G Σ, σ : genv},
-    ptr -> gname -> cQp.t -> thread_idT -> nat -> mpred.
-  Parameter R : forall `{Σ : cpp_logic, !G Σ}
-    {HAS_THREADS : HasStdThreads Σ} {σ : genv},
-    gname -> cQp.t -> mpred -> Rep.
-  #[global] Hint Opaque token not_locked locked R : sl_opacity typeclass_instances.
-
-  Section with_cpp.
-    Context `{Σ : cpp_logic, !G Σ}.
-    #[global] Instance not_locked_timeless g th E :
-      Timeless (not_locked g th E).
-    Proof. rewrite /not_locked. apply _. Qed.
-
-    Lemma register_thread g th :
-      MutexSets.my_mutexes (pool_name g) th (CoPset $ ↑rmutex_inv_namespace g) ⊣⊢
-      not_locked g th (CoPset $ ↑rmutex_inv_namespace g).
-    Proof. by rewrite /not_locked. Qed.
-
-    Context `{!HasStdThreads Σ, σ : genv}.
-
-    #[global] Declare Instance locked_timeless this g qt th n :
-      Timeless (locked this g qt th n).
-    #[only(cfractional,cfracvalid,ascfractional)] derive R.
-    #[global] Declare Instance R_type_ptr g q P : Observe (type_ptrR cpp_ty) (R g q P).
-  End with_cpp.
-End StdRecursiveMutexPreds.
-
-Module std_recursive_mutex.
-  Include StdRecursiveMutex StdRecursiveMutexPreds.
-  Definition register_thread := @StdRecursiveMutexPreds.register_thread.
-End std_recursive_mutex.
+(** The standard-library implementation remains abstract; concrete recursive
+    mutex implementations supply their own [RECURSIVE_MUTEX_PREDS]. *)
+Declare Module RecursiveMutexPreds : RECURSIVE_MUTEX_PREDS StdRecursiveMutexName.
+Module std_recursive_mutex := StdRecursiveMutex RecursiveMutexPreds.
