@@ -41,35 +41,35 @@ Module Type MUTEX_SETS.
   #[global] Declare Instance my_mutexes_objective
       `{Σ : cpp_logic, !G Σ} γ th E : Objective (my_mutexes γ th E).
 
-  Parameter my_mutexes_exclusive : forall `{Σ : cpp_logic, !G Σ} γ th (E1 E2: coPset),
+  Axiom my_mutexes_exclusive : forall `{Σ : cpp_logic, !G Σ} γ th (E1 E2: coPset),
     ~(E1 ## E2) ->
     my_mutexes γ th (CoPset E1) **
     my_mutexes γ th (CoPset E2) |-- False.
-  Parameter alloc_mutex_set_map : forall `{Σ : cpp_logic, !G Σ},
+  Axiom alloc_mutex_set_map : forall `{Σ : cpp_logic, !G Σ},
     ⊢ |==> ∃ γ, mutex_set_map γ ∅.
-  Parameter mutex_sets_alloc_thread : forall `{Σ : cpp_logic, !G Σ} γ T th,
+  Axiom mutex_sets_alloc_thread : forall `{Σ : cpp_logic, !G Σ} γ T th,
     th ∉ T ->
     mutex_set_map γ T |--
       (|==> mutex_set_map γ (T ∪ {[th]}) **
               my_mutexes γ th (CoPset ⊤)).
-  Parameter mutex_sets_free_thread : forall `{Σ : cpp_logic, !G Σ} γ T th,
+  Axiom mutex_sets_free_thread : forall `{Σ : cpp_logic, !G Σ} γ T th,
     th ∈ T ->
     mutex_set_map γ T ** my_mutexes γ th (CoPset ⊤) |--
       mutex_set_map γ (T \ {[th]}).
-  Parameter mutex_set_map_empty_no_my_mutexes :
+  Axiom mutex_set_map_empty_no_my_mutexes :
     forall `{Σ : cpp_logic, !G Σ} γ th (N : namespace),
     mutex_set_map γ ∅ ** my_mutexes γ th (CoPset (↑N)) |-- False.
-  Parameter my_mutexes_alloc_mutex_name : forall `{Σ : cpp_logic, !G Σ}
+  Axiom my_mutexes_alloc_mutex_name : forall `{Σ : cpp_logic, !G Σ}
       γ th (E N : coPset),
     N ⊆ E ->
     my_mutexes γ th (CoPset E) |--
       my_mutexes γ th (CoPset (E \ N)) ** my_mutexes γ th (CoPset N).
-  Parameter my_mutexes_split : forall `{Σ : cpp_logic, !G Σ}
+  Axiom my_mutexes_split : forall `{Σ : cpp_logic, !G Σ}
       γ th (E1 E2 : coPset),
     E1 ## E2 ->
     my_mutexes γ th (CoPset (E1 ∪ E2)) ⊣⊢
       my_mutexes γ th (CoPset E1) ** my_mutexes γ th (CoPset E2).
-  Parameter my_mutexes_join_mutex_name : forall `{Σ : cpp_logic, !G Σ}
+  Axiom my_mutexes_join_mutex_name : forall `{Σ : cpp_logic, !G Σ}
       γ th (E N : coPset),
     N ⊆ E ->
     my_mutexes γ th (CoPset (E \ N)) ** my_mutexes γ th (CoPset N) |--
@@ -132,16 +132,16 @@ Module Type MUTEX_TOKENS.
   #[global] Declare Instance token_not_full_WeaklyObjective
       `{Σ : cpp_logic, !G Σ} γ : WeaklyObjective (token_not_full γ).
 
-  Parameter token_full_init : forall `{Σ : cpp_logic, !G Σ} γ,
+  Axiom token_full_init : forall `{Σ : cpp_logic, !G Σ} γ,
     given_token γ 1 |-- token_full γ.
-  Parameter acquire : forall `{Σ : cpp_logic, !G Σ} γ q,
+  Axiom acquire : forall `{Σ : cpp_logic, !G Σ} γ q,
     token_full γ ** token γ q |-- given_token γ q ** token_not_full γ.
-  Parameter release : forall `{Σ : cpp_logic, !G Σ} γ q,
+  Axiom release : forall `{Σ : cpp_logic, !G Σ} γ q,
     token_not_full γ ** given_token γ q |-- token γ q ** token_full γ.
-  Parameter token_not_full_full_token : forall `{Σ : cpp_logic, !G Σ} γ,
+  Axiom token_not_full_full_token : forall `{Σ : cpp_logic, !G Σ} γ,
     token_not_full γ ** token γ 1 |-- False.
 
-  Parameter alloc : forall `{Σ : cpp_logic, !G Σ},
+  Axiom alloc : forall `{Σ : cpp_logic, !G Σ},
     ⊢ |==> ∃ γ, token γ 1 ** given_token γ 1.
 End MUTEX_TOKENS.
 
@@ -173,9 +173,9 @@ Module Type OWNER_TID.
       `{Σ : cpp_logic, !G Σ} γ o1 o2 :
     Observe2 [| o1 = o2 |] (owner_tid_auth γ o1) (owner_tid_frag γ o2).
 
-  Parameter alloc : forall `{Σ : cpp_logic, !G Σ} o,
+  Axiom alloc : forall `{Σ : cpp_logic, !G Σ} o,
     ⊢ |==> ∃ γ, owner_tid_auth γ o ** owner_tid_frag γ o.
-  Parameter owner_update : forall `{Σ : cpp_logic, !G Σ} γ oa ofrag o',
+  Axiom owner_update : forall `{Σ : cpp_logic, !G Σ} γ oa ofrag o',
     owner_tid_auth γ oa ** owner_tid_frag γ ofrag |--
       (|==> owner_tid_auth γ o' ** owner_tid_frag γ o').
 End OWNER_TID.
