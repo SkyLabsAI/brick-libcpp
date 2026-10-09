@@ -14,6 +14,10 @@ Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
   Context `{!HasStdThreads Σ}.
 
+  (**
+      Automation to unify [starter_spec] obligations with spec assumptions.
+      TODO: revisit how we should specify higher-order functions.
+  *)
   Class ThreadFunction (nm : globname) (P : mpred)
       (argT : tele)
       (Pre : ptr -> argT -> mpred)
