@@ -14,6 +14,18 @@ Section with_cpp.
   #[local] Hint Opaque pieceHandle pieceRight SharedPtrR sptrInv
     payload_destructible : sl_opacity.
 
+  Lemma sptrInv_retired id Rpiece owned pieceOut :
+    countLN pieceOut allPieceIds = 0%N ->
+    sptrInv id Rpiece owned pieceOut -|-
+      ([∗ list] pieceid ∈ allPieceIds,
+        if pieceOut pieceid then pieceRight id pieceid
+        else pieceHandle id 1 pieceid).
+  Proof.
+    intro Hzero.
+    unfold sptrInv. rewrite Hzero bool_decide_true; [|reflexivity].
+    apply bi.sep_emp.
+  Qed.
+
   Lemma pieceHandle_full_conflict id q i :
     pieceHandle id q i ** pieceHandle id 1 i |-- False.
   Proof.

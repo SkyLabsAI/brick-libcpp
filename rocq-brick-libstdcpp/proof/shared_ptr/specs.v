@@ -93,8 +93,6 @@ Proof. rewrite maxContention.unlock. exact (N.le_refl _). Qed.
 Lemma maxContention_fits_int : (0 < Z.pos maxContention < 2^31)%Z.
 Proof. rewrite maxContention.unlock. split; reflexivity. Qed.
 
-Definition ctrOffset: offset. Proof. Admitted.
-
 Definition maxContentionQp := pos_to_Qp maxContention.
 Definition allPieceIds : list nat := (seq 0 (Pos.to_nat maxContention)).
 Definition allButFirstPieceId := (seq 1 (Pos.to_nat maxContention -1 )).
@@ -152,15 +150,32 @@ Section specs.
 
   Definition sptrInv (id: CtrlBlockId) (Rpiece : nat -> Rep) (ownedPtr:ptr) (pieceOut : nat ->bool) : mpred :=
     let ctrVal := countLN pieceOut allPieceIds in
-    (dataLoc id),, ctrOffset |-> atomic.R "long" 1 (Z.of_N ctrVal)
-         ** ([∗ list] pieceid ∈ allPieceIds,
+    ([∗ list] pieceid ∈ allPieceIds,
                if pieceOut pieceid then pieceRight id pieceid
                else pieceHandle id 1 pieceid)
          ** (if (bool_decide (ctrVal = 0))
               then emp
-              else ownedPtr |-> alloc.tokenR (payload_type id) 1%Qp
+              else (dataLoc id) .,
+                     (SP_counted_base .:: Nid "_M_use_count")
+                     |-> intR 1$m (Z.of_N ctrVal)
+                    ** ownedPtr |-> alloc.tokenR (payload_type id) 1%Qp
                     ** ([∗ list] pieceid ∈ allPieceIds,
                       if pieceOut pieceid then emp else ownedPtr |-> Rpiece pieceid)).
+
+  (** [_M_use_count] is a raw [int] accessed by atomic builtins, not a
+      [std::atomic<long>] subobject. The invariant protects its ownership.
+      At the last release all physical resources leave this invariant: the
+      releasing thread destroys the payload and frees the control block.
+      The zero-count state retains only ghost tokens. A live handle excludes
+      that state by [pieceHandle_live] in [handle_liveness.v]. This also
+      permits closing the invariant before running a reentrant destructor.
+
+      This remains a partial control-block model for the assumed library
+      specs, not a verified libstdc++ implementation. A complete body proof
+      must additionally own the control-block allocation, dynamic-class and
+      deleter fields, account for its implicit weak reference, and justify
+      the actual acquire/release operations. No external weak_ptr operations
+      are covered by this interface. *)
   
   (** The control-block model above remains abstract. [SharedPtrHandleR]
       describes the complete handle, not the object its [_M_pi] points to. *)
