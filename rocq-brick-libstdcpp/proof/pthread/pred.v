@@ -49,11 +49,6 @@ Module pthread.
     #[global] Instance R_learnable :
         Cbn (Learn (learn_eq ==> any ==> learn_eq ==> learn_hints.fin) R) := ltac:(solve_learnable).
 
-
-    Definition learn_eq_dep {T U V} : Learning V → Learning (forall x : T, U x → V) :=
-      fun '{|unLearning := k|} =>
-        {|unLearning := fun L R ls => forall a a' b b', k (L a b) (R a' b') ((existT a b = existT a' b') :: ls) |}.
-
     #[global] Instance handle_learnable_1 :
       Cbn (Learn (learn_eq ==> learn_eq ==> req_eq ==> learn_eq ==> learn_hints.fin)
              pthread.handle) := ltac:(solve_learnable).

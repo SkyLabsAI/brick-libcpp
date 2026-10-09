@@ -30,9 +30,6 @@ Section with_cpp.
     \proving _global nm |-> starter_specR argT Pre Post
     \let P0 := fun t => ptr → tele_arg t → mpred
     \let P1 := fun t => ptr → tele_arg t → thread_idT → mpred
-    (* \let P2 := fun t0 t1 => ptr -> tele_arg t0 → tele_arg t1 → mpred *)
-    (* \let x := existT (P := fun t => ptr → tele_arg t → ptr → mpred) argT  *)
-    (* \through [|  = existT argT' Pre' |] *)
     \through [| existT (P := P0) argT Pre = existT argT' Pre' |]
     \through [| existT (P := P1) argT Post = existT argT' Post' |]
     \end.
