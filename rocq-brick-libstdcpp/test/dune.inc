@@ -8,7 +8,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to test_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
 (subdir cctype
@@ -20,7 +20,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to test_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
 (subdir compare
@@ -32,7 +32,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to test_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
 (subdir cstdlib
@@ -44,7 +44,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to test_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
 (subdir cstring
@@ -56,7 +56,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to test_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
 (subdir g4g
@@ -68,7 +68,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to N12_area_cpp.v.stderr (run cpp2v -v %{input} -o N12_area_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to N12_area_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o N12_area_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N12_area.cpp))
 )
 (subdir g4g
@@ -80,7 +80,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to N1_hello_world_cpp.v.stderr (run cpp2v -v %{input} -o N1_hello_world_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to N1_hello_world_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o N1_hello_world_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N1_hello_world.cpp))
 )
 (subdir g4g
@@ -92,7 +92,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to N4_sum_cpp.v.stderr (run cpp2v -v %{input} -o N4_sum_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to N4_sum_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o N4_sum_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N4_sum.cpp))
 )
 (subdir g4g
@@ -104,7 +104,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to N4_sum_a_cpp.v.stderr (run cpp2v -v %{input} -o N4_sum_a_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to N4_sum_a_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o N4_sum_a_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N4_sum_a.cpp))
 )
 (subdir g4g
@@ -116,7 +116,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to N5_swap_cpp.v.stderr (run cpp2v -v %{input} -o N5_swap_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to N5_swap_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o N5_swap_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N5_swap.cpp))
 )
 (subdir g4g
@@ -128,7 +128,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to N5_swap_a_cpp.v.stderr (run cpp2v -v %{input} -o N5_swap_a_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to N5_swap_a_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o N5_swap_a_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N5_swap_a.cpp))
 )
 (subdir g4g
@@ -140,7 +140,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to N6_print_sizeof_cpp.v.stderr (run cpp2v -v %{input} -o N6_print_sizeof_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to N6_print_sizeof_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o N6_print_sizeof_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N6_print_sizeof.cpp))
 )
 (subdir g4g_trace
@@ -152,7 +152,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to N12_area_cpp.v.stderr (run cpp2v -v %{input} -o N12_area_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to N12_area_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o N12_area_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N12_area.cpp))
 )
 (subdir g4g_trace
@@ -164,7 +164,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to N1_hello_world_cpp.v.stderr (run cpp2v -v %{input} -o N1_hello_world_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to N1_hello_world_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o N1_hello_world_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N1_hello_world.cpp))
 )
 (subdir g4g_trace
@@ -176,7 +176,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to N4_sum_cpp.v.stderr (run cpp2v -v %{input} -o N4_sum_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to N4_sum_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o N4_sum_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N4_sum.cpp))
 )
 (subdir g4g_trace
@@ -188,7 +188,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to N4_sum_a_cpp.v.stderr (run cpp2v -v %{input} -o N4_sum_a_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to N4_sum_a_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o N4_sum_a_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N4_sum_a.cpp))
 )
 (subdir g4g_trace
@@ -200,7 +200,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to N5_swap_cpp.v.stderr (run cpp2v -v %{input} -o N5_swap_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to N5_swap_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o N5_swap_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N5_swap.cpp))
 )
 (subdir g4g_trace
@@ -212,7 +212,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to N5_swap_a_cpp.v.stderr (run cpp2v -v %{input} -o N5_swap_a_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to N5_swap_a_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o N5_swap_a_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N5_swap_a.cpp))
 )
 (subdir g4g_trace
@@ -224,7 +224,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to N6_print_sizeof_cpp.v.stderr (run cpp2v -v %{input} -o N6_print_sizeof_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to N6_print_sizeof_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o N6_print_sizeof_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N6_print_sizeof.cpp))
 )
 (subdir initializer_list
@@ -236,7 +236,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to test_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
 (subdir memory
@@ -248,7 +248,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to test_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
 (subdir mutex
@@ -260,7 +260,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to custom_mutex_hpp.v.stderr (run cpp2v -v %{input} -o custom_mutex_hpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to custom_mutex_hpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o custom_mutex_hpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps custom_mutex.hpp))
 )
 (subdir mutex
@@ -272,7 +272,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to custom_recursive_mutex_hpp.v.stderr (run cpp2v -v %{input} -o custom_recursive_mutex_hpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to custom_recursive_mutex_hpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o custom_recursive_mutex_hpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps custom_recursive_mutex.hpp))
 )
 (subdir mutex
@@ -284,7 +284,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to guard_recursive_cpp.v.stderr (run cpp2v -v %{input} -o guard_recursive_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to guard_recursive_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o guard_recursive_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps guard_recursive.cpp))
 )
 (subdir mutex
@@ -296,7 +296,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to test_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
 (subdir new
@@ -308,7 +308,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to demo_cpp.v.stderr (run cpp2v -v %{input} -o demo_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to demo_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o demo_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps demo.cpp))
 )
 (subdir shared_mutex
@@ -320,7 +320,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to test_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
 (subdir vector
@@ -332,6 +332,6 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to test_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
