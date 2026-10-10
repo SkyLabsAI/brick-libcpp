@@ -39,7 +39,7 @@ outRule() {
 	# if [ "$system" = 1 ]; then
 	# 	universe=" (universe)"
 	# fi
-	local cpp2v="cpp2v -v %{input} -o ${module} --no-elaborate"
+	local cpp2v="%{bin:cpp2v} -v %{input} -o ${module} --no-elaborate"
 
 	if [ "$gen_names" = 1 ]; then
 		local names="${name}_${ext}_names.v"
@@ -53,7 +53,10 @@ outRule() {
 		targ="$targ ${templates}"
 	fi
 
-	action="(run ${cpp2v} ${1+ $@} ${clang_options})"
+	# Normalize __FILE__ throughout the build tree, including sibling headers.
+	# Resolve Dune's relative workspace root at execution time so checkout paths
+	# do not enter the action key. After shift, "$@" forwards cpp2v's argv intact.
+	action='(run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} '"${cpp2v} ${1+ $@} ${clang_options}"')'
 
 	sed "s/^/${indent}/" <<-EOF
 		(rule

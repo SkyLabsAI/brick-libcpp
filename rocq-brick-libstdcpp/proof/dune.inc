@@ -8,7 +8,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_algorithms_cpp.v.stderr (run cpp2v -v %{input} -o inc_algorithms_cpp.v --no-elaborate --templates=inc_algorithms_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to inc_algorithms_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o inc_algorithms_cpp.v --no-elaborate --templates=inc_algorithms_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_algorithms.cpp))
 )
 (subdir array
@@ -20,7 +20,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_array_cpp.v.stderr (run cpp2v -v %{input} -o inc_array_cpp.v --no-elaborate --templates=inc_array_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to inc_array_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o inc_array_cpp.v --no-elaborate --templates=inc_array_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_array.cpp))
 )
 (subdir cassert
@@ -32,7 +32,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_cassert_cpp.v.stderr (run cpp2v -v %{input} -o inc_cassert_cpp.v --no-elaborate --templates=inc_cassert_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to inc_cassert_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o inc_cassert_cpp.v --no-elaborate --templates=inc_cassert_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_cassert.cpp))
 )
 (subdir cctype
@@ -44,7 +44,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_cctype_cpp.v.stderr (run cpp2v -v %{input} -o inc_cctype_cpp.v --no-elaborate --templates=inc_cctype_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to inc_cctype_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o inc_cctype_cpp.v --no-elaborate --templates=inc_cctype_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_cctype.cpp))
 )
 (subdir compare
@@ -56,7 +56,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_compare_cpp.v.stderr (run cpp2v -v %{input} -o inc_compare_cpp.v --no-elaborate --templates=inc_compare_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to inc_compare_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o inc_compare_cpp.v --no-elaborate --templates=inc_compare_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_compare.cpp))
 )
 (subdir cstdlib
@@ -68,7 +68,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_cstdlib_cpp.v.stderr (run cpp2v -v %{input} -o inc_cstdlib_cpp.v --no-elaborate --templates=inc_cstdlib_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to inc_cstdlib_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o inc_cstdlib_cpp.v --no-elaborate --templates=inc_cstdlib_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_cstdlib.cpp))
 )
 (subdir cstring
@@ -80,7 +80,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_cstring_cpp.v.stderr (run cpp2v -v %{input} -o inc_cstring_cpp.v --no-elaborate --templates=inc_cstring_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to inc_cstring_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o inc_cstring_cpp.v --no-elaborate --templates=inc_cstring_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_cstring.cpp))
 )
 (subdir initializer_list
@@ -92,7 +92,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_initializer_list_cpp.v.stderr (run cpp2v -v %{input} -o inc_initializer_list_cpp.v --no-elaborate --templates=inc_initializer_list_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to inc_initializer_list_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o inc_initializer_list_cpp.v --no-elaborate --templates=inc_initializer_list_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_initializer_list.cpp))
 )
 (subdir iostream
@@ -104,7 +104,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_iostream_cpp.v.stderr (run cpp2v -v %{input} -o inc_iostream_cpp.v --no-elaborate --templates=inc_iostream_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to inc_iostream_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o inc_iostream_cpp.v --no-elaborate --templates=inc_iostream_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_iostream.cpp))
 )
 (subdir iostream_trace
@@ -116,7 +116,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_iostream_cpp.v.stderr (run cpp2v -v %{input} -o inc_iostream_cpp.v --no-elaborate --templates=inc_iostream_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to inc_iostream_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o inc_iostream_cpp.v --no-elaborate --templates=inc_iostream_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_iostream.cpp))
 )
 (subdir memory
@@ -128,7 +128,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_hpp.v.stderr (run cpp2v -v %{input} -o inc_hpp.v --no-elaborate --templates=inc_hpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to inc_hpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o inc_hpp.v --no-elaborate --templates=inc_hpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc.hpp))
 )
 (subdir mutex
@@ -140,7 +140,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to demo_cpp.v.stderr (run cpp2v -v %{input} -o demo_cpp.v --no-elaborate --templates=demo_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to demo_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o demo_cpp.v --no-elaborate --templates=demo_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps demo.cpp))
 )
 (subdir mutex
@@ -152,7 +152,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_hpp.v.stderr (run cpp2v -v %{input} -o inc_hpp.v --no-elaborate --templates=inc_hpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to inc_hpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o inc_hpp.v --no-elaborate --templates=inc_hpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc.hpp))
 )
 (subdir new
@@ -164,7 +164,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_new_cpp.v.stderr (run cpp2v -v %{input} -o inc_new_cpp.v --no-elaborate --templates=inc_new_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to inc_new_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o inc_new_cpp.v --no-elaborate --templates=inc_new_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_new.cpp))
 )
 (subdir semaphore
@@ -176,7 +176,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_hpp.v.stderr (run cpp2v -v %{input} -o inc_hpp.v --no-elaborate --templates=inc_hpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to inc_hpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o inc_hpp.v --no-elaborate --templates=inc_hpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc.hpp))
 )
 (subdir semaphore
@@ -188,7 +188,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate --templates=test_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to test_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o test_cpp.v --no-elaborate --templates=test_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
 (subdir shared_mutex
@@ -200,7 +200,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_hpp.v.stderr (run cpp2v -v %{input} -o inc_hpp.v --no-elaborate --templates=inc_hpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to inc_hpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o inc_hpp.v --no-elaborate --templates=inc_hpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc.hpp))
 )
 (subdir string
@@ -212,7 +212,7 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_string_cpp.v.stderr (run cpp2v -v %{input} -o inc_string_cpp.v --no-elaborate --templates=inc_string_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to inc_string_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o inc_string_cpp.v --no-elaborate --templates=inc_string_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_string.cpp))
 )
 (subdir vector
@@ -224,6 +224,6 @@
    (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_vector_cpp.v.stderr (run cpp2v -v %{input} -o inc_vector_cpp.v --no-elaborate --templates=inc_vector_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+  	 (with-stderr-to inc_vector_cpp.v.stderr (run bash -c "map_prefix=$(cd \"$1\" && pwd -P) && shift && exec \"$@\" \"-fmacro-prefix-map=$map_prefix=.\"" -- %{workspace_root} %{bin:cpp2v} -v %{input} -o inc_vector_cpp.v --no-elaborate --templates=inc_vector_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_vector.cpp))
 )
