@@ -314,17 +314,17 @@ In summary, our contributions are:
 \subsection{Lock Specifications in Separation Logic}
 There are two common styles of CSL lock specification, which have been proved to be equivalent~\cite{}: invariant-based, and logically atomic (sometimes called TaDA-style~\cite{tada}). In the invariant style, a lock $\ell$ protects an invariant $P$ (represented as $\mathsf{is\_lock}(\ell, P)$), and acquire and release are specified as:
 \begin{mathpar}
-\{\mathsf{is\_lock}(\ell, P\}\ \texttt{lock}(\ell)\ \{\mathsf{is\_lock}(\ell, P) \ast P\} %adjust to match the style of our lock specs, as in the RocqPL submission
+\{\ell \mapsto \mathsf{lock}(P)\}\ \texttt{lock}(\ell)\ \{\ell \mapsto \mathsf{lock}(P) \ast P\} %adjust to match the style of our lock specs, as in the RocqPL submission
 
-\{\mathsf{is\_lock}(\ell, P\} \ast P\}\ \texttt{unlock}(\ell)\ \{\mathsf{is\_lock}(\ell, P)\}
+\{\ell \mapsto \mathsf{lock}(P) \ast P\}\ \texttt{unlock}(\ell)\ \{\ell \mapsto \mathsf{lock}(P)\}
 \end{mathpar}
 In the atomic style, a lock is simply in one of two states, represented by e.g. a boolean that is $\mathsf{true}$ when the lock is held. Then acquire and release can be specified as:
 \begin{mathpar}
-\fforall b.\ \langle \mathsf{lock\_state}(\ell, b)\rangle\ \texttt{lock}(\ell)\ \langle \neg b \ast \mathsf{lock\_state}(\ell, \mathsf{true})\rangle
+\fforall b.\ \langle \ell \mapsto b \rangle\ \texttt{lock}(\ell)\ \langle \neg b \ast \ell \mapsto \mathsf{true} \rangle
 
-\langle \mathsf{lock\_state}(\ell, \mathsf{true})\rangle\ \texttt{unlock}(\ell)\ \langle \mathsf{lock\_state}(\ell, \mathsf{false})\rangle
+\langle \ell \mapsto \mathsf{true} \rangle\ \texttt{unlock}(\ell)\ \langle \ell \mapsto \mathsf{false} \rangle
 \end{mathpar}
-While one thread is trying to acquire the lock, its state is unknown and may shift back and forth due to the behavior of other threads; at the lock's linearization point, we observe that the lock is not held ($\neg b$), and shift it to the held state ($\mathsf{true}$). By combining these specifications with a global invariant of the form $P \vee \mathsf{lock\_state}(\ell, \mathsf{true})$, we can derive the invariant-style specs: an acquiring thread trades its ownership of the lock $\mathsf{lock\_state}(\ell, \mathsf{true})$ for the invariant $P$, and then returns it before releasing the lock. (Less obviously, the TaDA-style specs can also be derived from invariant-style specs, using an invariant that is simply a ghost variable indicating the state $b$ of the lock; see \citet{} for more details.)
+While one thread is trying to acquire the lock, its state is unknown and may shift back and forth due to the behavior of other threads; at the lock's linearization point, we observe that the lock is not held ($\neg b$), and shift it to the held state ($\mathsf{true}$). By combining these specifications with a global invariant of the form $P \vee \ell \mapsto \mathsf{true}$, we can derive the invariant-style specs: an acquiring thread trades its ownership of the lock $\ell \mapsto \mathsf{true}$ for the invariant $P$, and then returns it before releasing the lock. (Less obviously, the TaDA-style specs can also be derived from invariant-style specs, using an invariant that is simply a ghost variable indicating the state $b$ of the lock; see \citet{} for more details.)
 
 These specifications capture the core idea of mutual exclusion: at most one thread holds the lock at any point in time, and so the protected resources can safely be accessed by that thread. They can also easily be shown to be satisfied by a simple implementation, such as a spinlock (show this? describe how one verifies it?). However, the locks used in systems programming languages are not generally implemented this way, instead building on operating system primitives (e.g., Linux's futex~\cite{}) and highly optimized libraries (e.g., Pthread~\cite{}). This leads to both additional restrictions---e.g., locks may only be released by the thread that acquired them, or can only be deallocated if not held---and additional features---e.g., locks may be recursive, so that the holder can re-acquire them any number of times and only exits the critical section after performing an equal number of releases. In this paper, we show how to extend the simple lock specs to account for the restrictions and features of the mutexes in C++'s standard library.
 
@@ -337,7 +337,7 @@ BRiCk~\cite{brick} is an Iris-based program logic for C++, inspired by Iris's He
 Unlike most Iris instances, it does not carry an adequacy proof that connects its rules to an operational semantics (indeed, there is no complete operational semantics for C++), but similarity to the rules of HeapLang and VST and the ability to test specifications by compiling and running the code give us confidence in its soundness. %rephrase %doesn't have opsem but does compile; logic evaluated with projects like TODO cite previous brick paper/projects
 
 One feature of BRiCk that is particularly relevant to our work is thread-specific predicates. In ordinary separation logic, all predicates can be transfered between threads: if thread $t_1$ owns $x \mapsto v$ and then synchronizes with $t_2$ via a lock or atomic operation, then afterwards $t_2$ may own $x \mapsto v$. This is problematic when the behavior of a function depends on the calling thread. BRiCk solves this using Iris's \emph{monotonic predicates}, previously used in weak-memory logics~\cite{igps} %and others
-. Every BRiCk predicate is implicitly indexed by a thread ID, and a predicate $\currentthread{t}$ asserts that the current thread's ID is $t$. Every predicate that does not include $\currentthread{t}$ is \emph{objective}, allowing it to be freely transferred between threads. This allows us to specify the fact that, e.g., a C++ \lstinline{mutex} can only be released by the thread that acquired it.
+. Every BRiCk predicate is implicitly indexed by a thread ID, and a predicate $\currentthread{t}$ asserts that the current thread's ID is $t$. All other primitive predicates, such as memory ownership, are \emph{objective} and can be freely transferred between threads. This allows us to specify the fact that, e.g., a C++ \lstinline{mutex} can only be released by the thread that acquired it.
 
 \input{specs.tex}
 
