@@ -20,7 +20,7 @@
 \newcommand{\usedthreads}[2]{\ensuremath{\allusers_{#1}(#2)}}
 \newcommand{\notlocked}[3]{\ensuremath{\mathsf{not\_locked}_{#1}(#2, #3)}}
 \newcommand{\locked}[3]{\ensuremath{\mathsf{m\_locked}_{#1}(#2, #3)}}
-\newcommand{\smlocked}[2]{\ensuremath{\mathsf{sm\_locked}_{#1}(#2)}}
+\newcommand{\smlocked}[3]{\ensuremath{\mathsf{sm\_locked}_{#1}(#2, #3)}}
 \newcommand{\rmlocked}[2]{\ensuremath{\mathsf{rm\_locked}_{#1}(#2)}}
 \newcommand{\mutex}[2]{\ensuremath{\mathsf{mutex}_{#1}(#2)}}
 \newcommand{\acquirable}[6]{\ensuremath{\mathsf{holds}_{#1}(#2, #3, #4, #5, #6)}}
@@ -302,8 +302,9 @@ void unlock_shared(){
 
 Following \citet{heaplang-rw-lock}, we take the resource $P$ protected by a shared mutex to be a fractional predicate;
 calling \lstinline{lock} yields full ownership of the resource $P(1)$,
-while calling \lstinline{lock_shared} yields $P(q)$ for an arbitrary fraction $q$, representing read-only access to $P$.
-Accordingly, in our specifications each user of a shared mutex has one of three predicates, $\notlocked{N}{t}$, $\smreaderlocked{N}{t}{q}$, or $\smlocked{N}{t}$, where $\mathsf{sm\_reader\_locked}$ records the fraction $q$ of ownership received by the reader.
+while calling \lstinline{lock_shared} yields $P(q)$ for an arbitrary fraction $q$, %is this fixed to the token fraction now?
+representing read-only access to $P$.
+Accordingly, in our specifications each user of a shared mutex has one of three predicates, $\notlocked{N}{t}{q}$, $\smreaderlocked{Nma}{t}{q}$, or $\smlocked{N}{t}{q}$, where $\mathsf{sm\_reader\_locked}$ records the fraction $q$ of ownership received by the reader.
 
 \[
 \begin{array}{@{}c@{}}
