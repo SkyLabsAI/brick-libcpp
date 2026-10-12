@@ -442,7 +442,6 @@ Section with_cpp.
     work.
     iModIntro; work.
     iExists pool, N. work.
-    rewrite /acquireable /=.
     (* The owner slot is unused while the initial count is zero. *)
     set th : thread_idT := inhabitant.
     iMod (own_alloc (●E (O, th, (1$m)%cQp) ⋅ ◯E (O, th, (1$m)%cQp))) as (g) "(? & ?)".
@@ -493,7 +492,7 @@ Section with_cpp.
     iExists q, qt, (cinv_own g.(cinv_gname) q **
       (∃ t, [| acquire n t |] ∗ ▷ acquireable this g qt th t P))%I.
     wname [bi_wand] "W"; wfocus (bi_wand _ _) "W". { work $usenamed=true. }
-    rewrite inv_rmutex.unlock /acquireable /not_locked /locked /given_token
+    rewrite inv_rmutex.unlock Spec.acquireable.unlock /not_locked /locked /given_token
       /token /pool_name /rmutex_inv_namespace.
     work; iAcIntro; rewrite /commit_acc/=; work.
     iInv rmutex_namespace as "[(%n' & %th' & %qt' & >Hn & Hcases) ?]" "Hclose".
@@ -514,12 +513,12 @@ Section with_cpp.
         first apply (excl_auth_update _ _ (1, th, qt)).
       wname [Preds.at_specs.locked _ qt th _] "Hlocked";
         iMod ("Hclose" with "[$Hg $Hlocked //]") as "_"; iModIntro.
-      iExists (Held 0 args). rewrite /acquireable /locked /given_token /=. work.
+      iExists (Held 0 args). rewrite /locked /given_token /=. work.
     - iMod (own_update_2 with "Hn [$]") as "(Hg & ?)";
         first apply (excl_auth_update _ _ (S (S n), th, qt)).
       wname [Preds.at_specs.locked _ qt th _] "Hlocked";
         iMod ("Hclose" with "[$Hg $Hlocked //]") as "_"; iModIntro.
-      iExists (Held (S n) args). rewrite /acquireable /locked /given_token /=. work.
+      iExists (Held (S n) args). rewrite /locked /given_token /=. work.
   Qed.
 
   Lemma at_spec_impl_na_spec_unlock this (xs : list val) (K : val -> mpred) :
@@ -535,7 +534,7 @@ Section with_cpp.
     iExists q, qt, (cinv_own g.(cinv_gname) q **
       acquireable this g qt th (release $ Held n args) P)%I.
     wname [bi_wand] "W"; wfocus (bi_wand _ _) "W". { work $usenamed=true. }
-    rewrite inv_rmutex.unlock /acquireable /not_locked /locked /given_token
+    rewrite inv_rmutex.unlock Spec.acquireable.unlock /not_locked /locked /given_token
       /token /pool_name /rmutex_inv_namespace.
     work; iAcIntro; rewrite /commit_acc/=; work.
     iInv rmutex_namespace as "[(%n' & %th' & %qt' & >Hn & Hcases) ?]" "Hclose".
@@ -546,7 +545,7 @@ Section with_cpp.
     iMod "Hclose'" as "_".
     iMod (own_update_2 with "Hn [$]") as "(Hg & Hcase)";
       first apply (excl_auth_update _ _ (n, th, qt)).
-    rewrite /acquireable /not_locked /locked /given_token /token
+    rewrite /not_locked /locked /given_token /token
       /pool_name /rmutex_inv_namespace release.unlock; destruct n.
     1: rewrite [in at_specs.locked _ _ _ 0]at_specs.locked.unlock /=.
     1: iDestruct select (MutexSets.my_mutexes _ _ _ ** at_specs.token _ _) as "[? ?]".
