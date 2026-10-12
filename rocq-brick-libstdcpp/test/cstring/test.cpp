@@ -267,6 +267,18 @@ void test_memmove_embedded_null() {
     assert(s[4] == 'c');
 }
 
+// Zero-length calls are fine as long as the pointers are valid (and thus
+// non-null), including past-the-end pointers. Contrast with null_ub.cpp.
+void test_mem_zero_length() {
+    unsigned char s[] = {'a', 'b', 'c', 'd'};
+    unsigned char t[] = {'w', 'x', 'y', 'z'};
+    assert(std::memchr(s + 1, 'a', 0) == nullptr);
+    assert(std::memcmp(s, t + 4, 0) == 0);
+    (void)std::memset(s + 4, 'x', (0));
+    (void)std::memcpy(t + 1, s + 2, 0);
+    (void)std::memmove(t, s + 3, 0);
+}
+
 void test_cstring_slice1() {
     test_strlen();
     test_strcmp();

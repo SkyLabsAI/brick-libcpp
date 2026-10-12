@@ -159,11 +159,17 @@ Context `{Σ : cpp_logic, source ⊧ σ}.
        (memchr (takeZ n bytes) c)] emp).
 *)
 
+(* All pointer arguments must be valid, hence non-null, even when the length is
+   0 ([cstring.syn] defers to C17 7.24.1p2; WG14 N3322 relaxes this only for
+   C2y). Empty slices do not imply this, so the [mem*] specs below require it
+   explicitly; the [str*] specs get it from [cstring.R]. *)
+
 (* sound, but weak in C++17*)
    cpp.spec "memchr(void*, int, unsigned long)" as memchr_mut_simple_spec with
     (\arg{s_p} "__s" (Vptr s_p)
      \arg{c} "__c" (Vint c)
      \arg{n} "__n" (Vint n)
+     \require s_p <> nullptr
      \prepost{q bytes} s_p |-> array_sliceR Tuchar 0 n (fun b : Z => ucharR q b) bytes
      \post[search_result Tuchar s_p (memchr bytes c)] emp).
 
@@ -171,6 +177,7 @@ Context `{Σ : cpp_logic, source ⊧ σ}.
     (\arg{s_p} "__s" (Vptr s_p)
      \arg{c} "__c" (Vint c)
      \arg{n} "__n" (Vint n)
+     \require s_p <> nullptr
      \prepost{q bytes} s_p |-> array_sliceR Tuchar 0 n (fun b : Z => ucharR q b) bytes
      \post[search_result Tuchar s_p (memchr bytes c)] emp).
 
@@ -178,6 +185,8 @@ Context `{Σ : cpp_logic, source ⊧ σ}.
     (\arg{s1_p} "__s1" (Vptr s1_p)
      \arg{s2_p} "__s2" (Vptr s2_p)
      \arg{z} "__n" (Vint z)
+     \require s1_p <> nullptr
+     \require s2_p <> nullptr
      \prepost{q1 bytes1} s1_p |-> array_sliceR Tuchar 0 z (fun b : Z => ucharR q1 b) bytes1
      \prepost{q2 bytes2} s2_p |-> array_sliceR Tuchar 0 z (fun b : Z => ucharR q2 b) bytes2
      \post{res}[Vint res] [| same_sign (memcmp bytes1 bytes2) res |] ).
@@ -186,6 +195,7 @@ Context `{Σ : cpp_logic, source ⊧ σ}.
     (\arg{s_p} "__s" (Vptr s_p)
      \arg{c} "__c" (Vint c)
      \arg{z} "__n" (Vint z)
+     \require s_p <> nullptr
      \pre{l} s_p |-> array_sliceR Tuchar 0 z (fun _ : unit => anyR Tuchar 1$m) l (*(replicateZ z tt)*)
      \post[Vptr s_p] s_p |-> array_sliceR Tuchar 0 z (fun b : Z => ucharR 1$m b) (memset c z)).
 
@@ -193,6 +203,8 @@ Context `{Σ : cpp_logic, source ⊧ σ}.
     (\arg{dest_p} "__dest" (Vptr dest_p)
      \arg{src_p} "__src" (Vptr src_p)
      \arg{z} "__n" (Vint z)
+     \require dest_p <> nullptr
+     \require src_p <> nullptr
      \prepost{q bytes} src_p |-> array_sliceR Tuchar 0 z (fun b : Z => ucharR q b) bytes
      \pre{l} dest_p |-> array_sliceR Tuchar 0 z (fun _ : unit => anyR Tuchar 1$m) l (*(replicateZ z tt)*)
      \post[Vptr dest_p] dest_p |-> array_sliceR Tuchar 0 z (fun b : Z => ucharR 1$m b) bytes).
@@ -202,6 +214,8 @@ Context `{Σ : cpp_logic, source ⊧ σ}.
     (\arg{dest_p} "__dest" (Vptr dest_p)
      \arg{src_p} "__src" (Vptr src_p)
      \arg{z} "__n" (Vint z)
+     \require dest_p <> nullptr
+     \require src_p <> nullptr
      \prepost{q bytes} src_p |-> array_sliceR Tuchar 0 z (fun b : Z => ucharR q b) bytes
      \pre{l} dest_p |-> array_sliceR Tuchar 0 z (fun _ : unit => anyR Tuchar 1$m) l (*(replicateZ z tt)*)
      \post[Vptr dest_p] dest_p |-> array_sliceR Tuchar 0 z (fun b : Z => ucharR 1$m b) bytes).
