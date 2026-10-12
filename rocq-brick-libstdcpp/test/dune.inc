@@ -329,6 +329,17 @@
    (with-stderr-to test_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
+(subdir mutex
+ (rule
+  (targets transfer_with_mutex_cpp.v.stderr transfer_with_mutex_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input transfer_with_mutex.cpp)
+   (glob_files_rec ../*.hpp))
+  (action
+   (with-stderr-to transfer_with_mutex_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o transfer_with_mutex_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps transfer_with_mutex.cpp))
+)
 (subdir new
  (rule
   (targets demo_cpp.v.stderr demo_cpp.v)
@@ -350,6 +361,17 @@
   (action
    (with-stderr-to test_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
+)
+(subdir shared_mutex
+ (rule
+  (targets custom_shared_mutex_hpp.v.stderr custom_shared_mutex_hpp.v)
+  (alias test_ast)
+  (deps
+   (:input custom_shared_mutex.hpp)
+   (glob_files_rec ../*.hpp))
+  (action
+   (with-stderr-to custom_shared_mutex_hpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o custom_shared_mutex_hpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps custom_shared_mutex.hpp))
 )
 (subdir shared_mutex
  (rule
