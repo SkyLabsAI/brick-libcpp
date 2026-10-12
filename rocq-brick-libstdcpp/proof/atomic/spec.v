@@ -268,7 +268,7 @@ Module atomic_specs (Import atomic : ATOMIC_PREDS).
 
     (** Apply operation [op] to the atomic cell pointed by [this],
     and return the old contents to continuation [K]. *)
-    #[local] Definition do_op (op : A -> A) (this : ptr) (K : A -> mpred) : mpred :=
+    Definition do_op (op : A -> A) (this : ptr) (K : A -> mpred) : mpred :=
       AC1 << ∀ m, this |-> bR 1$m m >> @ top, empty
           << this |-> bR 1$m (op m), COMM K m >>.
     #[global] Hint Opaque do_op : typeclass_instances sl_opacity.
