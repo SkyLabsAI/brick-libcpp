@@ -14,93 +14,6 @@ Import linearity.
 
 (**  Various ghost state constructions and laws for concurrency library specs and proofs. *)
 
-Module Type MUTEX_SETS.
-  Parameter cmraR : cmra.
-
-  Class G `{Σ : cpp_logic} := {
-    #[local] has_own :: HasOwn (iPropI _Σ) cmraR;
-    #[local] has_upd :: HasOwnUpd (iPropI _Σ) cmraR;
-    #[local] has_valid :: HasOwnValid (iPropI _Σ) cmraR;
-  }.
-  #[global] Arguments G {_ _} Σ : assert.
-
-  Parameter mutex_set_map : forall `{Σ : cpp_logic, !G Σ},
-    iprop.gname -> gset thread_idT -> mpred.
-  Parameter my_mutexes : forall `{Σ : cpp_logic, !G Σ},
-    iprop.gname -> thread_idT -> coPset.coPset_disj -> mpred.
-  
-  #[global] Declare Instance mutex_set_map_timeless
-      `{Σ : cpp_logic, !G Σ} γ M : Timeless (mutex_set_map γ M).
-  #[global] Declare Instance my_mutexes_timeless
-      `{Σ : cpp_logic, !G Σ} γ th E : Timeless (my_mutexes γ th E).
-
-  #[global] Declare Instance mutex_set_map_WeaklyObjective
-      `{Σ : cpp_logic, !G Σ} γ M : WeaklyObjective (mutex_set_map γ M).
-  #[global] Declare Instance my_mutexes_WeaklyObjective
-      `{Σ : cpp_logic, !G Σ} γ th E : WeaklyObjective (my_mutexes γ th E).
-  #[global] Declare Instance my_mutexes_objective
-      `{Σ : cpp_logic, !G Σ} γ th E : Objective (my_mutexes γ th E).
-
-  Axiom my_mutexes_exclusive : forall `{Σ : cpp_logic, !G Σ} γ th (E1 E2: coPset),
-    ~(E1 ## E2) ->
-    my_mutexes γ th (CoPset E1) **
-    my_mutexes γ th (CoPset E2) |-- False.
-  Axiom alloc_mutex_set_map : forall `{Σ : cpp_logic, !G Σ},
-    ⊢ |==> ∃ γ, mutex_set_map γ ∅.
-  Axiom mutex_sets_alloc_thread : forall `{Σ : cpp_logic, !G Σ} γ T th,
-    th ∉ T ->
-    mutex_set_map γ T |--
-      (|==> mutex_set_map γ (T ∪ {[th]}) **
-              my_mutexes γ th (CoPset ⊤)).
-  Axiom mutex_sets_free_thread : forall `{Σ : cpp_logic, !G Σ} γ T th,
-    th ∈ T ->
-    mutex_set_map γ T ** my_mutexes γ th (CoPset ⊤) |--
-      mutex_set_map γ (T \ {[th]}).
-  Axiom mutex_set_map_empty_no_my_mutexes :
-    forall `{Σ : cpp_logic, !G Σ} γ th (N : namespace),
-    mutex_set_map γ ∅ ** my_mutexes γ th (CoPset (↑N)) |-- False.
-  Axiom my_mutexes_alloc_mutex_name : forall `{Σ : cpp_logic, !G Σ}
-      γ th (E N : coPset),
-    N ⊆ E ->
-    my_mutexes γ th (CoPset E) |--
-      my_mutexes γ th (CoPset (E \ N)) ** my_mutexes γ th (CoPset N).
-  Axiom my_mutexes_split : forall `{Σ : cpp_logic, !G Σ}
-      γ th (E1 E2 : coPset),
-    E1 ## E2 ->
-    my_mutexes γ th (CoPset (E1 ∪ E2)) ⊣⊢
-      my_mutexes γ th (CoPset E1) ** my_mutexes γ th (CoPset E2).
-  Axiom my_mutexes_join_mutex_name : forall `{Σ : cpp_logic, !G Σ}
-      γ th (E N : coPset),
-    N ⊆ E ->
-    my_mutexes γ th (CoPset (E \ N)) ** my_mutexes γ th (CoPset N) |--
-      my_mutexes γ th (CoPset E).
-
-  (* an example that two threads can allocate the same namespace token. *)
-  Lemma my_mutexes_alloc_eg : forall `{Σ : cpp_logic, !G Σ}
-      (th1 th2 : thread_idT) (N : coPset),
-    th1 ≠ th2 ->
-    ⊢ |==> ∃ γ,
-      my_mutexes γ th1 (CoPset N) **
-      my_mutexes γ th2 (CoPset N) **
-      (mutex_set_map γ {[th1; th2]} **
-       my_mutexes γ th1 (CoPset (⊤ \ N)) **
-       my_mutexes γ th2 (CoPset (⊤ \ N))).
-  Proof.
-    intros until N. intros Hneq.
-    iMod alloc_mutex_set_map as (γ) "Hmap".
-    iMod (mutex_sets_alloc_thread γ ∅ th1 ltac:(set_solver)
-      with "Hmap") as "[Hmap Ht1]".
-    iEval (rewrite left_id_L) in "Hmap".
-    iMod (mutex_sets_alloc_thread γ {[th1]} th2 ltac:(set_solver)
-      with "Hmap") as "[Hmap Ht2]".
-    iDestruct (my_mutexes_alloc_mutex_name γ th1 ⊤ N ltac:(set_solver)
-      with "Ht1") as "[Hr1 Hn1]".
-    iDestruct (my_mutexes_alloc_mutex_name γ th2 ⊤ N ltac:(set_solver)
-      with "Ht2") as "[Hr2 Hn2]".
-    iModIntro. iExists γ. iFrame.
-  Qed.
-End MUTEX_SETS.
-
 Module Type MUTEX_TOKENS.
   Parameter cmraR : cmra.
 
@@ -180,9 +93,7 @@ Module Type OWNER_TID.
       (|==> owner_tid_auth γ o' ** owner_tid_frag γ o').
 End OWNER_TID.
 
-(* Proofs that the ghost state modules are inhabited. *)
-
-Module MutexSets : MUTEX_SETS.
+Module MutexSets.
   Canonical Structure cmraR : cmra :=
     thread_idT -d> coPset_disjR.
 
