@@ -559,7 +559,7 @@ int main() {
   Account from{4};
   Account to{2};
   (*@ $\{ \currentthread{t_0} \ast \mutexperm{t_0}{\top} \ast a \mapsto \mathsf{account}_A \ast b \mapsto \mathsf{account}_B \} \Rightarrow$ @*)
-  (*@ $\{ \currentthread{t_0} \ast \mutexperm{t_0}{\top \setminus A \setminus B} \ast \mutexperm{t_0}{A} \ast \mutexperm{t_0}{B} \ast a \mapsto \mathsf{account}_A \ast b \mapsto \mathsf{account}_B \} \Rightarrow$ @*)
+  (*@ $\{ \currentthread{t_0} \ast \mutexperm{t_0}{\top \setminus A \setminus B} \ast \mutexperm{t_0}{A} \ast \mutexperm{t_0}{B} \ast a \mapsto \mathsf{account}_A \ast b \mapsto \mathsf{account}_B \}$ @*)
   from.transfer_to(to, 3);
 }
 \end{lstlisting}
@@ -570,16 +570,15 @@ int main() {
 Objects that make more complex use of locks may have to expose locked states (and thus thread-specific predicates) their clients, but at least in the case of objects that make balanced use of locks and always return to the client in an unlocked state, the thread-specific predicates can be handled internally and do not affect the representation predicate: instead, each thread separately manages its set of namespaces, and any thread that is not using the object's namespace for something else may call its methods. In this instance, the predicate $a \mapsto_q \mathsf{account}_A$ could be transferred to any other thread, and that thread could call $a$'s methods as long as it is not currently holding a mutex with the namespace $A$. Because namespaces are chosen arbitrarily during verification, we can always choose different names for different objects, so that in practice any thread can use $a$. %make this more precise
 
 \section{BRiCk Formalization}
-note that BRiCk itself is an axiomatic semantics
+Our specifications and examples are implemented in BRiCk, an Iris-based separation logic for C++. In this section we discuss some features of the implementation.
+
+Although we use BRiCk to apply our specifications to C++ code, we expect that our formalisms can be reproduced in any Iris-based concurrent separation logic, whether theoretical (e.g., HeapLang) or realistic (e.g., RustBelt). The only nonstandard logical requirement is thread-specific predicates, but as discussed in Section~\ref{brick}, these can be implemented with a monotonic-predicate layer over an existing logic. Object-oriented languages are the most direct application, particularly for recursive mutexes, but non-OO languages such as C also have standard-library mutex implementations with the same thread restrictions (so our work could be usefully adapted to VST~\cite{vst}, for instance).
 
 \section{Conclusion and Future Work}
-...
+While locks are widely used in concurrent separation logic, in many concurrent programming languages the standard CSL lock specs only accurately describe the behavior of inefficient implementations (e.g., spinlocks). More idiomatic and efficient mutex implementations such as Pthread make use of OS primitives that record and place restrictions on the threads accessing the mutex. We have demonstrated that these restrictions can be captured in separation logic specifications, through the combination of a fractional token and a system of per-thread mutex tracking, and that these features can be implemented with standard Iris ghost state plus a simple thread-specific predicate. This lets us give accurate specifications for basic, recursive, and shared mutexes from the C++ standard library, as well as the RAII classes that wrap these mutexes. Our specifications require additional mutex-tracking reasoning that is not needed when using naive lock specifications, but this reasoning is relatively simple to discharge and can be encapsulated, so that the client of an object with an internal mutex needs only reserve the object's namespace and does not need to directly reason about mutexes or thread-specific predicates.
 
-%the client problem: all preconditions need not_locked, can't be transferred between threads, so if we include it in an abstract predicate that predicate can't be transferred either (even if it uses locks in a way that would never allow double acquire)
-
-condition variables, futures, shared pointers, ...
-
-verified Pthread?
+C++'s thread support library includes many other concurrency primitives, such as condition variables (which allow more efficient mutex management), futures (which encapsulate asynchronous computations), and, as of the recent C++26 revision, RCU wrappers (for efficient concurrent memory reclamation). We are interested in extending our work to faithful specifications of these more sophisticated concurrency primitives. We are also interested in proving that our specifications are met by real standard-library mutex implementations (e.g., the Pthread mutex), which will require formalizing the interface provided by OS primitives such as \lstinline{futex}. %more
+Ultimately, through careful attention to the informal specifications and existing implementations of standard libraries, we aim to bring the theory of concurrent separation logic to bear on concurrent programs as they are actually written.
 
 \section{Data-Availability Statement}
 
