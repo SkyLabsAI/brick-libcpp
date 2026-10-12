@@ -22,9 +22,9 @@ Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
 
   Parameter ostreamT : Type.
-  Parameter ostreamR : cQp.t -> ostreamT -> Rep.
+  Parameter ostreamR : forall {σ : genv}, cQp.t -> ostreamT -> Rep.
+  #[only(type_ptr="std::basic_ostream<char, std::char_traits<char>>")] derive ostreamR.
   Parameter ostream_contentR : cQp.t -> cstring.t -> Rep.
-  (* TODO: type_ptr *)
   #[only(cfracsplittable)] derive ostreamR.
   #[only(cfracsplittable)] derive ostream_contentR.
 
