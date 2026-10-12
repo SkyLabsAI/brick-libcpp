@@ -147,39 +147,42 @@ End RECURSIVE_MUTEX_PREDS.
 Module recursive_mutex_spec (T : MutexCPPName)
     (Preds : RECURSIVE_MUTEX_PREDS T).
   Import Preds RecursiveMutexState.
+
+  (** Ownership of a thread's acquisition state. Operations separately require
+      [current_thread th] to establish that the caller is that thread. *)
+  sl.lock
+  Definition acquireable `{Σ : cpp_logic, !G Σ} {σ : genv}
+      (this : ptr) (g : gname) (qt : cQp.t)
+      (th : thread_idT) {TT : tele} (s : acquire_state TT)
+      (P : TT -t> mpred) : mpred :=
+    match s with
+    | NotHeld => not_locked this g qt th
+    | Held n xs => locked this g qt th n ** @tele_app TT (fun _ => mpred) P xs
+    end.
+  #[global] Hint Opaque acquireable : sl_opacity typeclass_instances.
+
   Section with_cpp.
     Context `{Σ : cpp_logic, !G Σ}.
     Context {HAS_THREADS : HasStdThreads Σ} {σ : genv}.
 
-    Definition acquireable (this : ptr) (g : gname) (qt : cQp.t)
-        (th : thread_idT) {TT : tele} (s : acquire_state TT)
-        (P : TT -t> mpred) : mpred :=
-      current_thread th **
-      match s with
-      | NotHeld => not_locked this g qt th
-      | Held n xs => locked this g qt th n ** @tele_app TT (fun _ => mpred) P xs
-      end.
-    #[global] Hint Opaque acquireable : sl_opacity typeclass_instances.
-
-    #[global] Instance acquireable_current_thread this g qt th TT s P :
-      Observe (current_thread th) (acquireable this g qt th (TT := TT) s P).
-    Proof. rewrite /acquireable. apply _. Qed.
-
     Definition lock_spec : ptr -> WpSpec mpred val val :=
       (\this this
        \prepost{g TT P q} this |-> R g q (∃ xs, @tele_app TT (fun _ => mpred) P xs)
-       \pre{qt th n} acquireable this g qt th n P
+       \persist{th} current_thread th
+       \pre{qt n} acquireable this g qt th n P
        \post Exists n', [| acquire n n' |] ** ▷ acquireable this g qt th n' P).
 
     Definition unlock_spec : ptr -> WpSpec mpred val val :=
       (\this this
        \prepost{g TT P q} this |-> R g q (∃ xs, @tele_app TT (fun _ => mpred) P xs)
-       \pre{qt th n args} acquireable this g qt th (Held n args) P
+       \persist{th} current_thread th
+       \pre{qt n args} acquireable this g qt th (Held n args) P
        \post acquireable this g qt th (release $ Held n args) P).
 
     Definition do_lock (this : ptr) (lk : gname * mpred) (K : mpred) : mpred :=
       ∃ TT P qt th n,
         [| lk.2 = (∃ xs, @tele_app TT (fun _ => mpred) P xs)%I |] **
+        current_thread th **
         acquireable this lk.1 qt th n P **
         ((* TODO readd *)
          (* ▷ *)
@@ -189,6 +192,7 @@ Module recursive_mutex_spec (T : MutexCPPName)
     Definition do_unlock (this : ptr) (lk : gname * mpred) (K : mpred) : mpred :=
       ∃ TT P qt th n args,
         [| lk.2 = (∃ xs, @tele_app TT (fun _ => mpred) P xs)%I |] **
+        current_thread th **
         acquireable this lk.1 qt th (Held n args) P **
         ((* TODO readd *)
         (* ▷ *)
@@ -210,18 +214,18 @@ Module recursive_mutex_spec (T : MutexCPPName)
     Proof.
       unfold lock_spec, lock_spec_alt, lock_basic_lockable, do_lock.
       cbn. iSplit.
-      - iIntros "H". iDestruct "H" as (g TT P q qt th n)
-          "(%Hxs & HR & HA & HK)".
+      - iIntros "H". iDestruct "H" as (g TT P q th qt n)
+          "(%Hxs & HR & #Hth & HA & HK)".
         iExists q, (g, (∃ xs : tele_arg TT, @tele_app TT (fun _ => mpred) P xs)%I),
           (Exists n', [| acquire n n' |] ** ▷ acquireable this g qt th n' P)%I.
         iFrame "HR HK". iSplit; first done.
-        iExists TT, P, qt, th, n. iFrame "HA".
+        iExists TT, P, qt, th, n. iFrame "Hth HA".
         iSplit; first done. iIntros "$".
       - iIntros "H". iDestruct "H" as (q [g J] K')
           "(%Hxs & HR & Hdo & HK)".
-        iDestruct "Hdo" as (TT P qt th n) "(%Heq & HA & Hcont)".
+        iDestruct "Hdo" as (TT P qt th n) "(%Heq & #Hth & HA & Hcont)".
         simpl in *. subst J.
-        iExists g, TT, P, q, qt, th, n. iFrame "HR HA".
+        iExists g, TT, P, q, th, qt, n. iFrame "HR Hth HA".
         iSplit; first done. iIntros "[HR Hac]".
         iApply "HK". iFrame "HR". iApply "Hcont". iExact "Hac".
     Qed.
@@ -231,18 +235,18 @@ Module recursive_mutex_spec (T : MutexCPPName)
     Proof.
       unfold unlock_spec, unlock_spec_alt, unlock_basic_lockable, do_unlock.
       cbn. iSplit.
-      - iIntros "H". iDestruct "H" as (g TT P q qt th n args)
-          "(%Hxs & HR & HA & HK)".
+      - iIntros "H". iDestruct "H" as (g TT P q th qt n args)
+          "(%Hxs & HR & #Hth & HA & HK)".
         iExists q, (g, (∃ xs : tele_arg TT, @tele_app TT (fun _ => mpred) P xs)%I),
           (acquireable this g qt th (release $ Held n args) P).
         iFrame "HR HK". iSplit; first done.
-        iExists TT, P, qt, th, n, args. iFrame "HA".
+        iExists TT, P, qt, th, n, args. iFrame "Hth HA".
         iSplit; first done. iIntros "$".
       - iIntros "H". iDestruct "H" as (q [g J] K')
           "(%Hxs & HR & Hdo & HK)".
-        iDestruct "Hdo" as (TT P qt th n args) "(%Heq & HA & Hcont)".
+        iDestruct "Hdo" as (TT P qt th n args) "(%Heq & #Hth & HA & Hcont)".
         simpl in *. subst J.
-        iExists g, TT, P, q, qt, th, n, args. iFrame "HR HA".
+        iExists g, TT, P, q, th, qt, n, args. iFrame "HR Hth HA".
         iSplit; first done. iIntros "[HR Hac]".
         iApply "HK". iFrame "HR". iApply "Hcont". iExact "Hac".
     Qed.
@@ -328,9 +332,6 @@ Module recursive_mutex_spec (T : MutexCPPName)
         [qt' = qt; n' = n] }.
       Proof. solve_learnable. Qed.
 
-      Definition acquireable_current_thread_F :=
-        ltac:(mk_obs_fwd acquireable_current_thread).
-
       #[program]
       Definition acquireable_is_acquired_C {TT} this g qt th t t' P
           (_ : acquire (TT := TT) t t') :=
@@ -342,7 +343,7 @@ Module recursive_mutex_spec (T : MutexCPPName)
         \end.
       Next Obligation.
         intros * (? & ? & -> & ->)%is_held.
-        rewrite /acquireable /=. ego.
+        rewrite acquireable.unlock /=. ego.
       Qed.
 
       #[program]
@@ -358,27 +359,26 @@ Module recursive_mutex_spec (T : MutexCPPName)
         \deduce @tele_app TT (fun _ => mpred) P args
         \through @tele_app TT (fun _ => mpred) P' args
         \end.
-      Next Obligation. intros. rewrite /acquireable /=; work. Qed.
+      Next Obligation. intros. rewrite acquireable.unlock /=; work. Qed.
 
       #[program]
       Definition own_P_is_acquireable_C {TT} this g qt n P :=
         \cancelx
-        \preserving{th} current_thread th
-        \consuming locked this g qt th n
+        \consuming{th} locked this g qt th n
         \bound n' args
         \proving acquireable this (TT := TT) g qt th (Held n' args) P
         \through @tele_app TT (fun _ => mpred) P args
         \through [| n' = n |]
         \end.
       Next Obligation.
-        intros. iIntros "[#Hth Htoken]" (n' args) "[HP %Heq]".
-        subst n'. rewrite /acquireable /=. iFrame "#∗".
+        intros. iIntros "Htoken" (n' args) "[HP %Heq]".
+        subst n'. rewrite acquireable.unlock /=. iFrame "#∗".
       Qed.
     End proof_automation.
   End with_cpp.
 
   #[global] Hint Resolve acquireable_acquireable_C acquireable_is_acquired_C
-    own_P_is_acquireable_C acquireable_current_thread_F : br_hints.
+    own_P_is_acquireable_C : br_hints.
 End recursive_mutex_spec.
 
 Module StdRecursiveMutexName.

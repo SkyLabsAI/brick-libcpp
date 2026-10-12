@@ -564,7 +564,7 @@ Module custom_recursive_mutex.
     Lemma lock_proof : verify[source] lock_spec.
     Proof using MOD.
       verify_spec.
-      rewrite /acquireable. destruct n as [|n xs].
+      rewrite Spec.acquireable.unlock. destruct n as [|n xs].
       (* First acquisition: exclude our own ID, then acquire the inner mutex. *)
       - ego.
         (* Publishing ownership transfers the inner held capability into the
@@ -576,14 +576,14 @@ Module custom_recursive_mutex.
         iDestruct (store_owner_action with "[$HR $Hfrag $Hinner]") as "Hstore".
         iSplitL "Hstore"; first iExact "Hstore". ego.
         rewrite /countR. ego.
-        rewrite /acquireable /locked /countR. ego.
+        rewrite Spec.acquireable.unlock /locked /countR. ego.
         wname [P] "HP". iExact "HP".
       (* Recursive acquisition: the owner fragment identifies this thread. *)
       - rewrite /locked /countR. ego.
         destruct (decide (Z.of_nat (S n) = 18446744073709551615)%Z) as [Hmax|Hmax]; go.
         (* At the counter limit, the loop has no returning execution. *)
         + rewrite Hmax. go. wp_for (fun _ => emp); go.
-        + ego. rewrite /acquireable /locked /countR.
+        + ego. rewrite Spec.acquireable.unlock /locked /countR.
           have Hcount : (Z.of_nat (S n) + 1)%Z = Z.of_nat (S (S n)) by lia.
           rewrite Hcount. iFrame "#∗".
     Qed.
@@ -591,7 +591,7 @@ Module custom_recursive_mutex.
     Lemma unlock_proof : verify[source] unlock_spec.
     Proof using MOD.
       verify_spec.
-      rewrite /acquireable /locked /countR.
+      rewrite Spec.acquireable.unlock /locked /countR.
       go.
       destruct n as [|n].
       (* Final release: clear the owner to recover the inner held capability;
@@ -605,9 +605,9 @@ Module custom_recursive_mutex.
         iSplitL "P Count OF".
         { iNext. rewrite /protected /countR /owner_frag.
           iFrame "Count OF". iExists args. iExact "P". }
-        ego. rewrite /acquireable release.unlock. iFrame "#∗".
+        ego. rewrite Spec.acquireable.unlock release.unlock. iFrame "#∗".
       (* Nested release: decrement the count and keep the resource. *)
-      - ego. rewrite /acquireable release.unlock /locked /countR.
+      - ego. rewrite Spec.acquireable.unlock release.unlock /locked /countR.
         have Hcount : (Z.of_nat (S (S n)) - 1)%Z = Z.of_nat (S n) by lia.
         rewrite Hcount. iFrame "#∗".
     Qed.
