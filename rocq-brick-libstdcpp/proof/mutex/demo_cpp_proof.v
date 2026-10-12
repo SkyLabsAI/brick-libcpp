@@ -74,14 +74,16 @@ Section with_cpp.
     (\this this
      \arg{x} "x" (Vint x)
      \prepost{γ q} this |-> CR γ q
-     \pre{args qt th} std_recursive_mutex.acquireable (this ,, _field "C::mut") γ qt th args (TT:=TT) (P this)
+     \persist{th} current_thread th
+     \pre{args qt} std_recursive_mutex.acquireable (this ,, _field "C::mut") γ qt th args (TT:=TT) (P this)
      \post std_recursive_mutex.acquireable (this ,, _field "C::mut") γ qt th (TT:=TT) (std_recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (trim 64 (a+x)) b) args) (P this)).
 
   cpp.spec "C::update_b(long)" as C_update_b from demo_cpp.source with
     (\this this
      \arg{x} "x" (Vint x)
      \prepost{γ q} this |-> CR γ q
-     \pre{args qt th} std_recursive_mutex.acquireable (this ,, _field "C::mut") γ qt th args (TT:=TT) (P this)
+     \persist{th} current_thread th
+     \pre{args qt} std_recursive_mutex.acquireable (this ,, _field "C::mut") γ qt th args (TT:=TT) (P this)
      \post std_recursive_mutex.acquireable (this ,, _field "C::mut") γ qt th (TT:=TT) (std_recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk a (trim 64 (b + x))) args) (P this)).
 
   #[global] Instance CR_learn : Cbn (Learn (learn_eq ==> any ==> learn_hints.fin) CR).
@@ -141,7 +143,8 @@ Section with_cpp.
     (\this this
       \arg{x} "x" (Vint x)
       \prepost{γ q} this |-> CR γ q
-      \pre{args qt th} std_recursive_mutex.acquireable (this ,, _field "C::mut") γ qt th args (TT:=TT) (P this)
+      \persist{th} current_thread th
+      \pre{args qt} std_recursive_mutex.acquireable (this ,, _field "C::mut") γ qt th args (TT:=TT) (P this)
       \post std_recursive_mutex.acquireable (this ,, _field "C::mut") γ qt th (TT:=TT) (std_recursive_mutex.update (TT:=TT) (fun (a b : Z) => mk (trim 64 (a+x)) (trim 64 (b-x))) args) (P this)).
 
   Lemma transfer_ok : verify[source] "C::transfer(int)".
