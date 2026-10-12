@@ -129,7 +129,7 @@ Module CustomMutexPreds <: MUTEX_PREDS.
       iApply MutexTokens.token_full_init. iExact "GT".
     Qed.
 
-    Lemma state_lock {σ : genv} this γ th q :
+    Lemma state_lock {σ : genv} this (γ : gname) th (q : cQp.t) :
       state γ false ** not_locked this γ th q |--
         (|==> state γ true ** owner_token γ th q).
     Proof.
@@ -145,7 +145,7 @@ Module CustomMutexPreds <: MUTEX_PREDS.
       iModIntro. iFrame "GT OF Held". iExists th. iFrame.
     Qed.
 
-    Lemma state_unlock {σ : genv} this γ th q :
+    Lemma state_unlock {σ : genv} this (γ : gname) th (q : cQp.t) :
       state γ true ** owner_token γ th q |--
         (|==> state γ false ** not_locked this γ th q).
     Proof.
@@ -381,7 +381,7 @@ Module custom_mutex.
       \prepost{g q P} this |-> IR g q P
       \persist{thr} current_thread thr
       \prepost{qg} globals qg
-      \pre{qt} this ,, _field "MyMutex::m_owner" |-> thread_id_specs.thread_idR 1$m thread_id_specs.default_thread_id **
+      \pre{(qt : cQp.t)} this ,, _field "MyMutex::m_owner" |-> thread_id_specs.thread_idR 1$m thread_id_specs.default_thread_id **
         owner_token g thr qt
       \pre ▷P
       \post not_locked this g thr qt).
@@ -496,7 +496,7 @@ Module custom_mutex.
       \consuming{g q P} p |-> IR g q P
       \consuming P
       \consuming p ,, _field "MyMutex::m_owner" |-> thread_id_specs.thread_idR 1$m thread_id_specs.default_thread_id
-      \consuming{qt} owner_token g thr qt
+      \consuming{(qt : cQp.t)} owner_token g thr qt
       \proving{K (_ : IsExistential K)}
         std.atomic.do_store "int" (BASE (p ,, o_field σ "MyMutex::m_lock")) 0%Z K
       \instantiate K := (p |-> IR g q P ** not_locked p g thr qt)
