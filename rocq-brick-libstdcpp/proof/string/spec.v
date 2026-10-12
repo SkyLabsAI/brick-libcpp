@@ -34,11 +34,15 @@ Section with_cpp.
     \post[Vptr this]
       this |-> basic_stringR "char" 1$m (BS.String (N_to_byte c) BS.EmptyString)).
 
+  (* Self-assignment needs only the destination resource. For a distinct
+     source, preserve its contents and any fraction of its ownership. *)
   cpp.spec "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>::operator=(const std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&)" from source as string_op_eq_string_spec with (
     \this this
     \arg{other} "" (Vref other)
     \pre{s} this |-> basic_stringR "char" 1$m s
-    \prepost{otherS} other |-> basic_stringR "char" 1$m otherS
+    \prepost{q otherS}
+      if bool_decide (this = other) then [| otherS = s |]
+      else other |-> basic_stringR "char" q otherS
     \post[Vptr this]
       this |-> basic_stringR "char" 1$m otherS).
 
