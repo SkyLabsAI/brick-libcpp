@@ -435,23 +435,14 @@ Section with_cpp.
 
   (** * [mem*] clients *)
 
-  Lemma arrayR_ucharR_anyR (p : ptr) q (xs : list Z) :
-    p |-> arrayR Tuchar (λ b : Z, ucharR q b) xs ⊢
-    p |-> arrayR Tuchar (λ _ : unit, anyR Tuchar q) (replicateN (lengthN xs) ()).
-  Proof.
-    rewrite (arrayR_anyR_f Vint); last done.
-    by rewrite length_lengthN repeatN_replicateN.
-  Qed.
-
+  (** Stated on a plain [xs] so that [go] can use auto's [arrayR_entails_C];
+      at the use sites below, [xs] is a [takeZ]/[dropZ] term and that hint's
+      side condition [lengthZ xs = lengthZ ys] does not normalize to anything
+      [go] can solve. *)
   Lemma array_sliceR_ucharR_anyR (p : ptr) m n q (xs : list Z) :
     p |-> array_sliceR Tuchar m n (λ b : Z, ucharR q b) xs ⊢
     p |-> array_sliceR Tuchar m n (λ _ : unit, anyR Tuchar q) (replicateZ (n - m) ()).
-  Proof.
-    rewrite array_sliceR.unlock !(_at_sep, _at_only_provable, _at_offsetR).
-    iIntros "[%Hlen A]". rewrite arrayR_ucharR_anyR.
-    rewrite /replicateZ -Hlen N2Z.id. iFrame. iPureIntro.
-    by rewrite lengthN_replicateN.
-  Qed.
+  Proof. go. Qed.
 
   (** The destination of [memset]/[memcpy]/[memmove] is a sub-slice of an
       initialized buffer, given up as [anyR]. *)
