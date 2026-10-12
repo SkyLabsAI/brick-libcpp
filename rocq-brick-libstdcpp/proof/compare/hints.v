@@ -20,39 +20,6 @@ Import linearity.
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
 
-  (* TODO upstream? *)
-  Section fixed_var_hint.
-    Context (tu : translation_unit) (ρ : region).
-
-    Abbreviation interp := (interp tu).
-    Abbreviation wp_prval := (wp_prval tu ρ).
-    Abbreviation wp_operand := (wp_operand tu ρ).
-    Abbreviation wp_lval := (wp_lval tu ρ).
-    Abbreviation wp_xval := (wp_xval tu ρ).
-    Abbreviation wp_glval := (wp_glval tu ρ).
-    Abbreviation wp_init := (wp_init tu ρ).
-    Abbreviation wp_initialize := (wp_initialize tu ρ).
-    Abbreviation wp_discard := (wp_discard tu ρ).
-    Abbreviation wp := (wp tu ρ).
-    Abbreviation wp_decl := (wp_decl tu ρ).
-
-    #[local] Open Scope free_scope.
-
-    Lemma wp_lval_global Q nm ty :
-      wp.check_global tu nm ty =[Vm]=> true ->
-          Q (_global nm) FreeTemps.id
-      |-- wp_lval (Eglobal nm ty) Q.
-    Proof.
-      rewrite RedEq_eq_iff => H.
-      apply @wp.wp_lval_global.
-      by rewrite RedEq_eq_iff H.
-    Qed.
-    Definition wp_lval_global_B := [BWD] wp_lval_global.
-  End fixed_var_hint.
-
-  #[local] Remove Hints wp.wp_lval_global_B : db_skylabs_wp.
-  #[local] Hint Resolve wp_lval_global_B | 150 : db_skylabs_wp.
-
   Section with_resolve.
     Variables (tu : translation_unit) (ρ : region).
 
