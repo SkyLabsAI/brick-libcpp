@@ -1,5 +1,11 @@
 (** Specs of shared_ptr.
 We do not cover interaction with weak_ptr.
+Custom deleters, custom allocators, aliasing constructors, and
+make_shared_for_overwrite are not supported by these specs.
+The representation supports separate allocations and make_shared's combined
+allocations, including arrays. The latter is a representation correction,
+not a proof or a new assumed spec of make_shared; factory specs remain to be
+provided when verifying those calls. See [SharedAllocationR].
 We cover the following usage:
 - after dynamically allocating a new object (using new or new[]), it is (typicall immediately) passed to the init constructor of shared_ptr (spec in [init_ctor] below). At this time, the caller's proof needs to come up with [Rpiece: nat->Rep], defining how the ownership of this newly allocated object will be split between various shared_ptr objects that refer to it. They pass in all pieces and get back the 0th piece: [Rpiece 0] and tokens [pieceRight ctrlid 1 ... pieceRight ctrlid (maxContention-1)] which the clients can use to later obtain ownership of those [Rpiece]s by calling the copy constructor. The last argument of [pieceRight] is the piece id. The first argument, [ctrlid], identifies a single protection unit (payload object pointer) that is reference counted. "ctrl" comes from the implementation using a dynamically allocated "control block" which has an atomic counter to track how many times the copy constructor has been called minus the number of such objects that have already been destructed.
 [maxContention] bounds the number of simultaneously live handles to one control
@@ -48,6 +54,7 @@ Require Import skylabs.cpp.spec.concepts.
 Require Import skylabs.cpp.spec.concepts.experimental.
 Require Import skylabs.brick.libstdcpp.shared_ptr.inc_shared_ptr_cpp.
 Require Export skylabs.brick.libstdcpp.shared_ptr.layout.
+Require Export skylabs.brick.libstdcpp.shared_ptr.allocation.
 Require Import iris.algebra.excl.
 Require Import iris.algebra.frac.
 
@@ -62,7 +69,8 @@ Record CtrlBlockId : Set :=
     pieceRightLocs: list gname; (* each stores a unit. N -> gname may be tricky for constructor proof *)
     pieceHandleLocs: list gname; (* Fractional outstanding-index witnesses. *)
     dataLoc: ptr;
-    payload_type: type; (* Complete allocation type, including the length of an array. *)
+    payload_type: type; (* Complete managed-object type, including array length.
+                          Not necessarily the type of an independent allocation. *)
   }.
 
 #[local] Open Scope N_scope.
@@ -158,7 +166,9 @@ Section specs.
               else (dataLoc id) .,
                      (SP_counted_base .:: Nid "_M_use_count")
                      |-> intR 1$m (Z.of_N ctrVal)
-                    ** ownedPtr |-> alloc.tokenR (payload_type id) 1%Qp
+                    ** (Exists kind : shared_allocation_kind,
+                          SharedAllocationR kind (payload_type id)
+                            (dataLoc id) ownedPtr)
                     ** ([∗ list] pieceid ∈ allPieceIds,
                       if pieceOut pieceid then emp else ownedPtr |-> Rpiece pieceid)).
 
@@ -171,11 +181,14 @@ Section specs.
       permits closing the invariant before running a reentrant destructor.
 
       This remains a partial control-block model for the assumed library
-      specs, not a verified libstdc++ implementation. A complete body proof
-      must additionally own the control-block allocation, dynamic-class and
-      deleter fields, account for its implicit weak reference, and justify
-      the actual acquire/release operations. No external weak_ptr operations
-      are covered by this interface. *)
+      specs, not a verified libstdc++ implementation. It now retains the
+      appropriate allocation ownership in [SharedAllocationR].
+      A complete body proof must additionally own the remaining control-block
+      fields and dynamic-class witnesses, account for its implicit weak
+      reference, and justify the actual acquire/release operations. For an
+      array factory it must also connect _M_n/_S_tail to the retained allocation
+      size and recover the padding for deallocation. No external weak_ptr
+      operations are covered by this interface. *)
   
   (** The control-block model above remains abstract. [SharedPtrHandleR]
       describes the complete handle, not the object its [_M_pi] points to. *)
@@ -184,6 +197,8 @@ Section specs.
   Definition SharedPtrR (q : cQp.t) (id: CtrlBlockId) (pieceid : nat)
       (Rpiece : nat -> Rep) (ownedPtr:ptr) : Rep :=
     SharedPtrHandleR ty q ownedPtr (dataLoc id)
+    (* This is managed-type compatibility, not permission to delete ownedPtr.
+       The allocation case inside sptrInv determines what can be deallocated. *)
     ** [| delete_compat ty (payload_type id) |]
     ** pureR (payload_destructible (payload_type id) Rpiece)
     ** [| ownedPtr<>nullptr |] (* use NullSharedPtr otherwise *)
