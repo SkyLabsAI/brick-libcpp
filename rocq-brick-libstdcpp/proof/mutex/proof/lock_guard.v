@@ -23,7 +23,7 @@ Section with_cpp.
   #[local] Hint Resolve fractional.UNSAFE_read_prim_learn : sl_opacity.
   #[local] Instance: `{SplitRecord (M T)} := {}.
 
-  (* std::mutex ctor implies lock_guard<std::mutex> ctor *)
+  (* std::mutex::lock() spec implies lock_guard<std::mutex> ctor *)
   Lemma ctor_ok :
     denoteModule source **
     mutex.lock_spec 
@@ -36,7 +36,7 @@ Section with_cpp.
     by rewrite cQp.scale_mut (right_id_L 1%Qp Qp.mul).
   Qed.
 
-  (* std::mutex dtor implies lock_guard<std::mutex> dtor *)
+  (* std::mutex::unlock() spec implies lock_guard<std::mutex> dtor *)
   Lemma dtor_ok : verify[source] "std::lock_guard<std::mutex>::~lock_guard()".
   Proof.
     verify_spec.
