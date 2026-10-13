@@ -50,7 +50,7 @@ mlock Definition strncmp_inputR `{Σ : cpp_logic} {σ : genv}
 Section with_cpp.
 Context `{Σ : cpp_logic, σ : genv}.
 
-  #[global, program] Definition strncmp_cstring_C (p : ptr) q s q1 q2 :=
+  #[program] Definition strncmp_cstring_C (p : ptr) q s q1 q2 :=
     \cancelx
     \consuming p |-> cstring.R q s
     \guard SplitCFrac q q1 q2
@@ -69,7 +69,7 @@ Context `{Σ : cpp_logic, σ : genv}.
     rewrite strncmp_inputR.unlock. iExact "H1".
   Qed.
 
-  #[global, program] Definition strncmp_array_C
+  #[program] Definition strncmp_array_C
       (p : ptr) q hi bytes q1 q2
       (Hbytes : bytes =[Vm]=> BS.string_to_bytes (BS.bytes_to_string bytes)) :=
     \cancelx
@@ -95,7 +95,7 @@ Context `{Σ : cpp_logic, σ : genv}.
   Qed.
 
   (* Singleton arrays normalize to a character cell. *)
-  #[global, program] Definition strncmp_char_C
+  #[program] Definition strncmp_char_C
       (p normalized_p : ptr) q (byte : N) q1 q2
       (Hbyte : [byte] =[Vm]=> BS.string_to_bytes (BS.bytes_to_string [byte])) :=
     \cancelx
