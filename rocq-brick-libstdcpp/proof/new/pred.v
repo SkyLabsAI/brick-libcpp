@@ -32,40 +32,53 @@ Section with_cpp.
       In a normal implementation of <<malloc>>, this is a few bytes before the
       returned pointer that stores meta data, e.g. the size of the allocation.
 
-      [allocatedR q is_array sz] also records the allocation form: [false]
-      for <<operator new>> and [true] for <<operator new[]>>. Deallocation
-      must consume a token with the matching form, even for equal sizes.
+      [allocatedR q is_array alignment sz] also records the allocation form:
+      [false] for <<operator new>> and [true] for <<operator new[]>>, and
+      [None] for overloads without an alignment parameter or [Some al] for
+      overloads passed [al]. Deallocation must match both, including the
+      original alignment argument even when the address is more aligned.
 
       NOTE: While C++ often stores the size of the array next to a dynamically
       allocated array, the memory that backs this is **not** part of [allocatedR].
       That memory is owned by the C++ abstract machine.
    *)
-  Parameter allocatedR : forall {σ : genv}, Qp -> bool -> N -> Rep.
+  Parameter allocatedR : forall {σ : genv}, Qp -> bool -> option N -> N -> Rep.
   #[only(fractional,asfractional,fracvalid,timeless)] derive allocatedR.
-  #[global] Instance: Cbn (Learn (any ==> learn_eq ==> learn_eq ==> learn_hints.fin) allocatedR).
+  #[global] Instance: Cbn (Learn (any ==> learn_eq ==> learn_eq ==> learn_eq ==> learn_hints.fin) allocatedR).
   Proof. solve_learnable. Qed.
+
+  (** An alignment realized by a type in the current environment is supported
+      by the implementation. This is a conservative precondition for aligned
+      allocation; arbitrary integer values need not be valid alignments. *)
+  Definition supported_alignment (al : N) : Prop :=
+    exists ty : type, align_of ty = Some al.
 
 End with_cpp.
 
 NES.Begin alloc.
 
-  (** [token ty sz q] bundles the dynamic allocation tokens provided by
-      the C++ abstract machine with the [allocatedR] fact from the allocation library.
+  (** [tokenR_with_alignment ty alignment q] bundles the dynamic allocation
+      token with its allocator resource, preserving the allocation overload's
+      alignment argument. [tokenR ty q] covers allocation without that argument.
    *)
   sl.lock
-  Definition tokenR `{Σ : cpp_logic} {σ : genv} (ty : type) (q : Qp) : Rep :=
+  Definition tokenR_with_alignment `{Σ : cpp_logic} {σ : genv}
+      (ty : type) (alignment : option N) (q : Qp) : Rep :=
     Exists storage_p overhead sz,
       [| size_of _ ty = Some sz |] **
       new_token.R q {| new_token.alloc_ty := ty ; new_token.storage_ptr := storage_p ; new_token.overhead := overhead |} **
-      pureR (storage_p .[ "unsigned char" ! -overhead ] |-> allocatedR q (is_array_type ty) (overhead + sz)).
+      pureR (storage_p .[ "unsigned char" ! -overhead ] |-> allocatedR q (is_array_type ty) alignment (overhead + sz)).
   #[only(fractional,asfractional,fracvalid,timeless)] derive new_token.R.
-  #[only(fracvalid,timeless)] derive tokenR.
+  #[only(fracvalid,timeless)] derive tokenR_with_alignment.
+
+  Abbreviation tokenR ty q := (tokenR_with_alignment ty None q) (only parsing).
 
   #[local] Open Scope string_scope. (* for IPM *)
-  #[global] Instance tokenR_xxx `{Σ : cpp_logic} {σ : genv} ty
-    : Fractional (tokenR ty).
+  #[global] Instance tokenR_xxx `{Σ : cpp_logic} {σ : genv}
+      (ty : type) (alignment : option N)
+    : Fractional (tokenR_with_alignment ty alignment).
   Proof.
-    rewrite tokenR.unlock.
+    rewrite tokenR_with_alignment.unlock.
     repeat first [ apply _
                  | apply fractional_exist; intros ].
     { apply observe_2_sep_l.
@@ -83,9 +96,12 @@ NES.Begin alloc.
       inversion H; eauto. }
   Qed.
   (* We should be able to derive this, but <<derive>> gets stuck trying to prove the above instance
-  #[only(asfractional)] derive tokenR.
+  #[only(asfractional)] derive tokenR_with_alignment.
    *)
 
-   #[global] Instance tokenR_asfractional `{Σ : cpp_logic} {σ : genv} (ty : type) (q : Qp) : AsFractional (tokenR ty q) (tokenR ty) q.
+  #[global] Instance tokenR_asfractional `{Σ : cpp_logic} {σ : genv}
+      (ty : type) (alignment : option N) (q : Qp) :
+    AsFractional (tokenR_with_alignment ty alignment q)
+      (tokenR_with_alignment ty alignment) q.
   Proof. solve_as_frac. Qed.
 NES.End alloc.
