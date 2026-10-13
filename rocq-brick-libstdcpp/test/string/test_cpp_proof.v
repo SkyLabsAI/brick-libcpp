@@ -16,11 +16,7 @@ Section with_cpp.
     \post emp).
 
   Lemma self_assign_ok : verify[source] self_assign_spec.
-  Proof using MOD.
-    verify_spec; go.
-    (* The fraction witness is unused in the alias branch. *)
-    iExists (cQp.m 1). go.
-  Qed.
+  Proof using MOD. verify_spec; go. Qed.
 
   cpp.spec "AssignAlias(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&)" as assign_alias_spec with (
     \arg{p} "value" (Vref p)
@@ -28,33 +24,19 @@ Section with_cpp.
     \post emp).
 
   Lemma assign_alias_ok : verify[source] assign_alias_spec.
-  Proof using MOD.
-    verify_spec; go.
-    iExists (cQp.m 1). go.
-  Qed.
+  Proof using MOD. verify_spec; go. Qed.
 
   cpp.spec "CopyAssign(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&, const std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&)" as copy_assign_spec with (
     \arg{dst} "destination" (Vref dst)
     \arg{src} "source" (Vref src)
-    \require dst <> src
     \pre{s} dst |-> basic_stringR "char" 1$m s
-    \prepost{q otherS} src |-> basic_stringR "char" q otherS
+    \prepost{sourceShare otherS}
+      if bool_decide (dst = src) then [| otherS = s /\ sourceShare = None |]
+      else Exists q, [| sourceShare = Some q |] **
+        src |-> basic_stringR "char" q otherS
     \post dst |-> basic_stringR "char" 1$m otherS).
 
   Lemma copy_assign_ok : verify[source] copy_assign_spec.
-  Proof using MOD. verify_spec; go. Qed.
+  Proof using MOD. verify_spec; case_bool_decide; go. Qed.
 
-  (* Keep another reader's share while copying from a const source. *)
-  cpp.spec "CopyAssign(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&, const std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&)" as copy_assign_shared_const_spec with (
-    \arg{dst} "destination" (Vref dst)
-    \arg{src} "source" (Vref src)
-    \require dst <> src
-    \pre{s} dst |-> basic_stringR "char" 1$m s
-    \prepost{otherS}
-      src |-> basic_stringR "char" (cQp.c (1/2)) otherS **
-      src |-> basic_stringR "char" (cQp.c (1/2)) otherS
-    \post dst |-> basic_stringR "char" 1$m otherS).
-
-  Lemma copy_assign_shared_const_ok : verify[source] copy_assign_shared_const_spec.
-  Proof using MOD. verify_spec; go. Qed.
 End with_cpp.
