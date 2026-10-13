@@ -435,6 +435,7 @@ Section with_cpp.
 
   (** * [mem*] clients *)
 
+  (* TODO: some of this automation should be upstreamed, but it needs revisions and improvements for it. *)
   (** Stated on a plain [xs] so that [go] can use auto's [arrayR_entails_C];
       at the use sites below, [xs] is a [takeZ]/[dropZ] term and that hint's
       side condition [lengthZ xs = lengthZ ys] does not normalize to anything
@@ -493,6 +494,7 @@ Section with_cpp.
     | byte_of_int _ => idtac | dropZ _ _ => idtac | takeZ _ _ => idtac
     | replicateZ _ _ => idtac
     end.
+  (* TODO: reuse skylabs.auto.closed. *)
   #[local] Ltac closed t :=
     match t with context [?v] => is_var v; fail 1 | _ => idtac end.
   #[local] Ltac compute_model :=
@@ -510,6 +512,7 @@ Section with_cpp.
     match goal with
     | H : list.ListSizeZ ?xs ?n |- _ =>
         is_var xs; closed n;
+        (* TODO: this OOMs unnecessarily on large lists *)
         let k := eval vm_compute in (Z.to_nat n) in
         let Hl := fresh "Hl" in
         assert (Hl : length xs = k)

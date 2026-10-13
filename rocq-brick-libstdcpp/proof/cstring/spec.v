@@ -159,7 +159,7 @@ Context `{Σ : cpp_logic, source ⊧ σ}.
        (memchr (takeZ n bytes) c)] emp).
 *)
 
-(* All pointer arguments must be valid, hence non-null, even when the length is
+(* All pointer arguments must be non-null, even when the length is
    0 ([cstring.syn] defers to C17 7.24.1p2; WG14 N3322 relaxes this only for
    C2y). Empty slices do not imply this, so the [mem*] specs below require it
    explicitly; the [str*] specs get it from [cstring.R]. *)
