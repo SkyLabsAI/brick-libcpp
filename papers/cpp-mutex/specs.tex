@@ -1,4 +1,4 @@
-\section{Three Flavors of Mutex}
+\section{Specifying the C++ Mutex Types}
 
 \newcommand{\spectriple}[3]{%
   \begingroup
@@ -50,21 +50,22 @@ void unlock(){
 \label{mutex-simple}
 \end{figure}
 
-We begin by examining \lstinline{std::mutex}, the basic lock class. The class contains methods \lstinline{lock}, \lstinline{unlock}, and \lstinline{try_lock}, as well as a constructor and destructor. The intended behavior is simply to provide mutual exclusion; a simple implementation could be a spinlock as shown in Figure~\ref{mutex-simple}, although more realistic implementations use OS primitives for efficiency. While \lstinline{std::mutex} is the library class corresponding to a standard lock, its informal specification has three restrictions that do not appear in the standard separation logic treatment:
+We begin by examining \lstinline{std::mutex}, the basic lock class. The class contains methods \lstinline{lock}, \lstinline{unlock}, and \lstinline{try_lock}, as well as a constructor and destructor. The intended behavior is to provide mutual exclusion; a simple implementation could be a spinlock as shown in Figure~\ref{mutex-simple}, although more realistic implementations use OS primitives for efficiency. While \lstinline{std::mutex} is the library class corresponding to a standard lock, its official informal specification~\cite{ISO:2024:IIP} has three restrictions that do not appear in the standard separation logic treatment:
 \begin{enumerate}
 \item When a thread calls \lstinline{unlock}, it must own the mutex (i.e., it must have been the thread that most recently called \lstinline{lock}).
 \item When a thread calls \lstinline{lock}, it must \emph{not} own the mutex.
 \item When a mutex is destroyed, it must not be owned by any threads.
 \end{enumerate}
-A program that violates any of these conditions has \emph{undefined behavior} according to the library specification, so our program logic must ensure that they are respected.
+A program that violates any of these conditions is specified as having \emph{undefined behavior}, so our program logic must ensure that they are respected.
 
-The third property is the simplest from a separation logic perspective: we can define a fractional resource $\token{}{q}$ that a thread must give up in order to acquire the mutex, and require full ownership $\token{}{1}$ in the precondition of the destructor. The first two properties are more complicated, since they check whether a thread performing an operation is \emph{the same thread} as one that performed a previous operation. Our basic approach is to define predicates $\notlocked{}{t}{q}$ and $\locked{}{t}{q}$ such that a thread $t$ exchanges $\notlocked{}{t}{q}$ for $\locked{}{t}{q}$ when acquiring the mutex, and vice versa when releasing it. However, these predicates, like any other CSL predicate, can be transferred between threads when they synchronize: how can we ensure that the thread that owns $\notlocked{}{t}{q}$ is actually thread $t$? For this, we use BRiCk's non-transferable predicate $\currentthread{t}$ described in Section~\ref{brick}: a thread must own both $\currentthread{t}$ and $\notlocked{}{t}{q}$ (resp. $\locked{}{t}{q}$) to acquire (resp. release) the mutex, proving that it is in fact the thread identified by the predicate. These predicates satisfy the following properties:
+Property 3 is the simplest from a separation logic perspective: we can define a fractional resource $\token{}{q}$ that a thread must give up in order to acquire the mutex, and require the full $\token{}{1}$ in the precondition of the destructor. The first two properties are more complicated, since they check whether a thread performing an operation is \emph{the same thread} as one that performed a previous operation. Our basic approach is to define predicates $\notlocked{}{t}{q}$ and $\locked{}{t}{q}$ such that a thread $t$ exchanges $\notlocked{}{t}{q}$ for $\locked{}{t}{q}$ when acquiring the mutex, and vice versa when releasing it. If we require that $\mathsf{not\_locked}$ is exclusive, i.e., $\notlocked{}{t}{q_1} \ast \notlocked{}{t}{q_2} \vdash \mathsf{False}$, then we have that each thread can only try to acquire a mutex once before releasing it.
+However, the $\mathsf{m\_locked}$ and $\mathsf{not\_locked}$ predicates, like any other CSL predicate, can be transferred between threads: how can we ensure that the thread that owns $\notlocked{}{t}{q}$ is actually thread $t$? For this, we use BRiCk's non-transferable predicate $\currentthread{t}$ described in Section~\ref{brick}: a thread must own both $\currentthread{t}$ and $\notlocked{}{t}{q}$ (resp. $\locked{}{t}{q}$) to acquire (resp. release) the mutex, proving that it is the thread identified by the predicate. \ignore{These predicates satisfy the following properties:
 \begin{align}
 \notlocked{}{t}{q_1} \ast \notlocked{}{t}{q_2} \vdash \mathsf{False} \\ %\notlocked{\gamma}{t} \ast \locked{\gamma}{t} \vdash \mathsf{False} \and
 \locked{}{t_1}{q_1} \ast \locked{}{t_2}{q_2} \vdash \mathsf{False}
 \\ \token{}{1} \ast \locked{}{t}{q} \vdash \mathsf{False} %anything else we need?
 \end{align}
-Property 1 guarantees that a thread holding $\mathsf{not\_locked}$ actually does not hold the lock, property 2 guarantees mutual exclusion, and property 3 guarantees that full ownership of the token implies the lock is not owned by any thread.
+Property 1 guarantees that a thread holding $\mathsf{not\_locked}$ actually does not hold the lock, property 2 guarantees mutual exclusion, and property 3 guarantees that full ownership of the token implies the lock is not owned by any thread.}
 
 How does a thread obtain $\notlocked{}{t}{q}$ to begin with? We could explicitly specify a set of threads that are allowed to use a mutex when it is created, but we may not know this set of threads in advance and it may even be unbounded (e.g., if we spawn threads in a loop). Instead, we make it possible for a thread $t$ to \emph{register} itself with an existing mutex and obtain $\notlocked{}{t}{q}$, as long as $t$ can guarantee that it is not already registered with that mutex.
 
@@ -356,7 +357,7 @@ void await_resource() {
 }
 (*@ $\{ \currentthread{t} \ast \texttt{m} \mapsto_\pi \smutex{N, \gamma}{P} \ast \notlocked{N, \gamma}{t}{q} \}$ @*)
 \end{lstlisting}
-\caption{A program using \lstinline{shared_mutex} and its proof sketch}
+\caption{A program using \lstinline{shared_mutex} and its proof outline.}
 \label{shared-mutex-ex-proof}
 \end{figure}
 Figure~\ref{shared-mutex-ex-proof} shows an example using \lstinline{shared_mutex}. Exclusive ownership of \lstinline{m} gives write access to \lstinline{resource}, while shared ownership gives read access to \lstinline{resource}. Its proof uses the resource predicate $P(q) \triangleq \exists b.\ \texttt{resource} \mapsto_q b$, so that \lstinline{lock} gives full ownership of \lstinline{resource} while \lstinline{lock_shared} gives partial (read-only) ownership.
