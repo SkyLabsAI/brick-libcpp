@@ -13,7 +13,9 @@ Require Import skylabs.brick.libstdcpp.test.mutex.double_incr_ghost.
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
   Context {HAS_THREADS : HasStdThreads Σ}.
-  Context `{!mutex.G Σ, !double_incr_protocol.G Σ}.
+  Context `{!double_incr_protocol.G Σ}.
+  Context `{MUTEX_SETS : !mutex_set_G Σ}.
+  Context `{!mutex.G Σ}.
 
   cpp.spec "double_incr()" as double_incr_spec_body from source with (
     \prepost{g q γ} _global "m" |-> mutex.R g q
@@ -88,7 +90,7 @@ Section with_cpp.
   Lemma worker_entry `{MOD : source ⊧ σ} g γ :
     double_incr_spec_body ** worker_start g γ |--
     ∀ child,
-      MutexSets.my_mutexes (mutex.pool_name g) child (coPset.CoPset ⊤) -*
+      MutexSets.my_mutexes child (coPset.CoPset ⊤) -*
       wp_fptr (σ.(genv_tu).(types)) thread.spec.entry_type
         (_global "double_incr()") []
         (fun _ => double_incr_protocol.done γ (_global "x")).
@@ -102,8 +104,8 @@ Section with_cpp.
     iDestruct (monPred_atleast_exactly_at threadTI child) as "HT".
     iModIntro.
     iDestruct "Hstart" as "(Hm & Htoken & Hfrac)".
-    iDestruct (MutexSets.my_mutexes_alloc_mutex_name (mutex.pool_name g)
-      child ⊤ (↑mutex.mutex_inv_namespace g) ltac:(set_solver)
+    iDestruct (MutexSets.my_mutexes_alloc_mutex_name child ⊤
+      (↑mutex.mutex_inv_namespace g) ltac:(set_solver)
       with "Hset") as "[Hrest Hname]".
     iAssert (mutex.not_locked (_global "m") g child ((1 / 2)$m)%cQp)
       with "[Htoken Hname]" as "Hnotlocked".
@@ -126,6 +128,10 @@ Section with_cpp.
       Assume the mutex is initialized with an empty invariant (assocaited with
       γold), which can later be updated to a new invariant with init_R. *)
   cpp.spec "main()" as main_spec from source with (
+    (* FIXME if we have fixed the gname for mutex_set_map by the instance, we
+     have to assume a [mutex_set_map ∅] in the precondition here because if we 
+     allocate a new one, we can't prove that it has the same gname. *)
+    \pre MutexSets.mutex_set_map ∅
     \pre _global "x" |-> uintR 1$m 0
     \pre{γold} _global "m" |-> mutex.R γold 1$m emp ** mutex.token γold 1$m
     \post[Vint 0] double_incr_protocol.evenR (_global "x")).
@@ -143,14 +149,14 @@ Section with_cpp.
     iMod (double_incr_protocol.alloc with "Hx") as (γ) "(HP & Hf1 & Hf2)".
     iDestruct select (_global "m" |-> mutex.R γold 1$m emp) as "Hm".
     iDestruct select (mutex.token γold 1$m) as "Htoken".
-    iMod (thread.spec.spawned_threads_inv_alloc thread_pool_namespace)
-      as (pool) "#Hpool".
+    iDestruct select (MutexSets.mutex_set_map ∅) as "Hmap".
+    iMod (thread.spec.spawned_threads_inv_alloc thread_pool_namespace
+      with "Hmap") as "#Hpool".
     (* Logical invariant setup for the already initialized mutex. *)
-    iMod (mutex.init_R (_global "m") γold pool (mutex.mutex_inv_namespace γold)
+    iMod (mutex.init_R (_global "m") γold (mutex.mutex_inv_namespace γold)
       (double_incr_protocol.protected γ (_global "x")) ltac:(apply _)
       with "[Hm Htoken HP]") as (g) "(%Hnames & Hm & Htoken)".
     { iFrame "Hm Htoken". iNext. done. }
-    destruct Hnames as [Hpool_name _]. subst pool.
     iDestruct "Hm" as "[Hm1 Hm2]".
     iEval (rewrite (cfractional_split_half (mutex.token g))
       cQp.scale_mut Qp.mul_1_r) in "Htoken".
@@ -160,7 +166,7 @@ Section with_cpp.
     { rewrite /worker_start. iFrame. }
     go.
     iDestruct select double_incr_spec_body as "#Hcode".
-    iExists thread_pool_namespace, (mutex.pool_name g),
+    iExists thread_pool_namespace,
       (double_incr_protocol.done γ (_global "x")).
     iFrame "#". iSplitR; first (iPureIntro; apply _).
     iSplitL "Hstart1".
@@ -169,7 +175,7 @@ Section with_cpp.
       iDestruct "Hthread1" as (child1) "[% HR1]".
       iDestruct (observe (type_ptr "std::thread" t1_addr) with "HR1") as "#?".
       iDestruct "HR1" as "?". go.
-      iExists thread_pool_namespace, (mutex.pool_name g),
+      iExists thread_pool_namespace,
         (double_incr_protocol.done γ (_global "x")).
       iFrame "#". iSplitR; first (iPureIntro; apply _).
       iSplitL "Hstart2".

@@ -13,7 +13,6 @@ Require Import skylabs.brick.libstdcpp.cassert.spec.
 Require Import skylabs.brick.libstdcpp.mutex.spec.mutex.
 Require Import skylabs.brick.libstdcpp.mutex.spec.recursive_mutex.
 Require Import skylabs.brick.libstdcpp.thread.spec.
-Require Import skylabs.brick.libstdcpp.lib.lock_ghost2.
 Require Import skylabs.brick.libstdcpp.test.mutex.custom_recursive_mutex_hpp.
 
 Import linearity.
@@ -38,8 +37,6 @@ Module CustomRecursiveMutexPreds
     cinv_gname : iprop.gname;
   }.
   Definition gname : Set := mutex_gname.
-  Definition pool_name (g : gname) : iprop.gname :=
-    mutex.pool_name g.(inner_gname).
   Definition rmutex_inv_namespace (g : gname) : namespace :=
     mutex.mutex_inv_namespace g.(inner_gname).
 
@@ -59,7 +56,6 @@ Module CustomRecursiveMutexPreds
   #[global] Arguments G {_ _} Σ : assert.
   #[global] Instance state_G `{Σ : cpp_logic} (H : G Σ) : @stateG _ _ Σ := H.
 
-  #[global] Instance sets_G `{Σ : cpp_logic, !G Σ} : MutexSets.G Σ := _.
 
   Definition owner_tid_auth `{Σ : cpp_logic, !G Σ}
       (γ : iprop.gname) (o : option (thread_idT * cQp.t)) : mpred :=
@@ -155,7 +151,7 @@ Module CustomRecursiveMutexPreds
     | Some (th, _) => th
     end.
 
-  Definition I `{Σ : cpp_logic, !G Σ, σ : genv}
+  Definition I `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ, σ : genv}
       (this : ptr) (g : gname) : mpred :=
     ∃ owner,
       this ,, _field "MyRecursiveMutex::m_owner" |->
@@ -176,7 +172,7 @@ Module CustomRecursiveMutexPreds
       | None => emp
       end.
 
-  Definition R `{Σ : cpp_logic, !G Σ}
+  Definition R `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ}
       {HAS_THREADS : HasStdThreads Σ} {σ : genv}
       (g : gname) (q : cQp.t) (P : mpred) : Rep :=
     structR class_name q$m **
@@ -189,11 +185,11 @@ Module CustomRecursiveMutexPreds
   #[only(type_ptr,cfractional,ascfractional,cfracvalid)] derive R.
 
   #[global] Instance R_learnable
-      `{Σ : cpp_logic, !G Σ, σ : genv, !HasStdThreads Σ} :
+      `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ, σ : genv, !HasStdThreads Σ} :
       Cbn (Learn (learn_eq ==> any ==> learn_eq ==> learn_hints.fin) R).
   Proof. solve_learnable. Qed.
 
-  Definition not_locked `{Σ : cpp_logic, !G Σ, σ : genv}
+  Definition not_locked `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ, σ : genv}
       (this : ptr) (g : gname) (qt : cQp.t) (th : thread_idT) : mpred :=
     mutex.not_locked (this ,, _field "MyRecursiveMutex::m_lock") g.(inner_gname) th qt.
 
@@ -205,7 +201,7 @@ Module CustomRecursiveMutexPreds
   #[global] Hint Opaque not_locked locked : sl_opacity typeclass_instances.
 
   #[global] Instance I_timeless
-      `{Σ : cpp_logic, !G Σ, σ : genv} this g : Timeless (I this g).
+      `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ, σ : genv} this g : Timeless (I this g).
   Proof.
     rewrite /I. apply bi.exist_timeless.
     intros [[th qt]|]; apply _.
@@ -219,7 +215,7 @@ Module CustomRecursiveMutexPreds
       Timeless (locked this g qt th n).
   Proof. rewrite /locked /countR. apply _. Qed.
   #[global] Instance not_locked_timeless
-      `{Σ : cpp_logic, !G Σ, σ : genv} this g qt th :
+      `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ, σ : genv} this g qt th :
       Timeless (not_locked this g qt th).
   Proof. rewrite /not_locked. apply _. Qed.
 
@@ -232,7 +228,7 @@ Module CustomRecursiveMutexPreds
       `{Σ : cpp_logic, !G Σ} g owner : WeaklyObjective (owner_frag g owner).
   Proof. rewrite /owner_frag. apply _. Qed.
   #[global] Instance I_WeaklyObjective
-      `{Σ : cpp_logic, !G Σ, σ : genv} this g :
+      `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ, σ : genv} this g :
       WeaklyObjective (I this g).
   Proof.
     rewrite /I. apply exists_weakly_objective.
@@ -253,7 +249,9 @@ Module custom_recursive_mutex.
   Import Spec (acquireable).
   #[local] Hint Opaque acquireable I protected countR : sl_opacity typeclass_instances.
   Section with_cpp.
-    Context `{Σ : cpp_logic, σ : genv, !HasStdThreads Σ, !G Σ}.
+    Context `{Σ : cpp_logic, σ : genv, !HasStdThreads Σ}.
+    Context `{MUTEX_SETS : !mutex_set_G Σ}.
+    Context `{!G Σ}.
     Context `{MOD : source ⊧ σ}.
 
     (** The wrapper adds its global sentinel and the count's objectivity
@@ -325,15 +323,15 @@ Module custom_recursive_mutex.
       wname [_ |-> ulonglongR _ _] "Count".
       iDestruct select (tele_app P xs) as "P".
       iMod (mutex.init_R (this ,, _field "MyRecursiveMutex::m_lock")
-        g pool N (protected this go (∃ xs, tele_app P xs))
+        g N (protected this go (∃ xs, tele_app P xs))
         with "[Inner Token Count Frag P]") as (inner) "(%Hnames & Inner & Token)".
       { iFrame "Inner Token". iNext. rewrite /protected /countR. iFrame. }
       wname [_ |-> atomic.R _ _ _] "Owner".
       iMod (cinv_alloc ⊤ (mutex.mutex_inv_namespace inner) with "[Owner Auth]") as (gi) "[#CI CO]"; last first.
       - iModIntro. go. iExists (MkGname inner go gi).
-        iSplit; first (iPureIntro; split; reflexivity).
+        iSplit; first (iPureIntro; reflexivity).
         rewrite /token /R _at_sep _at_as_Rep
-          /I /pool_name /=.
+          /I /=.
         iFrame "CI". iFrame.
       - iNext. rewrite /I /=. iExists None. iFrame.
       - change (WeaklyObjective (I this (MkGname inner go 1%positive))).

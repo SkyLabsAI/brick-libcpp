@@ -11,6 +11,7 @@ Require Export skylabs.brick.libstdcpp.runtime.pred.
 
 Require Import skylabs.brick.libstdcpp.mutex.requirements.
 Require Import skylabs.brick.libstdcpp.lib.lock_ghost2.
+Export lock_ghost2.mutex_set_G (mutex_set_G).
 Require Import skylabs.brick.libstdcpp.mutex.inc_hpp.
 
 Import linearity.
@@ -99,20 +100,17 @@ Module Type RECURSIVE_MUTEX_PREDS (T : MutexCPPName).
   Existing Class G.
   #[global] Arguments G {_ _} Σ : assert.
 
-  (* FIXME (pool_name g) should be a singleton gname  *)
-  (** Ghost name of the ghost state that keeps track of a pool of gnames for each thread. *)
-  Parameter pool_name : gname -> iprop.gname.
   Parameter rmutex_inv_namespace : gname -> namespace.
-  #[global] Declare Instance sets_G `{Σ : cpp_logic, !G Σ} : MutexSets.G Σ.
+
   Parameter token : forall `{Σ : cpp_logic, !G Σ}, gname -> cQp.t -> mpred.
   #[global] Declare Instance token_fractional
       `{Σ : cpp_logic, !G Σ} g : CFractional (token g).
   #[global] Declare Instance token_timeless
       `{Σ : cpp_logic, !G Σ} g qt : Timeless (token g qt).
 
-  Definition not_locked `{Σ : cpp_logic, !G Σ, σ : genv}
+  Definition not_locked `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ, σ : genv}
       (this : ptr) (g : gname) (qt : cQp.t) (th : thread_idT) : mpred :=
-    token g qt ** MutexSets.my_mutexes (pool_name g) th
+    token g qt ** MutexSets.my_mutexes th
       (CoPset $ ↑rmutex_inv_namespace g).
   Parameter locked : forall `{Σ : cpp_logic, !G Σ, σ : genv},
     ptr -> gname -> cQp.t -> thread_idT -> nat -> mpred.
@@ -120,13 +118,15 @@ Module Type RECURSIVE_MUTEX_PREDS (T : MutexCPPName).
   (* abstract predicate of owership of a recursive mutex that protects some
      resource [P], e.g. in the form of [inv _ P]. Note that it only represents
      the mutex data structure, not the ownership of [P]. *)
-  Parameter R : forall `{Σ : cpp_logic, !G Σ}
+  Parameter R : forall `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ}
     {HAS_THREADS : HasStdThreads Σ} {σ : genv},
     gname -> cQp.t -> mpred -> Rep.
   #[global] Hint Opaque token not_locked locked R : sl_opacity typeclass_instances.
 
   Section with_cpp.
-    Context `{Σ : cpp_logic, !G Σ}.
+    Context `{Σ : cpp_logic}.
+    Context `{MUTEX_SETS : !mutex_set_G Σ}.
+    Context `{!G Σ}.
 
     #[global] Instance not_locked_timeless {σ : genv} this g qt th :
       Timeless (not_locked this g qt th).
@@ -151,7 +151,7 @@ Module recursive_mutex_spec (T : MutexCPPName)
   (** Ownership of a thread's acquisition state. Operations separately require
       [current_thread th] to establish that the caller is that thread. *)
   sl.lock
-  Definition acquireable `{Σ : cpp_logic, !G Σ} {σ : genv}
+  Definition acquireable `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ} {σ : genv}
       (this : ptr) (g : gname) (qt : cQp.t)
       (th : thread_idT) {TT : tele} (s : acquire_state TT)
       (P : TT -t> mpred) : mpred :=
@@ -162,7 +162,9 @@ Module recursive_mutex_spec (T : MutexCPPName)
   #[global] Hint Opaque acquireable : sl_opacity typeclass_instances.
 
   Section with_cpp.
-    Context `{Σ : cpp_logic, !G Σ}.
+    Context `{Σ : cpp_logic}.
+    Context `{MUTEX_SETS : !mutex_set_G Σ}.
+    Context `{!G Σ}.
     Context {HAS_THREADS : HasStdThreads Σ} {σ : genv}.
 
     Definition lock_spec : ptr -> WpSpec mpred val val :=
@@ -253,10 +255,10 @@ Module recursive_mutex_spec (T : MutexCPPName)
 
     Definition ctor_spec : ptr -> WpSpec mpred val val :=
       (\this this
-       \pre{pool N TT P xs} |> tele_app (TT := TT) P xs
+       \pre{N TT P xs} |> tele_app (TT := TT) P xs
        \require ∀ xs, Objective (tele_app P xs)
        \post Exists g,
-         [| pool_name g = pool /\ rmutex_inv_namespace g = N |] **
+         [| rmutex_inv_namespace g = N |] **
          this |-> R g 1$m (∃ xs, tele_app P xs) ** token g 1$m).
 
     Definition dtor_spec : ptr -> WpSpec mpred val val :=
@@ -398,7 +400,9 @@ Module StdRecursiveMutex
   Include Spec.
 
   Section with_cpp.
-    Context `{Σ : cpp_logic, !G Σ}.
+    Context `{Σ : cpp_logic}.
+    Context `{MUTEX_SETS : !mutex_set_G Σ}.
+    Context `{!G Σ}.
     Context {HAS_THREADS : HasStdThreads Σ}.
     Context `{MOD : source ⊧ σ}.
 

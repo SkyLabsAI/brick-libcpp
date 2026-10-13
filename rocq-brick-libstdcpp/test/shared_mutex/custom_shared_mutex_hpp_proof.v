@@ -36,7 +36,6 @@ Module CustomSharedMutexPreds <: SHARED_MUTEX_PREDS.
     gmap_viewR thread_idT (agreeR (leibnizO entry)).
 
   Record mutex_gname : Set := MkGname {
-    pool_gname : iprop.gname;
     token_gname : iprop.gname;
     share_gname : iprop.gname;
     holders_gname : iprop.gname;
@@ -44,11 +43,9 @@ Module CustomSharedMutexPreds <: SHARED_MUTEX_PREDS.
     inv_namespace : namespace;
   }.
   Definition gname : Set := mutex_gname.
-  Definition pool_name (g : gname) := g.(pool_gname).
   Definition smutex_inv_namespace (g : gname) := g.(inv_namespace).
 
   Class stateG `{Σ : cpp_logic} := {
-    #[global] sets_G :: MutexSets.G Σ;
     #[local] holders_own :: HasOwn (iPropI _Σ) holdersR;
     #[local] holders_upd :: HasOwnUpd (iPropI _Σ) holdersR;
     #[local] holders_valid :: HasOwnValid (iPropI _Σ) holdersR;
@@ -75,9 +72,9 @@ Module CustomSharedMutexPreds <: SHARED_MUTEX_PREDS.
     own g.(holders_gname)
       (gmap_view_frag th (DfracOwn 1) (to_agree (A := leibnizO entry) e) : holdersR).
 
-  Definition not_locked `{Σ : cpp_logic, !G Σ} {σ : genv}
+  Definition not_locked `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ} {σ : genv}
       (this : ptr) (g : gname) (th : thread_idT) (qt : cQp.t) : mpred :=
-    token g qt ** MutexSets.my_mutexes (pool_name g) th
+    token g qt ** MutexSets.my_mutexes th
       (CoPset $ ↑smutex_inv_namespace g).
   Definition locked `{Σ : cpp_logic, !G Σ} {σ : genv}
       (this : ptr) (g : gname) (th : thread_idT) (qt : cQp.t) : mpred :=
@@ -154,16 +151,16 @@ Module CustomSharedMutexPreds <: SHARED_MUTEX_PREDS.
     Qed.
   End ghost_laws.
 
-  #[global] Instance not_locked_timeless `{Σ : cpp_logic, !G Σ} {σ : genv}
+  #[global] Instance not_locked_timeless `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ} {σ : genv}
       this g th qt : Timeless (not_locked this g th qt).
   Proof. rewrite /not_locked. apply _. Qed.
-  #[global] Instance not_locked_exclusive `{Σ : cpp_logic, !G Σ} {σ : genv}
+  #[global] Instance not_locked_exclusive `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ} {σ : genv}
       this g th : Exclusive1 (not_locked this g th).
   Proof.
     intros q1 q2. rewrite /not_locked. iIntros "[_ A] [_ B]".
     have Hoverlap : ~ ((↑smutex_inv_namespace g : coPset) ## ↑smutex_inv_namespace g).
     { have Hne := nclose_non_empty (smutex_inv_namespace g). set_solver. }
-    iDestruct (MutexSets.my_mutexes_exclusive _ _ _ _ Hoverlap
+    iDestruct (MutexSets.my_mutexes_exclusive _ _ _ Hoverlap
       with "[$A $B]") as %[].
   Qed.
   #[global] Instance locked_timeless `{Σ : cpp_logic, !G Σ} {σ : genv}
@@ -228,11 +225,11 @@ Module CustomSharedMutexPreds <: SHARED_MUTEX_PREDS.
 
   Definition max_readers : Z := 2147483647.
   #[global] Arguments max_readers /.
-  Definition deposits `{Σ : cpp_logic, !G Σ} {σ : genv}
+  Definition deposits `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ} {σ : genv}
       (this : ptr) (g : gname) (M : reader_map) : mpred :=
     [∗ map] th ↦ qr ∈ M, not_locked this g th qr.1.
 
-  Definition state `{Σ : cpp_logic, !G Σ} {σ : genv}
+  Definition state `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ} {σ : genv}
       (this : ptr) (g : gname) (P : Qp -> mpred) (n : Z) : mpred :=
     (* thread [th] is the writer *)  
     (∃ th qt, [| n = -1 |] ** authority g {[th := (qt,None)]} **
@@ -243,14 +240,16 @@ Module CustomSharedMutexPreds <: SHARED_MUTEX_PREDS.
       authority g (reader_entries M) ** share g s ** P s ** deposits this g M).
 
   #[global] Instance state_WeaklyObjective
-      `{Σ : cpp_logic, !G Σ} {σ : genv} this g P n
+      `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ} {σ : genv} this g P n
       `{!forall q, Objective (P q)} : WeaklyObjective (state this g P n).
   Proof.
     rewrite /state /authority /share /deposits /not_locked /token. apply _.
   Qed.
 
   Section state_laws.
-    Context `{Σ : cpp_logic, !G Σ} {σ : genv}.
+    Context `{Σ : cpp_logic} {σ : genv}.
+    Context `{MUTEX_SETS : !mutex_set_G Σ}.
+    Context `{!G Σ}.
 
     Lemma state_bounds this g P n :
       state this g P n |-- [| -1 <= n <= max_readers |].
@@ -409,12 +408,12 @@ Module CustomSharedMutexPreds <: SHARED_MUTEX_PREDS.
     Qed.
   End state_laws.
 
-  Definition mutex_inv `{Σ : cpp_logic, !G Σ} {σ : genv}
+  Definition mutex_inv `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ} {σ : genv}
       (this : ptr) (g : gname) (P : Qp -> mpred) : mpred :=
     ∃ n : Z, this ,, _field "MySharedMutex::sharers" |-> atomic.R "int" 1$m n **
       state this g P n.
 
-  Definition R `{Σ : cpp_logic, !G Σ} {HAS_THREADS : HasStdThreads Σ} {σ : genv}
+  Definition R `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ} {HAS_THREADS : HasStdThreads Σ} {σ : genv}
       (g : gname) (q : cQp.t) (P : Qp -> mpred) : Rep :=
     structR class_name q$m ** as_Rep (fun this =>
       [| Fractional P /\ (forall qP, Objective (P qP)) |] **
@@ -423,7 +422,7 @@ Module CustomSharedMutexPreds <: SHARED_MUTEX_PREDS.
   #[global] Hint Opaque token not_locked locked reader_locked R :
     sl_opacity typeclass_instances.
   #[only(cfractional,ascfractional,cfracvalid)] derive R.
-  #[global] Instance R_type_ptr `{Σ : cpp_logic, !G Σ} {σ : genv}
+  #[global] Instance R_type_ptr `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ} {σ : genv}
       {HAS_THREADS : HasStdThreads Σ} g q P :
       Observe (type_ptrR cpp_ty) (R g q P).
   Proof. rewrite /R /cpp_ty. apply _. Qed.
@@ -433,7 +432,7 @@ Module CustomSharedMutexPreds <: SHARED_MUTEX_PREDS.
       WeaklyObjective (p |-> R).
   Proof. rewrite INTERNAL._at_eq. apply _. Qed.
   #[global] Instance mutex_inv_WeaklyObjective
-      `{Σ : cpp_logic, !G Σ} {σ : genv} this g P
+      `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ} {σ : genv} this g P
       `{!forall qP, Objective (P qP)} : WeaklyObjective (mutex_inv this g P).
   Proof. rewrite /mutex_inv. apply _. Qed.
 
@@ -459,8 +458,9 @@ Module custom_shared_mutex.
     {| std.atomic.atomic_un_op := std.atomic.add_raw sz sgn (-1) |}.
 
   Section with_Σ.
-    Context `{Σ : cpp_logic, σ : genv, HAS_THREADS : !HasStdThreads Σ,
-      !CustomSharedMutexPreds.G Σ}.
+    Context `{Σ : cpp_logic, σ : genv, HAS_THREADS : !HasStdThreads Σ}.
+    Context `{MUTEX_SETS : !mutex_set_G Σ}.
+    Context `{!CustomSharedMutexPreds.G Σ}.
     Context `{MOD : source ⊧ σ}.
 
     cpp.spec "MySharedMutex::MySharedMutex()" as ctor_spec with
@@ -771,10 +771,10 @@ Module custom_shared_mutex.
       iMod (own_alloc (gmap_view_auth (DfracOwn 1) ∅ : holdersR)) as (gh) "A".
       { apply gmap_view_auth_valid. }
       iMod (cinv_alloc ⊤ N
-        (mutex_inv this (MkGname pool gt gs gh 1%positive N) P)
+        (mutex_inv this (MkGname gt gs gh 1%positive N) P)
         with "[L P Share A]") as (gi) "[#CI CO]"; last first.
-      - iModIntro. go. iExists (MkGname pool gt gs gh gi N).
-        rewrite /IR /R _at_sep _at_as_Rep /token /pool_name /smutex_inv_namespace /=.
+      - iModIntro. go. iExists (MkGname gt gs gh gi N).
+        rewrite /IR /R _at_sep _at_as_Rep /token /smutex_inv_namespace /=.
         iFrame "CI S CO T". auto.
       - iNext. rewrite /mutex_inv /state. iExists 0%Z. iFrame "L".
         iRight. iExists ∅, 1%Qp.

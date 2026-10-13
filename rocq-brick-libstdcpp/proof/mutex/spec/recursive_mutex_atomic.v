@@ -36,7 +36,6 @@ Module RecursiveMutexAtomicSpecs (T : MutexCPPName).
 
   (** [locked γ qt th n] records [n] acquisitions by [th], using token share [qt]. *)
   Class lockedG `{Σ : cpp_logic} := {
-    #[global] sets_G :: MutexSets.G Σ;
     #[global] tokens_G :: MutexTokens.G Σ;
 
     #[local] has_phys_state :: HasOwn (iPropI _Σ) phys_stateUR;
@@ -48,7 +47,6 @@ Module RecursiveMutexAtomicSpecs (T : MutexCPPName).
 
   Record gname : Set := MkGname
   { owned_count_id : iprop.gname;
-    pool_name : iprop.gname;
     mutex_inv_namespace : namespace;
     inv_gname : iprop.gname;
     token_gname : iprop.gname;
@@ -93,10 +91,10 @@ Module RecursiveMutexAtomicSpecs (T : MutexCPPName).
       and registration token. The first lock transfers that permission into
       the physical invariant; the final unlock returns it. *)
   sl.lock
-  Definition locked `{Σ : cpp_logic, !lockedG Σ}
+  Definition locked `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !lockedG Σ}
       (γ : gname) (qt : cQp.t) (th : thread_idT) (n : nat) : mpred :=
     match n with
-    | 0 => MutexSets.my_mutexes γ.(pool_name) th
+    | 0 => MutexSets.my_mutexes th
         (CoPset $ ↑γ.(mutex_inv_namespace)) ** token γ qt
     | S n => owned_count_id_frag γ (Some (th, n)) ** given_token γ qt
     end.
@@ -104,6 +102,7 @@ Module RecursiveMutexAtomicSpecs (T : MutexCPPName).
 
   Section locked_with_cpp.
     Context `{Σ : cpp_logic}.
+    Context `{MUTEX_SETS : !mutex_set_G Σ}.
     Context `{!lockedG Σ}.
     Context `{!HasStdThreads Σ}.
 
@@ -208,7 +207,7 @@ cinv (
     nroot .@@ "std" .@@ "recursive_mutex" .@ "raw_inv".
 
   sl.lock
-  Definition R `{Σ : cpp_logic, σ : genv, !lockedG Σ} (γ : gname) (q : cQp.t) : Rep :=
+  Definition R `{Σ : cpp_logic, σ : genv, MUTEX_SETS : !mutex_set_G Σ, !lockedG Σ} (γ : gname) (q : cQp.t) : Rep :=
     type_ptrR T.cpp_ty **
     as_Rep (fun this => cinv rmutex_N γ.(inv_gname)
       (∃ owner count, this |-> rawR owner count **
@@ -217,14 +216,14 @@ cinv (
         match owner with
         | None => MutexTokens.token_full γ.(token_gname)
         | Some th => MutexTokens.token_not_full γ.(token_gname) **
-            MutexSets.my_mutexes γ.(pool_name) th
+            MutexSets.my_mutexes th
               (CoPset $ ↑γ.(mutex_inv_namespace))
         end)) **
     pureR (cinv_own γ.(inv_gname) q).
   (* TODO: add sequential ownership of the physical lock and
      [|owner = None <-> count = O|]. *)
   #[only(cfractional,cfracvalid,ascfractional)] derive R.
-  #[global] Instance R_type_ptr `{Σ : cpp_logic, σ : genv, !lockedG Σ} γ q :
+  #[global] Instance R_type_ptr `{Σ : cpp_logic, σ : genv, MUTEX_SETS : !mutex_set_G Σ, !lockedG Σ} γ q :
     Observe (type_ptrR T.cpp_ty) (R γ q).
   Proof. rewrite R.unlock. apply _. Qed.
 
@@ -232,6 +231,7 @@ cinv (
   Section base_construction.
     Context `{Σ : cpp_logic} `{MOD : source ⊧ σ}.
     Context {HAS_THREADS : HasStdThreads Σ}.
+    Context `{MUTEX_SETS : !mutex_set_G Σ}.
     Context `{!lockedG Σ}.
 
     #[global] Instance R_learn : Cbn (Learn (learn_eq ==> any ==> learn_hints.fin) R).
@@ -239,9 +239,9 @@ cinv (
 
     Definition ctor_spec_body : ptr -> WpSpec mpred val val :=
       (\this this
-      \pre{pool N} emp
+      \pre{N} emp
       \post Exists g,
-        [| pool_name g = pool /\ mutex_inv_namespace g = N |] **
+        [| mutex_inv_namespace g = N |] **
         this |-> R g 1$m ** token g 1$m).
 
     Definition dtor_spec_body : ptr -> WpSpec mpred val val :=
@@ -308,7 +308,6 @@ Module RecursiveMutexPreds (T : MutexCPPName) <: RECURSIVE_MUTEX_PREDS T.
     ; cinv_gname : iprop.gname
     }.
   Definition gname := rmutex_gname.
-  Definition pool_name (g : gname) := at_specs.pool_name g.(lock_gname).
   Definition rmutex_inv_namespace (g : gname) :=
     at_specs.mutex_inv_namespace g.(lock_gname).
 
@@ -328,13 +327,11 @@ Module RecursiveMutexPreds (T : MutexCPPName) <: RECURSIVE_MUTEX_PREDS T.
   #[global] Instance recursive_mutex_G `{Σ : cpp_logic} (H : G Σ) :
     @recursive_mutexG _ _ Σ := H.
 
-  #[global] Instance sets_G `{Σ : cpp_logic, !G Σ} : MutexSets.G Σ := _.
-
   Definition rmutex_namespace :=
     nroot .@@ "std" .@@ "recursive_mutex" .@@ "derived".
 
   sl.lock
-  Definition inv_rmutex `{Σ : cpp_logic, !G Σ}
+  Definition inv_rmutex `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ}
       (g : gname) (P : mpred) : mpred :=
     cinv rmutex_namespace g.(cinv_gname)
       (Exists n th qt, own g.(level_gname) (●E (n, th, qt)) **
@@ -346,13 +343,13 @@ Module RecursiveMutexPreds (T : MutexCPPName) <: RECURSIVE_MUTEX_PREDS T.
 
   (** Fractional ownership of the physical mutex, its invariant lifetime,
       and the protected resource protocol. *)
-  Definition R `{Σ : cpp_logic, !G Σ} {HAS_THREADS : HasStdThreads Σ}
+  Definition R `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ} {HAS_THREADS : HasStdThreads Σ}
       {σ : genv} (g : gname) (q : cQp.t) (P : mpred) : Rep :=
     at_specs.R g.(lock_gname) q **
     pureR (cinv_own g.(cinv_gname) q) ** pureR (inv_rmutex g P).
   #[global] Hint Opaque R : sl_opacity typeclass_instances.
   #[only(cfractional,cfracvalid,ascfractional)] derive R.
-  #[global] Instance R_type_ptr `{Σ : cpp_logic, !G Σ}
+  #[global] Instance R_type_ptr `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ}
       {HAS_THREADS : HasStdThreads Σ} {σ : genv} g q P :
     Observe (type_ptrR cpp_ty) (R g q P).
   Proof. rewrite /R. apply _. Qed.
@@ -374,14 +371,14 @@ Module RecursiveMutexPreds (T : MutexCPPName) <: RECURSIVE_MUTEX_PREDS T.
     Timeless (given_token g qt th n).
   Proof. rewrite /given_token. apply _. Qed.
 
-  Definition not_locked `{Σ : cpp_logic, !G Σ, σ : genv}
+  Definition not_locked `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ, σ : genv}
       (_this : ptr) (g : gname) (qt : cQp.t) (th : thread_idT) : mpred :=
     token g qt **
-    MutexSets.my_mutexes (pool_name g) th (CoPset $ ↑rmutex_inv_namespace g).
+    MutexSets.my_mutexes th (CoPset $ ↑rmutex_inv_namespace g).
   Definition locked `{Σ : cpp_logic, !G Σ, σ : genv}
       (_this : ptr) (g : gname) (qt : cQp.t) (th : thread_idT) (n : nat) : mpred :=
     given_token g qt th n.
-  #[global] Instance not_locked_timeless `{Σ : cpp_logic, !G Σ, σ : genv} this g qt th :
+  #[global] Instance not_locked_timeless `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ, σ : genv} this g qt th :
     Timeless (not_locked this g qt th).
   Proof. rewrite /not_locked. apply _. Qed.
   #[global] Instance locked_timeless `{Σ : cpp_logic, !G Σ, σ : genv} this g qt th n :
@@ -390,7 +387,9 @@ Module RecursiveMutexPreds (T : MutexCPPName) <: RECURSIVE_MUTEX_PREDS T.
   #[global] Hint Opaque not_locked locked : sl_opacity typeclass_instances.
 
   Section rules.
-    Context `{Σ : cpp_logic, !G Σ}.
+    Context `{Σ : cpp_logic}.
+    Context `{MUTEX_SETS : !mutex_set_G Σ}.
+    Context `{!G Σ}.
 
     Context `{!HasStdThreads Σ} {σ : genv}.
 
@@ -430,6 +429,7 @@ Module RecursiveMutexRefinement (T : MutexCPPName).
 Section with_cpp.
   Context `{Σ : cpp_logic} `{MOD : source ⊧ σ}.
   Context {HAS_THREADS : HasStdThreads Σ}.
+  Context `{MUTEX_SETS : !mutex_set_G Σ}.
   Context `{!G Σ}.
   Context `{HOV : !HasOwnValid mpredI cmraR, HOU : !HasOwnUpd mpredI cmraR}.
 
@@ -441,7 +441,7 @@ Section with_cpp.
   Proof using MOD HOV HOU.
     work.
     iModIntro; work.
-    iExists pool, N. work.
+    iExists N. work.
     (* The owner slot is unused while the initial count is zero. *)
     set th : thread_idT := inhabitant.
     iMod (own_alloc (●E (O, th, (1$m)%cQp) ⋅ ◯E (O, th, (1$m)%cQp))) as (g) "(? & ?)".
@@ -450,7 +450,7 @@ Section with_cpp.
     wname [at_specs.token] "Htoken".
     iMod (cinv_alloc with "[-a Htoken]") as (ginv) "(#Hinv & Hown)"; last first.
     - iExists {| lock_gname := t; level_gname := g; cinv_gname:= ginv |}.
-      rewrite /R /token /pool_name /rmutex_inv_namespace !_at_sep !_at_pureR inv_rmutex.unlock /=.
+      rewrite /R /token /rmutex_inv_namespace !_at_sep !_at_pureR inv_rmutex.unlock /=.
       iModIntro.
       go with br_erefl $usenamed=true.
     - ework with br_erefl.
@@ -463,7 +463,7 @@ Section with_cpp.
       (Spec.dtor_spec this).
   Proof using MOD HOV HOU.
     work.
-    rewrite /R /token /pool_name /rmutex_inv_namespace !_at_sep !_at_pureR inv_rmutex.unlock.
+    rewrite /R /token /rmutex_inv_namespace !_at_sep !_at_pureR inv_rmutex.unlock.
     work.
     iMod (cinv_cancel with "[$] [$]") as (n th qt) "(>? & ?)"; [done..|].
 
@@ -493,7 +493,7 @@ Section with_cpp.
       (∃ t, [| acquire n t |] ∗ ▷ acquireable this g qt th t P))%I.
     wname [bi_wand] "W"; wfocus (bi_wand _ _) "W". { work $usenamed=true. }
     rewrite inv_rmutex.unlock Spec.acquireable.unlock /not_locked /locked /given_token
-      /token /pool_name /rmutex_inv_namespace.
+      /token /rmutex_inv_namespace.
     work; iAcIntro; rewrite /commit_acc/=; work.
     iInv rmutex_namespace as "[(%n' & %th' & %qt' & >Hn & Hcases) ?]" "Hclose".
     destruct n as [|n args]; simpl; [iExists 0 | iExists (S n)].
@@ -535,7 +535,7 @@ Section with_cpp.
       acquireable this g qt th (release $ Held n args) P)%I.
     wname [bi_wand] "W"; wfocus (bi_wand _ _) "W". { work $usenamed=true. }
     rewrite inv_rmutex.unlock Spec.acquireable.unlock /not_locked /locked /given_token
-      /token /pool_name /rmutex_inv_namespace.
+      /token /rmutex_inv_namespace.
     work; iAcIntro; rewrite /commit_acc/=; work.
     iInv rmutex_namespace as "[(%n' & %th' & %qt' & >Hn & Hcases) ?]" "Hclose".
     iDestruct (own_valid_2 with "Hn [$]") as %[=]%excl_auth_agree_L; subst.
@@ -546,9 +546,9 @@ Section with_cpp.
     iMod (own_update_2 with "Hn [$]") as "(Hg & Hcase)";
       first apply (excl_auth_update _ _ (n, th, qt)).
     rewrite /not_locked /locked /given_token /token
-      /pool_name /rmutex_inv_namespace release.unlock; destruct n.
+      /rmutex_inv_namespace release.unlock; destruct n.
     1: rewrite [in at_specs.locked _ _ _ 0]at_specs.locked.unlock /=.
-    1: iDestruct select (MutexSets.my_mutexes _ _ _ ** at_specs.token _ _) as "[? ?]".
+    1: iDestruct select (MutexSets.my_mutexes _ _ ** at_specs.token _ _) as "[? ?]".
     all: iFrame "#∗".
     all: iMod ("Hclose" with "[-]") as "_";
       ework $usenamed=true with br_erefl; done.

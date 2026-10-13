@@ -93,53 +93,76 @@ Module Type OWNER_TID.
       (|==> owner_tid_auth γ o' ** owner_tid_frag γ o').
 End OWNER_TID.
 
-Module MutexSets.
+Module mutex_set_G.
   Canonical Structure cmraR : cmra :=
     thread_idT -d> coPset_disjR.
 
-  Class G `{Σ : cpp_logic} := {
+  Class mutex_set_preG `{Σ : cpp_logic} := {
     #[local] has_own :: HasOwn (iPropI _Σ) cmraR;
     #[local] has_upd :: HasOwnUpd (iPropI _Σ) cmraR;
     #[local] has_valid :: HasOwnValid (iPropI _Σ) cmraR;
   }.
-  #[global] Arguments G {_ _} Σ : assert.
+  #[global] Arguments mutex_set_preG {_ _} Σ : assert.
 
-  Definition my_mutexes `{Σ : cpp_logic, !G Σ}
-      (γ : iprop.gname) (th : thread_idT) (E : coPset_disj) : mpred :=
-    own γ (discrete_fun_singleton th E : cmraR).
+  (* Users of a mutex_set_map ghost state should assume a single instance for
+    the entire C++ program. This can be done by using a single instance of
+    [mutex_set_G] to fix [mutex_sets_name]. *)
+  Class mutex_set_G `{Σ : cpp_logic} := {
+    #[global] pre_G :: mutex_set_preG Σ;
+    mutex_sets_name : iprop.gname;
+  }.
+  #[global] Arguments mutex_set_G {_ _} Σ : assert.
+End mutex_set_G.
+
+Module MutexSets.
+  Import mutex_set_G.
+  #[local] Existing Instances has_own has_upd has_valid.
+
+  Definition my_mutexes `{Σ : cpp_logic, !mutex_set_G Σ}
+      (th : thread_idT) (E : coPset_disj) : mpred :=
+    own mutex_sets_name (discrete_fun_singleton th E : cmraR).
 
   (** The pool reserves the full set for each thread not yet registered. *)
   Definition reserve (M : gset thread_idT) : cmraR :=
     fun th => if decide (th ∈ M) then ε else CoPset ⊤.
 
-  Definition mutex_set_map `{Σ : cpp_logic, !G Σ}
-      (γ : iprop.gname) (M : gset thread_idT) : mpred :=
-    own γ (reserve M).
+  Definition mutex_set_map `{Σ : cpp_logic, !mutex_set_G Σ}
+      (M : gset thread_idT) : mpred :=
+    own mutex_sets_name (reserve M).
 
-  #[global] Instance mutex_set_map_timeless `{Σ : cpp_logic, !G Σ} γ M :
-    Timeless (mutex_set_map γ M).
-  Proof. rewrite /mutex_set_map. apply _. Qed.
-  #[global] Instance my_mutexes_timeless `{Σ : cpp_logic, !G Σ} γ th E :
-    Timeless (my_mutexes γ th E).
-  Proof. rewrite /my_mutexes. apply _. Qed.
-
-  #[global] Instance mutex_set_map_WeaklyObjective `{Σ : cpp_logic, !G Σ} γ M :
-    WeaklyObjective (mutex_set_map γ M).
-  Proof. rewrite /mutex_set_map. apply _. Qed.
-  #[global] Instance my_mutexes_WeaklyObjective `{Σ : cpp_logic, !G Σ} γ th E :
-    WeaklyObjective (my_mutexes γ th E).
-  Proof. rewrite /my_mutexes. apply _. Qed.
-  #[global] Instance my_mutexes_objective `{Σ : cpp_logic, !G Σ} γ th E :
-    Objective (my_mutexes γ th E).
-  Proof. rewrite /my_mutexes. apply _. Qed.
+  Lemma alloc_mutex_set_map `{Σ : cpp_logic, !mutex_set_preG Σ} :
+    ⊢ |==> ∃ _ : mutex_set_G Σ, mutex_set_map ∅.
+  Proof.
+    iMod (own_alloc (reserve ∅)) as (γ) "Hmap".
+    { intros th. rewrite /reserve. case_decide; done. }
+    iModIntro. iExists {| pre_G := _; mutex_sets_name := γ |}.
+    iExact "Hmap".
+  Qed.
 
   Section theory.
-    Context `{Σ : cpp_logic, !G Σ}.
+    Context `{Σ : cpp_logic, !mutex_set_G Σ}.
 
-    Lemma my_mutexes_exclusive γ th (E1 E2 : coPset) :
+    #[global] Instance mutex_set_map_timeless M :
+      Timeless (mutex_set_map M).
+    Proof. rewrite /mutex_set_map. apply _. Qed.
+    #[global] Instance my_mutexes_timeless th E :
+      Timeless (my_mutexes th E).
+    Proof. rewrite /my_mutexes. apply _. Qed.
+
+    #[global] Instance mutex_set_map_WeaklyObjective M :
+      WeaklyObjective (mutex_set_map M).
+    Proof. rewrite /mutex_set_map. apply _. Qed.
+    #[global] Instance my_mutexes_WeaklyObjective th E :
+      WeaklyObjective (my_mutexes th E).
+    Proof. rewrite /my_mutexes. apply _. Qed.
+    #[global] Instance my_mutexes_objective th E :
+      Objective (my_mutexes th E).
+    Proof. rewrite /my_mutexes. apply _. Qed.
+
+    Lemma my_mutexes_exclusive th (E1 E2 : coPset) :
       ~(E1 ## E2) ->
-      my_mutexes γ th (CoPset E1) **
-      my_mutexes γ th (CoPset E2) |-- False.
+      my_mutexes th (CoPset E1) **
+      my_mutexes th (CoPset E2) |-- False.
     Proof.
       rewrite /my_mutexes.
       iIntros (Hoverlap) "[H1 H2]".
@@ -151,19 +174,11 @@ Module MutexSets.
       set_solver.
     Qed.
 
-    Lemma alloc_mutex_set_map :
-      ⊢ |==> ∃ γ, mutex_set_map γ ∅.
-    Proof.
-      iMod (own_alloc (reserve ∅)) as (γ) "Hmap".
-      { intros th. rewrite /reserve. case_decide; done. }
-      iModIntro. iExists γ. iExact "Hmap".
-    Qed.
-
     (* does not need the update, but is implementation detail. *)
-    Lemma mutex_sets_alloc_thread' γ T th :
+    Lemma mutex_sets_alloc_thread' T th :
       th ∉ T ->
-      mutex_set_map γ T |--
-        mutex_set_map γ (T ∪ {[th]}) ** my_mutexes γ th (CoPset ⊤).
+      mutex_set_map T |--
+        mutex_set_map (T ∪ {[th]}) ** my_mutexes th (CoPset ⊤).
     Proof.
       intros Hfresh.
       rewrite /mutex_set_map /my_mutexes -own_op.
@@ -185,20 +200,20 @@ Module MutexSets.
       by rewrite Heq.
     Qed.
 
-    Lemma mutex_sets_alloc_thread γ T th :
+    Lemma mutex_sets_alloc_thread T th :
       th ∉ T ->
-      mutex_set_map γ T |--
-        (|==> mutex_set_map γ (T ∪ {[th]}) **
-                my_mutexes γ th (CoPset ⊤)).
+      mutex_set_map T |--
+        (|==> mutex_set_map (T ∪ {[th]}) **
+                my_mutexes th (CoPset ⊤)).
     Proof.
       iIntros (Hfresh) "Hmap". iModIntro.
-      iApply (mutex_sets_alloc_thread' γ T th Hfresh with "Hmap").
+      iApply (mutex_sets_alloc_thread' T th Hfresh with "Hmap").
     Qed.
 
-    Lemma mutex_sets_free_thread γ T th :
+    Lemma mutex_sets_free_thread T th :
       th ∈ T ->
-      mutex_set_map γ T ** my_mutexes γ th (CoPset ⊤) |--
-        mutex_set_map γ (T \ {[th]}).
+      mutex_set_map T ** my_mutexes th (CoPset ⊤) |--
+        mutex_set_map (T \ {[th]}).
     Proof.
       intros Hmember.
       rewrite /mutex_set_map /my_mutexes -own_op.
@@ -220,8 +235,8 @@ Module MutexSets.
       by rewrite Heq.
     Qed.
 
-    Lemma mutex_set_map_empty_no_my_mutexes γ th (N : namespace) :
-      mutex_set_map γ ∅ ** my_mutexes γ th (CoPset (↑N)) |-- False.
+    Lemma mutex_set_map_empty_no_my_mutexes th (N : namespace) :
+      mutex_set_map ∅ ** my_mutexes th (CoPset (↑N)) |-- False.
     Proof.
       rewrite /mutex_set_map /my_mutexes.
       iIntros "[Hmap Hmy]".
@@ -234,10 +249,10 @@ Module MutexSets.
       set_solver.
     Qed.
 
-    Lemma my_mutexes_alloc_mutex_name γ th (E N : coPset) :
+    Lemma my_mutexes_alloc_mutex_name th (E N : coPset) :
       N ⊆ E ->
-      my_mutexes γ th (CoPset E) |--
-        my_mutexes γ th (CoPset (E \ N)) ** my_mutexes γ th (CoPset N).
+      my_mutexes th (CoPset E) |--
+        my_mutexes th (CoPset (E \ N)) ** my_mutexes th (CoPset N).
     Proof.
       intros Hsub.
       rewrite /my_mutexes -own_op discrete_fun_singleton_op.
@@ -247,20 +262,20 @@ Module MutexSets.
       done.
     Qed.
 
-    Lemma my_mutexes_split γ th (E1 E2 : coPset) :
+    Lemma my_mutexes_split th (E1 E2 : coPset) :
       E1 ## E2 ->
-      my_mutexes γ th (CoPset (E1 ∪ E2)) ⊣⊢
-        my_mutexes γ th (CoPset E1) ** my_mutexes γ th (CoPset E2).
+      my_mutexes th (CoPset (E1 ∪ E2)) ⊣⊢
+        my_mutexes th (CoPset E1) ** my_mutexes th (CoPset E2).
     Proof.
       intros Hdisjoint.
       rewrite /my_mutexes -own_op discrete_fun_singleton_op.
       by rewrite coPset_disj_union.
     Qed.
 
-    Lemma my_mutexes_join_mutex_name γ th (E N : coPset) :
+    Lemma my_mutexes_join_mutex_name th (E N : coPset) :
       N ⊆ E ->
-      my_mutexes γ th (CoPset (E \ N)) ** my_mutexes γ th (CoPset N) |--
-        my_mutexes γ th (CoPset E).
+      my_mutexes th (CoPset (E \ N)) ** my_mutexes th (CoPset N) |--
+        my_mutexes th (CoPset E).
     Proof.
       intros Hsub.
       rewrite -my_mutexes_split; last set_solver.
@@ -272,28 +287,28 @@ Module MutexSets.
   End theory.
 
   (* an example that two threads can allocate the same namespace token. *)
-  Lemma my_mutexes_alloc_eg : forall `{Σ : cpp_logic, !G Σ}
+  Lemma my_mutexes_alloc_eg : forall `{Σ : cpp_logic, !mutex_set_preG Σ}
       (th1 th2 : thread_idT) (N : coPset),
     th1 ≠ th2 ->
-    ⊢ |==> ∃ γ,
-      my_mutexes γ th1 (CoPset N) **
-      my_mutexes γ th2 (CoPset N) **
-      (mutex_set_map γ {[th1; th2]} **
-       my_mutexes γ th1 (CoPset (⊤ \ N)) **
-       my_mutexes γ th2 (CoPset (⊤ \ N))).
+    ⊢ |==> ∃ _ : mutex_set_G Σ,
+      my_mutexes th1 (CoPset N) **
+      my_mutexes th2 (CoPset N) **
+      (mutex_set_map {[th1; th2]} **
+       my_mutexes th1 (CoPset (⊤ \ N)) **
+       my_mutexes th2 (CoPset (⊤ \ N))).
   Proof.
     intros until N. intros Hneq.
-    iMod alloc_mutex_set_map as (γ) "Hmap".
-    iMod (mutex_sets_alloc_thread γ ∅ th1 ltac:(set_solver)
+    iMod alloc_mutex_set_map as (HG) "Hmap".
+    iMod (mutex_sets_alloc_thread ∅ th1 ltac:(set_solver)
       with "Hmap") as "[Hmap Ht1]".
     iEval (rewrite left_id_L) in "Hmap".
-    iMod (mutex_sets_alloc_thread γ {[th1]} th2 ltac:(set_solver)
+    iMod (mutex_sets_alloc_thread {[th1]} th2 ltac:(set_solver)
       with "Hmap") as "[Hmap Ht2]".
-    iDestruct (my_mutexes_alloc_mutex_name γ th1 ⊤ N ltac:(set_solver)
+    iDestruct (my_mutexes_alloc_mutex_name th1 ⊤ N ltac:(set_solver)
       with "Ht1") as "[Hr1 Hn1]".
-    iDestruct (my_mutexes_alloc_mutex_name γ th2 ⊤ N ltac:(set_solver)
+    iDestruct (my_mutexes_alloc_mutex_name th2 ⊤ N ltac:(set_solver)
       with "Ht2") as "[Hr2 Hn2]".
-    iModIntro. iExists γ. iFrame.
+    iModIntro. iExists HG. iFrame.
   Qed.
 
   #[global] Hint Opaque mutex_set_map my_mutexes : sl_opacity typeclass_instances.

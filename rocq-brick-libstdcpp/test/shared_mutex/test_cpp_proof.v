@@ -5,21 +5,22 @@ Require Import skylabs.brick.libstdcpp.test.shared_mutex.test_cpp.
 
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv} {HAS_THREADS : HasStdThreads Σ}.
+  Context `{MUTEX_SETS : !mutex_set_G Σ}.
   Context `{!shared_mutex.G Σ}.
 
   cpp.spec "test_shared_mutex()" as test_shared_mutex_spec from source with (
     \persist{thr} current_thread thr
-    \prepost{pool} MutexSets.my_mutexes pool thr (coPset.CoPset ⊤)
+    \prepost MutexSets.my_mutexes thr (coPset.CoPset ⊤)
     \post emp).
 
   Lemma test_shared_mutex_ok :
     verify[source] "test_shared_mutex()".
   Proof.
     verify_spec; go.
-    iExists pool, (nroot .@@ "test_shared_mutex"), (const emp); go.
+    iExists (nroot .@@ "test_shared_mutex"), (const emp); go.
     rename t into g.
     iDestruct (MutexSets.my_mutexes_alloc_mutex_name
-      (shared_mutex.pool_name g) thr ⊤
+      thr ⊤
       (↑shared_mutex.smutex_inv_namespace g) ltac:(set_solver)
       with "[$]") as "[Hrest Hname]".
     wname [shared_mutex.token] "Htoken".
@@ -37,7 +38,7 @@ Section with_cpp.
     iEval (rewrite /shared_mutex.not_locked) in "Hnotlocked".
     iDestruct "Hnotlocked" as "[Htoken Hname]".
     iDestruct (MutexSets.my_mutexes_join_mutex_name
-      (shared_mutex.pool_name g) thr ⊤
+      thr ⊤
       (↑shared_mutex.smutex_inv_namespace g) ltac:(set_solver)
       with "[Hrest Hname]") as "Hnames"; first iFrame.
     go $usenamed=true.
@@ -45,17 +46,17 @@ Section with_cpp.
 
   cpp.spec "test_shared_mutex_shared()" as test_mutex_shared_spec from source with (
     \persist{thr} current_thread thr
-    \prepost{pool} MutexSets.my_mutexes pool thr (coPset.CoPset ⊤)
+    \prepost MutexSets.my_mutexes thr (coPset.CoPset ⊤)
     \post emp).
 
   Lemma test_shared_mutex_shared :
     verify[source] "test_shared_mutex_shared()".
   Proof.
     verify_spec; go.
-    iExists pool, (nroot .@@ "test_shared_mutex_shared"), (const emp); go.
+    iExists (nroot .@@ "test_shared_mutex_shared"), (const emp); go.
     rename t into g.
     iDestruct (MutexSets.my_mutexes_alloc_mutex_name
-      (shared_mutex.pool_name g) thr ⊤
+      thr ⊤
       (↑shared_mutex.smutex_inv_namespace g) ltac:(set_solver)
       with "[$]") as "[Hrest Hname]".
     wname [shared_mutex.token] "Htoken".
@@ -68,7 +69,7 @@ Section with_cpp.
     iEval (rewrite /shared_mutex.not_locked) in "Hnotlocked".
     iDestruct "Hnotlocked" as "[Htoken Hname]".
     iDestruct (MutexSets.my_mutexes_join_mutex_name
-      (shared_mutex.pool_name g) thr ⊤
+      thr ⊤
       (↑shared_mutex.smutex_inv_namespace g) ltac:(set_solver)
       with "[Hrest Hname]") as "Hnames"; first iFrame.
     go $usenamed=true.
