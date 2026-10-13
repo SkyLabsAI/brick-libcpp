@@ -74,7 +74,7 @@ The caller chooses $N$, while $\gamma$ is existentially quantified. Each thread 
 With this naming scheme established, we can set up a system for threads to register themselves with each mutex namespace. Each thread holds a set of as-yet-unregistered mutex names $\mutexperm{t}{A}$, where $A$ is initially the universe of possible mutex names $\top$. When $t$ wishes to register with a mutex $N$, it removes $N$ from $A$ and exchanges it (along with a share of $\mathsf{token}$) for $\mathsf{not\_locked}$:
 \[ \mutexperm{t}{N} \ast \token{\gamma}{q} \dashv \vdash \notlocked{N, \gamma}{t}{q} \]
 When a thread is finished using the mutex (and does not currently hold it), it can perform the same operation in reverse to recover $\mutexperm{t}{N}$ and $\token{\gamma}{q}$.
-Each of our mutex types will use this same registration pattern; we explain its implementation in Section~\ref{login}.
+Each of our mutex types will use this same registration pattern and the same $\mathsf{not\_locked}$ predicate, though the form of their $\mathsf{locked}$ predicate varies according to the mutex type. We explain the implementation of $\mathsf{mutex\_perm}$ and $\mathsf{not\_locked}$ in Section~\ref{login}.
 
 Using the $\mathsf{m\_locked}$ and $\mathsf{not\_locked}$ predicates, we can specify the mutex as follows:
 \[\begin{array}{c}
@@ -443,7 +443,7 @@ The standard Iris approach to verifying a spinlock is to define an invariant of 
 \]
 where whenever the lock is not held the invariant contains the protected resources $P$ and some exclusive token $\mathsf{token}_\gamma$, and when the lock is held, these are transferred to the holder. Having $\mathsf{token}_\gamma$ allows the thread to unlock the mutex: when it opens the invariant, it must be in the unlocked branch because there cannot be two copies of $\mathsf{token}_\gamma$. The mutex invariant is slightly more complex:
 \[
-  I(P) \triangleq \knowInv{}{\begin{aligned}
+  I(P) \triangleq \begin{aligned}
     &(\exists t.\ \ownGhost{}{\authfull t}) \\
     &{}\ast \left(\begin{aligned}
       &(\texttt{lock} \mapsto \mathsf{true}
@@ -452,14 +452,14 @@ where whenever the lock is not held the invariant contains the protected resourc
         \ast \ownGhost{}{\authfrag \bot} \ast \giventoken{\gamma}{1}
         \ast \texttt{owner} \mapsto \bot)
     \end{aligned}\right)
-  \end{aligned}}_\pi
+  \end{aligned}
 \]
 
 The mutex invariant must manage both the fractional token and the thread ownership state of the mutex. The invariant holds a resource $\giventoken{\gamma}{q}$ that it exchanges for $\token{\gamma}{q}$; when a thread holding $\notlocked{N, \gamma}{t}{q}$ acquires the lock, it trades $\notlocked{N, \gamma}{t}{q}$ for $\giventoken{\gamma}{q}$ and a ghost resource $\authfrag t$ recording the current owner. The acquiring thread also receives ownership of the \lstinline{owner} field of the mutex, so that it can safely check and change it. In sum, the resources owned by the thread that holds the lock are $\locked{N, \gamma}{t}{q} \triangleq \ownGhost{}{\authfrag t} \ast \giventoken{\gamma}{q} \ast \texttt{owner} \mapsto t$. \wm{It's a bit awkward that we use ghost notation only for the thread-owning ghost state.}
 %First, the locking thread $t$ hands over its $\notlocked{\gamma}{t}{q}$ to the invariant, ensuring that a thread never holds both $\mathsf{m\_locked}$ and $\mathsf{not\_locked}$ and that the mutex is only destructed when no thread currently locks it. But when $\notlocked{\gamma}{t}$ is stored in the invariant, its argument $t$ is forgotten, so we use a pair of \textit{authoritative} ghost states $\ownGhost{}{\authfull t}$ and $\ownGhost{}{\authfrag t}$ to remedy this: when a thread $t$ locks the mutex, it also receives $\ownGhost{}{\authfrag t}$ from the mutex \kedu{Do we want to explain ghost update?} with the same $t$; the other piece $\ownGhost{}{\authfull t}$ always store the same value as $\ownGhost{}{\authfrag t}$ and is stored in the invariant, so when thread $t$ unlocks the mutex, it can use $\ownGhost{}{\authfrag t}$ to recover $\notlocked{\gamma}{t}$. The $\ownGhost{}{\authfrag t}$ ghost state is also exclusive and does the job of $\token{\gamma}$. Lastly, the \lstinline{owner} field is also a protected resource, and it is required to have the default value $\bot$ when the mutex is unowned.
 \kedu{Now \locked{}{} can't have \notlocked{}{} in it,  $\notlocked{\gamma}{t} \ast \locked{\gamma}{t} \vdash \mathsf{False}$ is probably only provable with the invariant. }
 %Now we can define $\locked{\gamma}{t}$ as $\notlocked{\gamma}{t} \ast \texttt{owner} \mapsto t$. We include $\mathsf{not\_locked}$ in $\mathsf{m\_locked}$ because this immediately gives us $\notlocked{\gamma}{t} \ast \locked{\gamma}{t} \vdash \mathsf{False}$, and the exclusivity of $\mapsto$ guarantees that $\notlocked{\gamma}{t_1} \ast \locked{\gamma}{t_2} \vdash \mathsf{False}$. Furthermore, $\currentthread{t} \ast \locked{\gamma}{t}$ guarantees that \lstinline{owner} is precisely the current thread $t$, so the precondition of \lstinline{unlock} is sufficient to ensure that the \lstinline{assert} will succeed. %But this doesn't seem to be enough to pass !lock in the destructor -- we need something in the true case that's inconsistent with used_threads(\empty). Maybe use some extra ghost state to split not_locked and put half into the invariant.
-Finally, to allow destruction, the invariant is \emph{cancelable}: threads that know of the mutex hold some share $\pi$ of it, and a thread with full ownership can cancel the invariant and recover its contents. The representation predicate is then exactly $p \mapsto_\pi \mutex{N, \gamma}{P} \triangleq I(P)_\pi$. %move the \knowInv out, as in recursive_mutex?
+Finally, to allow destruction, the invariant is \emph{cancelable}: threads that know of the mutex hold some share $\pi$ of it, written as $\knowInv{}{I(P)}_\pi$, and a thread with full ownership can cancel the invariant and recover its contents. The representation predicate is then exactly $p \mapsto_\pi \mutex{N, \gamma}{P} \triangleq \knowInv{}{I(P)}_\pi$. %fix the points-to for the fields?
 
 \begin{figure}[htb]
 \begin{lstlisting}[escapeinside    = {(*@}{@*)}]
@@ -538,10 +538,10 @@ The simplest way to implement a recursive mutex is by combining an underlying no
 Because the implementation includes both a mutex and an atomic field, the resources associated with the recursive mutex are divided across \emph{three} places: the mutex's protected resources, an invariant (containing atomically accessed resources), and the thread holding the lock (i.e., the $\mathsf{holds}$ predicate for $n > 0$). For a resource function $P$, these three parts are defined as follows:
 \[\begin{array}{l}%vertical spacing
 R_{}(P) \triangleq \texttt{count} \mapsto 0 \ast \ownGhost{}{\authfrag \bot} \ast \exists a.\ P(a) \\
-I_{\gamma}(P) \triangleq \exists o.\ \texttt{owner} \mapsto \mathsf{id}(o) \ast \ownGhost{}{\authfull o} \ast \text{if } o = (t, q) \text{ then } \locked{N, \gamma}{t}{q} \text{ else } \mathsf{emp}\\
+I_{N, \gamma}(P) \triangleq \exists o.\ \texttt{owner} \mapsto \mathsf{id}(o) \ast \ownGhost{}{\authfull o} \ast \text{if } o = (t, q) \text{ then } \locked{N, \gamma}{t}{q} \text{ else } \mathsf{emp}\\
 \acquirable{N, \gamma}{t}{n}{q}{P}{a} \triangleq \text{if } n = 0 \text{ then } \notlocked{N, \gamma}{t}{q} \text{ else } \texttt{count} \mapsto n \ast \ownGhost{}{\authfrag (t, q)} \ast P(a)\end{array}\]
 The heart of the implementation proof is a piece of ghost state that tracks whether the recursive mutex is held; this state is either $\bot$ if it is not held, or $(t, q)$ if a thread holds $\locked{}{t}{q}$ of the underlying mutex \lstinline{m}. This ghost state is split using the authoritative pattern. The authoritative piece $\ownGhost{}{o}$ is held in the invariant $I$, where it determines the value of the \lstinline{owner} field ($t$ if there is an owner, or the default value \lstinline{std::thread::id()} if there is not). When no thread holds the recursive mutex, the inner mutex resources $R$ include the current \lstinline{count} (which must be 0), the ghost fragment (which must be $\bot$), and the protected resources $P$ at some argument $a$. When a thread acquires the inner mutex, it trades its $\notlocked{N, \gamma}{t}{q}$ for $\locked{N, \gamma}{t}{q}$ and $R$, giving it ownership of the \lstinline{count} field, the ghost fragment, and the protected resources $P(a)$; it then puts $\locked{N, \gamma}{t}{q}$ into the invariant $I$ and keeps the remaining resources, which constitute the non-0 case of $\mathsf{holds}$. This allows the thread that holds the lock to freely increment and decrement \lstinline{count} and borrow the resources $P(a)$, only returning them and retrieving $\locked{N, \gamma}{t}{q}$ when \lstinline{count} becomes 0 (after which it releases \lstinline{m} and returns to $\notlocked{N, \gamma}{t}{q}$). We can then define $\mathsf{rmutex}$ by
-\[p \mapsto_\pi \rmutex{N, \gamma}{P} \triangleq p.\texttt{m} \mapsto_\pi \mutex{N, \gamma}{R(P)} \ast \knowInv{}{I_\gamma(P)}_\pi\]
+\[p \mapsto_\pi \rmutex{N, \gamma}{P} \triangleq p.\texttt{m} \mapsto_\pi \mutex{N, \gamma}{R(P)} \ast \knowInv{}{I_{N, \gamma}(P)}_\pi\]
 
 \begin{figure}[htb]
 \begin{lstlisting}[escapeinside    = {(*@}{@*)}]
@@ -582,7 +582,9 @@ class RecursiveMutex {
 \label{rmutex-simple-proof}
 \end{figure}
 
-The proof of \lstinline{lock} is particularly subtle. The precondition includes $\acquirable{N, \gamma}{t}{n}{q}{P}{a}$, but we must consider separately the cases where $n = 0$ and $n > 0$. If $n > 0$, then we have $\ownGhost{}{\authfrag (t, q)}$, which in combination with the invariant $I_\gamma(P)$ tells us that the value of the \lstinline{owner} field is exactly $t$, and so the condition of the \lstinline{if} will fail and we will simply increment the count (which we already own as part of $\mathsf{holds}$). On the other hand, if $n = 0$, then we have $\notlocked{N, \gamma}{t}{q}$, which in combination with the invariant $I_\gamma(P)$ tells us that $t$ \emph{cannot} be the current owner: $o$ may be $\bot$ or $(t', q)$, but if $t' = t$ then the invariant would hold $\locked{N, \gamma}{t}{q}$, which is inconsistent with $\notlocked{N, \gamma}{t}{q}$. Thus, in the 0 case the condition of the \lstinline{if} will succeed and we will acquire the underlying mutex \lstinline{m}, gaining access to the resources needed to increment \lstinline{count} and establish $\acquirable{N, \gamma}{t}{1}{q}{P}{a}$. The proof of \lstinline{unlock} is simpler, since it can only be called by a thread with $\mathsf{holds}$ at $n + 1 > 0$; thus, the thread already owns \lstinline{count}, and needs only to check whether it has set \lstinline{count} to 0 and, if so, retrieve $\locked{N, \gamma}{t}{q}$ from the invariant and release \lstinline{m}.
+The proof of \lstinline{lock} is particularly subtle. The precondition includes $\acquirable{N, \gamma}{t}{n}{q}{P}{a}$, but we must consider separately the cases where $n = 0$ and $n > 0$. If $n > 0$, then we have $\ownGhost{}{\authfrag (t, q)}$, which in combination with the invariant $I_\gamma(P)$ tells us that the value of the \lstinline{owner} field is exactly $t$, and so the condition of the \lstinline{if} will fail and we will simply increment the count (which we already own as part of $\mathsf{holds}$). On the other hand, if $n = 0$, then we have $\notlocked{N, \gamma}{t}{q}$, which in combination with the invariant $I_\gamma(P)$ tells us that $t$ \emph{cannot} be the current owner: $o$ may be $\bot$ or $(t', q)$, but if $t' = t$ then the invariant would hold $\locked{N, \gamma}{t}{q}$, which is inconsistent with $\notlocked{N, \gamma}{t}{q}$. Thus, in the 0 case the condition of the \lstinline{if} will succeed and we will acquire the underlying mutex \lstinline{m}, gaining access to the resources needed to increment \lstinline{count} and establish $\acquirable{N, \gamma}{t}{1}{q}{P}{a}$.
+
+The proof of \lstinline{unlock} is simpler, since it can only be called by a thread with $\mathsf{holds}$ at $n + 1 > 0$; thus, the thread already owns \lstinline{count}, and needs only to check whether it has set \lstinline{count} to 0 and, if so, retrieve $\locked{N, \gamma}{t}{q}$ from the invariant and release \lstinline{m}.
 
 \subsubsection{\lstinline{std::shared_mutex}}
 \begin{figure}[htb]
@@ -612,3 +614,34 @@ void unlock_shared(){
 \caption{A simple implementation of \lstinline{std::shared_mutex}}
 \label{smutex-simple}
 \end{figure}
+
+A shared mutex can be in one of three states: unheld, exclusively held (writer-locked), or shared (reader-locked). In the shared state it must also count the number of readers that hold it. This leads to an implementation with a single atomic counter, which is 0 when the lock is not held, -1 when it is held exclusively, and equal to the number of readers when it is shared (shown in Figure~\ref{smutex-simple}). It can only be taken exclusively (i.e., \lstinline{lock}ed) when the counter is exactly 0, but it can add a reader as long as the counter is not -1.
+
+Recall from Section~\ref{shared-mutex} that the two lock methods are specified as
+\[\begin{array}{@{}c@{}}
+\{\currentthread{t} \ast m \mapsto_\pi \smutex{N, \gamma}{P}\ast\notlocked{N, \gamma}{t}{q}\} \\
+  \texttt{m.lock()} \\[-1pt]
+\{\currentthread{t} \ast m \mapsto_\pi \smutex{N, \gamma}{P}\ast P(1)\ast\smlocked{N, \gamma}{t}{q}\} \\[1.8em]
+
+\{\currentthread{t} \ast m \mapsto_\pi \smutex{N, \gamma}{P}\ast\notlocked{N, \gamma}{t}\}\\
+  \texttt{m.lock\_shared()} \\[-1pt]
+\{\currentthread{t} \ast m \mapsto_\pi \smutex{N, \gamma}{P}\ast\exists q_P.\;\smreaderlocked{N, \gamma}{t}{q}{q_P} \ast P(q_P)\} \end{array}\]
+Each thread that holds the mutex has two shares associated with it: the fraction $q$ from $\mathsf{not\_locked}$ (representing a share of the token used to ensure that there are no owners at deallocation), and the fraction $q_P$ of the protected resource $P$ (which is 1 for a writer and arbitrary for a reader). Thus, the state of the shared mutex can be modeled as a map from thread IDs to pairs of shares $(q, q_P)$. The central invariant of the shared mutex is then
+\[  I_{N, \gamma}(P) \triangleq \begin{aligned}
+    &(\exists n.\ \texttt{sharers} \mapsto n \\
+    &{}\ast \left(\begin{aligned}
+      &(\exists t, q.\ n = -1 \ast \ownGhost{}{\authfull \{t \mapsto (q, 1)\}} \ast \notlocked{N, \gamma}{t}{q}) \\
+      {}\vee{} &(\exists M.\ n = |M| \ast \ownGhost{}{\authfull M} \ast P(1 - \mathsf{sum\_qP}(M)) \ast \Sep_{t \mapsto (q, \_) \in M} \notlocked{N, \gamma}{t}{q})
+    \end{aligned}\right)
+  \end{aligned}
+\]
+When the lock is exclusively held ($n =-1$), the map is a singleton $\{t \mapsto (q, 1)\}$, where thread $t$ has full ownership of $P$. Otherwise, the map has $n$ entries (possibly 0) and the invariant $I_{N, \gamma}(P)$ retains ownership of the remaining fraction $1 - \mathsf{sum\_qP}(M)$ of $P$, where $\mathsf{sum\_qP}(M)$ sums the $q_P$ components of all entries in $M$. In either case, $I_{N, \gamma}(P)$ also holds $\mathsf{not\_locked}$ for each thread that has acquired the lock in any way, ensuring that each thread can only attempt to acquire the shared mutex once. The shared mutex invariant resembles that of the basic mutex; in particular, note that when $n = 0$, the invariant reduces to $\ownGhost{}{\authfull \emptyset} \ast P(1)$.
+
+The shared mutex $\mathsf{locked}$ predicates are simply fragments of the central map:
+\[\begin{array}{l}
+\smlocked{N, \gamma}{t}{q} \triangleq \ownGhost{}{\authfrag \{t \mapsto (q, 1)\}}\\
+\smreaderlocked{N, \gamma}{t}{q}{q_P} \triangleq \ownGhost{}{\authfrag \{t \mapsto (q, q_P)\}} \text{ where } q_P < 1
+\end{array}\]
+As in the basic mutex, the representation predicate is simply $p \mapsto_\pi \smutex{N, \gamma}{P} \triangleq \knowInv{}{I_{N, \gamma}(P)}_\pi$.
+
+The proofs of the shared mutex specifications are also largely analogous to those of the basic mutex. The \lstinline{lock} and \lstinline{unlock} methods only transition between the $n = 0$ and $n = -1$ states; \lstinline{lock} spins until $n$ is 0, and the precondition $\smlocked{N, \gamma}{t}{q}$ of \lstinline{unlock} guarantees that $n$ is -1. On the reader side, \lstinline{lock_shared} and \lstinline{unlock_shared} stay within the second case of the invariant, adding or removing entries from $M$ and taking or returning the corresponding shares of $P$; \lstinline{lock_shared} spins when $n$ is -1, and the precondition $\smreaderlocked{N, \gamma}{t}{q}{q_P}$ of \lstinline{unlock_shared} is inconsistent with $n = -1$ (since we would then hold $\ownGhost{}{\authfull \{t \mapsto (q, 1)\}}$ and $\ownGhost{}{\authfrag \{t \mapsto (q, q_P)\}}$ where $q_P < 1$).
