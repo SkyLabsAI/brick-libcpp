@@ -23,7 +23,7 @@ Section with_cpp.
     \cancelx
     \consuming p |-> new_token.R q (new_token.mk ty storage_p overhead)
     \proving p |-> alloc.tokenR ty q
-    \through storage_p .[ Tbyte ! -overhead ] |-> allocatedR q (overhead + sz)
+    \through storage_p .[ Tbyte ! -overhead ] |-> allocatedR q (is_array_type ty) (overhead + sz)
     \end.
   Next Obligation.
     rewrite alloc.tokenR.unlock. work.
@@ -35,7 +35,7 @@ Section with_cpp.
     \consuming p |-> new_token.R q (new_token.mk ty storage_p overhead)
     \proving p |-> alloc.tokenR ty q
     \deduce{sz} [| size_of _ ty = Some sz |]
-    \through storage_p .[ Tbyte ! -overhead ] |-> allocatedR q (overhead + sz)
+    \through storage_p .[ Tbyte ! -overhead ] |-> allocatedR q (is_array_type ty) (overhead + sz)
     \end.
   Next Obligation.
     intros; iIntros "X".
@@ -51,7 +51,7 @@ Section with_cpp.
     \cancelx
     \consuming p |-> new_token.R q (new_token.mk ty storage_p 0)
     \proving p |-> alloc.tokenR ty q
-    \through storage_p |-> allocatedR q sz
+    \through storage_p |-> allocatedR q (is_array_type ty) sz
     \end.
   Next Obligation.
     rewrite alloc.tokenR.unlock. work.
@@ -64,7 +64,7 @@ Section with_cpp.
     \consuming p |-> new_token.R q (new_token.mk ty storage_p 0)
     \proving p |-> alloc.tokenR ty q
     \deduce{sz} [| size_of _ ty = Some sz |]
-    \through storage_p |-> allocatedR q sz
+    \through storage_p |-> allocatedR q (is_array_type ty) sz
     \end.
   Next Obligation.
     intros; iIntros "X".
@@ -82,13 +82,13 @@ Section with_cpp.
     \consuming p |-> alloc.tokenR (σ:=σ) ty q
     \proving{(storage_p : ptr) overhead} p |-> new_token.R q (new_token.mk ty storage_p overhead)
     \deduce{(storage_p' : ptr) sz} [| size_of _ ty = Some sz |]
-    \deduce storage_p' |-> allocatedR q sz
+    \deduce storage_p' |-> allocatedR q false sz
     \through [| storage_p = storage_p' |]
     \through [| overhead = 0 |]%N
     \end.
   Next Obligation.
-    intros.
-    rewrite alloc.tokenR.unlock.
+    intros * Harray.
+    rewrite alloc.tokenR.unlock (proj1 (TCEq_eq _ _) Harray).
     iIntros "X"; iDestruct "X" as (????) "[X ?]".
     iDestruct (observe [| overhead = 0%N |] with "X") as "%".
     subst. normalize_ptrs.
@@ -103,7 +103,7 @@ Section with_cpp.
     \consuming p |-> alloc.tokenR (σ:=σ) ty q
     \proving{(storage_p : ptr) overhead} p |-> new_token.R q (new_token.mk ty storage_p overhead)
     \deduce{(storage_p' : ptr) (overhead' : N) sz} [| size_of _ ty = Some sz |]
-    \deduce storage_p' .[ Tbyte ! -overhead' ] |-> allocatedR q (overhead' + sz)
+    \deduce storage_p' .[ Tbyte ! -overhead' ] |-> allocatedR q (is_array_type ty) (overhead' + sz)
     \through [| storage_p = storage_p' |]
     \through [| overhead = overhead' |]%N
     \end.
@@ -117,7 +117,7 @@ Section with_cpp.
   #[global] Instance alloc_token_new_token_learnable ty q q' a b c :
     Learnable (alloc.tokenR ty q) (new_token.R q' (new_token.mk a b c)) [ty = a].
   Proof. solve_learnable. Qed.
-  #[global] Instance allocatedR_learn : Cbn (Learn (any ==> learn_eq ==> learn_hints.fin) allocatedR).
+  #[global] Instance allocatedR_learn : Cbn (Learn (any ==> learn_eq ==> learn_eq ==> learn_hints.fin) allocatedR).
   Proof. solve_learnable. Qed.
 
   #[global] Instance token_learn : Cbn (Learn (learn_eq ==> learn_eq ==> any ==> learn_hints.fin) alloc.tokenR).
