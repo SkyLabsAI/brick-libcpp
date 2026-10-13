@@ -1,128 +1,95 @@
 Require Import skylabs.auto.cpp.proof.
-Require Import skylabs.brick.libstdcpp.mutex.spec.mutex.
-Require Export skylabs.brick.libstdcpp.runtime.pred.
-
 Require Import skylabs.brick.libstdcpp.mutex.inc_hpp.
+Require Import skylabs.brick.libstdcpp.mutex.inc_hpp_templates.
 
+Require Export skylabs.brick.libstdcpp.runtime.pred.
+Require Import skylabs.brick.libstdcpp.mutex.spec.prelude.
+Require Import skylabs.brick.libstdcpp.mutex.requirements.
 
-Import linearity.
+(* Generic specs for "lock_guard<T>". *)
+NES.Begin lock_guard.
+  Record M {T : Type} : Type := Mk
+  { mutex_ptr : ptr
+  ; mutex_q : Qp
+  ; mutex_m : T }.
+  #[global] Arguments M _ : clear implicits.
+  #[global] Arguments Mk {_} _ _ _.
+  #[only(lens)] derive M.
 
-Section TO_UPSTREAM.
-  Lemma cQp_mut_add q1 q2 :
-    (q1 + q2)$m%cQp = (q1$m + q2$m)%cQp.
-  Proof. done. Qed.
-End TO_UPSTREAM.
+  #[global] Hint Opaque mutex_ptr : sl_opacity.
 
-Module lock_guard.
-
+  (* Wrapper of a basic lockable object with resource predicate [mutexR]. *)
   sl.lock
-  Definition R `{Σ : cpp_logic, !HasStdThreads Σ, !mutex.G Σ} {σ : genv}
-      (mp : ptr * mutex.gname * cQp.t) (q : cQp.t) (P : mpred) : Rep :=
-    structR "std::lock_guard<std::mutex>" q **
-    let '(mp, g, q') := mp in
-    _field "std::lock_guard<std::mutex>::_M_device" |-> refR<"std::mutex"> q mp **
-    pureR (
-      mp |-> mutex.R g (q * q')$m P).
-
-  #[only(type_ptr)] derive R.
-  #[only(lazy_unfold)] derive R.
+  Definition R
+      `{Σ : cpp_logic} {σ : genv} ty {T} mutexR `{!BasicLockable ty (T:=T) mutexR}
+      (q : cQp.t) (m : M T) : Rep :=
+    let lgty := "std::lock_guard" .<< Atype ty >> in
+    structR lgty q **
+    _field (lgty .:: Nid "_M_device") |-> refR<ty> q m.(mutex_ptr) **
+    pureR (m.(mutex_ptr) |-> mutexR (cQp.scale m.(mutex_q) q) m.(mutex_m)).
 
   Section with_RepFor.
     Import rep.RepFor.
     Import RepScheme.
 
-    #[global] Instance repfor `{Σ : cpp_logic, !HasStdThreads Σ, !mutex.G Σ} {σ : genv} :
-      rep.RepFor.C "std::lock_guard<std::mutex>"
-      [ArgType.Constant _; ArgType.CFrac; ArgType.Constant _]
-      R := {}.
+    #[global] Instance repfor `{Σ : cpp_logic} {σ : genv} ty {T} mutexR `{!BasicLockable ty (T:=T) mutexR} :
+      rep.RepFor.C (Tnamed $ "std::lock_guard" .<< Atype ty >>)
+        [ArgType.CFrac; ArgType.Constant _] (R ty mutexR) := {}.
   End with_RepFor.
 
-  (**
-  These automated proofs fail, so we prove it by hand.
-  [R_cfrac] does not seem too useful (why ever split a lock guard?), but let's
-  prove it anyway to test our infrastructure. *)
-  Fail #[only(cfractional,cfracvalid,ascfractional)] derive R.
+  Module R_unfold.
+    #[only(lazy_unfold(export))] derive R.
+  End R_unfold.
 
-  #[only(cfracvalid)] derive R.
+  Section with_cpp.
+    Context `{Σ : cpp_logic} {σ : genv}.
+    Context ty {mutexT mutexR} `{!BasicLockable ty (T:=mutexT) mutexR}.
 
-Section with_cpp.
-  Context `{Σ : cpp_logic, σ : genv}.
-  Context {HAS_THREADS : HasStdThreads Σ}.
-  Context `{!mutex.G Σ}.
+    #[only(type_ptr)] derive R.
+    #[only(cfracvalid)] derive R.
 
-  #[global] Instance R_learn :
-    Cbn (Learn (learn_eq ==> any ==> learn_eq ==> learn_hints.fin) lock_guard.R) :=
-    ltac:(solve_learnable).
+    Section with_cfrac.
+      Context `{CFrac : !CFractional1 mutexR}.
+      #[local] Set Default Proof Using "CFrac".
 
-  Set Printing Coercions.
+      #[global] Instance R_cfrac : CFractional1 (R ty mutexR).
+      Proof. rewrite R.unlock. apply _. Qed.
 
-  Section with_R_cfrac'.
-    #[local] Instance R_cfrac' g q' P :
-      CFractional (λ q, mutex.R g (cQp.frac q * q')$m P).
-    (* Proof.
-      intros q1 q2.
-      rewrite -(cfractional (P := λ q, mutex.R _ q _)).
-      rewrite -cQp_mut_add.
-      rewrite -Qp.mul_add_distr_r.
-      Succeed done.
-      by rewrite -cQp.frac_add.
-    Restart.
-    *)
-    Proof.
-      intros q1 q2.
-      rewrite cQp.frac_add.
-      rewrite Qp.mul_add_distr_r.
-      rewrite cQp_mut_add.
-      by rewrite (cfractional (P := λ q, mutex.R g q P)).
-    Qed.
+      #[global] Instance R_as_cfrac : AsCFractional1 (R ty mutexR).
+      Proof. solve_as_cfrac. Qed.
 
-    #[global] Instance R_cfrac mp : CFractional1 (R mp).
-    Proof. rewrite R.unlock. apply _. Qed.
-  End with_R_cfrac'.
+      Lemma mutex_borrow mp m (this : ptr) (q1 q2 : Qp) :
+        this |-> R ty mutexR 1$m (Mk mp (q1 + q2) m) |--
+        mp |-> mutexR q1$m m **
+        this |-> R ty mutexR 1$m (Mk mp q2 m).
+      Proof.
+        rewrite R.unlock /= !cQp.scale_mut !(right_id_L 1%Qp Qp.mul).
+        change ((q1 + q2)$m)%cQp with (q1$m + q2$m)%cQp.
+        rewrite (cfractional (P := λ q, mutexR q m)).
+        iIntros "($ & $ & $ & $)".
+      Qed.
+    End with_cfrac.
 
-  Fail #[only(ascfractional)] derive R.
-  #[global] Instance R_as_cfrac mp : AsCFractional1 (R mp).
-  Proof. solve_as_cfrac. Qed.
+    #[local] Abbreviation R := (R ty (T:=mutexT) mutexR).
 
-  cpp.spec "std::lock_guard<std::mutex>::lock_guard(std::mutex &)" as ctor_spec from source with (
-    \this this
-    \arg{mp} "m" (Vptr mp)
-    \persist{thr} current_thread thr
-    \pre{g q P} mp |-> mutex.R g q P
-    \pre{qt} mutex.not_locked mp g thr qt
-    \post
-      this |-> R (mp, g, q) 1$m P **
-      P ** mutex.locked mp g thr qt
+    #[global] Instance R_learn : LearnEqF1 R := ltac:(solve_learnable).
+
+    cpp.spec "std::lock_guard<$ty>::lock_guard($ty&)" as ctor_spec from source templates templates (
+      \\with
+      \this this
+      \arg{mp} "" (Vptr mp)
+      \pre{q m} mp |-> mutexR q$m m
+      \pre{K} do_lock ty mp m K
+      \post
+        this |-> R 1$m (Mk mp q m) ** K
     ).
 
-  cpp.spec "std::lock_guard<std::mutex>::~lock_guard()" as dtor_spec from source with (
-    \this this
-    \pre{mp g q P} this |-> R (mp, g, q) 1$m P
-    \persist{thr} current_thread thr
-    \pre{qt} mutex.locked mp g thr qt
-    \pre ▷P
-    \post
-      mutex.not_locked mp g thr qt **
-      mp |-> mutex.R g q P
-  ).
-
-  Section with_prelude.
-
-    Import skylabs.auto.cpp.prelude.proof.
-
-    Lemma mutex_borrow mp g P (this : ptr) (q1 q2 : Qp) :
-      this |-> R (mp, g, ((q1 + q2)$m)%cQp) 1$m P |--
-      mp |-> mutex.R g q1$m P **
-      this |-> R (mp, g, q2$m)%cQp 1$m P.
-    Proof.
-      rewrite R.unlock.
-      work.
-      iDestruct select (mp |-> mutex.R g _ P) as "[??]".
-      (* Unnecessary with our prelude. *)
-      (* rewrite !left_id_L. *)
-      work.
-    Qed.
-  End with_prelude.
-
-End with_cpp.
-End lock_guard.
+    cpp.spec "std::lock_guard<$ty>::~lock_guard()" as dtor_spec from source templates templates (
+      \\with
+      \this this
+      \pre{m} this |-> R 1$m m
+      \pre{K} do_unlock ty m.(mutex_ptr) m.(mutex_m) K
+      \post K ** m.(mutex_ptr) |-> mutexR m.(mutex_q)$m m.(mutex_m)
+    ).
+  End with_cpp.
+NES.End lock_guard.
