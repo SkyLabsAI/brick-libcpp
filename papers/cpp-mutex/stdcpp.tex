@@ -431,26 +431,39 @@ The default constructor acquires the mutex $p$, so it needs $\dolock{p}{m}{K}$ i
 
 %move this to lock_guard?
 \begin{figure}[htb]
-\begin{lstlisting}
-  int value{0};
-  std::recursive_mutex m;
+\begin{lstlisting}[escapeinside    = {(*@}{@*)}]
+  int val = 0;
+  std::recursive_mutex m{};
 
+  (*@ $\{ \currentthread{t} \ast \acquirable{N, \gamma}{t}{n}{q}{\lambda v.\,\texttt{val} \mapsto v}{x} \}$ @*)
   void inc() {
     std::unique_lock<std::recursive_mutex> lk(m);
-    value++;
+    (*@ $\{ \currentthread{t} \ast \texttt{lk} \mapsto \ulock(\mathsf{true}, m, q, P) \ast \acquirable{N, \gamma}{t}{n+1}{q}{\lambda v.\,\texttt{val} \mapsto v}{x}\} \Rightarrow$ @*)
+    (*@ $\{ \currentthread{t} \ast \texttt{lk} \mapsto \ulock(\mathsf{true}, m, q, P) \ast \texttt{val} \mapsto x \ast (\forall y.\,\texttt{val} \mapsto y \wand \acquirable{N, \gamma}{t}{n+1}{q}{\lambda v.\,\texttt{val} \mapsto v}{y})\}$ @*)
+    val++;
+    (*@ $\{ \currentthread{t} \ast \texttt{lk} \mapsto \ulock(\mathsf{true}, m, q, P) \ast \acquirable{N, \gamma}{t}{n+1}{q}{\lambda v.\,\texttt{val} \mapsto v}{x + 1}\}$ @*)
   }
+  (*@ $\{ \currentthread{t} \ast \acquirable{N, \gamma}{t}{n}{q}{\lambda v.\,\texttt{val} \mapsto v}{x + 1})\}$ @*)
 
+  (*@ $\{ \currentthread{t} \ast \acquirable{N, \gamma}{t}{n}{q}{\lambda v.\,\texttt{val} \mapsto v}{x} \}$ @*)
   void answer() {
     std::unique_lock<std::recursive_mutex> lk(m);
-    value = 41;
+    (*@ $\{ \currentthread{t} \ast \texttt{lk} \mapsto \ulock(\mathsf{true}, m, q, P) \ast \acquirable{N, \gamma}{t}{n+1}{q}{\lambda v.\,\texttt{val} \mapsto v}{x}\} \Rightarrow$ @*)
+    (*@ $\{ \currentthread{t} \ast \texttt{lk} \mapsto \ulock(\mathsf{true}, m, q, P) \ast \texttt{val} \mapsto x \ast (\forall y.\,\texttt{val} \mapsto y \wand \acquirable{N, \gamma}{t}{n+1}{q}{\lambda v.\,\texttt{val} \mapsto v}{y})\}$ @*)
+    val = 41;
+    (*@ $\{ \currentthread{t} \ast \texttt{lk} \mapsto \ulock(\mathsf{true}, m, q, P) \ast \acquirable{N, \gamma}{t}{n+1}{q}{\lambda v.\,\texttt{val} \mapsto v}{41})\}$ @*)
     inc();
+    (*@ $\{ \currentthread{t} \ast \texttt{lk} \mapsto \ulock(\mathsf{true}, m, q, P) \ast \acquirable{N, \gamma}{t}{n+1}{q}{\lambda v.\,\texttt{val} \mapsto v}{42}\}$ @*)
   }
+  (*@ $\{ \currentthread{t} \ast \acquirable{N, \gamma}{t}{n}{q}{\lambda v.\,\texttt{val} \mapsto v}{42} \}$ @*)
 \end{lstlisting}
 \caption{A program with multiple \lstinline{unique_lock}s around a single \lstinline{recursive_mutex}}
 \label{unique-recursive}
 \end{figure}
-As discussed in Section~\ref{basic-lockable}, the \lstinline{BasicLockable} requirement does not explicitly require that \lstinline{lock} lead to mutual exclusion, and indeed recursive mutexes can be \lstinline{lock}ed multiple times without being \lstinline{unlock}ed. This interacts in an interesting and useful way with \lstinline{unique_lock}'s acquisition tracking (the $\mathsf{held}$ predicate in our specifications): each \lstinline{unique_lock} can only acquire its mutex at most once, but we can construct multiple \lstinline{unique_lock}s around a single recursive mutex, each of which manages a single acquisition. %Is this equally true of lock_guard? We could call unlock once manually to illustrate the point.
-The code in Figure~\ref{unique-recursive} shows how this can be used. When \lstinline{answer} is called, it acquires the recursive mutex \lstinline{m} by constructing a \lstinline{unique_lock} around it; it then calls \lstinline{inc}, which constructs another \lstinline{unique_lock} that acquires \lstinline{m} a second time. When each method returns, its \lstinline{unique_lock} is destroyed and \lstinline{m} is released once, so that \lstinline{m} is no longer locked after \lstinline{answer} returns. Our specifications can be used to verify this program. %proof outline?
+As discussed in Section~\ref{basic-lockable}, the \lstinline{BasicLockable} requirement does not explicitly require that \lstinline{lock} lead to mutual exclusion, and indeed recursive mutexes can be \lstinline{lock}ed multiple times without being \lstinline{unlock}ed. Thus, while each \lstinline{lock_guard} or \lstinline{unique_lock} object can only acquire its mutex at most once, we can construct multiple objects around a single recursive mutex, each of which manages a single acquisition.
+The code in Figure~\ref{unique-recursive} shows how this can be used. When \lstinline{answer} is called, it acquires the recursive mutex \lstinline{m} by constructing a \lstinline{unique_lock} around it; it then calls \lstinline{inc}, which constructs another \lstinline{unique_lock} that acquires \lstinline{m} a second time. When each method returns, its \lstinline{unique_lock} is destroyed and \lstinline{m} is released once, so that \lstinline{m} is no longer locked after \lstinline{answer} returns.
+
+Our specifications can be used to verify this program. When \lstinline{inc} constructs its \lstinline{unique_lock} around \lstinline{m}, it uses the $\mathsf{do\_lock}$ transformer of \lstinline{recursive_mutex} to determine its pre- and postcondition, incrementing the $\mathsf{holds}$ predicate's count by 1. Because $n + 1 > 0$, we can then borrow the protected resources, in this case $\texttt{val} \mapsto x$, from $\mathsf{holds}$, and restore them after running \lstinline{val++} with an argument value of $x + 1$. The \lstinline{unique_lock} destructor then calls the $\mathsf{do\_unlock}$ transformer, restoring the $\mathsf{holds}$ count to $n$. In \lstinline{answer}, we go through a similar process, incrementing the $\mathsf{holds}$ count and borrowing $\texttt{val}$ to set it to 41, but we then call \lstinline{inc} with the resulting predicate $\acquirable{N, \gamma}{t}{n+1}{q}{\lambda v.\,\texttt{val} \mapsto v}{41})$. This works exactly as desired: \lstinline{inc} acquires \lstinline{m} again with its \lstinline{unique_lock} and increments the hold count to $n + 2$, changes the argument from 41 to 42, and then releases \lstinline{m}, returning $\acquirable{N, \gamma}{t}{n+1}{q}{\lambda v.\,\texttt{val} \mapsto v}{42}$. Finally, \lstinline{answer}'s \lstinline{unique_lock} is destroyed, decrementing the count to the original $n$ and leaving us with the argument value of 42. Because our $\mathsf{do\_lock}$/$\mathsf{do\_unlock}$ interface makes no assumptions about the underlying mutex, we have no trouble verifying programs that construct multiple RAII objects around a single recursive mutex.
 
 \section{Case Study: Mutex Encapsulation}
 %\input{ring_buffer.tex}
