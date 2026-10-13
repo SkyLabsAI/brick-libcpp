@@ -2,6 +2,7 @@ Require Import skylabs.bi.tls_modalities.
 Require Import skylabs.auto.cpp.prelude.proof.
 Require Import skylabs.brick.libstdcpp.runtime.pred.
 Require Import skylabs.brick.libstdcpp.lib.lock_ghost2.
+Export lock_ghost2.mutex_set_G (mutex_set_G).
 Require Import skylabs.brick.libstdcpp.thread.thread_hpp.
 
 Import linearity.
@@ -10,7 +11,7 @@ Import linearity.
 Section with_cpp.
   Context `{Σ : cpp_logic} {σ : genv}.
   Context {HAS_THREADS : HasStdThreads Σ}.
-  Context `{!MutexSets.G Σ}.
+  Context `{!mutex_set_G Σ}.
 
   (** Exclusive ownership of a thread object.
       [R $ None] is already joined thread and non-joinable;
@@ -24,17 +25,18 @@ Section with_cpp.
 
   (** The mutex-set map tracks spawned thread IDs and supplies each child
       with its [MutexSets.my_mutexes] handle. *)
-  Definition spawned_threads_inv (N : namespace) (γ : iprop.gname) : mpred :=
-    inv N (Exists tids, MutexSets.mutex_set_map γ tids).
+  Definition spawned_threads_inv (N : namespace) : mpred :=
+    inv N (Exists tids, MutexSets.mutex_set_map tids).
 
+  (** Install the map allocated with the ambient [mutex_set_G] instance. *)
   Lemma spawned_threads_inv_alloc N :
-    ⊢ |={⊤}=> ∃ γ, spawned_threads_inv N γ.
+    MutexSets.mutex_set_map ∅ |-- (|={⊤}=> spawned_threads_inv N).
   Proof.
-    iMod MutexSets.alloc_mutex_set_map as (γ) "Hmap".
-    iMod (inv_alloc N _ (Exists tids, MutexSets.mutex_set_map γ tids)
+    iIntros "Hmap".
+    iMod (inv_alloc N _ (Exists tids, MutexSets.mutex_set_map tids)
       with "[Hmap]") as "Hinv".
     { iNext. iExists ∅. done. }
-    iModIntro. iExists γ. done.
+    iModIntro. done.
   Qed.
 
   Definition entry_type : type := Tfunction (FunctionType Tvoid []).
@@ -53,12 +55,12 @@ Section with_cpp.
   Definition spawn_spec_body : ptr -> WpSpec mpred val val :=
     (\this this
      \arg{f : ptr} "f" (Vptr f)
-     \pre{N γ} spawned_threads_inv N γ
+     \pre{N} spawned_threads_inv N
      \persist{parent} current_thread parent
      \pre{Q : mpred} [| WeaklyObjective Q |]
      \pre
        (∀ child,
-          (MutexSets.my_mutexes γ child (coPset.CoPset ⊤) -*
+          (MutexSets.my_mutexes child (coPset.CoPset ⊤) -*
           (* FIXME is the usage of this wp_fptr correct? *)
           wp_fptr (σ.(genv_tu).(types)) entry_type f []
               (* f returns void so Q does not depend on return value *)
