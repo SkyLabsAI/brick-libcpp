@@ -83,7 +83,7 @@ Definition P `{Σ : cpp_logic, σ : genv} (this : ptr) : TT -t> mpred :=
 sl.lock
 Definition CR
   `{Σ : cpp_logic, σ : genv} {HAS_THREADS : HasStdThreads Σ}
-  `{!std_recursive_mutex.G Σ}
+  `{MUTEX_SETS : !mutex_set_G Σ, !std_recursive_mutex.G Σ}
   (γ : std_recursive_mutex.gname) (q : cQp.t) :=
   structR "C" q **
   as_Rep (fun this : ptr =>
@@ -96,6 +96,7 @@ Definition CR
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv} {HAS_THREADS : HasStdThreads Σ}.
 
+  Context `{MUTEX_SETS : !mutex_set_G Σ}.
   Context `{!std_recursive_mutex.G Σ}.
 
   #[local] Instance: `{Objective1 (tele_app (P p))}.
@@ -109,22 +110,21 @@ Section with_cpp.
 
   cpp.spec "test_one_answer()" from source with (
     \persist{thr} current_thread thr
-    \prepost{pool} MutexSets.my_mutexes pool thr (coPset.CoPset ⊤)
+    \prepost MutexSets.my_mutexes thr (coPset.CoPset ⊤)
     \post[Vint 42] emp
   ).
   cpp.spec "test_other_answer()" from source with (
     \persist{thr} current_thread thr
-    \prepost{pool} MutexSets.my_mutexes pool thr (coPset.CoPset ⊤)
+    \prepost MutexSets.my_mutexes thr (coPset.CoPset ⊤)
     \post[Vint 42] emp
   ).
 
   (** Initialize the member lock but do not acquire it. *)
   cpp.spec "C::C()" from source as C_ctor_spec with (
     \this this
-    \pre{pool N} emp
+    \pre{N} emp
     \post Exists γ,
-      [| std_recursive_mutex.pool_name γ = pool /\
-         std_recursive_mutex.rmutex_inv_namespace γ = N |] **
+      [| std_recursive_mutex.rmutex_inv_namespace γ = N |] **
       this |-> CR γ 1$m ** std_recursive_mutex.token γ 1$m
   ).
 
@@ -136,7 +136,7 @@ Section with_cpp.
   Proof.
     verify_shift.
     go.
-    iExists pool, N, TT, (P this), (mk 0); go.
+    iExists N, TT, (P this), (mk 0); go.
     rewrite (* Ugh *) -bi.later_intro.
     rewrite {1}P.unlock.
     go.
@@ -166,9 +166,9 @@ Section with_cpp.
     verify[source] "test_one_answer()".
   Proof.
     verify_spec; go.
-    iExists pool, (nroot .@@ "guard_recursive"); go.
+    iExists (nroot .@@ "guard_recursive"); go.
     iDestruct (MutexSets.my_mutexes_alloc_mutex_name
-      (std_recursive_mutex.pool_name t) thr ⊤
+      thr ⊤
       (↑std_recursive_mutex.rmutex_inv_namespace t) ltac:(set_solver)
       with "[$]") as "[Hrest Hname]".
     wname [std_recursive_mutex.token] "Htoken".
@@ -217,7 +217,7 @@ Section with_cpp.
       /std_recursive_mutex.not_locked) in "Hacquireable".
     iDestruct "Hacquireable" as "[Htoken Hname]".
     iDestruct (MutexSets.my_mutexes_join_mutex_name
-      (std_recursive_mutex.pool_name γ) thr ⊤
+      thr ⊤
       (↑std_recursive_mutex.rmutex_inv_namespace γ) ltac:(set_solver)
       with "[Hrest Hname]") as "Hnames"; first iFrame.
     iFrame "Htoken". go $usenamed=true.
