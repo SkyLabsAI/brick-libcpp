@@ -40,10 +40,12 @@ Proof. rewrite /same_sign; destruct trichotomyT as [[?|?]|?]; lia. Qed.
 
 (* Keep complete C strings usable, and also accept readable bounded buffers. *)
 mlock Definition strncmp_inputR `{Σ : cpp_logic} {σ : genv}
-    q (terminated : bool) (s : bs) : Rep :=
-  if terminated then cstring.R q s
-  else nonnullR ** array_sliceR Tchar 0 (lengthZ (BS.string_to_bytes s))
-    (fun b : N => charR q b) (BS.string_to_bytes s).
+    q (bound : option Z) (s : bs) : Rep :=
+  match bound with
+  | None => cstring.R q s
+  | Some hi => nonnullR ** array_sliceR Tchar 0 hi
+      (fun b : N => charR q b) (BS.string_to_bytes s)
+  end.
 
 Section with_cpp.
 Context `{Σ : cpp_logic, σ : genv}.
@@ -52,25 +54,20 @@ Context `{Σ : cpp_logic, σ : genv}.
     \cancelx
     \consuming p |-> cstring.R q s
     \guard SplitCFrac q q1 q2
-    \bound qq ss terminated
-    \proving p |-> strncmp_inputR qq terminated ss
+    \bound qq ss bound
+    \proving p |-> strncmp_inputR qq bound ss
     \through [| qq = q1 |]
     \through [| ss = s |]
-    \through [| terminated = true |]
+    \through [| bound = None |]
     \deduce p |-> cstring.R q2 s
     \end@{mpred}.
   Next Obligation.
     intros; rewrite (split_cfrac q).
     rewrite (cfractional (P := fun cq => cstring.R cq s) q1 q2) _at_sep.
     iIntros "[H1 H2]". iFrame "H2".
-    iIntros (qq ss terminated) "(-> & -> & ->)".
+    iIntros (qq ss bound) "(-> & -> & ->)".
     rewrite strncmp_inputR.unlock. iExact "H1".
   Qed.
-
-  #[global] Instance strncmp_array_cfractional hi bytes :
-    CFractional (fun q => array_sliceR Tchar 0 hi
-      (fun b : N => charR q b) bytes).
-  Proof. rewrite array_sliceR.unlock. apply _. Qed.
 
   #[global, program] Definition strncmp_array_C
       (p : ptr) q hi bytes q1 q2
@@ -78,11 +75,11 @@ Context `{Σ : cpp_logic, σ : genv}.
     \cancelx
     \consuming p |-> array_sliceR Tchar 0 hi (fun b : N => charR q b) bytes
     \guard SplitCFrac q q1 q2
-    \bound qq ss terminated
-    \proving p |-> strncmp_inputR qq terminated ss
+    \bound qq ss bound
+    \proving p |-> strncmp_inputR qq bound ss
     \through [| qq = q1 |]
     \through [| ss = BS.bytes_to_string bytes |]
-    \through [| terminated = false |]
+    \through [| bound = Some hi |]
     (* Empty slices do not imply non-nullness. *)
     \through [| p <> nullptr |]
     \deduce p |-> array_sliceR Tchar 0 hi (fun b : N => charR q2 b) bytes
@@ -92,13 +89,9 @@ Context `{Σ : cpp_logic, σ : genv}.
     rewrite (cfractional (P := fun cq => array_sliceR Tchar 0 hi
       (fun b : N => charR cq b) bytes) q1 q2) _at_sep.
     iIntros "[H1 H2]". iFrame "H2".
-    iIntros (qq ss terminated) "(-> & -> & -> & %Hnonnull)".
+    iIntros (qq ss bound) "(-> & -> & -> & %Hnonnull)".
     rewrite strncmp_inputR.unlock -(RedEq_eq Hbytes) _at_sep _at_nonnullR.
-    iSplit; first by iPureIntro.
-    iEval (rewrite array_sliceR.unlock _at_sep _at_only_provable) in "H1".
-    iDestruct "H1" as "[_ Harray]".
-    rewrite array_sliceR.unlock _at_sep _at_only_provable.
-    iSplit; [by iPureIntro; lia | iExact "Harray"].
+    iFrame "H1". by iPureIntro.
   Qed.
 
   (* Singleton arrays normalize to a character cell. *)
@@ -109,11 +102,11 @@ Context `{Σ : cpp_logic, σ : genv}.
     \consuming p |-> charR q byte
     \guard SplitCFrac q q1 q2
     \guard PtrNorm p normalized_p
-    \bound qq ss terminated
-    \proving normalized_p |-> strncmp_inputR qq terminated ss
+    \bound qq ss bound
+    \proving normalized_p |-> strncmp_inputR qq bound ss
     \through [| qq = q1 |]
     \through [| ss = BS.bytes_to_string [byte] |]
-    \through [| terminated = false |]
+    \through [| bound = Some 1 |]
     \deduce p |-> charR q2 byte
     \end@{mpred}.
   Next Obligation.
@@ -122,7 +115,7 @@ Context `{Σ : cpp_logic, σ : genv}.
     iIntros "[H1 H2]".
     iDestruct (observe (type_ptr Tchar normalized_p) with "H1") as "#?".
     iFrame "H2".
-    iIntros (qq ss terminated) "(-> & -> & ->)".
+    iIntros (qq ss bound) "(-> & -> & ->)".
     rewrite strncmp_inputR.unlock -(RedEq_eq Hbyte).
     rewrite array_sliceR.unlock /= arrayR_singleton
       !(_at_sep, _at_only_provable, _at_offsetR, _at_nonnullR).
@@ -148,17 +141,21 @@ Context `{Σ : cpp_logic, σ : genv}.
     (\arg{s1_p} "__s1" (Vptr s1_p)
      \arg{s2_p} "__s2" (Vptr s2_p)
      \arg{n} "__n" (Vn n)
-     \pre{q1 s1 terminated1} s1_p |-> strncmp_inputR q1 terminated1 s1
-     \pre{q2 s2 terminated2} s2_p |-> strncmp_inputR q2 terminated2 s2
-     \require terminated1 || strncmp_readable s1 n
-     \require terminated2 || strncmp_readable s2 n
+     \pre{q1 s1 bound1} s1_p |-> strncmp_inputR q1 bound1 s1
+     \pre{q2 s2 bound2} s2_p |-> strncmp_inputR q2 bound2 s2
+     \require match bound1 with None => true | Some _ => strncmp_readable s1 n end
+     \require match bound2 with None => true | Some _ => strncmp_readable s2 n end
      \post{res}[Vint res]
-       s1_p |-> (if terminated1 then cstring.R q1 s1
-         else nonnullR ** array_sliceR Tchar 0 (lengthZ (BS.string_to_bytes s1))
-           (fun b : N => charR q1 b) (BS.string_to_bytes s1)) **
-       s2_p |-> (if terminated2 then cstring.R q2 s2
-         else nonnullR ** array_sliceR Tchar 0 (lengthZ (BS.string_to_bytes s2))
-           (fun b : N => charR q2 b) (BS.string_to_bytes s2)) **
+       s1_p |-> (match bound1 with
+         | None => cstring.R q1 s1
+         | Some hi => nonnullR ** array_sliceR Tchar 0 hi
+             (fun b : N => charR q1 b) (BS.string_to_bytes s1)
+         end) **
+       s2_p |-> (match bound2 with
+         | None => cstring.R q2 s2
+         | Some hi => nonnullR ** array_sliceR Tchar 0 hi
+             (fun b : N => charR q2 b) (BS.string_to_bytes s2)
+         end) **
        [| same_sign (strncmp s1 s2 n) res |] ).
 
   cpp.spec "strchr(char*, int)" as strchr_mut_spec with
