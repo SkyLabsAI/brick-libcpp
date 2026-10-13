@@ -3497,3 +3497,61 @@ series = {ICFP '11}
 }
 
 @website{heaplang-rw-lock, title={rw\_spin\_lock.v}, url={https://gitlab.mpi-sws.org/iris/iris/-/blob/master/iris_heap_lang/lib/rw_spin_lock.v}, author={Isaac van Bakel and Ralf Jung and Robbert Krebbers and Ike Mulder}, year={2023}}
+
+@inproceedings{brick-os,
+author = {Malecha, Gregory and Dang, Hoang-Hai and Giarrusso, Paolo G. and Hudon, Simon and Kaiser, Jan-Oliver and Swasey, David},
+title = {Modular, Full-System Verification},
+year = {2025},
+isbn = {9798400714757},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3713082.3730387},
+doi = {10.1145/3713082.3730387},
+abstract = {We present an approach to specifying operating systems that is both highly modular and supports deriving various properties necessary to modern operating systems. The approach combines a machine semantics decomposed by privilege levels with a separation logic specification of the operating system API. We describe how the specification style enables natural proofs of robust safety in addition to deep behavioral refinements of user-mode applications running atop the OS. This approach enables simple and flexible concurrent specifications and unlocks new opportunities for whole-system verification.},
+booktitle = {Proceedings of the 2025 Workshop on Hot Topics in Operating Systems},
+pages = {42–49},
+numpages = {8},
+keywords = {Formal verification, Iris, Multi-core verification, Operating system specification, Separation logic},
+location = {Banff, AB, Canada},
+series = {HotOS '25}
+}
+
+@InProceedings{cakeml-io,
+author="F{\'e}r{\'e}e, Hugo
+and {\AA}man Pohjola, Johannes
+and Kumar, Ramana
+and Owens, Scott
+and Myreen, Magnus O.
+and Ho, Son",
+editor="Piskac, Ruzica
+and R{\"u}mmer, Philipp",
+title="Program Verification in the Presence of I/O",
+booktitle="Verified Software. Theories, Tools, and Experiments",
+year="2018",
+publisher="Springer International Publishing",
+address="Cham",
+pages="88--111",
+abstract="Software verification tools that build machine-checked proofs of functional correctness usually focus on the algorithmic content of the code. Their proofs are not grounded in a formal semantic model of the environment that the program runs in, or the program's interaction with that environment. As a result, several layers of translation and wrapper code must be trusted. In contrast, the CakeML project focuses on end-to-end verification to replace this trusted code with verified code in a cost-effective manner.",
+isbn="978-3-030-03592-1"
+}
+
+@article{irc11-rcu,
+author = {Jung, Jaehwang and Park, Sunho and Lee, Janggun and Yeon, Jeho and Kang, Jeehoon},
+title = {Verifying General-Purpose RCU for Reclamation in Relaxed Memory Separation Logic},
+year = {2025},
+issue_date = {June 2025},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {9},
+number = {PLDI},
+url = {https://doi.org/10.1145/3729246},
+doi = {10.1145/3729246},
+abstract = {Read-Copy-Update (RCU) is a critical synchronization mechanism for concurrent data structures, enabling efficient deferred memory reclamation. However, implementing and using RCU correctly is challenging due to its inherent concurrency complexities. While previous work verified RCU, they either relied on unrealistic assumptions of sequentially consistent (SC) memory model or lacked three key features of general-purpose RCU libraries: modular specification, switchable critical sections, and concurrent writer support.We present the first formal verification of a general-purpose RCU in realistic relaxed memory consistency (RMC), addressing the challenges posed by these features. To achieve modular specification that encompasses relaxed behaviors, we extend existing SC specifications to account for explicit synchronization. To support switchable critical sections, which require read-after-write (RAW) synchronization, we introduce a reasoning principle for RAW-synchronizing SC fences. Using this principle, we also present the first formal verification of Peterson's mutex in RMC. To support concurrent writers performing partially ordered writes, we avoid assuming a total order of links and instead formulate invariants based on per-node incoming link histories. Our proofs are mechanized in the iRC11 relaxed memory separation logic, built upon Iris, in Rocq.},
+journal = {Proc. ACM Program. Lang.},
+month = jun,
+articleno = {147},
+numpages = {25},
+keywords = {separation logic, relaxed memory, Read-Copy-Update}
+}
+
+  
