@@ -34,7 +34,8 @@ Definition P `{Σ : cpp_logic, σ : genv} (this : ptr) : TT -t> mpred :=
 
 sl.lock
 Definition CR
-    `{Σ : cpp_logic, σ : genv, !std_recursive_mutex.G Σ, !HasStdThreads Σ}
+    `{Σ : cpp_logic, σ : genv, MUTEX_SETS : !mutex_set_G Σ,
+      !std_recursive_mutex.G Σ, !HasStdThreads Σ}
     (γ : std_recursive_mutex.gname) (q : cQp.t) : Rep :=
   structR "C" q **
   as_Rep (fun this : ptr =>
@@ -48,6 +49,7 @@ Section std_recursive_mutex.
   Import std_recursive_mutex.
   Context `{Σ : cpp_logic, σ : genv}.
   Context {HAS_THREADS : HasStdThreads Σ}.
+  Context `{MUTEX_SETS : !mutex_set_G Σ}.
   Context `{!std_recursive_mutex.G Σ}.
 
   Lemma acquireable_update_equiv {TT : tele} this γ qt th f t1 t2 P :
@@ -65,6 +67,7 @@ End std_recursive_mutex.
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
   Context {HAS_THREADS : HasStdThreads Σ}.
+  Context `{MUTEX_SETS : !mutex_set_G Σ}.
   Context `{!std_recursive_mutex.G Σ}.
 
   #[global] Instance: LearnEq2 CR'.

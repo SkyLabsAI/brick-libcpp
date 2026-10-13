@@ -3,6 +3,7 @@ Require Import skylabs.brick.libstdcpp.mutex.inc_hpp.
 
 Require Export skylabs.brick.libstdcpp.runtime.pred.
 Require Import skylabs.brick.libstdcpp.mutex.spec.mutex.
+Export lock_ghost2.mutex_set_G (mutex_set_G).
 
 Module scoped_lock.
   Section with_cpp.
@@ -17,6 +18,7 @@ Module scoped_lock.
     Section with_threads.
       Context {σ : genv}.
       Context `{HAS_THREADS : !HasStdThreads Σ}.
+      Context `{MUTEX_SETS : !mutex_set_G Σ}.
       Context `{!mutex.G Σ}.
 
       #[global] Instance: LearnEqF1 R := ltac:(solve_learnable).

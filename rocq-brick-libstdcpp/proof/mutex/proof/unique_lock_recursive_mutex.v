@@ -12,6 +12,7 @@ NES.Begin unique_lock.
     Context `{Σ : cpp_logic} {σ : genv}.
 
     Context `{HAS_THREADS : !HasStdThreads Σ}.
+    Context `{MUTEX_SETS : !mutex_set_G Σ}.
     Context `{!std_recursive_mutex.G Σ}.
 
     Import R_unfold.

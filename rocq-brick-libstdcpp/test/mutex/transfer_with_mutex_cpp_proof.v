@@ -10,7 +10,7 @@ Import linearity.
 Module transfer_lock_guard.
 
 sl.lock
-Definition R `{Σ : cpp_logic, σ : genv, !std_recursive_mutex.G Σ, !HasStdThreads Σ}
+Definition R `{Σ : cpp_logic, σ : genv, MUTEX_SETS : !mutex_set_G Σ, !std_recursive_mutex.G Σ, !HasStdThreads Σ}
     (mp : ptr) (g : std_recursive_mutex.gname) (q : cQp.t) (P : mpred) : Rep :=
   structR "std::lock_guard<std::recursive_mutex>" 1$m **
   _field "std::lock_guard<std::recursive_mutex>::_M_device"
@@ -22,6 +22,7 @@ Definition R `{Σ : cpp_logic, σ : genv, !std_recursive_mutex.G Σ, !HasStdThre
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
   Context {HAS_THREADS : HasStdThreads Σ}.
+  Context `{MUTEX_SETS : !mutex_set_G Σ}.
   Context `{!std_recursive_mutex.G Σ}.
 
   #[local] Hint Opaque std_recursive_mutex.do_lock std_recursive_mutex.do_unlock : sl_opacity.
@@ -69,7 +70,7 @@ Definition account_balanceR `{Σ : cpp_logic, σ : genv} (n : Z) : Rep :=
 (* ownership of [this->mutex] and balanceR proctected by the mutex *)
 sl.lock
 Definition account_mutexR
-    `{Σ : cpp_logic, σ : genv, !std_recursive_mutex.G Σ, !HasStdThreads Σ}
+    `{Σ : cpp_logic, σ : genv, MUTEX_SETS : !mutex_set_G Σ, !std_recursive_mutex.G Σ, !HasStdThreads Σ}
     (g : std_recursive_mutex.gname) (q : cQp.t) : Rep :=
   structR "C" q **
   as_Rep (fun this : ptr =>
@@ -83,12 +84,11 @@ Definition account_mutexR
     [N : namespace], and returns (most of) account_mutexR. *)
 sl.lock
 Definition accountR
-    `{Σ : cpp_logic, σ : genv, !std_recursive_mutex.G Σ, !HasStdThreads Σ}
-    (gpool : iprop.gname) (N : namespace) (q : cQp.t) : Rep :=
+    `{Σ : cpp_logic, σ : genv, MUTEX_SETS : !mutex_set_G Σ, !std_recursive_mutex.G Σ, !HasStdThreads Σ}
+    (N : namespace) (q : cQp.t) : Rep :=
   Exists g,
     account_mutexR g q ** pureR (std_recursive_mutex.token g q) **
-    pureR [| std_recursive_mutex.pool_name g = gpool /\
-              std_recursive_mutex.rmutex_inv_namespace g = N |].
+    pureR [| std_recursive_mutex.rmutex_inv_namespace g = N |].
 #[only(type_ptr="C")] derive accountR.
 
 (** The two account mutexes use distinct namespaces. *)
@@ -111,6 +111,7 @@ Definition account_call (cl : name) : name :=
 Section class_C.
   Context `{Σ : cpp_logic, σ : genv}.
   Context {HAS_THREADS : HasStdThreads Σ}.
+  Context `{MUTEX_SETS : !mutex_set_G Σ}.
   Context `{!std_recursive_mutex.G Σ}.
 
   #[local] Instance balanceR_learn : LearnEq2 account_balanceR.
@@ -195,8 +196,8 @@ Section class_C.
      \arg{f} "f" (Vptr f)
      \persist type_ptr (Tnamed cl) f
      \persist{th} current_thread th
-     \prepost{gpool N q} this |-> accountR gpool N q **
-       MutexSets.my_mutexes gpool th (coPset.CoPset (↑N))
+     \prepost{N q} this |-> accountR N q **
+       MutexSets.my_mutexes th (coPset.CoPset (↑N))
      \pre{K} ∀ v : Z,
        this |-> account_balanceR v -*
        balance_callback cl f (this ,, _field "C::balance")
@@ -215,7 +216,7 @@ Section class_C.
     rewrite /call_spec_body /account_call_internal_body.
     cbn.
     iIntros "H".
-    iDestruct "H" as (f th gpool N q K)
+    iDestruct "H" as (f th N q K)
       "(%Hargs & #Hf & #Hth & (HR & Hnames) & Hcallback & Hpost)".
     iEval (rewrite accountR.unlock _at_exists) in "HR".
     iDestruct "HR" as (g) "HR".
@@ -225,7 +226,7 @@ Section class_C.
       std_recursive_mutex.NotHeld (fun n : Z => this |-> account_balanceR n))%I
       with "[Htoken Hnames]" as "Hacquireable".
     { rewrite std_recursive_mutex.acquireable.unlock /= /std_recursive_mutex.not_locked.
-      destruct Hg as [Hgpool HN]. rewrite Hgpool HN. iFrame "#∗". }
+      rewrite Hg. iFrame "#∗". }
     iExists f, g, q,
       (std_recursive_mutex.acquireable (this ,, _field "C::mut") (TT := balance_args) g q th
          std_recursive_mutex.NotHeld (fun n : Z => this |-> account_balanceR n) ** K)%I.
@@ -260,8 +261,7 @@ Section class_C.
       iEval (rewrite std_recursive_mutex.acquireable.unlock /=
         /std_recursive_mutex.not_locked) in "Hacquireable".
       iDestruct "Hacquireable" as "[Htoken Hnames]".
-      destruct Hg as [Hgpool HN].
-      iEval (rewrite Hgpool HN) in "Hnames". iFrame "Hnames".
+      iEval (rewrite Hg) in "Hnames". iFrame "Hnames".
       rewrite accountR.unlock _at_exists. iExists g.
       rewrite !_at_sep !_at_pureR. iFrame. done.
   Qed.
@@ -283,11 +283,11 @@ Section class_C.
     \arg{to} "to" (Vptr to)
     \arg{i} "i" (Vint i)
     \persist{th} current_thread th
-    \prepost{gpool qfrom qto}
-      from |-> accountR gpool from_namespace qfrom **
-      MutexSets.my_mutexes gpool th (coPset.CoPset (↑from_namespace)) **
-      to |-> accountR gpool to_namespace qto **
-      MutexSets.my_mutexes gpool th (coPset.CoPset (↑to_namespace))
+    \prepost{qfrom qto}
+      from |-> accountR from_namespace qfrom **
+      MutexSets.my_mutexes th (coPset.CoPset (↑from_namespace)) **
+      to |-> accountR to_namespace qto **
+      MutexSets.my_mutexes th (coPset.CoPset (↑to_namespace))
     \post emp
   ).
 
@@ -299,17 +299,25 @@ Section class_C.
     | |- context[transfer_lock_guard.R (this ,, _) ?gfrom _ _] =>
         rename gfrom into source_g
     end.
-    iDestruct select (MutexSets.my_mutexes _ th
+    match goal with
+    | H : std_recursive_mutex.rmutex_inv_namespace source_g = from_namespace |- _ =>
+        rename H into Hfrom_namespace
+    end.
+    match goal with
+    | H : std_recursive_mutex.rmutex_inv_namespace g = to_namespace |- _ =>
+        rename H into Hto_namespace
+    end.
+    iDestruct select (MutexSets.my_mutexes th
       (coPset.CoPset (↑from_namespace))) as "Hfrom_names".
-    iEval (rewrite -b) in "Hfrom_names".
+    iEval (rewrite -Hfrom_namespace) in "Hfrom_names".
     iDestruct select (std_recursive_mutex.token source_g qfrom) as "Hfrom_token".
     iAssert (std_recursive_mutex.acquireable (this ,, _field "C::mut") (TT := balance_args) source_g qfrom th
       std_recursive_mutex.NotHeld (fun n : Z => this |-> account_balanceR n))%I
       with "[Hfrom_names Hfrom_token]" as "?".
     { rewrite std_recursive_mutex.acquireable.unlock /= /std_recursive_mutex.not_locked. iFrame "#∗". }
-    iDestruct select (MutexSets.my_mutexes _ th
+    iDestruct select (MutexSets.my_mutexes th
       (coPset.CoPset (↑to_namespace))) as "Hto_names".
-    iEval (rewrite -a -b0) in "Hto_names".
+    iEval (rewrite -Hto_namespace) in "Hto_names".
     iDestruct select (std_recursive_mutex.token g qto) as "Hto_token".
     iAssert (std_recursive_mutex.acquireable (to ,, _field "C::mut") (TT := balance_args) g qto th
       std_recursive_mutex.NotHeld (fun n : Z => to |-> account_balanceR n))%I
@@ -332,7 +340,7 @@ Section class_C.
     rewrite std_recursive_mutex.release.unlock /=. go.
     rewrite accountR.unlock std_recursive_mutex.acquireable.unlock /=
       /std_recursive_mutex.not_locked. go with br_erefl.
-    rewrite a b b0. go.
+    rewrite Hfrom_namespace Hto_namespace. go.
   Qed.
 
   (** Link the C implementation and both lock-guard operations. *)
@@ -362,14 +370,14 @@ Section class_C.
       \this this
       \arg{initial_balance} "initial_balance" (Vint initial_balance)
       \persist{th} current_thread th
-      \pre{gpool N} emp
-      \post this |-> accountR gpool N 1$m
+      \pre{N} emp
+      \post this |-> accountR N 1$m
     ).
 
     Lemma ctor_ok : verify[source] ctor_spec.
     Proof using Type balance_objective.
       verify_spec; go.
-      iExists gpool, N, balance_args, (fun n : Z => this |-> account_balanceR n)%I,
+      iExists N, balance_args, (fun n : Z => this |-> account_balanceR n)%I,
         (balance_arg initial_balance); go.
       rewrite -bi.later_intro.
       go.
@@ -380,7 +388,7 @@ Section class_C.
 
   cpp.spec "C::~C()" as dtor_spec from source with (
     \this this
-    \pre{gpool N} this |-> accountR gpool N 1$m
+    \pre{N} this |-> accountR N 1$m
     \post emp
   ).
 
@@ -404,10 +412,11 @@ End class_C.
 Section clients.
   Context `{Σ : cpp_logic, σ : genv}.
   Context {HAS_THREADS : HasStdThreads Σ}.
+  Context `{MUTEX_SETS : !mutex_set_G Σ}.
   Context `{!std_recursive_mutex.G Σ}.
 
   #[local] Instance accountR_learn :
-    Cbn (Learn (learn_eq ==> learn_eq ==> any ==> learn_hints.fin) accountR).
+    Cbn (Learn (learn_eq ==> any ==> learn_hints.fin) accountR).
   Proof. solve_learnable. Qed.
 
   cpp.spec (lambda_call outer_lambda) from source inline.
@@ -434,11 +443,11 @@ Section clients.
     \arg{to} "to" (Vptr to)
     \arg{i} "i" (Vint i)
     \persist{th} current_thread th
-    \prepost{gpool Nfrom Nto qfrom qto}
-      from |-> accountR gpool Nfrom qfrom **
-      MutexSets.my_mutexes gpool th (coPset.CoPset (↑Nfrom)) **
-      to |-> accountR gpool Nto qto **
-      MutexSets.my_mutexes gpool th (coPset.CoPset (↑Nto))
+    \prepost{Nfrom Nto qfrom qto}
+      from |-> accountR Nfrom qfrom **
+      MutexSets.my_mutexes th (coPset.CoPset (↑Nfrom)) **
+      to |-> accountR Nto qto **
+      MutexSets.my_mutexes th (coPset.CoPset (↑Nto))
     \post emp).
 
   Local Lemma call_with_continuation (A : mpred -> mpred) R Q :
@@ -456,8 +465,8 @@ Section clients.
     iIntros (v1) "Hfrom_balance".
     (* The outer acquisition exposes from's balance; to retains its account and namespace. *)
     wname [accountR] "Hto".
-    iAssert (from |-> account_balanceR v1 ** to |-> accountR gpool Nto qto **
-      MutexSets.my_mutexes gpool th (coPset.CoPset (↑Nto)))%I
+    iAssert (from |-> account_balanceR v1 ** to |-> accountR Nto qto **
+      MutexSets.my_mutexes th (coPset.CoPset (↑Nto)))%I
       with "[$]" as "Hafter_from".
     iDestruct "Hafter_from" as "[? ?]".
     rewrite /balance_callback. iIntros (Qfrom) "HKfrom". go.
@@ -478,8 +487,8 @@ Section clients.
     iApply "HKto". go.
     (* Returning from to.call restores its account and namespace resource. *)
     iAssert (from ,, _field "C::balance" |-> ulongR 1$m (trim 64 (v1 - i)) **
-      to |-> accountR gpool Nto qto **
-      MutexSets.my_mutexes gpool th (coPset.CoPset (↑Nto)))%I
+      to |-> accountR Nto qto **
+      MutexSets.my_mutexes th (coPset.CoPset (↑Nto)))%I
       with "[$]" as "Hafter_to".
     iDestruct "Hafter_to" as "(Hfrom_balance & Hto & Hto_names)".
     iApply "HKfrom". iExists (trim 64 (v1 - i)).
@@ -487,10 +496,10 @@ Section clients.
     { iDestruct "Hfrom_balance" as "?". go. }
     iIntros "(Hfrom & Hfrom_names)".
     (* Returning from from.call restores both accounts and namespace resources. *)
-    iAssert (from |-> accountR gpool Nfrom qfrom **
-      MutexSets.my_mutexes gpool th (coPset.CoPset (↑Nfrom)) **
-      to |-> accountR gpool Nto qto **
-      MutexSets.my_mutexes gpool th (coPset.CoPset (↑Nto)))%I
+    iAssert (from |-> accountR Nfrom qfrom **
+      MutexSets.my_mutexes th (coPset.CoPset (↑Nfrom)) **
+      to |-> accountR Nto qto **
+      MutexSets.my_mutexes th (coPset.CoPset (↑Nto)))%I
       with "[$Hfrom $Hfrom_names $Hto $Hto_names]" as "Hafter_from".
     iDestruct "Hafter_from" as "[? ?]". go.
     wname [bi_wand] "Hpost".
@@ -511,11 +520,11 @@ Section clients.
   \arg{to} "to" (Vptr to)
   \arg{i} "i" (Vint i)
   \persist{th} current_thread th
-  \prepost{gpool qfrom qto}
-    from |-> accountR gpool from_namespace qfrom **
-    MutexSets.my_mutexes gpool th (coPset.CoPset (↑from_namespace)) **
-    to |-> accountR gpool to_namespace qto **
-    MutexSets.my_mutexes gpool th (coPset.CoPset (↑to_namespace))
+  \prepost{qfrom qto}
+    from |-> accountR from_namespace qfrom **
+    MutexSets.my_mutexes th (coPset.CoPset (↑from_namespace)) **
+    to |-> accountR to_namespace qto **
+    MutexSets.my_mutexes th (coPset.CoPset (↑to_namespace))
   \post emp
     ).
 
@@ -538,7 +547,7 @@ Section clients.
 
   cpp.spec "main()" as main_spec from source with (
     \persist{th} current_thread th
-    \prepost{gpool} MutexSets.my_mutexes gpool th (coPset.CoPset ⊤)
+    \prepost MutexSets.my_mutexes th (coPset.CoPset ⊤)
     \post[Vint 0] emp
   ).
 
@@ -546,27 +555,27 @@ Section clients.
   Proof.
     verify_spec.
     let rec expose_names :=
-      first [iDestruct select (MutexSets.my_mutexes gpool th _) as "Hnames"
+      first [iDestruct select (MutexSets.my_mutexes th _) as "Hnames"
             | progress go1; expose_names] in
     expose_names.
     go.
-    iExists gpool, from_namespace; go.
-    iExists gpool, to_namespace; go.
+    iExists from_namespace; go.
+    iExists to_namespace; go.
     have Hdisjoint := transfer_namespaces_disjoint.
-    iDestruct (MutexSets.my_mutexes_alloc_mutex_name gpool th ⊤
+    iDestruct (MutexSets.my_mutexes_alloc_mutex_name th ⊤
       (↑from_namespace) ltac:(set_solver)
       with "Hnames") as "[Hnames Hfrom]".
-    iDestruct (MutexSets.my_mutexes_alloc_mutex_name gpool th
+    iDestruct (MutexSets.my_mutexes_alloc_mutex_name th
       (⊤ ∖ ↑from_namespace)
       (↑to_namespace) ltac:(set_solver)
       with "Hnames") as "[Hnames Hto]".
     iDestruct "Hfrom" as "?". iDestruct "Hto" as "?".
     go. iExists (1$m)%cQp, (1$m)%cQp. go.
-    iDestruct (MutexSets.my_mutexes_join_mutex_name gpool th
+    iDestruct (MutexSets.my_mutexes_join_mutex_name th
       (⊤ ∖ ↑from_namespace)
       (↑to_namespace) ltac:(set_solver)
       with "[$]") as "Hnames".
-    iDestruct (MutexSets.my_mutexes_join_mutex_name gpool th ⊤
+    iDestruct (MutexSets.my_mutexes_join_mutex_name th ⊤
       (↑from_namespace) ltac:(set_solver)
       with "[$]") as "Hnames".
     iFrame "Hnames".

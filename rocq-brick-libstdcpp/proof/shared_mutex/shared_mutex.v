@@ -10,6 +10,7 @@ Require Export skylabs.brick.libstdcpp.runtime.pred.
 Require Import skylabs.brick.libstdcpp.shared_mutex.inc_hpp.
 Require Import skylabs.brick.libstdcpp.mutex.requirements.
 Require Import skylabs.brick.libstdcpp.lib.lock_ghost2.
+Export lock_ghost2.mutex_set_G (mutex_set_G).
 
 Import linearity.
 
@@ -21,15 +22,13 @@ Module Type SHARED_MUTEX_PREDS.
   Existing Class G.
   #[global] Arguments G {_ _} Σ : assert.
 
-  Parameter pool_name : gname -> iprop.gname.
   Parameter smutex_inv_namespace : gname -> namespace.
-  #[global] Declare Instance sets_G `{Σ : cpp_logic, !G Σ} : MutexSets.G Σ.
 
   Parameter token : forall `{Σ : cpp_logic, !G Σ},
     gname -> cQp.t -> mpred.
-  Definition not_locked `{Σ : cpp_logic, !G Σ} {σ : genv}
+  Definition not_locked `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ} {σ : genv}
       (this : ptr) (g : gname) (th : thread_idT) (qt : cQp.t) : mpred :=
-    token g qt ** MutexSets.my_mutexes (pool_name g) th
+    token g qt ** MutexSets.my_mutexes th
       (CoPset $ ↑smutex_inv_namespace g).
 
   Parameter locked : forall `{Σ : cpp_logic, !G Σ} {σ : genv},
@@ -40,14 +39,16 @@ Module Type SHARED_MUTEX_PREDS.
     ptr -> gname -> thread_idT -> cQp.t -> Qp -> mpred.
 
   (**  A shared mutex guarding a fractional predicate [P]. *)
-  Parameter R : forall `{Σ : cpp_logic, !G Σ}
+  Parameter R : forall `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ}
     {HAS_THREADS : HasStdThreads Σ} {σ : genv},
     gname -> cQp.t -> (Qp -> mpred) -> Rep.
   #[global] Hint Opaque token not_locked locked reader_locked R :
     sl_opacity typeclass_instances.
 
   Section with_cpp.
-    Context `{Σ : cpp_logic, !G Σ}.
+    Context `{Σ : cpp_logic}.
+    Context `{MUTEX_SETS : !mutex_set_G Σ}.
+    Context `{!G Σ}.
 
     #[global] Declare Instance token_fractional g : CFractional (token g).
     #[global] Declare Instance token_timeless g qt : Timeless (token g qt).
@@ -64,7 +65,7 @@ Module Type SHARED_MUTEX_PREDS.
       iIntros "[_ H1] [_ H2]".
       have Hoverlap : ~ ((↑smutex_inv_namespace g : coPset) ## ↑smutex_inv_namespace g).
       { have Hnonempty := nclose_non_empty (smutex_inv_namespace g). set_solver. }
-      iDestruct (MutexSets.my_mutexes_exclusive _ th
+      iDestruct (MutexSets.my_mutexes_exclusive th
         (↑smutex_inv_namespace g) (↑smutex_inv_namespace g) Hoverlap
         with "[$H1 $H2]") as %[].
     Qed.
@@ -95,17 +96,19 @@ End SHARED_MUTEX_PREDS.
 Module shared_mutex_spec (Preds : SHARED_MUTEX_PREDS).
   Import Preds.
   Section with_cpp.
-    Context `{Σ : cpp_logic, !G Σ}.
+    Context `{Σ : cpp_logic}.
+    Context `{MUTEX_SETS : !mutex_set_G Σ}.
+    Context `{!G Σ}.
     Context {HAS_THREADS : HasStdThreads Σ} {σ : genv}.
 
     (* ctor and dtor are the same as mutex.v, except that [P] is fractional. *)
     Definition ctor_spec : ptr -> WpSpec mpred val val :=
       (\this this
-       \pre{pool N P} ▷P 1%Qp
+       \pre{N P} ▷P 1%Qp
        \require Fractional P
        \require ∀ q, Objective (P q)
        \post Exists g,
-         [| pool_name g = pool /\ smutex_inv_namespace g = N |] **
+         [| smutex_inv_namespace g = N |] **
          this |-> R g 1$m P ** token g 1$m).
 
     Definition dtor_spec : ptr -> WpSpec mpred val val :=
@@ -272,7 +275,9 @@ Module StdSharedMutex
   Module Spec := shared_mutex_spec Preds.
 
   Section with_cpp.
-    Context `{Σ : cpp_logic, !G Σ}.
+    Context `{Σ : cpp_logic}.
+    Context `{MUTEX_SETS : !mutex_set_G Σ}.
+    Context `{!G Σ}.
     Context {HAS_THREADS : HasStdThreads Σ}.
     Context `{MOD : source ⊧ σ}.
 
