@@ -272,6 +272,7 @@ Figure~\ref{rmutex-ex} shows an example of the use of \lstinline{recursive_mutex
 The proof of the example is sketched in Figure~\ref{rmutex-ex-proof}. The protected resources are $P(a, b) \triangleq \texttt{balance\_a} \mapsto a \ast \texttt{balance\_b} \mapsto b$. The specifications of \lstinline{update_a} and \lstinline{update_b} take advantage of the dual meaning of the $\mathsf{holds}$ predicate's argument: if the caller already owns \texttt{m} then it learns that the value of \lstinline{balance_a} or \lstinline{balance_b} has been increased, while if it does not then it loses ownership of $P$ and the argument values give no information. In the body of \lstinline{transfer}, because we have already \lstinline{lock}ed \lstinline{m}, we know the precise values of \lstinline{balance_a} and \lstinline{balance_b} and can guarantee that they are $a + x$ and $b - x$ before \lstinline{unlock}ing, as desired.
 
 \subsection{\texorpdfstring{\lstinline{std::shared_mutex}}{std::shared\_mutex}}
+\label{shared-mutex}
 
 C++'s \lstinline{shared_mutex} class is more commonly known as a \emph{reader-writer lock}. It provides two separate pairs of acquire and release operations, \emph{exclusive} \lstinline{lock}/\lstinline{unlock} and \emph{shared} \lstinline{lock_shared}/\lstinline{unlock_shared}; while \lstinline{lock} and \lstinline{unlock} ensure mutual exclusion, any number of threads can successfully perform \lstinline{lock_shared} at once as long as no thread has acquired the lock exclusively. Reader-writer locks have been modeled in separation logic by \citet{heaplang-rw-lock}, and we build on their work, but must also account for C++'s additional restrictions: no thread may acquire shared ownership of the mutex more than once, and only threads that have acquired it may release it.
 
@@ -617,7 +618,7 @@ void unlock_shared(){
 
 A shared mutex can be in one of three states: unheld, exclusively held (writer-locked), or shared (reader-locked). In the shared state it must also count the number of readers that hold it. This leads to an implementation with a single atomic counter, which is 0 when the lock is not held, -1 when it is held exclusively, and equal to the number of readers when it is shared (shown in Figure~\ref{smutex-simple}). It can only be taken exclusively (i.e., \lstinline{lock}ed) when the counter is exactly 0, but it can add a reader as long as the counter is not -1.
 
-Recall from Section~\ref{shared-mutex} that the two lock methods are specified as
+Recall from Section~\ref{shared-mutex} that the two \lstinline{lock} methods are specified as
 \[\begin{array}{@{}c@{}}
 \{\currentthread{t} \ast m \mapsto_\pi \smutex{N, \gamma}{P}\ast\notlocked{N, \gamma}{t}{q}\} \\
   \texttt{m.lock()} \\[-1pt]
