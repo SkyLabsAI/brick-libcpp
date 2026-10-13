@@ -559,7 +559,7 @@ class RecursiveMutex {
       m.lock();
       (*@ $\{ ... \ast n = 0 \ast \locked{N, \gamma}{t}{q} \ast R(P) \}$ @*)
       owner = std::this_thread::get_id();
-      (*@ $\{ ... \ast n = 0 \ast p.\lstinline{count} \mapsto 0 \ast \ownGhost{}{\authfrag (t, q)} \ast P(a) \}$ @*)
+      (*@ $\{ ... \ast n = 0 \ast p.\texttt{count} \mapsto 0 \ast \ownGhost{}{\authfrag (t, q)} \ast P(a) \}$ @*)
     }
     count++;
   }
@@ -567,9 +567,9 @@ class RecursiveMutex {
 
   (*@ $\{\currentthread{t} \ast m \mapsto_\pi \rmutex{N, \gamma}{P}\ast\acquirable{N, \gamma}{t}{n+1}{q}{P}{a}\}$ @*)
   void unlock(){
-    (*@ $\{ ... \ast \texttt{count} \mapsto n + 1 \ast \ownGhost{}{\authfrag (t, q)} \ast P(a)\} @*)
+    (*@ $\{ ... \ast \texttt{count} \mapsto n + 1 \ast \ownGhost{}{\authfrag (t, q)} \ast P(a)\}$ @*)
     count--;
-    (*@ $\{ ... \ast \texttt{count} \mapsto n \ast \ownGhost{}{\authfrag (t, q)} \ast P(a)\} @*)
+    (*@ $\{ ... \ast \texttt{count} \mapsto n \ast \ownGhost{}{\authfrag (t, q)} \ast P(a)\}$ @*)
     if(count == 0){
       owner = std::thread::id(); // reset to default
       m.unlock();
