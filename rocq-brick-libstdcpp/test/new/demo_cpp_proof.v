@@ -334,16 +334,17 @@ Section with_cpp.
   #[local] cpp.spec "AlignedDtor::AlignedDtor()" from demo_cpp.source inline.
   #[local] cpp.spec "AlignedDtor::~AlignedDtor()" from demo_cpp.source inline.
 
+  (* Instantiates the destructor's [\pre{value}] from the held [AlignedValueR]. *)
+  Definition AlignedValueR_learn :
+    Cbn (Learn (any ==> learn_eq ==> learn_hints.fin) AlignedValueR) := ltac:(solve_learnable).
+
   cpp.spec "test_delete_aligned(AlignedValue*)" from demo_cpp.source with
     (\arg{p} "p" (Vptr p)
-     (* Unfolded: [AlignedValueR] is [lazy_unfold], which unfolds it only on the
-        goal side, so a folded precondition would not match the destructor's. *)
-     \pre{v} p |-> (structR "AlignedValue" 1$m **
-                    _field "AlignedValue::value" |-> intR 1$m v **
+     \pre{v} p |-> (AlignedValueR 1$m v **
                     alloc.tokenR_with_alignment "AlignedValue" (Some 64%N) 1)
      \post emp).
   Lemma test_delete_aligned_ok : verify[demo_cpp.source] "test_delete_aligned(AlignedValue*)".
-  Proof. verify_spec; go. Qed.
+  Proof. verify_spec; go using AlignedValueR_learn. Qed.
 
   cpp.spec "test_delete_null_aligned()" from demo_cpp.source with (\post emp).
   Lemma test_delete_null_aligned_ok : verify[demo_cpp.source] "test_delete_null_aligned()".

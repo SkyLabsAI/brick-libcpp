@@ -1,5 +1,4 @@
 Require Import skylabs.auto.cpp.prelude.proof.
-Require Import skylabs.auto.cpp.hints.invoke.
 Require Import skylabs.auto.cpp.hints.alignment.
 Require Import skylabs.brick.libstdcpp.new.pred.
 Require Import skylabs.brick.libstdcpp.new.spec_exc.
@@ -75,54 +74,13 @@ Section with_cpp.
     |-- aligned_poly_vdeleteI.
   Proof using MOD alignment_support.
     #[local] Transparent vdeleteI.
-    iIntros "#(M & Dt & D)". rewrite /vdeleteI.
+    (* Anonymous: automation does not use named premises. *)
+    iIntros "#(? & ? & ?)". rewrite /vdeleteI.
     iModIntro.
     iExists ["AlignedPoly"%cpp_name].
     setoid_rewrite <-(bi.exist_intro demo_cpp.source).
     iExists _, _, _, _, _, _. work.
-    - rewrite /AlignedPolyR /PolyBaseR. normalize_ptrs. work. by iFrame "M".
-    - (* TODO: in this lemma (as in [consistency.v]), [go] selects none of
-         [wp_delete_obj_C], [wp_destroy_val_named_C], [wp_invoke_delete_C] or
-         [wp_invoke_O_unmaterialized_C], although their premises are solvable;
-         they are applied explicitly. *)
-      normalize_ptrs. iIntros.
-      iDestruct select (_ |-> alloc.tokenR_with_alignment _ _ _)%I as "T".
-      rewrite alloc.tokenR_with_alignment.unlock.
-      iDestruct "T" as (storage overhead sz Hsz) "[T A]".
-      match goal with |- environments.envs_entails _ (wp_delete_obj _ _ _ ?p ?K) =>
-        iApply (new_delete.wp_delete_obj_C_obligation_1 demo_cpp.source false
-          "operator delete(void*, unsigned long)" "AlignedPoly"
-          ("operator delete(void*, unsigned long, enum std::align_val_t)"%cpp_name,
-           delete_operator.mk None true true) p K ltac:(vm_compute; constructor) with "M") end.
-      go. iFrame "T".
-      eassert (find_spec.FindSpec σ false (_global "AlignedPoly::~AlignedPoly()") aligned_poly_dtor _)
-        as HF by (typeclasses eauto).
-      match goal with |- environments.envs_entails _ (wp_destroy_named _ _ ?this ?Q) =>
-        iApply (invoke.wp_destroy_val_named_C_obligation_1 demo_cpp.source this "AlignedPoly"
-          "AlignedPoly::~AlignedPoly()" _ aligned_poly_dtor Q _ ltac:(typeclasses eauto) MOD
-          ltac:(typeclasses eauto) HF with "Dt") end.
-      go.
-      match goal with |- environments.envs_entails _ (wp_invoke_delete _ _ ?n ?p ?Q) =>
-        iApply (new_delete.wp_invoke_delete_C_obligation_1 demo_cpp.source "AlignedPoly"
-          "operator delete(void*, unsigned long, enum std::align_val_t)" true true n p Q
-          ltac:(typeclasses eauto) with "M") end.
-      go.
-      match goal with |- environments.envs_entails _ (wp_invoke_O _ ?ft (inl (Vptr ?f)) ?args None ?Q) =>
-        epose proof (wp_invoke_O_unmaterialized demo_cpp.source f _ _ _ _ _
-          operator_delete_size_align _ ft args None _ ltac:(apply _)) as L end.
-      specialize (L ltac:(reflexivity) ltac:(apply _) ltac:(apply _)).
-      iDestruct (L with "D") as "[_ H]". iApply "H". go.
-      iEval (rewrite _at_pureR) in "A". case_bool_decide; go.
-      + (* [storage] holds a 64-byte block, so it is not null. *)
-        iDestruct select (_ |-> blockR _ _)%I as "B".
-        have ? : sz = 64%N.
-        { have := sizeof._size_of_ok demo_cpp.source (Tnamed "AlignedPoly") 64 ltac:(by vm_compute).
-          rewrite Hsz. congruence. }
-        subst sz.
-        iDestruct (observe (storage .[ "unsigned char" ! - overhead ] |-> nonnullR) with "B") as "N".
-        { apply _at_observe, blockR_nonnull, TCLt_N; lia. }
-        iExFalso. rewrite _at_nonnullR. iDestruct "N" as %Hnn. congruence.
-      + iFrame "A". iIntros (r) "R". rewrite operand_receive.unlock /exact_operand_resultR.
-        iExists Vvoid. iFrame.
+    2: normalize_ptrs; go; normalize_ptrs; go.
+    rewrite /AlignedPolyR /PolyBaseR. normalize_ptrs. work.
   Qed.
 End with_cpp.

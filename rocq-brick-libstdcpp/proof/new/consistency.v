@@ -61,6 +61,8 @@ Context (ρ : region).
     intros Hsz Hal Hv1 Hv2 Harr; have Hsup := supported_alignment_of_type _ _ Hal.
     iIntros "#M #S K".
     iDestruct (observe [| source ⊧ σ |] with "M") as %MOD.
+    (* Anonymous: automation does not use named premises. *)
+    iRevert "M S". iIntros "#? #?".
     iApply (wp_operand_new_glob source ρ _ _ _ true [] oinit aty _ Q).
     iExists sz, al. iSplit; first done. iSplit; first done.
     rewrite /wp_unmaterialized_args /=.
@@ -77,34 +79,15 @@ Context (ρ : region).
       rewrite /conv_int /=. split; first done.
       have := type.has_int_type_RL _ _ _ Hv2.
       rewrite /bitsize.bound /= => ?. by rewrite to_unsigned_bits_id; last lia. }
-    (* TODO: automation does not fire [wp_invoke_O_unmaterialized_C] here,
-       although all of its premises are solvable. *)
-    epose proof (wp_invoke_O_unmaterialized source
-      (_global "operator new(unsigned long, enum std::align_val_t)") _ _ _ _ _
-      operator_new_align _ "void*(unsigned long, enum std::align_val_t)"%cpp_type
-      [Unmaterialized "unsigned long" (Vn sz);
-       Unmaterialized "enum std::align_val_t" (Vn al)] None _ ltac:(apply _)) as L.
-    specialize (L ltac:(reflexivity) ltac:(apply _) ltac:(apply _)).
-    iDestruct (L with "S") as "[_ H]".
-    iApply "H". simpl. iExists sz, al. iSplit; first done. iSplit; first done.
-    iIntros (p) "Post". iApply interp_intro_id.
-    iIntros (p0) "R". rewrite operand_receive.unlock /exact_operand_resultR.
-    iExists (Vptr p). iFrame "R".
-    rewrite !_at_sep. iDestruct "Post" as "(Blk & NN & Al & Rcpt)".
-    rewrite _at_nonnullR. iDestruct "NN" as %Hnn.
-    rewrite bool_decide_false //. iFrame "Blk Al".
-    iIntros (obj) "#Hps".
-    iSpecialize ("K" $! p obj with "Hps").
-    (* TODO: [token_prove_using_0_C] does not fire with [Hsz] in context. *)
+    go.
+    iDestruct select (provides_storage _ _ _) as "Hps".
+    iSpecialize ("K" with "Hps").
+    iDestruct select (_ |-> allocatedR _ _ _ _)%I as "Rcpt".
     destruct oinit; simpl.
     - iApply (wp_initialize_frame source source with "[Rcpt] K"); first done.
-      iIntros (f) "W Tok". iApply "W".
-      rewrite alloc.tokenR_with_alignment.unlock Harr.
-      iExists _, 0%N, sz. rewrite N.add_0_l. work. normalize_ptrs. work. iFrame "Rcpt Tok".
+      iIntros (f) "W ?". iApply "W". go. rewrite Harr. iFrame "Rcpt".
     - iApply (default_initialize_frame source source with "[Rcpt] K"); first done.
-      iIntros (f) "W Tok". iApply "W".
-      rewrite alloc.tokenR_with_alignment.unlock Harr.
-      iExists _, 0%N, sz. rewrite N.add_0_l. work. normalize_ptrs. work. iFrame "Rcpt Tok".
+      iIntros (f) "W ?". iApply "W". go. rewrite Harr. iFrame "Rcpt".
   Qed.
 
 End with_cpp.
