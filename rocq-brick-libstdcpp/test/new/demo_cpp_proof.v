@@ -35,7 +35,7 @@ Section alignment_model_examples.
   Example alignment_support_example_fundamental :
     @supported_alignment σ alignment_support_example 1.
   Proof.
-    left; exists Tuchar; split; first exact I.
+    left; exists ("unsigned char"%cpp_type); split; first exact I.
     apply align_of_uchar.
   Qed.
 End alignment_model_examples.
