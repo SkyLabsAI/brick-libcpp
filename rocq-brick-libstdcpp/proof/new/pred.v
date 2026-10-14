@@ -70,7 +70,7 @@ NES.Begin alloc.
 
   (** The alignment argument that a global new-expression passes for [ty]:
       only over-aligned types use the aligned allocation functions
-      (<https://eel.is/c++draft/expr.new#19>). *)
+      (<https://eel.is/c++draft/expr.new#20>). *)
   Definition default_new_alignment `{Σ : cpp_logic} {σ : genv} (ty : type) : option N :=
     match align_of ty with
     | Some al => if (STDCPP_DEFAULT_NEW_ALIGNMENT <? al)%N then Some al else None
