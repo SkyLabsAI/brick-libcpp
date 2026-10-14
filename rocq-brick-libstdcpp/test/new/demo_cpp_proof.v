@@ -12,6 +12,10 @@ Definition AlignedValueR `{Σ : cpp_logic} {σ : genv}
   structR "AlignedValue" q **
   _field "AlignedValue::value" |-> intR q value.
 #[only(cfracsplittable,type_ptr,lazy_unfold(global))] derive AlignedValueR.
+(** Learns the value from a held [AlignedValueR] at the same pointer, e.g. to
+    instantiate a destructor's [\pre{value}]. Supplied on demand ([using]). *)
+Definition AlignedValueR_learn `{Σ : cpp_logic} {σ : genv} :
+  Cbn (Learn (any ==> learn_eq ==> learn_hints.fin) AlignedValueR) := ltac:(solve_learnable).
 
 Section alignment_model_examples.
   Context {σ : genv}.
@@ -333,10 +337,6 @@ Section with_cpp.
   #[local] cpp.spec "AlignedPod::~AlignedPod()" from demo_cpp.source inline.
   #[local] cpp.spec "AlignedDtor::AlignedDtor()" from demo_cpp.source inline.
   #[local] cpp.spec "AlignedDtor::~AlignedDtor()" from demo_cpp.source inline.
-
-  (* Instantiates the destructor's [\pre{value}] from the held [AlignedValueR]. *)
-  Definition AlignedValueR_learn :
-    Cbn (Learn (any ==> learn_eq ==> learn_hints.fin) AlignedValueR) := ltac:(solve_learnable).
 
   cpp.spec "test_delete_aligned(AlignedValue*)" from demo_cpp.source with
     (\arg{p} "p" (Vptr p)
