@@ -61,6 +61,15 @@ Section with_cpp.
     spec_wp memmove_spec [Vptr buf; Vptr nullptr; Vint 0] K |-- False.
   Proof. solve. Qed.
 
+  (** [strncmp] also accepts bounded buffers, which carry [nonnullR]. *)
+  Lemma strncmp_null_lhs buf K :
+    spec_wp strncmp_spec [Vptr nullptr; Vptr buf; Vint 0] K |-- False.
+  Proof. solve. rewrite strncmp_inputR.unlock. destruct bound1; go. Qed.
+
+  Lemma strncmp_null_rhs buf K :
+    spec_wp strncmp_spec [Vptr buf; Vptr nullptr; Vint 0] K |-- False.
+  Proof. solve. rewrite strncmp_inputR.unlock. destruct bound2; go. Qed.
+
   (** The [str*] specs already rejected null pointers through [cstring.R]. *)
   Lemma strlen_null K :
     spec_wp strlen_spec [Vptr nullptr] K |-- False.
