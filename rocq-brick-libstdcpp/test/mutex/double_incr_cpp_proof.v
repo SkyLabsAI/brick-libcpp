@@ -155,7 +155,7 @@ Section with_cpp.
     (* Logical invariant setup for the already initialized mutex. *)
     iMod (mutex.init_R (_global "m") γold (mutex.mutex_inv_namespace γold)
       (double_incr_protocol.protected γ (_global "x")) ltac:(apply _)
-      with "[Hm Htoken HP]") as (g) "(%Hnames & Hm & Htoken)".
+      (mutex.mutex_inv_namespace_not_root γold) with "[Hm Htoken HP]") as (g) "(%Hnames & Hm & Htoken)".
     { iFrame "Hm Htoken". iNext. done. }
     iDestruct "Hm" as "[Hm1 Hm2]".
     iEval (rewrite (cfractional_split_half (mutex.token g))

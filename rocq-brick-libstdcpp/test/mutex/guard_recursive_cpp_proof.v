@@ -126,6 +126,7 @@ Section with_cpp.
   cpp.spec "C::C()" from source as C_ctor_spec with (
     \this this
     \pre{N} emp
+    \require N <> nroot
     \post Exists γ,
       [| std_recursive_mutex.rmutex_inv_namespace γ = N |] **
       this |-> CR γ 1$m ** std_recursive_mutex.token γ 1$m
@@ -168,6 +169,8 @@ Section with_cpp.
   Lemma test_one_answer_ok :
     verify[source] "test_one_answer()".
   Proof.
+    have Hnamespace : nroot .@@ "guard_recursive" <> nroot.
+    { rewrite namespaces.ndot_unseal. discriminate. }
     verify_spec; go.
     iExists (nroot .@@ "guard_recursive"); go.
     iDestruct (MutexSets.my_mutexes_alloc_mutex_name
