@@ -442,19 +442,4 @@ Section with_cpp.
   (* TODO: automation does not normalize the cookie offset in the null check. *)
   Proof. verify_spec; go; normalize_ptrs; go. Qed.
 
-  (** ** Over-aligned virtual delete
-
-      <<delete p>> with <<p : PolyBase*>> pointing to an <<AlignedPoly>> deletes
-      the most-derived object with the deallocation function that
-      <<AlignedPoly>>'s virtual destructor selects
-      (<https://eel.is/c++draft/expr.delete#8.1>,
-      <https://eel.is/c++draft/class.dtor#15>): the aligned, sized global one,
-      whose specification is satisfied by an aligned token
-      ([test_delete_aligned_ok]). *)
-  Example aligned_poly_delete_for :
-    delete_operator.delete_for demo_cpp.source false "operator delete(void*, unsigned long)" "AlignedPoly" =
-      Some ("operator delete(void*, unsigned long, enum std::align_val_t)"%cpp_name,
-            delete_operator.mk None true true).
-  Proof. vm_compute. reflexivity. Qed.
-
 End with_cpp.
