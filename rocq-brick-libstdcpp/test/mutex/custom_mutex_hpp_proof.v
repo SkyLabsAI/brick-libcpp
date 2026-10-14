@@ -66,16 +66,16 @@ Module CustomMutexPreds <: MUTEX_PREDS.
 
   Definition state `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ}
       (γ : state_gname) (b : bool) : mpred :=
-    (if b then
-      ∃ th q, owner_tid_auth γ.(owner_gname) (Some (th, q)) **
+    ∃ th q,
+      owner_tid_auth γ.(owner_gname) (if b then Some (th, q) else None) **
+      if b then
         (* the mutex owner deposits its [my_mutexes] and [token], and take away
           owner_tid_frag which records the fraction of [token] that it can take
           back from invariant when it releases the lock. *)
         MutexSets.my_mutexes th (coPset.CoPset $ ↑γ.(state_namespace)) **
         own γ.(token_gname) (cQp.frac q : token_cmraR)
-    else
-      owner_tid_auth γ.(owner_gname) None **
-      owner_tid_frag γ.(owner_gname) None)%I.
+      else
+        owner_tid_frag γ.(owner_gname) None.
 
   #[global] Instance state_WeaklyObjective
       `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ} γ b :
@@ -95,7 +95,8 @@ Module CustomMutexPreds <: MUTEX_PREDS.
       iMod (OwnerTid.alloc None) as (go) "[OA OF]".
       iModIntro. iExists (MkStateGname gt go N HN).
       iSplit; first done.
-      rewrite /state /=. iFrame.
+      rewrite /state /=. iFrame "T".
+      iExists thread_id_specs.default_thread_id, (1$m)%cQp. iFrame.
     Qed.
 
     Lemma state_lock {σ : genv} this (γ : gname) th (q : cQp.t) :
@@ -103,7 +104,8 @@ Module CustomMutexPreds <: MUTEX_PREDS.
         (|==> state γ true ** owner_tid_frag γ.(owner_gname) (Some (th, q))).
     Proof.
       rewrite /state /not_locked /token /mutex_inv_namespace.
-      iIntros "[[OA OF] [T Sets]]".
+      iIntros "[State [T Sets]]".
+      iDestruct "State" as (old_th old_q) "[OA OF]".
       iMod (owner_update γ.(owner_gname) None None (Some (th, q))
         with "[$OA $OF]") as "[OA OF]".
       iModIntro. iFrame "OF". iExists th, q. iFrame.
@@ -120,13 +122,14 @@ Module CustomMutexPreds <: MUTEX_PREDS.
         with "OA OF") as %Heq.
       injection Heq as -> ->.
       iMod (owner_update γ.(owner_gname) _ _ None with "[$OA $OF]") as "[OA OF]".
-      iModIntro. iFrame.
+      iModIntro. iFrame "Sets T". iExists th, q. iFrame.
     Qed.
 
     Lemma unlocked_owner_tid_frag γ th q :
       state γ false ** owner_tid_frag γ.(owner_gname) (Some (th, q)) |-- False.
     Proof.
-      rewrite /state. iIntros "[[_ OF0] OF]".
+      rewrite /state. iIntros "[State OF]".
+      iDestruct "State" as (old_th old_q) "[_ OF0]".
       iDestruct (owner_tid_frag_exclusive with "OF0 OF") as %[].
     Qed.
 
@@ -249,7 +252,7 @@ Module CustomMutexPreds <: MUTEX_PREDS.
         rewrite /mutex_inv_namespace.
         have Hnonempty := nclose_non_empty g.(state_namespace).
         set_solver.
-      - iDestruct "State" as "[_ >OF0]".
+      - iDestruct "State" as (owner held_q) "[_ >OF0]".
         iDestruct (owner_tid_frag_exclusive with "OF0 OF") as %[].
     Qed.
 
