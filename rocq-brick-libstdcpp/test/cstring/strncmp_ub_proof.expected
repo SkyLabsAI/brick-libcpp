@@ -1,0 +1,74 @@
+1 goal
+  
+  thread_info : biIndex
+  _Σ : gFunctors
+  Σ : cpp_logic thread_info _Σ
+  σ : genv
+  _H_ : source ⊧ σ
+  _PostPred_ : ptr → mpred
+  PostCond : PostCondition
+  a_addr, _x_0 : ptr
+  GUARDS : GWs.GUARDS
+  _H_0 : 0 < 1
+  _H_1 : 0 ≤ 1
+  _H_2 : list.ListSizeZ [97%N] (1 - 0)
+  _x_ : valid<"char"> (Vchar 97)
+  p : ptr
+  _x_1 : Qp
+  _x_2 : cstring.WF "a"
+  ============================
+  _ : denoteModule source
+  _ : strncmp_spec
+  _ : type_ptr "char" (a_addr .[ "char" ! 0 ])
+  _ : type_ptr "char[1]" a_addr
+  _ : type_ptr "char" _x_0
+  _ : ∀ q : Qp, _x_0 |-> cstring.R q$c "a" ={⊤}=∗ emp
+  --------------------------------------□
+  _ : PostCond
+  _ : _x_0 |-> cstring.R (_x_1 / 2)$c "a"
+  _ : a_addr .[ "char" ! 0 ] |-> charR (1 / 2)$m 97
+  --------------------------------------∗
+  [| strncmp_readable "a" 2 |] ∗
+  ∀ x : Z,
+    a_addr
+    |-> (nonnullR ∗
+         array_sliceR "char" 0 1 (λ b : N, charR (1 / 2)$m b) [97%N]) ∗
+    _x_0 |-> cstring.R (_x_1 / 2)$c "a" ∗
+    [| same_sign (strncmp "a" "a" 2) x |] -∗ ::interp { 1 }
+1 goal
+  
+  thread_info : biIndex
+  _Σ : gFunctors
+  Σ : cpp_logic thread_info _Σ
+  σ : genv
+  _H_ : source ⊧ σ
+  _PostPred_ : ptr → mpred
+  PostCond : PostCondition
+  a_addr, _x_0 : ptr
+  GUARDS : GWs.GUARDS
+  _H_0 : 0 < 1
+  _H_1 : 0 ≤ 1
+  _H_2 : list.ListSizeZ [97%N] (1 - 0)
+  _x_ : valid<"char"> (Vchar 97)
+  p : ptr
+  _x_1 : Qp
+  _x_2 : cstring.WF "a"
+  ============================
+  _ : denoteModule source
+  _ : strncmp_spec
+  _ : type_ptr "char" (a_addr .[ "char" ! 0 ])
+  _ : type_ptr "char[1]" a_addr
+  _ : type_ptr "char" _x_0
+  _ : ∀ q : Qp, _x_0 |-> cstring.R q$c "a" ={⊤}=∗ emp
+  --------------------------------------□
+  _ : PostCond
+  _ : _x_0 |-> cstring.R (_x_1 / 2)$c "a"
+  _ : a_addr .[ "char" ! 0 ] |-> charR (1 / 2)$m 97
+  --------------------------------------∗
+  [| strncmp_readable "a" 2 |] ∗
+  ∀ x : Z,
+    _x_0 |-> cstring.R (_x_1 / 2)$c "a" ∗
+    a_addr
+    |-> (nonnullR ∗
+         array_sliceR "char" 0 1 (λ b : N, charR (1 / 2)$m b) [97%N]) ∗
+    [| same_sign (strncmp "a" "a" 2) x |] -∗ ::interp { 1 }

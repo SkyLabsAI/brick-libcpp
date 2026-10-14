@@ -5,6 +5,7 @@
  *)
 Require Import skylabs.auto.cpp.specs.
 Require Import skylabs.auto.cpp.prelude.proof.
+Require Import skylabs.lang.cpp.bi.split_cfrac.
 
 Require Export skylabs.brick.libstdcpp.cstring.model.
 Require Import skylabs.brick.libstdcpp.cstring.inc_cstring_cpp.
@@ -37,8 +38,91 @@ Lemma same_sign_correct_gt s d :
   same_sign s d -> s > 0 <-> d > 0.
 Proof. rewrite /same_sign; destruct trichotomyT as [[?|?]|?]; lia. Qed.
 
+(* Keep complete C strings usable, and also accept readable bounded buffers. *)
+mlock Definition strncmp_inputR `{Σ : cpp_logic} {σ : genv}
+    q (bound : option Z) (s : bs) : Rep :=
+  match bound with
+  | None => cstring.R q s
+  | Some hi => nonnullR ** array_sliceR Tchar 0 hi
+      (fun b : N => charR q b) (BS.string_to_bytes s)
+  end.
+
 Section with_cpp.
-Context `{Σ : cpp_logic, source ⊧ σ}.
+Context `{Σ : cpp_logic, σ : genv}.
+
+  #[program] Definition strncmp_cstring_C (p : ptr) q s q1 q2 :=
+    \cancelx
+    \consuming p |-> cstring.R q s
+    \guard SplitCFrac q q1 q2
+    \bound qq ss bound
+    \proving p |-> strncmp_inputR qq bound ss
+    \through [| qq = q1 |]
+    \through [| ss = s |]
+    \through [| bound = None |]
+    \deduce p |-> cstring.R q2 s
+    \end@{mpred}.
+  Next Obligation.
+    intros; rewrite (split_cfrac q).
+    rewrite (cfractional (P := fun cq => cstring.R cq s) q1 q2) _at_sep.
+    iIntros "[H1 H2]". iFrame "H2".
+    iIntros (qq ss bound) "(-> & -> & ->)".
+    rewrite strncmp_inputR.unlock. iExact "H1".
+  Qed.
+
+  #[program] Definition strncmp_array_C
+      (p : ptr) q hi bytes q1 q2
+      (Hbytes : bytes =[Vm]=> BS.string_to_bytes (BS.bytes_to_string bytes)) :=
+    \cancelx
+    \consuming p |-> array_sliceR Tchar 0 hi (fun b : N => charR q b) bytes
+    \guard SplitCFrac q q1 q2
+    \bound qq ss bound
+    \proving p |-> strncmp_inputR qq bound ss
+    \through [| qq = q1 |]
+    \through [| ss = BS.bytes_to_string bytes |]
+    \through [| bound = Some hi |]
+    (* Empty slices do not imply non-nullness. *)
+    \through [| p <> nullptr |]
+    \deduce p |-> array_sliceR Tchar 0 hi (fun b : N => charR q2 b) bytes
+    \end@{mpred}.
+  Next Obligation.
+    intros; rewrite (split_cfrac q).
+    rewrite (cfractional (P := fun cq => array_sliceR Tchar 0 hi
+      (fun b : N => charR cq b) bytes) q1 q2) _at_sep.
+    iIntros "[H1 H2]". iFrame "H2".
+    iIntros (qq ss bound) "(-> & -> & -> & %Hnonnull)".
+    rewrite strncmp_inputR.unlock -(RedEq_eq Hbytes) _at_sep _at_nonnullR.
+    iFrame "H1". by iPureIntro.
+  Qed.
+
+  (* Singleton arrays normalize to a character cell. *)
+  #[program] Definition strncmp_char_C
+      (p normalized_p : ptr) q (byte : N) q1 q2
+      (Hbyte : [byte] =[Vm]=> BS.string_to_bytes (BS.bytes_to_string [byte])) :=
+    \cancelx
+    \consuming p |-> charR q byte
+    \guard SplitCFrac q q1 q2
+    \guard PtrNorm p normalized_p
+    \bound qq ss bound
+    \proving normalized_p |-> strncmp_inputR qq bound ss
+    \through [| qq = q1 |]
+    \through [| ss = BS.bytes_to_string [byte] |]
+    \through [| bound = Some 1 |]
+    \deduce p |-> charR q2 byte
+    \end@{mpred}.
+  Next Obligation.
+    intros; rewrite (_ptr_norm p normalized_p) (split_cfrac q).
+    rewrite (cfractional (P := fun cq => charR cq byte) q1 q2) _at_sep.
+    iIntros "[H1 H2]".
+    iDestruct (observe (type_ptr Tchar normalized_p) with "H1") as "#?".
+    iFrame "H2".
+    iIntros (qq ss bound) "(-> & -> & ->)".
+    rewrite strncmp_inputR.unlock -(RedEq_eq Hbyte).
+    rewrite array_sliceR.unlock /= arrayR_singleton
+      !(_at_sep, _at_only_provable, _at_offsetR, _at_nonnullR).
+    normalize_ptrs. iFrame "H1". work.
+  Qed.
+
+  Context `{source ⊧ σ}.
 
   cpp.spec "strlen" with
     (\arg{s_p} "__s" (Vptr s_p)
@@ -57,9 +141,22 @@ Context `{Σ : cpp_logic, source ⊧ σ}.
     (\arg{s1_p} "__s1" (Vptr s1_p)
      \arg{s2_p} "__s2" (Vptr s2_p)
      \arg{n} "__n" (Vn n)
-     \prepost{q1 s1} s1_p |-> cstring.R q1 s1
-     \prepost{q2 s2} s2_p |-> cstring.R q2 s2
-     \post{res}[Vint res] [| same_sign (strncmp s1 s2 n) res |] ).
+     \pre{q1 s1 bound1} s1_p |-> strncmp_inputR q1 bound1 s1
+     \pre{q2 s2 bound2} s2_p |-> strncmp_inputR q2 bound2 s2
+     \require match bound1 with None => true | Some _ => strncmp_readable s1 n end
+     \require match bound2 with None => true | Some _ => strncmp_readable s2 n end
+     \post{res}[Vint res]
+       s1_p |-> (match bound1 with
+         | None => cstring.R q1 s1
+         | Some hi => nonnullR ** array_sliceR Tchar 0 hi
+             (fun b : N => charR q1 b) (BS.string_to_bytes s1)
+         end) **
+       s2_p |-> (match bound2 with
+         | None => cstring.R q2 s2
+         | Some hi => nonnullR ** array_sliceR Tchar 0 hi
+             (fun b : N => charR q2 b) (BS.string_to_bytes s2)
+         end) **
+       [| same_sign (strncmp s1 s2 n) res |] ).
 
   cpp.spec "strchr(char*, int)" as strchr_mut_spec with
     (\arg{s_p} "__s" (Vptr s_p)
@@ -221,3 +318,6 @@ Context `{Σ : cpp_logic, source ⊧ σ}.
      \post[Vptr dest_p] dest_p |-> array_sliceR Tuchar 0 z (fun b : Z => ucharR 1$m b) bytes).
 
 End with_cpp.
+
+(* Let [go]/[work] supply either input representation to [strncmp]. *)
+#[export] Hint Resolve strncmp_cstring_C strncmp_array_C strncmp_char_C : br_hints.

@@ -61,6 +61,18 @@
 )
 (subdir cstring
  (rule
+  (targets strncmp_ub_cpp.v.stderr strncmp_ub_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input strncmp_ub.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to strncmp_ub_cpp.v.stderr (run cpp2v -v %{input} -o strncmp_ub_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps strncmp_ub.cpp))
+)
+(subdir cstring
+ (rule
   (targets test_cpp.v.stderr test_cpp.v)
   (alias test_ast)
   (deps

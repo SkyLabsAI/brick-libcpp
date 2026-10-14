@@ -21,3 +21,5 @@ void memcpy_null_dest() { (void)std::memcpy(nullptr, buf, 0); }
 void memcpy_null_src() { (void)std::memcpy(buf, nullptr, 0); }
 void memmove_null_dest() { (void)std::memmove(nullptr, buf, 0); }
 void memmove_null_src() { (void)std::memmove(buf, nullptr, 0); }
+int strncmp_null_lhs() { return std::strncmp(nullptr, "a", 0); }
+int strncmp_null_rhs() { return std::strncmp("a", nullptr, 0); }
