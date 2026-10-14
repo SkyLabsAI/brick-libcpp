@@ -52,9 +52,10 @@ End ostream.
 
 Module istream.
   Parameter gname : Set.
-  (** [R IS g la q]: a stream reading from [IS], after reading ahead [la],
-      a character that the stream holds but has not extracted yet. *)
-  Parameter R : forall `{Σ : cpp_logic} {σ : genv}, Istream -> gname -> option N -> cQp.t -> Rep.
+  (** [R IS g buf q]: a stream reading from [IS], holding the characters
+      [buf] that it has obtained from [IS] but not extracted yet (part of the
+      pending input sequence, [streambuf.reqts]). *)
+  Parameter R : forall `{Σ : cpp_logic} {σ : genv}, Istream -> gname -> list N -> cQp.t -> Rep.
   #[only(cfracsplittable)] derive R.
 
   Section with_cpp.
