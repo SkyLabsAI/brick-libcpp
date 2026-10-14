@@ -349,7 +349,8 @@ One feature of BRiCk that is particularly relevant to our work is thread-specifi
 \newcommand{\lguard}[0]{\ensuremath{\mathsf{lguard}}}
 \newcommand{\ulock}[0]{\ensuremath{\mathsf{ulock}}}
 
-Managing locks manually is error-prone: it is easy to write code that acquires the same lock twice, forgets to release a lock, or releases a lock that has not been acquired. The Resource Acquisition Is Initialization (RAII) pattern aims to avoid these problems by aligning ownership of a lock with the lifetime of an object: the lock is acquired when the object is created, and released when the object is destroyed, thus benefiting from the guarantees of the language's memory management (an object will only be created and destroyed once each, will only be destroyed after it is created, will eventually be destroyed if unused, etc.). In this section we give specifications for two\footnote{In our Rocq development we also specify \lstinline{scoped_lock}, which takes a list of locks and acquires/releases them in an order guaranteed to avoid deadlock, but because we are working in a partial-correctness logic these specifications are not any more complicated and we do not discuss them here.} of the C++ standard library's RAII lock classes, \lstinline{lock_guard} and \lstinline{unique_lock}, and show how they build on our mutex specifications. %Their basic specifications are simple: the object's constructor has the same specification as the underlying lock's \lstinline{lock} method, and the destructor has the same specification as the underlying \lstinline{unlock}. The \lstinline{unique_lock} adds some complexity by allowing the user to manually acquire, release, and change the lock associated with the object.
+Managing locks manually is error-prone: it is easy to write code that acquires the same lock twice, forgets to release a lock, or releases a lock that has not been acquired. The Resource Acquisition Is Initialization (RAII) pattern avoids these problems by connecting lock ownership to the lifetime of an object: the lock is acquired when the object is created and released when the object is destroyed, thus enjoying the guarantees of the language's memory management (an object will only be created and destroyed once each, will only be destroyed after it is created, will eventually be destroyed if unused, etc.). In this section we give specifications for two\footnote{In our Rocq development we also specify \lstinline{scoped_lock}, which takes a list of locks and acquires/releases them in an order guaranteed to avoid deadlock, but because we are working in a partial-correctness logic these specifications are not any more complicated and we do not discuss them here.} of the C++ standard library's RAII lock classes, \lstinline{lock_guard} and \lstinline{unique_lock}, and show how they build on our mutex specifications. %Their basic specifications are simple: the object's constructor has the same specification as the underlying lock's \lstinline{lock} method, and the destructor has the same specification as the underlying \lstinline{unlock}. The \lstinline{unique_lock} adds some complexity by allowing the user to manually acquire, release, and change the lock associated with the object.
+The standard library implementations of \lstinline{lock_guard} and \lstinline{unique_lock} are simple enough that we were able to verify them directly against our specifications.
 
 \subsection{Generic \lstinline{lock} and \lstinline{unlock}}
 \label{basic-lockable}
@@ -359,8 +360,7 @@ operations~\cite{ISO:2024:IIP}.  An invocation of \lstinline{lock()} blocks
 until the calling thread acquires the lock, and \lstinline{unlock()} releases a
 lock owned by the calling thread.  The caller must not already own the lock
 when invoking \lstinline{lock()}, and must own it when invoking
-\lstinline{unlock()}.  This is a requirement on a type, rather than a concrete
-C++ class: all the mutex classes implement it, and
+\lstinline{unlock()}.  This is not a concrete class but a requirement on types: all the mutex classes implement it, and
 user-defined lock types can as well.  Classes that are generic over a \lstinline{BasicLockable}
 can operate on any such implementation.
 
@@ -374,14 +374,14 @@ the postcondition $K$ afterwards, in the predicate transformer style.  The gener
 \{p\mapsto R(q,m)\ast \dounlock{p}{m}{K}\}\ \texttt{p.unlock()}\ \{p\mapsto R(q,m)\ast K\}
 \end{array}\]
 The representation predicate is preserved by both operations, while the
-implementation-specific predicates describe the change in logical ownership.
+implementation-specific predicates describe the change in ownership.
 For example, the \lstinline{std::mutex} instance defines $\mathsf{do\_lock}$ to exchange the
 calling thread's $\mathsf{not\_locked}$ predicate for the protected resource and the $\mathsf{m\_locked}$ predicate, and $\mathsf{do\_unlock}$ to perform the reverse exchange.  The
 recursive and shared mutexes instantiate the same interface with their own
 predicates.  Thus clients can use the two generic specifications without
 depending on the particular mutex representation.
 
-\subsection{\lstinline{lock_guard}}
+\subsection{\lstinline{std::lock_guard}}
 \begin{figure}[htb]
 \begin{lstlisting}
   std::mutex m;
@@ -396,7 +396,7 @@ depending on the particular mutex representation.
 \label{lock-guard-ex}
 \end{figure}
 
-The \lstinline{lock_guard} class is the basic RAII class of the C++ library, a container for a single lock. \lstinline{lock_guard} is a templated class that takes an arbitrary \lstinline{BasicLockable} class as an argument, acquires it when constructed, and releases it when destroyed. A simple example of its use is shown in Figure~\ref{lock-guard-ex}. The mutex \lstinline{m} is meant to protect the value of \lstinline{size}, and the \lstinline{lock_guard} object \lstinline{lock} in \lstinline{get_size} takes the place of calls to \lstinline{lock} and \lstinline{unlock}; \lstinline{m} is \lstinline{lock}ed at line 5 and \lstinline{unlock}ed after reading \lstinline{size} but before \lstinline{get_size} returns.
+The \lstinline{lock_guard} class C++'s basic RAII class, a container for a single lock. It is a templated class that takes an arbitrary \lstinline{BasicLockable} class as an argument, acquires it when constructed, and releases it when destroyed. A simple example of its use is shown in Figure~\ref{lock-guard-ex}. The mutex \lstinline{m} is meant to protect the value of \lstinline{size}, and the \lstinline{lock_guard} object \lstinline{lock} in \lstinline{get_size} takes the place of calls to \lstinline{lock} and \lstinline{unlock}; \lstinline{m} is \lstinline{lock}ed at line 5 and \lstinline{unlock}ed after reading \lstinline{size} but before \lstinline{get_size} returns.
 
 The \lstinline{lock_guard} class is parameterized by a \lstinline{BasicLockable} and class, our specification is likewise parameterized, calling $\mathsf{do\_lock}$ on creation and $\mathsf{do\_unlock}$ on destruction:
 \[\begin{array}{c}
@@ -404,7 +404,7 @@ The \lstinline{lock_guard} class is parameterized by a \lstinline{BasicLockable}
 \{g \mapsto \lguard(p, q, m) \ast \dounlock{p}{m}{K}\}\}\ \texttt{g.}\!\!\sim\!\texttt{lock\_guard}()\ \{K \ast p \mapsto R(q, m)\}
 \end{array}\]
 
-\subsection{\lstinline{unique_lock}}
+\subsection{\lstinline{std::unique_lock}}
 The \lstinline{unique_lock} class offers a more sophisticated RAII interface: the lock can be acquired and released manually as well as at construction/destruction, and the \lstinline{unique_lock} can be detached from one lock and attached to another during its lifetime. A \lstinline{unique_lock} object tracks whether it has acquired its associated mutex (if any), counting the acquisition from the constructor as well as explicit \lstinline{lock}/\lstinline{unlock} calls, and its destructor releases the mutex only if it is not currently acquired. %None of these operations are very complicated, but their specifications do need to account for many variations (no associated lock, associated lock is locked, associated lock is unlocked). %example?
 
 The \lstinline{unique_lock} class has many constructors and operators; we specify a small set here, and more in our Rocq development. The abstract state of a \lstinline{unique_lock} is a tuple $(b, p, q, m)$, where $(p, q, m)$ is the associated mutex and $b$ is its state ($\mathsf{true}$ if held, $\mathsf{false}$ if not held).
@@ -417,8 +417,7 @@ The \lstinline{unique_lock} class has many constructors and operators; we specif
     \{m \mapsto \ulock(\mathsf{false}, p, q, m) \ast K\}  \vspace{1em} \\
 \{u \mapsto \ulock(b, p, q, m) \ast (\text{if } b \text{ then } \dounlock{p}{m}{K} \text{ else } K)\}\\ \texttt{u.}\!\!\sim\!\texttt{unique\_lock}()\\ \{K \ast p \mapsto R(q, m)\}
 \end{array}\]
-The default constructor acquires the mutex $p$, so it needs $\dolock{p}{m}{K}$ in the precondition and creates a $\mathsf{ulock}$ in the $\mathsf{true}$ state. There is also a constructor that takes the \lstinline{std::defer_lock_t} argument does not acquire the mutex, creating a $\mathsf{ulock}$ in the $\mathsf{false}$ state. When a \lstinline{unique_lock} is destroyed, it releases the underlying mutex only if it was in the $\mathsf{true}$ (held) state.
-The standard library implementations of \lstinline{lock_guard} and \lstinline{unique_lock} are simple enough that we were able to verify them directly against our specifications.
+The default constructor acquires the mutex $p$, so it needs $\dolock{p}{m}{K}$ in the precondition and creates a $\mathsf{ulock}$ in the $\mathsf{true}$ state. There is also a constructor that takes the \lstinline{std::defer_lock_t} argument and does not acquire the mutex, creating a $\mathsf{ulock}$ in the $\mathsf{false}$ state. When a \lstinline{unique_lock} is destroyed, it releases the underlying mutex only if it was in the $\mathsf{true}$ (held) state.
 
 %move this to lock_guard?
 \begin{figure}[htb]
@@ -451,7 +450,7 @@ The standard library implementations of \lstinline{lock_guard} and \lstinline{un
 \caption{A program with multiple \lstinline{unique_lock}s around a single \lstinline{recursive_mutex}}
 \label{unique-recursive}
 \end{figure}
-As discussed in Section~\ref{basic-lockable}, the \lstinline{BasicLockable} requirement does not explicitly require that \lstinline{lock} lead to mutual exclusion, and indeed recursive mutexes can be \lstinline{lock}ed multiple times without being \lstinline{unlock}ed. Thus, while each \lstinline{lock_guard} or \lstinline{unique_lock} object can only acquire its mutex at most once, we can construct multiple objects around a single recursive mutex, each of which manages a single acquisition.
+As discussed in Section~\ref{basic-lockable}, the \lstinline{BasicLockable} requirement does not explicitly require that \lstinline{lock} be mutual exclusive, and indeed recursive mutexes can be \lstinline{lock}ed multiple times without being \lstinline{unlock}ed. Thus, while each \lstinline{lock_guard} or \lstinline{unique_lock} object can only acquire its mutex at most once, we can construct multiple objects around a single recursive mutex, each of which manages a single acquisition.
 The code in Figure~\ref{unique-recursive} shows how this can be used. When \lstinline{answer} is called, it acquires the recursive mutex \lstinline{m} by constructing a \lstinline{unique_lock} around it; it then calls \lstinline{inc}, which constructs another \lstinline{unique_lock} that acquires \lstinline{m} a second time. When each method returns, its \lstinline{unique_lock} is destroyed and \lstinline{m} is released once, so that \lstinline{m} is no longer locked after \lstinline{answer} returns.
 
 Our specifications can be used to verify this program. When \lstinline{inc} constructs its \lstinline{unique_lock} around \lstinline{m}, it uses the $\mathsf{do\_lock}$ transformer of \lstinline{recursive_mutex} to determine its pre- and postcondition, incrementing the $\mathsf{holds}$ predicate's count by 1. Because $n + 1 > 0$, we can then borrow the protected resources, in this case $\texttt{val} \mapsto x$, from $\mathsf{holds}$, and restore them after running \lstinline{val++} with an argument value of $x + 1$. The \lstinline{unique_lock} destructor then calls the $\mathsf{do\_unlock}$ transformer, restoring the $\mathsf{holds}$ count to $n$. In \lstinline{answer}, we go through a similar process, incrementing the $\mathsf{holds}$ count and borrowing $\texttt{val}$ to set it to 41, but we then call \lstinline{inc} with the resulting predicate $\acquirable{N, \gamma}{t}{n+1}{q}{\lambda v.\,\texttt{val} \mapsto v}{41})$. This works exactly as desired: \lstinline{inc} acquires \lstinline{m} again with its \lstinline{unique_lock} and increments the hold count to $n + 2$, changes the argument from 41 to 42, and then releases \lstinline{m}, returning $\acquirable{N, \gamma}{t}{n+1}{q}{\lambda v.\,\texttt{val} \mapsto v}{42}$. Finally, \lstinline{answer}'s \lstinline{unique_lock} is destroyed, decrementing the count to the original $n$ and leaving us with the argument value of 42. Because our $\mathsf{do\_lock}$/$\mathsf{do\_unlock}$ interface makes no assumptions about the underlying mutex, we have no trouble verifying programs that construct multiple RAII objects around a single recursive mutex.
