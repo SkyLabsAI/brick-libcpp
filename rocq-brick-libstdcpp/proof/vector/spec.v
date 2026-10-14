@@ -686,6 +686,40 @@ NES.Begin std.
         Definition SpecFor_resize := RegisterSpec (@resize).
         #[global] Existing Instance SpecFor_resize.
 
+        (** <<bool empty() const noexcept;>>
+
+            <https://eel.is/c++draft/container.reqmts> -- whether <<size() == 0>>.
+            Total: it only reads the spine. *)
+        Definition empty :=
+          let qf := function_qualifiers.Nc in
+          specify.template.method vector "empty" qf Tbool [] $
+            \this this
+            \with q size st
+            \prepost this |-> spineR q size st
+            \post[Vbool (bool_decide (size = 0))] emp.
+        #[global] Hint Opaque empty : sl_opacity.
+        #[global] Arguments empty : simpl never.
+        Definition SpecFor_empty := RegisterSpec empty.
+        #[global] Existing Instance SpecFor_empty.
+
+        (** <<T* data() noexcept;>> and <<const T* data() const noexcept;>>
+
+            <https://eel.is/c++draft/vector.data> -- the base pointer of the
+            elements, which is null for a vector that never allocated. Total;
+            using the result needs ownership of the elements, as with
+            <<operator[]>>. *)
+        Definition data c :=
+          let qf := function_qualifiers.mk c false Prvalue in
+          specify.template.method vector "data" qf (Tptr (Tconst_if c ty)) [] $
+            \this this
+            \with q size st
+            \prepost this |-> spineR q size st
+            \post[Vptr (base_pointer st)] emp.
+        #[global] Hint Opaque data : sl_opacity.
+        #[global] Arguments data : simpl never.
+        Definition SpecFor_data := RegisterSpec data.
+        #[global] Existing Instance SpecFor_data.
+
         Definition size `{!IsAllocator alloc_ty} :=
           let qf := function_qualifiers.Nc in
           specify.template.method vector "size" qf size_type [] $
@@ -771,6 +805,8 @@ NES.Begin std.
           resize_default **
           resize **
           size **
+          empty **
+          MaybeConst data **
           MaybeConst begin_spec **
           MaybeConst end_spec.
         #[global] Hint Opaque specs : typeclass_instances sl_opacity.
