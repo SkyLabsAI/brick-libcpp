@@ -87,8 +87,8 @@ Module Type MUTEX_PREDS.
     Context `{!G Σ}.
     #[global] Hint Opaque R : sl_opacity typeclass_instances.
     #[only(cfractional,cfracvalid,ascfractional)] derive R.
-    (* #[global] Declare Instance R_type_ptr : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv} g q P,
-      Typed class_name (R g q P). *)
+    #[global] Declare Instance R_type_ptr : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv} g q P,
+      Observe (type_ptrR cpp_ty) (R g q P).
     #[global] Declare Instance R_learnable : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv},
         Cbn (Learn (learn_eq ==> any ==> learn_eq ==> learn_hints.fin) R).
 
@@ -298,7 +298,7 @@ End mutex_spec.
     bind them to their C++ names. *)
 Module StdMutex (Preds : MUTEX_PREDS with Definition cpp_ty := "std::mutex"%cpp_type).
   Include Preds.
-  #[global] Hint Opaque token not_locked locked R : sl_opacity.
+  #[global] Hint Opaque cpp_ty token not_locked locked R : sl_opacity.
 
   Module Spec := mutex_spec Preds.
 
@@ -319,6 +319,10 @@ Module StdMutex (Preds : MUTEX_PREDS with Definition cpp_ty := "std::mutex"%cpp_
 
     Context `{MOD : source ⊧ σ}.
     Context {HAS_THREADS : HasStdThreads Σ}.
+
+    #[global] Instance R_std_type_ptr g q P :
+      Observe (type_ptrR "std::mutex") (R g q P).
+    Proof. apply R_type_ptr. Qed.
 
     cpp.spec "std::mutex::mutex()" as ctor_spec with
       (\exact Reduce (Spec.ctor_spec)).
