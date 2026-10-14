@@ -1,0 +1,120 @@
+1 goal
+  
+  thread_info : biIndex
+  _Σ : gFunctors
+  Σ : cpp_logic thread_info _Σ
+  σ : genv
+  _H_ : source ⊧ σ
+  _PostPred_ : ptr → mpred
+  PostCond : PostCondition
+  v_addr : ptr
+  st' : std.vector.InternalState
+  GUARDS : GWs.GUARDS
+  _x_ : valid<"int"> 1
+  _H_0 : 0 < 0 + 1
+  _H_1 : 0 ≤ 0 + 1
+  _H_2 : list.ListSizeZ [1] (0 + 1 - 0)
+  p : ptr
+  ============================
+  _ : denoteModule source
+  _ : std.vector.default_ctor "int" "std::allocator<int>"
+  _ : std.vector.ctor_with_alloc "int" "std::allocator<int>"
+  _ : std.vector.sized_ctor "int" "std::allocator<int>"
+  _ : std.vector.init_ctor "int" "std::allocator<int>"
+  _ : std.vector.copy_alloc_ctor "int" "std::allocator<int>"
+  _ : std.vector.move_alloc_ctor "int" "std::allocator<int>"
+  _ : std.vector.copy_ctor "int" "std::allocator<int>"
+  _ : std.vector.move_ctor "int" "std::allocator<int>"
+  _ : std.vector.dtor "int" "std::allocator<int>"
+  _ : std.vector.subscript "int" "std::allocator<int>" true
+  _ : std.vector.subscript "int" "std::allocator<int>" false
+  _ : std.vector.push_back_copy "int" "std::allocator<int>"
+  _ : std.vector.push_back_move "int" "std::allocator<int>"
+  _ : std.vector.pop_back "int" "std::allocator<int>"
+  _ : std.vector.front "int" "std::allocator<int>" true
+  _ : std.vector.front "int" "std::allocator<int>" false
+  _ : std.vector.back "int" "std::allocator<int>" true
+  _ : std.vector.back "int" "std::allocator<int>" false
+  _ : std.vector.clear "int" "std::allocator<int>"
+  _ : std.vector.resize_default "int" "std::allocator<int>"
+  _ : std.vector.resize "int" "std::allocator<int>"
+  _ : std.vector.size "int" "std::allocator<int>"
+  _ : std.vector.empty "int" "std::allocator<int>"
+  _ : std.vector.data "int" "std::allocator<int>" true
+  _ : std.vector.data "int" "std::allocator<int>" false
+  _ : std.vector.begin_spec "int" "std::allocator<int>" true
+  _ : std.vector.begin_spec "int" "std::allocator<int>" false
+  _ : std.vector.end_spec "int" "std::allocator<int>" true
+  _ : std.vector.end_spec "int" "std::allocator<int>" false
+  _ : std.allocator.ctor "int"
+  _ : std.allocator.dtor "int"
+  _ : type_ptr "std::vector<int, std::allocator<int>>" v_addr
+  _ : type_ptr "int" (std.vector.base_pointer st' .[ "int" ! 0 ])
+  _ : valid_ptr (std.vector.base_pointer st')
+  _ : validP<"int*"> (Vptr (std.vector.base_pointer st'))
+  --------------------------------------□
+  _ : PostCond
+  _ : std.vector.base_pointer st' .[ "int" ! 0 ] |-> intR 1$m 1
+  _ : v_addr
+      |-> std.vector.spineR "int" "std::allocator<int>" 1$m (0 + 1) st'
+  --------------------------------------∗
+  ∃ (v : val) (q : cQp.t),
+    std.vector.base_pointer st' .[ "int" ! 1 ] |-> primR "int" q v ∗
+    (std.vector.base_pointer st' .[ "int" ! 1 ] |-> primR "int" q v -∗
+     p |-> primR "int" 1$m v -∗ ::interp { (1 >*> 1) >*> (1 >*> 1) })
+1 goal
+  
+  thread_info : biIndex
+  _Σ : gFunctors
+  Σ : cpp_logic thread_info _Σ
+  σ : genv
+  _H_ : source ⊧ σ
+  _PostPred_ : ptr → mpred
+  PostCond : PostCondition
+  v_addr : ptr
+  GUARDS : GWs.GUARDS
+  p : ptr
+  ============================
+  _ : denoteModule source
+  _ : std.vector.default_ctor "int" "std::allocator<int>"
+  _ : std.vector.ctor_with_alloc "int" "std::allocator<int>"
+  _ : std.vector.sized_ctor "int" "std::allocator<int>"
+  _ : std.vector.init_ctor "int" "std::allocator<int>"
+  _ : std.vector.copy_alloc_ctor "int" "std::allocator<int>"
+  _ : std.vector.move_alloc_ctor "int" "std::allocator<int>"
+  _ : std.vector.copy_ctor "int" "std::allocator<int>"
+  _ : std.vector.move_ctor "int" "std::allocator<int>"
+  _ : std.vector.dtor "int" "std::allocator<int>"
+  _ : std.vector.subscript "int" "std::allocator<int>" true
+  _ : std.vector.subscript "int" "std::allocator<int>" false
+  _ : std.vector.push_back_copy "int" "std::allocator<int>"
+  _ : std.vector.push_back_move "int" "std::allocator<int>"
+  _ : std.vector.pop_back "int" "std::allocator<int>"
+  _ : std.vector.front "int" "std::allocator<int>" true
+  _ : std.vector.front "int" "std::allocator<int>" false
+  _ : std.vector.back "int" "std::allocator<int>" true
+  _ : std.vector.back "int" "std::allocator<int>" false
+  _ : std.vector.clear "int" "std::allocator<int>"
+  _ : std.vector.resize_default "int" "std::allocator<int>"
+  _ : std.vector.resize "int" "std::allocator<int>"
+  _ : std.vector.size "int" "std::allocator<int>"
+  _ : std.vector.empty "int" "std::allocator<int>"
+  _ : std.vector.data "int" "std::allocator<int>" true
+  _ : std.vector.data "int" "std::allocator<int>" false
+  _ : std.vector.begin_spec "int" "std::allocator<int>" true
+  _ : std.vector.begin_spec "int" "std::allocator<int>" false
+  _ : std.vector.end_spec "int" "std::allocator<int>" true
+  _ : std.vector.end_spec "int" "std::allocator<int>" false
+  _ : std.allocator.ctor "int"
+  _ : std.allocator.dtor "int"
+  _ : type_ptr "std::vector<int, std::allocator<int>>" v_addr
+  _ : valid_ptr nullptr
+  _ : validP<"int*"> (Vptr nullptr)
+  --------------------------------------□
+  _ : PostCond
+  _ : v_addr |-> std.vector.R_null "int" "std::allocator<int>" 1$m
+  --------------------------------------∗
+  ∃ (v : val) (q : cQp.t), reference_to "int" nullptr ∗
+    nullptr |-> primR "int" q v ∗
+    (nullptr |-> primR "int" q v -∗
+     p |-> primR "int" 1$m v -∗ ::interp { 1 >*> 1 })
