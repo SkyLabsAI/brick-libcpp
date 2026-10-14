@@ -24,3 +24,23 @@ bool FindChar(const std::string& s) {
            s.find('a', 1) == 3 && s.find('a', 4) == std::string::npos &&
            s.find('a', 10) == std::string::npos;
 }
+
+void Append(std::string& s) {
+    s.push_back('a');
+    s += 'b';
+}
+
+// s is "abc".
+void EraseTail(std::string& s) {
+    s.erase(1);
+}
+
+// s is "abc".
+void EraseMiddle(std::string& s) {
+    s.erase(1, 1);
+}
+
+// s is "a": pos == size() erases nothing.
+void EraseAtEnd(std::string& s) {
+    s.erase(1);
+}

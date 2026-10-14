@@ -48,4 +48,38 @@ Section with_cpp.
   Lemma find_char_ok : verify[source] find_char_spec.
   Proof using MOD. verify_spec; go. Qed.
 
+  cpp.spec "Append(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&)" as append_spec with (
+    \arg{p} "s" (Vref p)
+    \pre{s} p |-> basic_stringR "char" 1$m s
+    \post p |-> basic_stringR "char" 1$m (BS.append (BS.append s "a") "b")).
+
+  Lemma append_ok : verify[source] append_spec.
+  Proof using MOD. verify_spec; go. Qed.
+
+  cpp.spec "EraseTail(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&)" as erasetail_spec with (
+    \arg{p} "s" (Vref p)
+    \pre p |-> basic_stringR "char" 1$m "abc"
+    \prepost{qn} string_npos_global qn
+    \post p |-> basic_stringR "char" 1$m "a").
+
+  Lemma erasetail_ok : verify[source] erasetail_spec.
+  Proof using MOD. verify_spec; go. Qed.
+
+  cpp.spec "EraseMiddle(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&)" as erasemiddle_spec with (
+    \arg{p} "s" (Vref p)
+    \pre p |-> basic_stringR "char" 1$m "abc"
+    \post p |-> basic_stringR "char" 1$m "ac").
+
+  Lemma erasemiddle_ok : verify[source] erasemiddle_spec.
+  Proof using MOD. verify_spec; go. Qed.
+
+  cpp.spec "EraseAtEnd(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&)" as eraseatend_spec with (
+    \arg{p} "s" (Vref p)
+    \pre p |-> basic_stringR "char" 1$m "a"
+    \prepost{qn} string_npos_global qn
+    \post p |-> basic_stringR "char" 1$m "a").
+
+  Lemma eraseatend_ok : verify[source] eraseatend_spec.
+  Proof using MOD. verify_spec; go. Qed.
+
 End with_cpp.
