@@ -349,6 +349,18 @@
 )
 (subdir string
  (rule
+  (targets erase_out_of_range_cpp.v.stderr erase_out_of_range_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input erase_out_of_range.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to erase_out_of_range_cpp.v.stderr (run cpp2v -v %{input} -o erase_out_of_range_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps erase_out_of_range.cpp))
+)
+(subdir string
+ (rule
   (targets test_cpp.v.stderr test_cpp.v)
   (alias test_ast)
   (deps
