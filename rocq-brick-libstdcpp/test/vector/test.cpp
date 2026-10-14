@@ -98,6 +98,71 @@ TestAllocCtor() {
     test(v.size() == 0);
 }
 
+void
+TestPushBackAlias(vector<int>& v) {
+    v.push_back(v[0]);
+    test(v.size() == 2);
+    test(v[0] == 7);
+    test(v[1] == 7);
+}
+
+void
+TestResizeAliasGrow(vector<int>& v) {
+    v.resize(4, v[1]);
+    test(v.size() == 4);
+    test(v[0] == 9);
+    test(v[1] == 4);
+    test(v[2] == 4);
+    test(v[3] == 4);
+}
+
+void
+TestResizeAliasShrink(vector<int>& v) {
+    v.resize(1, v[2]);
+    test(v.size() == 1);
+    test(v[0] == 1);
+}
+
+void
+TestResizeAliasSame(vector<int>& v) {
+    v.resize(3, v[2]);
+    test(v.size() == 3);
+    test(v[0] == 1);
+    test(v[1] == 2);
+    test(v[2] == 3);
+}
+
+void
+TestResizeAliasEmpty(vector<int>& v) {
+    v.resize(0, v[2]);
+    test(v.size() == 0);
+}
+
+void
+TestAliases() {
+    vector<int> v;
+    v.push_back(7);
+    TestPushBackAlias(v);
+
+    vector<int> w;
+    w.push_back(9);
+    w.push_back(4);
+    TestResizeAliasGrow(w);
+
+    vector<int> x;
+    x.push_back(1);
+    x.push_back(2);
+    x.push_back(3);
+    TestResizeAliasSame(x);
+    TestResizeAliasShrink(x);
+
+    vector<int> y;
+    y.push_back(1);
+    y.push_back(2);
+    y.push_back(3);
+    TestResizeAliasEmpty(y);
+}
+
 int
 main() {
     TestBasic();
@@ -105,5 +170,6 @@ main() {
     TestIntIter();
     TestForEach();
     TestAllocCtor();
+    TestAliases();
     return 0;
 }

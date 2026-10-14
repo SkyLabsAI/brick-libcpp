@@ -185,6 +185,39 @@ Section with_cpp.
     cpp.spec "TestAggregate()" as test_aggregate with
         (\post emp).
 
+    cpp.spec "TestPushBackAlias(std::vector<int, std::allocator<int>>&)" as test_push_back_alias with
+        (\arg{vp} "v" (Vptr vp)
+         \with st
+         \pre vp |-> std.vector.R_cap "int" 1$m 1 st [7]
+         \post vp |-> std.vector.R_resized "int" 1$m 2 st [7; 7]).
+
+    cpp.spec "TestResizeAliasGrow(std::vector<int, std::allocator<int>>&)" as test_resize_alias_grow with
+        (\arg{vp} "v" (Vptr vp)
+         \with st
+         \pre vp |-> std.vector.R_cap "int" 1$m 2 st [9; 4]
+         \post vp |-> std.vector.R_resized "int" 1$m 4 st [9; 4; 4; 4]).
+
+    cpp.spec "TestResizeAliasShrink(std::vector<int, std::allocator<int>>&)" as test_resize_alias_shrink with
+        (\arg{vp} "v" (Vptr vp)
+         \with st
+         \pre vp |-> std.vector.R_cap "int" 1$m 3 st [1; 2; 3]
+         \post vp |-> std.vector.R_cap "int" 1$m 1 st [1]).
+
+    cpp.spec "TestResizeAliasSame(std::vector<int, std::allocator<int>>&)" as test_resize_alias_same with
+        (\arg{vp} "v" (Vptr vp)
+         \with st
+         \pre vp |-> std.vector.R_cap "int" 1$m 3 st [1; 2; 3]
+         \post vp |-> std.vector.R_cap "int" 1$m 3 st [1; 2; 3]).
+
+    cpp.spec "TestResizeAliasEmpty(std::vector<int, std::allocator<int>>&)" as test_resize_alias_empty with
+        (\arg{vp} "v" (Vptr vp)
+         \with st
+         \pre vp |-> std.vector.R_cap "int" 1$m 3 st [1; 2; 3]
+         \post vp |-> std.vector.R_cap "int" 1$m 0 st []).
+
+    cpp.spec "TestAliases()" as test_aliases with
+        (\post emp).
+
     cpp.spec "main()" as main with
         (\post[Vint 0] emp).
 
@@ -274,6 +307,77 @@ Section with_cpp.
     Qed.
     Definition test_aggregate_B := [LINK] test_aggregate_ok.
     #[local] Hint Resolve test_aggregate_B : sl_opacity.
+
+    Section alias_clients.
+    #[local] Existing Instance std.vector.SpecFor_push_back_copy_alias | 0.
+    #[local] Existing Instance std.vector.SpecFor_resize_alias | 0.
+
+    (* Retain the original capacity bound when a call consumes the spine. *)
+    Definition vector_size_bounds_F :=
+      ltac:(mk_at_obs_fwd (std.vector.spineR_valid_size "int" alloc_int)).
+    #[local] Hint Resolve vector_size_bounds_F : sl_opacity.
+
+    Lemma test_push_back_alias_ok : verify[ source ] test_push_back_alias.
+    Proof using MOD.
+      verify_spec.
+      go.
+      iExists (0%Z), (7%Z). go.
+    Qed.
+    Definition test_push_back_alias_B := [LINK] test_push_back_alias_ok.
+
+    Lemma test_resize_alias_grow_ok : verify[ source ] test_resize_alias_grow.
+    Proof using MOD.
+      verify_spec.
+      go.
+      iExists (1%Z), (4%Z). go.
+    Qed.
+    Definition test_resize_alias_grow_B := [LINK] test_resize_alias_grow_ok.
+
+    Lemma test_resize_alias_shrink_ok : verify[ source ] test_resize_alias_shrink.
+    Proof using MOD.
+      verify_spec.
+      go.
+      iExists (2%Z), (3%Z). go.
+      rewrite std.vector.resizedR.unlock bool_decide_true; last lia.
+      go.
+    Qed.
+    Definition test_resize_alias_shrink_B := [LINK] test_resize_alias_shrink_ok.
+
+    Lemma test_resize_alias_same_ok : verify[ source ] test_resize_alias_same.
+    Proof using MOD.
+      verify_spec.
+      go.
+      iExists (2%Z), (3%Z). go.
+      rewrite std.vector.resizedR.unlock bool_decide_true; last lia.
+      go.
+    Qed.
+    Definition test_resize_alias_same_B := [LINK] test_resize_alias_same_ok.
+
+    Lemma test_resize_alias_empty_ok : verify[ source ] test_resize_alias_empty.
+    Proof using MOD.
+      verify_spec.
+      go.
+      iExists (2%Z), (3%Z). go.
+      rewrite std.vector.resizedR.unlock bool_decide_true; last lia.
+      go.
+    Qed.
+    Definition test_resize_alias_empty_B := [LINK] test_resize_alias_empty_ok.
+    End alias_clients.
+
+    #[local] Hint Resolve
+      test_push_back_alias_B
+      test_resize_alias_grow_B
+      test_resize_alias_shrink_B
+      test_resize_alias_same_B
+      test_resize_alias_empty_B : sl_opacity.
+
+    Lemma test_aliases_ok : verify[ source ] test_aliases.
+    Proof using MOD.
+      verify_spec.
+      go.
+    Qed.
+    Definition test_aliases_B := [LINK] test_aliases_ok.
+    #[local] Hint Resolve test_aliases_B : sl_opacity.
 
     Lemma test_ok : verify[ source ] test_spec.
     Proof using MOD.
