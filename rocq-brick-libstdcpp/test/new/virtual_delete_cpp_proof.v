@@ -73,13 +73,13 @@ Section with_cpp.
     denoteModule demo_cpp.source ** aligned_poly_dtor ** operator_delete_size_align
     |-- aligned_poly_vdeleteI.
   Proof using MOD alignment_support.
-    #[local] Transparent vdeleteI.
+    #[local] Transparent vdeleteI_with.
     (* Anonymous: automation does not use named premises. *)
-    iIntros "#(? & ? & ?)". rewrite /vdeleteI.
+    iIntros "#(? & ? & ?)". rewrite /vdeleteI_with.
     iModIntro.
     iExists ["AlignedPoly"%cpp_name].
     setoid_rewrite <-(bi.exist_intro demo_cpp.source).
-    iExists _, _, _, _, _, _. work.
+    iExists _, _, _, _. work.
     2: normalize_ptrs; go; normalize_ptrs; go.
     rewrite /AlignedPolyR /PolyBaseR. normalize_ptrs. work.
   Qed.
