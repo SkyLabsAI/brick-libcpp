@@ -24,6 +24,7 @@
   Equations.Prop
   Equations.Type
   skylabs.lang.cpp
+  skylabs.lang.cpp.parser.plugin
   skylabs.ltac2.logger
   skylabs.auto.core
   skylabs.elpi.extra

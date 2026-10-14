@@ -139,7 +139,8 @@ Section with_cpp.
         end in
       bool_decide (res_to_type <$> args = const (Some ty) <$> args).
 
-    Lemma wp_init_binop_spaceship_stdlib_hint e1 e2 ty te1 (addr : ptr) cls Q :
+    Lemma wp_init_binop_spaceship_stdlib_hint e1 e2 ty te1 (addr : ptr) cls Q
+      (Hsubmod : ModuleLe inc_compare_cpp.source tu) :
       (drop_qualifiers (type_of e1), drop_qualifiers (type_of e2), snd (decompose_type ty)) =[Vm]=> (te1, te1, Tnamed cls) ->
       (Tnamed <$> cmp_expected_cls te1) =[Vm]=> Some ty ->
       wp_init_binop_spaceship_stdlib_hint_typecheck ty te1 cls =[Vm]=> true ->
@@ -150,6 +151,11 @@ Section with_cpp.
         (Q ((1 >*> 1) >*> free)))
     |-- wp_init ty addr (Ebinop Bcmp e1 e2 ty) Q.
     Proof.
+      have ?: invoke.CheckCtorCallOf tu std.compare.strong_ordering_copy_ctor
+        by apply: (invoke.sub_module_preserve_CheckCtorCall (module_le_true Hsubmod)).
+      have ?: invoke.CheckCtorCallOf tu std.compare.partial_ordering_copy_ctor
+        by apply: (invoke.sub_module_preserve_CheckCtorCall (module_le_true Hsubmod)).
+
       rewrite /cmp_expected_cls !RedEq_eq_iff; intros ?? Htype.
       clear Htype. (* actual typechecking's trivial. *)
       rewrite -wp_init_binop_spaceship /=; last congruence.

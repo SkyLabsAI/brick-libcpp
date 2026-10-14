@@ -32,7 +32,7 @@ Section with_cpp.
        \post{p}[Vptr p] p |-> (blockR sz 1$m **
                                nonnullR **
                                alignedR STDCPP_DEFAULT_NEW_ALIGNMENT **
-                               allocatedR 1 sz)).
+                               allocatedR 1 false sz)).
 
   (** <<operator new[](size_t)>> is not allowed to return <<nullptr>>, it
       signals failure by raising an exception.
@@ -43,6 +43,6 @@ Section with_cpp.
            p |-> (blockR sz 1$m **
                   nonnullR **
                   alignedR STDCPP_DEFAULT_NEW_ALIGNMENT **
-                  allocatedR 1 sz)).
+                  allocatedR 1 true sz)).
 
 End with_cpp.

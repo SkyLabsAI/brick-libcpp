@@ -23,6 +23,7 @@
   Equations.Prop
   Equations.Type
   skylabs.lang.cpp
+  skylabs.lang.cpp.parser.plugin
   skylabs.ltac2.logger
   skylabs.auto.core
   skylabs.elpi.extra
@@ -43,3 +44,15 @@
 (rule
  (alias dune_inc)
  (action (diff dune.inc dune.inc.gen)))
+
+; clang must flag every call in cstring/null_ub.cpp as passing null to a
+; nonnull parameter (see that file).
+(subdir cstring
+ (rule
+  (action
+   (with-stdout-to null_ub.warnings
+    (run sed -n "s|^.*/\\(null_ub\\.cpp:[0-9:]*: warning: .*\\)$|\\1|p"
+     %{dep:null_ub_cpp.v.stderr}))))
+ (rule
+  (alias runtest)
+  (action (diff null_ub.warnings.expected null_ub.warnings))))

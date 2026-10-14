@@ -53,11 +53,6 @@ Section with_cpp.
   Lemma test_delete_array_ok : verify[demo_cpp.source] "test_delete_array(int* )".
   Proof.
     verify_spec; go.
-    case_bool_decide; try by go.
-    go.
-    case_bool_decide.
-    { go. rewrite H. go. exfalso; lia. }
-    { go. }
   Qed.
 
   (** The C++ standard recommends <<262144 <= SIZE_MAX>>.  *)
@@ -80,5 +75,54 @@ Section with_cpp.
     rewrite Z.add_opp_diag_r. normalize_ptrs.
     go.
   Qed.
+
+  cpp.spec "test_raw_scalar()" from demo_cpp.source with (\post emp).
+  Lemma test_raw_scalar_ok : verify[demo_cpp.source] "test_raw_scalar()".
+  Proof. verify_spec; go. Qed.
+
+  cpp.spec "test_raw_scalar_sized()" from demo_cpp.source with (\post emp).
+  Lemma test_raw_scalar_sized_ok : verify[demo_cpp.source] "test_raw_scalar_sized()".
+  Proof. verify_spec; go. Qed.
+
+  cpp.spec "test_raw_array()" from demo_cpp.source with (\post emp).
+  Lemma test_raw_array_ok : verify[demo_cpp.source] "test_raw_array()".
+  Proof. verify_spec; go. Qed.
+
+  cpp.spec "test_raw_array_sized()" from demo_cpp.source with (\post emp).
+  Lemma test_raw_array_sized_ok : verify[demo_cpp.source] "test_raw_array_sized()".
+  Proof. verify_spec; go. Qed.
+
+  cpp.spec "test_raw_scalar_nothrow()" from demo_cpp.source with (\post emp).
+  Lemma test_raw_scalar_nothrow_ok : verify[demo_cpp.source] "test_raw_scalar_nothrow()".
+  Proof. verify_spec; go; case_bool_decide; go. Qed.
+
+  cpp.spec "test_raw_array_nothrow()" from demo_cpp.source with (\post emp).
+  Lemma test_raw_array_nothrow_ok : verify[demo_cpp.source] "test_raw_array_nothrow()".
+  Proof. verify_spec; go; case_bool_decide; go. Qed.
+
+  cpp.spec "test_raw_delete_null()" from demo_cpp.source with (\post emp).
+  Lemma test_raw_delete_null_ok : verify[demo_cpp.source] "test_raw_delete_null()".
+  Proof. verify_spec; go. Qed.
+
+  (* If a mismatched pair ever verifies again, [Fail Qed] rejects the test. *)
+  cpp.spec "test_scalar_to_array_delete()" from demo_cpp.source with (\post emp).
+  Lemma test_scalar_to_array_delete_rejected :
+    verify[demo_cpp.source] "test_scalar_to_array_delete()".
+  Proof. verify_spec; go. Fail Qed. Abort.
+
+  cpp.spec "test_scalar_to_array_delete_sized()" from demo_cpp.source with (\post emp).
+  Lemma test_scalar_to_array_delete_sized_rejected :
+    verify[demo_cpp.source] "test_scalar_to_array_delete_sized()".
+  Proof. verify_spec; go. Fail Qed. Abort.
+
+  cpp.spec "test_array_to_scalar_delete()" from demo_cpp.source with (\post emp).
+  Lemma test_array_to_scalar_delete_rejected :
+    verify[demo_cpp.source] "test_array_to_scalar_delete()".
+  Proof. verify_spec; go. Fail Qed. Abort.
+
+  cpp.spec "test_array_to_scalar_delete_sized()" from demo_cpp.source with (\post emp).
+  Lemma test_array_to_scalar_delete_sized_rejected :
+    verify[demo_cpp.source] "test_array_to_scalar_delete_sized()".
+  Proof. verify_spec; go. Fail Qed. Abort.
 
 End with_cpp.

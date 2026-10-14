@@ -32,13 +32,17 @@ Section with_cpp.
       In a normal implementation of <<malloc>>, this is a few bytes before the
       returned pointer that stores meta data, e.g. the size of the allocation.
 
+      [allocatedR q is_array sz] also records the allocation form: [false]
+      for <<operator new>> and [true] for <<operator new[]>>. Deallocation
+      must consume a token with the matching form, even for equal sizes.
+
       NOTE: While C++ often stores the size of the array next to a dynamically
       allocated array, the memory that backs this is **not** part of [allocatedR].
       That memory is owned by the C++ abstract machine.
    *)
-  Parameter allocatedR : forall {σ : genv}, Qp -> N -> Rep.
+  Parameter allocatedR : forall {σ : genv}, Qp -> bool -> N -> Rep.
   #[only(fractional,asfractional,fracvalid,timeless)] derive allocatedR.
-  #[global] Instance: Cbn (Learn (any ==> learn_eq ==> learn_hints.fin) allocatedR).
+  #[global] Instance: Cbn (Learn (any ==> learn_eq ==> learn_eq ==> learn_hints.fin) allocatedR).
   Proof. solve_learnable. Qed.
 
 End with_cpp.
@@ -53,7 +57,7 @@ NES.Begin alloc.
     Exists storage_p overhead sz,
       [| size_of _ ty = Some sz |] **
       new_token.R q {| new_token.alloc_ty := ty ; new_token.storage_ptr := storage_p ; new_token.overhead := overhead |} **
-      pureR (storage_p .[ "unsigned char" ! -overhead ] |-> allocatedR q (overhead + sz)).
+      pureR (storage_p .[ "unsigned char" ! -overhead ] |-> allocatedR q (is_array_type ty) (overhead + sz)).
   #[only(fractional,asfractional,fracvalid,timeless)] derive new_token.R.
   #[only(fracvalid,timeless)] derive tokenR.
 
