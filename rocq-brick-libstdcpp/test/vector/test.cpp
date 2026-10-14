@@ -98,6 +98,21 @@ TestAllocCtor() {
     test(v.size() == 0);
 }
 
+void
+TestDataEmpty() {
+    vector<int> v;
+    test(v.empty());
+    v.push_back(1);
+    v.push_back(2);
+    test(!v.empty());
+    int* p = v.data();
+    p[0] = 5;
+    test(v[0] == 5);
+    const vector<int>& cv = v;
+    test(cv.data() == p);
+    test(cv.data()[1] == 2);
+}
+
 int
 main() {
     TestBasic();
@@ -105,5 +120,6 @@ main() {
     TestIntIter();
     TestForEach();
     TestAllocCtor();
+    TestDataEmpty();
     return 0;
 }

@@ -185,6 +185,9 @@ Section with_cpp.
     cpp.spec "TestAggregate()" as test_aggregate with
         (\post emp).
 
+    cpp.spec "TestDataEmpty()" as test_data_empty with
+        (\post emp).
+
     cpp.spec "main()" as main with
         (\post[Vint 0] emp).
 
@@ -274,6 +277,14 @@ Section with_cpp.
     Qed.
     Definition test_aggregate_B := [LINK] test_aggregate_ok.
     #[local] Hint Resolve test_aggregate_B : sl_opacity.
+
+    Lemma test_data_empty_ok : verify[ source ] test_data_empty.
+    Proof using MOD.
+      verify_spec.
+      go.
+    Qed.
+    Definition test_data_empty_B := [LINK] test_data_empty_ok.
+    #[local] Hint Resolve test_data_empty_B : sl_opacity.
 
     Lemma test_ok : verify[ source ] test_spec.
     Proof using MOD.
