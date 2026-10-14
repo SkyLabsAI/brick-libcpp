@@ -74,15 +74,20 @@ NES.Begin lock_guard.
 
     #[global] Instance R_learn : LearnEqF1 R := ltac:(solve_learnable).
 
-    cpp.spec "std::lock_guard<$ty>::lock_guard($ty&)" as ctor_spec from source templates templates (
-      \\with
+    (* Register the instantiated signature directly so it can also be verified
+       with a symbolic mutex type. Keep [tu] for the existing spec interface. *)
+    Definition ctor_spec (tu : translation_unit) : mpred :=
+      specify.template.ctor ("std::lock_guard" .<< Atype ty >>) [Tref ty] $
       \this this
       \arg{mp} "" (Vptr mp)
       \pre{q m} mp |-> mutexR q$m m
       \pre{K} do_lock ty mp m K
       \post
-        this |-> R 1$m (Mk mp q m) ** K
-    ).
+        this |-> R 1$m (Mk mp q m) ** K.
+    #[global] Hint Opaque ctor_spec : sl_opacity.
+    #[global] Arguments ctor_spec : simpl never.
+    Definition SpecFor_ctor_spec := RegisterSpec (ctor_spec source).
+    #[global] Existing Instance SpecFor_ctor_spec.
 
     cpp.spec "std::lock_guard<$ty>::~lock_guard()" as dtor_spec from source templates templates (
       \\with
