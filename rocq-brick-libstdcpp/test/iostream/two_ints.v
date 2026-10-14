@@ -6,6 +6,7 @@
 Require Import skylabs.auto.cpp.prelude.proof.
 Require Import skylabs.lang.cpp.parser.plugin.cpp2v.
 Require Import skylabs.brick.libstdcpp.iostream.spec.
+Import istream.
 
 (** * Two consecutive [int] extractions
 

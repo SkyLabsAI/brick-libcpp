@@ -353,6 +353,6 @@ Module istream.
     Qed.
 
   End with_cpp.
-  #[global] Hint Resolve feed_script_C : sl_opacity.
+  #[export] Hint Resolve feed_script_C : br_hints.
 
 End istream.
