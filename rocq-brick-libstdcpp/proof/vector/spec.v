@@ -429,7 +429,7 @@ NES.Begin std.
         specify.template.ctor vector [Tref (Tconst alloc_ty)] $
           \this this
           \arg{allocp} "alloc" (Vptr allocp)
-          \prepost{a} allocp |-> objR alloc_ty (cQp.m 1) a
+          \prepost{qa a} allocp |-> objR alloc_ty qa a
           \post this |-> R_null (cQp.m 1).
       #[global] Hint Opaque ctor_with_alloc : sl_opacity.
       #[global] Arguments ctor_with_alloc : simpl never.
@@ -437,38 +437,8 @@ NES.Begin std.
       #[global] Existing Instance SpecFor_ctor_with_alloc.
 
       Section allocator.
-        Context `{!IsAllocator alloc_ty}.
+        Context `{!BundledRep alloc_ty AllocT}.
         Context `{!BundledRep ty V}.
-
-        Section default_ctor.
-          Context `{!DefaultValue ty V}.
-
-          Definition sized_ctor :=
-            specify.template.ctor vector [size_type; alloc_ty] $
-              \this this
-              \arg{size} "size" (Vint size)
-              \arg{allocp} "alloc" (Vptr allocp)
-              \prepost{a} allocp |-> objR alloc_ty (cQp.m 1) a
-              \post this |-> R (cQp.m 1) (replicateZ size (default_val ty)).
-          #[global] Hint Opaque sized_ctor : sl_opacity.
-          #[global] Arguments sized_ctor : simpl never.
-          Definition SpecFor_sized_ctor := RegisterSpec sized_ctor.
-          #[global] Existing Instance SpecFor_sized_ctor.
-        End default_ctor.
-
-        Definition init_ctor :=
-          specify.template.ctor vector [size_type; Tref (Tconst ty); alloc_ty] $
-            \this this
-            \arg{size} "size" (Vint size)
-            \arg{vp}   "v0"   (Vref vp)
-            \arg{allocp} "alloc" (Vptr allocp)
-            \prepost{v0 vq} vp |-> objR ty vq v0
-            \prepost{a}  allocp |-> objR alloc_ty (cQp.m 1) a
-            \post this |-> R (cQp.m 1) (replicateZ size v0).
-        #[global] Hint Opaque init_ctor : sl_opacity.
-        #[global] Arguments init_ctor : simpl never.
-        Definition SpecFor_init_ctor := RegisterSpec init_ctor.
-        #[global] Existing Instance SpecFor_init_ctor.
 
         Definition copy_alloc_ctor :=
           specify.template.ctor vector [Tref (Tconst vectorT); Tref (Tconst alloc_ty)] $
@@ -477,7 +447,7 @@ NES.Begin std.
             \arg{allocp} "alloc" (Vptr allocp)
             \prepost{q__other size st xs}
                   otherp |-> R_cap q__other size st xs
-            \prepost{a}  allocp |-> objR alloc_ty (cQp.m 1) a
+            \prepost{qa a} allocp |-> objR alloc_ty qa a
             \post this |-> R (cQp.m 1) xs.
         #[global] Hint Opaque copy_alloc_ctor : sl_opacity.
         #[global] Arguments copy_alloc_ctor : simpl never.
@@ -493,7 +463,7 @@ NES.Begin std.
             (* If the allocators differ, the elements are moved individually.
                In either case, [other] remains valid but its state is unspecified. *)
             \post* Exists other_xs, otherp |-> R (cQp.m 1) other_xs
-            \prepost{a}  allocp |-> objR alloc_ty (cQp.m 1) a
+            \prepost{qa a} allocp |-> objR alloc_ty qa a
             \post this |-> R (cQp.m 1) xs.
         #[global] Hint Opaque move_alloc_ctor : sl_opacity.
         #[global] Arguments move_alloc_ctor : simpl never.
@@ -501,6 +471,41 @@ NES.Begin std.
         #[global] Existing Instance SpecFor_move_alloc_ctor.
 
       End allocator.
+
+      (** The size constructors bind [IsAllocator] themselves, like [resize]: the
+          registered name mentions [size_type], which depends on it. The
+          allocator is taken by [const&] and only read, so any fraction of it
+          will do. *)
+      Section sized_ctors.
+        Context `{!BundledRep ty V}.
+
+        Definition sized_ctor
+            `{!DefaultValue ty V, !IsAllocator alloc_ty, !BundledRep alloc_ty AllocT} :=
+          specify.template.ctor vector [size_type; Tref (Tconst alloc_ty)] $
+            \this this
+            \arg{size} "size" (Vint size)
+            \arg{allocp} "alloc" (Vptr allocp)
+            \prepost{qa a} allocp |-> objR alloc_ty qa a
+            \post Exists st, this |-> R_cap (cQp.m 1) size st (replicateZ size (default_val ty)).
+        #[global] Hint Opaque sized_ctor : sl_opacity.
+        #[global] Arguments sized_ctor : simpl never.
+        Definition SpecFor_sized_ctor := RegisterSpec (@sized_ctor).
+        #[global] Existing Instance SpecFor_sized_ctor.
+
+        Definition init_ctor `{!IsAllocator alloc_ty, !BundledRep alloc_ty AllocT} :=
+          specify.template.ctor vector [size_type; Tref (Tconst ty); Tref (Tconst alloc_ty)] $
+            \this this
+            \arg{size} "size" (Vint size)
+            \arg{vp}   "v0"   (Vref vp)
+            \arg{allocp} "alloc" (Vptr allocp)
+            \prepost{v0 vq} vp |-> objR ty vq v0
+            \prepost{qa a} allocp |-> objR alloc_ty qa a
+            \post Exists st, this |-> R_cap (cQp.m 1) size st (replicateZ size v0).
+        #[global] Hint Opaque init_ctor : sl_opacity.
+        #[global] Arguments init_ctor : simpl never.
+        Definition SpecFor_init_ctor := RegisterSpec (@init_ctor).
+        #[global] Existing Instance SpecFor_init_ctor.
+      End sized_ctors.
 
       Section no_alloc.
         Context `{!BundledRep ty V}.
@@ -744,7 +749,7 @@ NES.Begin std.
       End iterators.
 
       Section specs.
-        Context `{!IsAllocator alloc_ty}.
+        Context `{!IsAllocator alloc_ty, !BundledRep alloc_ty AllocT}.
         Context `{!BundledRep ty V}.
         Context `{!DefaultValue ty V}.
         Context `{!MovedValue ty V}.
