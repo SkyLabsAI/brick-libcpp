@@ -386,14 +386,18 @@ When a thread $t$ wants to interact with a mutex $N$, it separates $\mutexperm{t
 \newcommand{\giventoken}[2]{\ensuremath{\mathsf{given\_token}_{#1}(#2)}}
 
 \begin{figure}[htb]
+\begin{subfigure}[t]{0.45\textwidth}
 \begin{lstlisting}
 class Mutex1 {
   std::atomic<bool> lock;
 
+
   Mutex1() { lock = false; }
 
+
   void lock(){
-    while(lock.exchange(true)) { yield(); }
+    while(lock.exchange(true))
+      { yield(); }
   }
 
   void unlock(){
@@ -401,17 +405,15 @@ class Mutex1 {
   }
 }
 \end{lstlisting}
-\caption{A simple spinlock implementation of \lstinline{std::mutex}}
-\label{mutex-impl1}
-\end{figure}%combine this with the following figure?
-
-\begin{figure}[htb]
+\end{subfigure}~
+\begin{subfigure}[t]{0.55\textwidth}
 \begin{lstlisting}
 class Mutex2 {
   std::atomic<bool> lock;
   std::thread::id owner;
 
-  Mutex2() { lock = false; owner = std::thread::id(); }
+  Mutex2() { lock = false;
+              owner = std::thread::id(); }
 
   void lock(){
     while(lock.exchange(true)) { yield(); }
@@ -426,15 +428,16 @@ class Mutex2 {
   
   ~Mutex2() {
     assert(!lock);
-    assert(owner == std::thread::id()); //unowned
+    assert(owner == std::thread::id());
   }
 }
 \end{lstlisting}
-\caption{An implementation of \lstinline{std::mutex} that checks some thread requirements}
-\label{mutex-impl2}
+\end{subfigure}
+\caption{Two implementations of \lstinline{std::mutex}}
+\label{mutex-impl}
 \end{figure}
 
-We consider two spinlock implementations of \lstinline{std::mutex}. The first, in Figure~\ref{mutex-impl1}, is a straightforward implementation similar to that used in HeapLang: \lstinline{lock} atomically exchanges \lstinline{true} with the current value of \lstinline{lock}, which is \lstinline{true} if the mutex is currently held (in which case the exchange does nothing and the loop continues) and \lstinline{false} if the mutex is not held (in which case the exchange sets \lstinline{lock} to \lstinline{true} and the loop ends). Unlike in HeapLang, a location that will be accessed concurrently by multiple threads must explicitly be declared to be of an \lstinline{atomic} type: data races on non-atomic locations are undefined behavior in C++. The second implementation, in Figure~\ref{mutex-impl2}, additionally records the thread ID of the current owner, and uses it to assert some of the mutex requirements: a thread calling \lstinline{unlock} must be the current owner, and when the mutex is destroyed it must not be held by any thread. (Because \lstinline{owner} is only accessed by the thread that holds the mutex and in the destructor, it does not need to be atomic.) Both of these implementations meet the informal specification of \lstinline{mutex}: since violating the mutex requirements is undefined behavior, both nontermination and assertion failure are permissible results. However, the second implementation does \emph{not} meet the usual separation logic specification of locks, in which any thread that holds a transferable $\mathsf{locked}$ predicate can release the lock. We prove that both of these implementations satisfy the mutex specifications of Section~\ref{mutex-spec}. We outline the proof for \lstinline{Mutex2}; the proof for \lstinline{Mutex1} is strictly simpler.
+We consider two spinlock implementations of \lstinline{std::mutex}, shown in Figure~\ref{mutex-impl}. The first is a straightforward implementation similar to that used in HeapLang: \lstinline{lock} atomically exchanges \lstinline{true} with the current value of \lstinline{lock}, which is \lstinline{true} if the mutex is currently held (in which case the exchange does nothing and the loop continues) and \lstinline{false} if the mutex is not held (in which case the exchange sets \lstinline{lock} to \lstinline{true} and the loop ends). Unlike in HeapLang, a location that will be accessed concurrently by multiple threads must explicitly be declared to be of an \lstinline{atomic} type: data races on non-atomic locations are undefined behavior in C++. The second implementation additionally records the thread ID of the current owner, and uses it to assert some of the mutex requirements: a thread calling \lstinline{unlock} must be the current owner, and when the mutex is destroyed it must not be held by any thread. (Because \lstinline{owner} is only accessed by the thread that holds the mutex and in the destructor, it does not need to be atomic.) Both of these implementations meet the informal specification of \lstinline{mutex}: since violating the mutex requirements is undefined behavior, both nontermination and assertion failure are permissible results. However, the second implementation does \emph{not} meet the usual separation logic specification of locks, in which any thread that holds a transferable $\mathsf{locked}$ predicate can release the lock. We prove that both of these implementations satisfy the mutex specifications of Section~\ref{mutex-spec}. We outline the proof for \lstinline{Mutex2}; the proof for \lstinline{Mutex1} is strictly simpler.
 
 The standard Iris approach to verifying a spinlock is to define an invariant of the form
 \[\knowInv{}{(\texttt{lock} \mapsto \mathsf{true})    {}\vee{} (\texttt{lock} \mapsto \mathsf{false} \ast P \ast \mathsf{token}_\gamma)}
