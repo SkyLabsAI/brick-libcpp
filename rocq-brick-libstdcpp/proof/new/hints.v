@@ -1,5 +1,6 @@
 Require Import skylabs.auto.persistent.
 Require Import skylabs.auto.cpp.hints.alignment.
+Require Import skylabs.auto.cpp.hints.sizeof.
 Require Import skylabs.auto.cpp.proof.
 Require Export skylabs.brick.libstdcpp.new.spec.
 
@@ -102,6 +103,33 @@ Section with_cpp.
     work.
   Qed.
 
+  (* Like [token_use_non_array_C], but with the size computed on [tu]:
+     otherwise [size_of] of a class type stays symbolic and cannot meet the
+     concrete size passed to a sized deallocation function. *)
+  #[program]
+  Definition token_use_non_array_tu_C tu (p : ptr) (ty : type)
+      (alignment : option N) (q : Qp) n (_ : TCEq (is_array_type ty) false)
+      (_ : _size_of tu ty =[Vm]=> Some n) :=
+    \cancelx
+    \preserving denoteModule tu
+    \consuming p |-> alloc.tokenR_with_alignment (σ:=σ) ty alignment q
+    \proving{(storage_p : ptr) overhead} p |-> new_token.R q (new_token.mk ty storage_p overhead)
+    \deduce{(storage_p' : ptr)} storage_p' |-> allocatedR q false alignment n
+    \through [| storage_p = storage_p' |]
+    \through [| overhead = 0 |]%N
+    \end.
+  Next Obligation.
+    intros * Harray Hn%RedEq_eq.
+    rewrite alloc.tokenR_with_alignment.unlock (proj1 (TCEq_eq _ _) Harray).
+    iIntros "[#M X]"; iDestruct "X" as (storage_p overhead sz Hsz) "[X R]".
+    iDestruct (observe [| _ ⊧ _ |] with "M") as %Hmod.
+    have ? : sz = n by have := @sizeof._size_of_ok tu σ Hmod ty n Hn; congruence.
+    iDestruct (observe [| overhead = 0%N |] with "X") as "%".
+    subst. normalize_ptrs.
+    iExists storage_p. iDestruct "R" as "?".
+    work. iExact "X".
+  Qed.
+
   #[program]
   Definition token_use_array_C (p : ptr) (ty : type)
       (alignment : option N) (q : Qp) :=
@@ -118,6 +146,37 @@ Section with_cpp.
     iExists storage_p.
     work.
     iExists overhead. work.
+  Qed.
+
+  (** Resolve the alignment of a [tokenR] (see [alloc.default_new_alignment]). *)
+  #[program]
+  Definition token_default_alignment_C tu (p : ptr) ty q al
+    (_ : _align_of tu ty =[Vm]=> Some al) :=
+    \cancelx
+    \preserving denoteModule tu
+    \proving p |-> alloc.tokenR_with_alignment ty (alloc.default_new_alignment ty) q
+    \through p |-> alloc.tokenR_with_alignment ty
+      (if (STDCPP_DEFAULT_NEW_ALIGNMENT <? al)%N then Some al else None) q
+    \end.
+  Next Obligation.
+    intros * Hal%RedEq_eq. iIntros "#M T".
+    iDestruct (observe [| _ ⊧ _ |] with "M") as %?.
+    by rewrite /alloc.default_new_alignment (_align_of_ok _ _ _ Hal).
+  Qed.
+
+  #[program]
+  Definition token_default_alignment_F tu (p : ptr) ty q al
+    (_ : _align_of tu ty =[Vm]=> Some al) :=
+    \fwd
+    \preserving denoteModule tu
+    \using p |-> alloc.tokenR_with_alignment ty (alloc.default_new_alignment ty) q
+    \deduce p |-> alloc.tokenR_with_alignment ty
+      (if (STDCPP_DEFAULT_NEW_ALIGNMENT <? al)%N then Some al else None) q
+    \end.
+  Next Obligation.
+    intros * Hal%RedEq_eq. iIntros "[#M T]".
+    iDestruct (observe [| _ ⊧ _ |] with "M") as %?.
+    iFrame "M". by rewrite /alloc.default_new_alignment (_align_of_ok _ _ _ Hal).
   Qed.
 
   #[global] Instance alloc_token_new_token_learnable ty alignment q q' a b c :
@@ -146,194 +205,14 @@ Section with_cpp.
     work.
   Qed.
 
-  (** <<delete nullptr>> hints
-      The needs for hints at that AST level is sub-optimal, but something that requires
-      a bit more infrastructure to automate. Specifically, [wp_delete_null] reduces to
-      a conjunction which requires splitting the proof. However, this split can be
-      avoided if <<operator delete(nullptr, ...)>> is effectively a no-op (as its
-      specification says that it should be). A better phrasing of this might be a class
-      like [TrivialOnNull function_name] which would allow us to generalize these proofs.
-   *)
-
-  (* Helpers for these proofs. *)
-  Definition denoteModule_models_observe_F :=
-    ltac:(mk_obs_fwd denoteModule_models_observe).
-  #[local] Hint Resolve denoteModule_models_observe_F : br_hints.
-
-  Lemma delete_for_genv_compat {op cls result} `{tu ⊧ σ}:
-    delete_operator.delete_for tu op cls = Some result ->
-    delete_operator.delete_for (genv_tu σ) op cls = Some result.
-  Proof.
-    intros Hdel. apply (delete_operator.delete_for_submodule Hdel).
-    exact: genv_compat_submodule.
-  Qed.
-  #[local] Arguments delete_operator.type_for !_ /.
-  #[local] Arguments delete_operator.delete_for : simpl never.
-
-  #[program]
-  Definition wp_delete_null_operator_delete_size_C source cls Q
-    (Hdelete : delete_operator.delete_for source "operator delete(void*, unsigned long)" cls =[Vm]=> Some ("operator delete(void*, unsigned long)"%cpp_name, delete_operator.mk None true false))
-    :=
-    \cancelx
-    \using operator_delete_size
-    \using denoteModule source
-    \proving wp_delete_null "operator delete(void*, unsigned long)" cls Q
-    \through Q
-    \end.
-  Next Obligation.
-    intros * Hdel%RedEq_eq_iff. rewrite wp_delete_null.unlock; work.
-    rewrite (delete_for_genv_compat Hdel) wp_invoke_delete.unlock/=.
-    go.
-  Qed.
-
-  #[program]
-  Definition wp_delete_null_operator_delete_C source cls Q
-    (Hdelete : delete_operator.delete_for source "operator delete(void* )" cls =[Vm]=> Some ("operator delete(void* )"%cpp_name, delete_operator.mk None false false))
-    :=
-    \cancelx
-    \using operator_delete
-    \using denoteModule source
-    \proving wp_delete_null "operator delete(void* )" cls Q
-    \through Q
-    \end.
-  Next Obligation.
-    intros * Hdel%RedEq_eq_iff. rewrite wp_delete_null.unlock; work.
-    rewrite (delete_for_genv_compat Hdel) wp_invoke_delete.unlock/=.
-    go.
-  Qed.
-
-  #[program]
-  Definition wp_delete_null_operator_delete_size_align_C source cls Q al
-  (Hdelete : delete_operator.delete_for source "operator delete(void*, unsigned long, enum std::align_val_t)" cls =[Vm]=> Some ("operator delete(void*, unsigned long, enum std::align_val_t)"%cpp_name, delete_operator.mk None true true))
-    (Hal : _align_of source cls =[Vm]=> Some al)
-    :=
-    \cancelx
-    \using operator_delete_size_align
-    \using denoteModule source
-    \proving wp_delete_null "operator delete(void*, unsigned long, enum std::align_val_t)" cls Q
-    \through Q
-    \end.
-  Next Obligation.
-    intros * Hdel%RedEq_eq_iff Hal%RedEq_eq_iff. rewrite wp_delete_null.unlock; work.
-    rewrite (delete_for_genv_compat Hdel) wp_invoke_delete.unlock/=.
-    move: Hal => /_align_of_ok Hal.
-    go.
-  Qed.
-
-  #[program]
-  Definition wp_delete_null_operator_delete_align_C source cls Q al
-  (Hdelete : delete_operator.delete_for source "operator delete(void*, enum std::align_val_t)" cls =[Vm]=> Some ("operator delete(void*, enum std::align_val_t)"%cpp_name, delete_operator.mk None false true))
-    (Hal : _align_of source cls =[Vm]=> Some al)
-    :=
-    \cancelx
-    \using operator_delete_align
-    \using denoteModule source
-    \proving wp_delete_null "operator delete(void*, enum std::align_val_t)" cls Q
-    \through Q
-    \end.
-  Next Obligation.
-    intros * Hdel%RedEq_eq_iff Hal%RedEq_eq_iff. rewrite wp_delete_null.unlock; work.
-    rewrite (delete_for_genv_compat Hdel) wp_invoke_delete.unlock/=.
-    move: Hal => /_align_of_ok Hal.
-    go.
-  Qed.
-
-  #[program]
-  Definition wp_delete_null_operator_delete_array_align_C source cls Q al
-  (Hdelete : delete_operator.delete_for source "operator delete[](void*, enum std::align_val_t)" (Tincomplete_array cls) =[Vm]=> Some ("operator delete[](void*, enum std::align_val_t)"%cpp_name, delete_operator.mk None false true))
-    (Hal : _align_of source (Tincomplete_array cls) =[Vm]=> Some al)
-    :=
-    \cancelx
-    \using operator_delete_array_align
-    \using denoteModule source
-    \proving wp_delete_null "operator delete[](void*, enum std::align_val_t)" (Tincomplete_array cls) Q
-    \through Q
-    \end.
-  Next Obligation.
-    intros * Hdel%RedEq_eq_iff Hal%RedEq_eq_iff. rewrite wp_delete_null.unlock; work.
-    rewrite (delete_for_genv_compat Hdel) wp_invoke_delete.unlock/=.
-    move: Hal => /_align_of_ok Hal.
-    go.
-  Qed.
-
-  #[program]
-  Definition wp_delete_null_operator_delete_array_size_align_C source cls Q al
-  (Hdelete : delete_operator.delete_for source "operator delete[](void*, unsigned long, enum std::align_val_t)" (Tincomplete_array cls) =[Vm]=> Some ("operator delete[](void*, unsigned long, enum std::align_val_t)"%cpp_name, delete_operator.mk None true true))
-    (Hal : _align_of source (Tincomplete_array cls) =[Vm]=> Some al)
-    :=
-    \cancelx
-    \using operator_delete_array_size_align
-    \using denoteModule source
-    \proving wp_delete_null "operator delete[](void*, unsigned long, enum std::align_val_t)" (Tincomplete_array cls) Q
-    \through Q
-    \end.
-  Next Obligation.
-    intros * Hdel%RedEq_eq_iff Hal%RedEq_eq_iff. rewrite wp_delete_null.unlock; work.
-    rewrite (delete_for_genv_compat Hdel) wp_invoke_delete.unlock/=.
-    move: Hal => /_align_of_ok Hal.
-    go.
-  Qed.
-
-  #[program]
-  Definition wp_delete_null_operator_delete_array_size_C source cls Q
-    (Hdelete : delete_operator.delete_for source "operator delete[](void*, unsigned long)" (Tincomplete_array cls) =[Vm]=> Some ("operator delete[](void*, unsigned long)"%cpp_name, delete_operator.mk None true false))
-    :=
-    \cancelx
-    \using operator_delete_array_size
-    \using denoteModule source
-    \proving wp_delete_null "operator delete[](void*, unsigned long)" (Tincomplete_array cls) Q
-    \through Q
-    \end.
-  Next Obligation.
-    intros * Hdel%RedEq_eq_iff. rewrite wp_delete_null.unlock; work.
-    rewrite (delete_for_genv_compat Hdel) wp_invoke_delete.unlock/=.
-    go.
-  Qed.
-
-  #[program]
-  Definition wp_delete_null_operator_delete_array_C source cls Q
-    (Hdelete : delete_operator.delete_for source "operator delete[](void* )" (Tincomplete_array cls) =[Vm]=> Some ("operator delete[](void* )"%cpp_name, delete_operator.mk None false false))
-    :=
-    \cancelx
-    \using operator_delete_array
-    \using denoteModule source
-    \proving wp_delete_null "operator delete[](void* )" (Tincomplete_array cls) Q
-    \through Q
-    \end.
-  Next Obligation.
-    intros * Hdel%RedEq_eq_iff. rewrite wp_delete_null.unlock; work.
-    rewrite (delete_for_genv_compat Hdel) wp_invoke_delete.unlock/=.
-    go.
-  Qed.
-
-  #[program]
-  Definition wp_delete_null_operator_delete_fixed_array_C source cls array_size Q
-    (Hdelete : delete_operator.delete_for source "operator delete[](void*, unsigned long)" (Tarray cls array_size) =[Vm]=> Some ("operator delete[](void*, unsigned long)"%cpp_name, delete_operator.mk None true false))
-    :=
-    \cancelx
-    \using operator_delete_array_size
-    \using denoteModule source
-    \proving wp_delete_null "operator delete[](void*, unsigned long)" (Tarray cls array_size) Q
-    \through Q
-    \end.
-  Next Obligation.
-    intros * Hdel%RedEq_eq_iff. rewrite wp_delete_null.unlock; work.
-    rewrite (delete_for_genv_compat Hdel) wp_invoke_delete.unlock/=.
-    go.
-  Qed.
-
 End with_cpp.
 
-#[global] Hint Resolve wp_delete_null_operator_delete_size_C wp_delete_null_operator_delete_C : db_skylabs_wp.
-#[global] Hint Resolve wp_delete_null_operator_delete_size_align_C
-  wp_delete_null_operator_delete_align_C
-  wp_delete_null_operator_delete_array_align_C
-  wp_delete_null_operator_delete_array_size_align_C : db_skylabs_wp.
-#[global] Hint Resolve wp_delete_null_operator_delete_array_size_C wp_delete_null_operator_delete_array_C
- wp_delete_null_operator_delete_fixed_array_C : db_skylabs_wp.
 
 #[global] Hint Resolve token_prove_C token_prove_0_C | 100 : sl_opacity.
 #[global] Hint Resolve token_prove_using_C token_prove_using_0_C | 99 : sl_opacity.
 #[global] Hint Resolve token_use_non_array_C | 99 : sl_opacity.
+#[global] Hint Resolve token_use_non_array_tu_C | 98 : sl_opacity.
 #[global] Hint Resolve token_use_array_C | 100 : sl_opacity.
 #[global] Hint Resolve supported_alignment_tu_C : sl_opacity.
+#[global] Hint Resolve token_default_alignment_C | 50 : sl_opacity.
+#[global] Hint Resolve token_default_alignment_F : sl_opacity.

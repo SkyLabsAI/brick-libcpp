@@ -276,3 +276,32 @@ void test_delete_null() {
   int* q = nullptr;
   delete[] q;
 }
+
+// The default allocation token for an over-aligned type records the
+// alignment argument passed by the global aligned operator new.
+AlignedValue* test_new_aligned_token() {
+  return new AlignedValue{0};
+}
+
+struct WithDtor {
+  ~WithDtor() {}
+};
+
+void test_new_delete_array_dtor() {
+  auto p = new WithDtor[2];
+  delete[] p;
+}
+
+void test_new_delete_aligned_array() {
+  auto p = new AlignedPod[2];
+  delete[] p;
+}
+
+struct alignas(64) AlignedDtor {
+  ~AlignedDtor() {}
+};
+
+void test_new_delete_aligned_array_dtor() {
+  auto p = new AlignedDtor[2];
+  delete[] p;
+}

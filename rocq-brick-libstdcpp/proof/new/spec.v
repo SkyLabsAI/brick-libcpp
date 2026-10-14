@@ -64,7 +64,7 @@ Section with_cpp.
   (** ** Array <<new>> and <<delete>> *)
   cpp.spec "operator new[](std::size_t, const std::nothrow_t&)" as operator_new_array_nothrow with
       (\arg{sz} "sz" (Vn sz)
-       \arg{nothrow_p} "" (Vptr nothrow_p)
+       \arg{nothrow_p} "nothrow" (Vref nothrow_p)
        \post{p}[Vptr p]
           if bool_decide (p = nullptr) then emp
           else p |-> (blockR sz 1$m **

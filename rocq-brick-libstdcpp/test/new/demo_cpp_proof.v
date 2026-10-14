@@ -40,6 +40,18 @@ Section alignment_model_examples.
   Qed.
 End alignment_model_examples.
 
+(** Negative tests: the proof must get stuck exactly on the allocation
+    receipt ([allocatedR]) demanded by the deallocation function, rather than
+    succeed or get stuck for an unrelated reason. *)
+Ltac stuck_on_receipt :=
+  lazymatch goal with
+  | |- environments.envs_entails _ ?P =>
+      lazymatch P with
+      | context [allocatedR] => idtac
+      | _ => fail "not stuck on an allocation receipt:" P
+      end
+  end.
+
 Section with_cpp.
   Context `{Σ : cpp_logic} {σ : genv}.
   Context `{alignment_support : !allocation_alignment_support σ}.
@@ -108,15 +120,13 @@ Section with_cpp.
     go.
     { exfalso.
       generalize Cpp_SIZE_MAX. lia. }
-    { normalize_ptrs.
-      rewrite Z.add_opp_diag_r. normalize_ptrs. go. }
+    { normalize_ptrs. go. }
   Qed.
 
   Lemma test_new_delete_array_ok : verify[demo_cpp.source] "test_new_delete_array()".
   Proof.
     verify_spec; go.
     normalize_ptrs.
-    rewrite Z.add_opp_diag_r. normalize_ptrs.
     go.
   Qed.
 
@@ -152,22 +162,22 @@ Section with_cpp.
   cpp.spec "test_scalar_to_array_delete()" from demo_cpp.source with (\post emp).
   Lemma test_scalar_to_array_delete_rejected :
     verify[demo_cpp.source] "test_scalar_to_array_delete()".
-  Proof. verify_spec; go. Fail Qed. Abort.
+  Proof. verify_spec; go. stuck_on_receipt. Abort.
 
   cpp.spec "test_scalar_to_array_delete_sized()" from demo_cpp.source with (\post emp).
   Lemma test_scalar_to_array_delete_sized_rejected :
     verify[demo_cpp.source] "test_scalar_to_array_delete_sized()".
-  Proof. verify_spec; go. Fail Qed. Abort.
+  Proof. verify_spec; go. stuck_on_receipt. Abort.
 
   cpp.spec "test_array_to_scalar_delete()" from demo_cpp.source with (\post emp).
   Lemma test_array_to_scalar_delete_rejected :
     verify[demo_cpp.source] "test_array_to_scalar_delete()".
-  Proof. verify_spec; go. Fail Qed. Abort.
+  Proof. verify_spec; go. stuck_on_receipt. Abort.
 
   cpp.spec "test_array_to_scalar_delete_sized()" from demo_cpp.source with (\post emp).
   Lemma test_array_to_scalar_delete_sized_rejected :
     verify[demo_cpp.source] "test_array_to_scalar_delete_sized()".
-  Proof. verify_spec; go. Fail Qed. Abort.
+  Proof. verify_spec; go. stuck_on_receipt. Abort.
 
 
   (* Aligned allocation must keep its exact alignment argument. *)
@@ -221,26 +231,26 @@ Section with_cpp.
   cpp.spec "test_scalar_to_aligned_delete()" from demo_cpp.source with
     (\post emp).
   Lemma test_scalar_to_aligned_delete_rejected : verify[demo_cpp.source] "test_scalar_to_aligned_delete()".
-  Proof. verify_spec; go. Fail Qed. Abort.
+  Proof. verify_spec; go. stuck_on_receipt. Abort.
 
   cpp.spec "test_aligned_scalar_to_unaligned_delete(enum std::align_val_t)" from demo_cpp.source with
     (\arg{al} "al" (Vn al)
      \require supported_alignment al
      \post emp).
   Lemma test_aligned_scalar_to_unaligned_delete_rejected : verify[demo_cpp.source] "test_aligned_scalar_to_unaligned_delete(enum std::align_val_t)".
-  Proof. verify_spec; go. Fail Qed. Abort.
+  Proof. verify_spec; go. stuck_on_receipt. Abort.
 
   cpp.spec "test_scalar_to_aligned_delete_sized()" from demo_cpp.source with
     (\post emp).
   Lemma test_scalar_to_aligned_delete_sized_rejected : verify[demo_cpp.source] "test_scalar_to_aligned_delete_sized()".
-  Proof. verify_spec; go. Fail Qed. Abort.
+  Proof. verify_spec; go. stuck_on_receipt. Abort.
 
   cpp.spec "test_aligned_scalar_to_unaligned_delete_sized(enum std::align_val_t)" from demo_cpp.source with
     (\arg{al} "al" (Vn al)
      \require supported_alignment al
      \post emp).
   Lemma test_aligned_scalar_to_unaligned_delete_sized_rejected : verify[demo_cpp.source] "test_aligned_scalar_to_unaligned_delete_sized(enum std::align_val_t)".
-  Proof. verify_spec; go. Fail Qed. Abort.
+  Proof. verify_spec; go. stuck_on_receipt. Abort.
 
   cpp.spec "test_scalar_wrong_alignment(void*, enum std::align_val_t)" from demo_cpp.source with
     (\arg{p} "p" (Vptr p)
@@ -250,7 +260,7 @@ Section with_cpp.
      \require original <> al
      \post emp).
   Lemma test_scalar_wrong_alignment_rejected : verify[demo_cpp.source] "test_scalar_wrong_alignment(void*, enum std::align_val_t)".
-  Proof. verify_spec; go. Fail Qed. Abort.
+  Proof. verify_spec; go. stuck_on_receipt. Abort.
 
   cpp.spec "test_scalar_wrong_alignment_sized(void*, enum std::align_val_t)" from demo_cpp.source with
     (\arg{p} "p" (Vptr p)
@@ -260,31 +270,31 @@ Section with_cpp.
      \require original <> al
      \post emp).
   Lemma test_scalar_wrong_alignment_sized_rejected : verify[demo_cpp.source] "test_scalar_wrong_alignment_sized(void*, enum std::align_val_t)".
-  Proof. verify_spec; go. Fail Qed. Abort.
+  Proof. verify_spec; go. stuck_on_receipt. Abort.
 
   cpp.spec "test_array_to_aligned_delete()" from demo_cpp.source with
     (\post emp).
   Lemma test_array_to_aligned_delete_rejected : verify[demo_cpp.source] "test_array_to_aligned_delete()".
-  Proof. verify_spec; go. Fail Qed. Abort.
+  Proof. verify_spec; go. stuck_on_receipt. Abort.
 
   cpp.spec "test_aligned_array_to_unaligned_delete(enum std::align_val_t)" from demo_cpp.source with
     (\arg{al} "al" (Vn al)
      \require supported_alignment al
      \post emp).
   Lemma test_aligned_array_to_unaligned_delete_rejected : verify[demo_cpp.source] "test_aligned_array_to_unaligned_delete(enum std::align_val_t)".
-  Proof. verify_spec; go. Fail Qed. Abort.
+  Proof. verify_spec; go. stuck_on_receipt. Abort.
 
   cpp.spec "test_array_to_aligned_delete_sized()" from demo_cpp.source with
     (\post emp).
   Lemma test_array_to_aligned_delete_sized_rejected : verify[demo_cpp.source] "test_array_to_aligned_delete_sized()".
-  Proof. verify_spec; go. Fail Qed. Abort.
+  Proof. verify_spec; go. stuck_on_receipt. Abort.
 
   cpp.spec "test_aligned_array_to_unaligned_delete_sized(enum std::align_val_t)" from demo_cpp.source with
     (\arg{al} "al" (Vn al)
      \require supported_alignment al
      \post emp).
   Lemma test_aligned_array_to_unaligned_delete_sized_rejected : verify[demo_cpp.source] "test_aligned_array_to_unaligned_delete_sized(enum std::align_val_t)".
-  Proof. verify_spec; go. Fail Qed. Abort.
+  Proof. verify_spec; go. stuck_on_receipt. Abort.
 
   cpp.spec "test_array_wrong_alignment(void*, enum std::align_val_t)" from demo_cpp.source with
     (\arg{p} "p" (Vptr p)
@@ -294,7 +304,7 @@ Section with_cpp.
      \require original <> al
      \post emp).
   Lemma test_array_wrong_alignment_rejected : verify[demo_cpp.source] "test_array_wrong_alignment(void*, enum std::align_val_t)".
-  Proof. verify_spec; go. Fail Qed. Abort.
+  Proof. verify_spec; go. stuck_on_receipt. Abort.
 
   cpp.spec "test_array_wrong_alignment_sized(void*, enum std::align_val_t)" from demo_cpp.source with
     (\arg{p} "p" (Vptr p)
@@ -304,7 +314,7 @@ Section with_cpp.
      \require original <> al
      \post emp).
   Lemma test_array_wrong_alignment_sized_rejected : verify[demo_cpp.source] "test_array_wrong_alignment_sized(void*, enum std::align_val_t)".
-  Proof. verify_spec; go. Fail Qed. Abort.
+  Proof. verify_spec; go. stuck_on_receipt. Abort.
 
   cpp.spec "AlignedValue::~AlignedValue()" from demo_cpp.source with
     (\this this
@@ -317,28 +327,23 @@ Section with_cpp.
   Lemma test_new_delete_aligned_ok : verify[demo_cpp.source] "test_new_delete_aligned()".
   Proof. verify_spec; go. Qed.
 
-  cpp.spec "test_delete_aligned(AlignedValue*)" as test_delete_aligned_spec
-      from demo_cpp.source with
+  #[local] cpp.spec "WithDtor::WithDtor()" from demo_cpp.source inline.
+  #[local] cpp.spec "WithDtor::~WithDtor()" from demo_cpp.source inline.
+  #[local] cpp.spec "AlignedPod::AlignedPod()" from demo_cpp.source inline.
+  #[local] cpp.spec "AlignedPod::~AlignedPod()" from demo_cpp.source inline.
+  #[local] cpp.spec "AlignedDtor::AlignedDtor()" from demo_cpp.source inline.
+  #[local] cpp.spec "AlignedDtor::~AlignedDtor()" from demo_cpp.source inline.
+
+  cpp.spec "test_delete_aligned(AlignedValue*)" from demo_cpp.source with
     (\arg{p} "p" (Vptr p)
-     \pre{v} p |-> (AlignedValueR 1$m v **
+     (* Unfolded: [AlignedValueR] is [lazy_unfold], which unfolds it only on the
+        goal side, so a folded precondition would not match the destructor's. *)
+     \pre{v} p |-> (structR "AlignedValue" 1$m **
+                    _field "AlignedValue::value" |-> intR 1$m v **
                     alloc.tokenR_with_alignment "AlignedValue" (Some 64%N) 1)
      \post emp).
-  (* Stated by hand: [verify] does not collect the destructor that a
-     <<delete>> expression invokes. *)
-  Lemma test_delete_aligned_ok :
-    denoteModule demo_cpp.source ⊢
-      ▷ operator_delete_size_align ∗ ▷ AlignedValue_dot__dtor_spec -∗
-      test_delete_aligned_spec.
-  Proof.
-    verify_spec; go.
-    (* TODO: automation does not instantiate the destructor's [\pre{value}]. *)
-    iExists v; iFrame "∗"; work.
-    (* TODO: the token hints leave [size_of] of a class type uncomputed. *)
-    have Hsz : sz = 64%N.
-    { have := sizeof._size_of_ok demo_cpp.source "AlignedValue" 64 ltac:(by vm_compute).
-      move: H; rewrite /size_of /=. congruence. }
-    subst sz. go.
-  Qed.
+  Lemma test_delete_aligned_ok : verify[demo_cpp.source] "test_delete_aligned(AlignedValue*)".
+  Proof. verify_spec; go. Qed.
 
   cpp.spec "test_delete_null_aligned()" from demo_cpp.source with (\post emp).
   Lemma test_delete_null_aligned_ok : verify[demo_cpp.source] "test_delete_null_aligned()".
@@ -368,11 +373,11 @@ Section with_cpp.
 
   cpp.spec "test_scalar_zero_to_aligned_delete()" from demo_cpp.source with (\post emp).
   Lemma test_scalar_zero_to_aligned_delete_rejected : verify[demo_cpp.source] "test_scalar_zero_to_aligned_delete()".
-  Proof. verify_spec; go. Fail Qed. Abort.
+  Proof. verify_spec; go. stuck_on_receipt. Abort.
 
   cpp.spec "test_array_zero_to_aligned_delete()" from demo_cpp.source with (\post emp).
   Lemma test_array_zero_to_aligned_delete_rejected : verify[demo_cpp.source] "test_array_zero_to_aligned_delete()".
-  Proof. verify_spec; go. Fail Qed. Abort.
+  Proof. verify_spec; go. stuck_on_receipt. Abort.
 
   cpp.spec "test_raw_scalar_partial_receipt(void*, enum std::align_val_t)" from demo_cpp.source with
     (\arg{p} "p" (Vptr p)
@@ -381,7 +386,7 @@ Section with_cpp.
                  allocatedR (1 / 2)%Qp false (Some al) 16)
      \post emp).
   Lemma test_raw_scalar_partial_receipt_rejected : verify[demo_cpp.source] "test_raw_scalar_partial_receipt(void*, enum std::align_val_t)".
-  Proof. verify_spec; go. Fail Qed. Abort.
+  Proof. verify_spec; go. stuck_on_receipt. Abort.
 
   cpp.spec "test_raw_array_partial_receipt(void*, enum std::align_val_t)" from demo_cpp.source with
     (\arg{p} "p" (Vptr p)
@@ -390,7 +395,7 @@ Section with_cpp.
                  allocatedR (1 / 2)%Qp true (Some al) 16)
      \post emp).
   Lemma test_raw_array_partial_receipt_rejected : verify[demo_cpp.source] "test_raw_array_partial_receipt(void*, enum std::align_val_t)".
-  Proof. verify_spec; go. Fail Qed. Abort.
+  Proof. verify_spec; go. stuck_on_receipt. Abort.
 
   cpp.spec "test_raw_additional_alignment()" from demo_cpp.source with
     (\require additional_alignments 4096
@@ -416,5 +421,25 @@ Section with_cpp.
   cpp.spec "test_delete_null()" from demo_cpp.source with (\post emp).
   Lemma test_delete_null_ok : verify[demo_cpp.source] "test_delete_null()".
   Proof. verify_spec; go. Qed.
+
+  cpp.spec "test_new_aligned_token()" from demo_cpp.source with
+    (\post{p}[Vptr p] p |-> (AlignedValueR 1$m 0 ** alloc.tokenR "AlignedValue" 1)).
+  Lemma test_new_aligned_token_ok : verify[demo_cpp.source] "test_new_aligned_token()".
+  Proof. verify_spec; go. Qed.
+
+  cpp.spec "test_new_delete_array_dtor()" from demo_cpp.source with (\post emp).
+  Lemma test_new_delete_array_dtor_ok : verify[demo_cpp.source] "test_new_delete_array_dtor()".
+  (* TODO: automation does not normalize the cookie offset in the null check. *)
+  Proof. verify_spec; go; normalize_ptrs; go. Qed.
+
+  cpp.spec "test_new_delete_aligned_array()" from demo_cpp.source with (\post emp).
+  Lemma test_new_delete_aligned_array_ok : verify[demo_cpp.source] "test_new_delete_aligned_array()".
+  (* TODO: automation does not normalize the cookie offset in the null check. *)
+  Proof. verify_spec; go; normalize_ptrs; go. Qed.
+
+  cpp.spec "test_new_delete_aligned_array_dtor()" from demo_cpp.source with (\post emp).
+  Lemma test_new_delete_aligned_array_dtor_ok : verify[demo_cpp.source] "test_new_delete_aligned_array_dtor()".
+  (* TODO: automation does not normalize the cookie offset in the null check. *)
+  Proof. verify_spec; go; normalize_ptrs; go. Qed.
 
 End with_cpp.

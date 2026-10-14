@@ -37,7 +37,11 @@ Definition new_delete_evidence :=
    @demo_cpp_proof.test_raw_array_aligned_zero_ok,
    @demo_cpp_proof.test_new_nothrow_delete_ok,
    @demo_cpp_proof.test_new_nothrow_aligned_delete_ok,
-   @demo_cpp_proof.test_delete_null_ok).
+   @demo_cpp_proof.test_delete_null_ok,
+   @demo_cpp_proof.test_new_aligned_token_ok,
+   @demo_cpp_proof.test_new_delete_array_dtor_ok,
+   @demo_cpp_proof.test_new_delete_aligned_array_ok,
+   @demo_cpp_proof.test_new_delete_aligned_array_dtor_ok).
 
 Set Printing Width 4611686018427387903.
 Set Printing Fully Qualified.
