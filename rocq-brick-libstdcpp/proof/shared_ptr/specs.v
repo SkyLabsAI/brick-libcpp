@@ -3,9 +3,8 @@ We do not cover interaction with weak_ptr.
 Custom deleters, custom allocators, aliasing constructors, and
 make_shared_for_overwrite are not supported by these specs.
 The representation supports separate allocations and make_shared's combined
-allocations, including arrays. The latter is a representation correction,
-not a proof or a new assumed spec of make_shared; factory specs remain to be
-provided when verifying those calls. See [SharedAllocationR].
+allocations, including arrays. See [SharedAllocationR]. The non-array factory
+spec is in shared_ptr/make_shared.v; neither file proves the library bodies.
 We cover the following usage:
 - after dynamically allocating a new object (using new or new[]), it is (typicall immediately) passed to the init constructor of shared_ptr (spec in [init_ctor] below). At this time, the caller's proof needs to come up with [Rpiece: nat->Rep], defining how the ownership of this newly allocated object will be split between various shared_ptr objects that refer to it. They pass in all pieces and get back the 0th piece: [Rpiece 0] and tokens [pieceRight ctrlid 1 ... pieceRight ctrlid (maxContention-1)] which the clients can use to later obtain ownership of those [Rpiece]s by calling the copy constructor. The last argument of [pieceRight] is the piece id. The first argument, [ctrlid], identifies a single protection unit (payload object pointer) that is reference counted. "ctrl" comes from the implementation using a dynamically allocated "control block" which has an atomic counter to track how many times the copy constructor has been called minus the number of such objects that have already been destructed.
 [maxContention] bounds the number of simultaneously live handles to one control
@@ -409,7 +408,7 @@ Section specs.
     : sl_opacity.
 
 End specs.
-#[global] Hint Opaque SharedPtrR NullSharedPtrR : sl_opacity.
+#[global] Hint Opaque SharedPtrR NullSharedPtrR payload_destructible : sl_opacity.
 #[global] Hint Resolve SharedPtrR_const_C NullSharedPtrR_const_C : sl_opacity.
 #[global]
   Hint Resolve observeSharedTypeF : sl_opacity.
