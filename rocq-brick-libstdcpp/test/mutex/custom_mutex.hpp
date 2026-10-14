@@ -37,7 +37,7 @@ class MyMutex {
   }
 public:
 
-  MyMutex() {}
+  MyMutex() noexcept {}
 
   void lock() {
     std::thread::id this_id{std::this_thread::get_id()};
@@ -53,6 +53,16 @@ public:
 
     assert(m_owner == std::thread::id()); //unowned
     m_owner = this_id;
+  }
+
+  bool try_lock() noexcept {
+    std::thread::id this_id{std::this_thread::get_id()};
+    if (m_lock.exchange(1))
+      return false;
+
+    assert(m_owner == std::thread::id());
+    m_owner = this_id;
+    return true;
   }
 
   void unlock(){
