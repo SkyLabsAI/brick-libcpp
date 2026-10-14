@@ -235,11 +235,10 @@ Module MutexSets.
   #[global] Hint Opaque mutex_set_map my_mutexes : sl_opacity typeclass_instances.
 End MutexSets.
 
-(** ** The fractional token/given-token pair *)
+(** Tracks a fraction. *)
 
 Module MutexTokens.
-  Canonical Structure cmraR : cmra :=
-    prodUR (optionUR fracR) (optionUR fracR).
+  Canonical Structure cmraR : cmra := fracR.
 
   Class G `{Σ : cpp_logic} := {
     #[local] has_own :: HasOwn (iPropI _Σ) cmraR;
@@ -250,11 +249,7 @@ Module MutexTokens.
 
   Definition token `{Σ : cpp_logic, !G Σ}
       (γ : iprop.gname) (q : Qp) : mpred :=
-    own γ (Some q, None).
-
-  Definition given_token `{Σ : cpp_logic, !G Σ}
-      (γ : iprop.gname) (q : Qp) : mpred :=
-    own γ (None, Some q).
+    own γ (q : cmraR).
 
   #[global] Instance token_fractional
       `{Σ : cpp_logic, !G Σ} γ : Fractional (token γ).
@@ -262,145 +257,32 @@ Module MutexTokens.
     intros q1 q2. rewrite /token -own_op /=. done.
   Qed.
 
-  #[global] Instance given_token_fractional
-      `{Σ : cpp_logic, !G Σ} γ : Fractional (given_token γ).
-  Proof.
-    intros q1 q2. rewrite /given_token -own_op /=. done.
-  Qed.
-
   #[global] Instance token_timeless
       `{Σ : cpp_logic, !G Σ} γ q : Timeless (token γ q).
   Proof. rewrite /token. apply _. Qed.
 
-  #[global] Instance given_token_timeless
-      `{Σ : cpp_logic, !G Σ} γ q : Timeless (given_token γ q).
-  Proof. rewrite /given_token. apply _. Qed.
-
-  (** Ordinary and given-token shares in the invariant add up to one.
-      [token_not_full] contains a positive ordinary-token share, so it conflicts
-      with the full ordinary token required for destruction. *)
-  Definition token_not_full `{Σ : cpp_logic, !G Σ} (γ : iprop.gname) : mpred :=
-    token γ 1 ∨ ∃ qt qg : Qp,
-      [| (qt + qg = 1)%Qp |] ** token γ qt ** given_token γ qg.
-
-  (** Include the endpoint with no ordinary tokens. Transfers preserve the
-      balance even when a caller returns only part of its given-token share. *)
-  Definition token_full `{Σ : cpp_logic, !G Σ} (γ : iprop.gname) : mpred :=
-    given_token γ 1 ∨ token_not_full γ.
-
-  #[global] Instance token_full_WeaklyObjective `{Σ : cpp_logic, !G Σ} γ :
-    WeaklyObjective (token_full γ).
-  Proof. rewrite /token_full /token_not_full /token /given_token. apply _. Qed.
-
-  #[global] Instance token_not_full_WeaklyObjective `{Σ : cpp_logic, !G Σ} γ :
-    WeaklyObjective (token_not_full γ).
-  Proof. rewrite /token_not_full /token /given_token. apply _. Qed.
-
-  #[global] Hint Opaque token given_token token_not_full token_full : sl_opacity typeclass_instances.
+  #[global] Hint Opaque token : sl_opacity typeclass_instances.
 
   Section theory.
     Context `{Σ : cpp_logic, !G Σ}.
 
     #[local] Existing Instance mpred_BiAffine.
 
-    Lemma token_full_init γ : given_token γ 1 |-- token_full γ.
-    Proof. rewrite /token_full. iIntros "T". iLeft. iExact "T". Qed.
-
     Lemma token_valid γ q : token γ q |-- [| (q ≤ 1)%Qp |].
     Proof.
       rewrite /token. iIntros "H".
       iDestruct (own_valid with "H") as %Hvalid.
-      iPureIntro. exact (proj1 Hvalid).
-    Qed.
-
-    Lemma given_token_valid γ q : given_token γ q |-- [| (q ≤ 1)%Qp |].
-    Proof.
-      rewrite /given_token. iIntros "H".
-      iDestruct (own_valid with "H") as %Hvalid.
-      iPureIntro. exact (proj2 Hvalid).
+      iPureIntro. exact Hvalid.
     Qed.
 
     Lemma token_valid_2 γ q1 q2 :
       token γ q1 ** token γ q2 |-- [| (q1 + q2 ≤ 1)%Qp |].
     Proof. rewrite -fractional. apply token_valid. Qed.
 
-    Lemma given_token_valid_2 γ q1 q2 :
-      given_token γ q1 ** given_token γ q2 |-- [| (q1 + q2 ≤ 1)%Qp |].
-    Proof. rewrite -fractional. apply given_token_valid. Qed.
-
-    Lemma token_not_full_full_token γ :
-      token_not_full γ ** token γ 1 |-- False.
+    Lemma alloc : ⊢ |==> ∃ γ, token γ 1.
     Proof.
-      rewrite /token_not_full. iIntros "[H T]".
-      iDestruct "H" as "[H | H]".
-      - iDestruct (token_valid_2 with "[$T $H]") as %Hbad.
-        exfalso. exact (Qp.not_add_le_l 1 1 Hbad).
-      - iDestruct "H" as (qt qg) "(_ & H & _)".
-        iDestruct (token_valid_2 with "[$T $H]") as %Hbad.
-        exfalso. exact (Qp.not_add_le_l 1 qt Hbad).
-    Qed.
-
-    Lemma acquire γ q :
-      token_full γ ** token γ q |-- given_token γ q ** token_not_full γ.
-    Proof.
-      rewrite /token_full /token_not_full. iIntros "[H T]".
-      iDestruct "H" as "[H | [H | H]]".
-      - iDestruct (token_valid with "T") as %Hq.
-        apply Qp.le_lteq in Hq as [Hq | ->].
-        + apply Qp.lt_sum in Hq as [r Hr].
-          iEval (rewrite Hr fractional) in "H".
-          iDestruct "H" as "[H R]". iFrame "H".
-          iRight. iExists q, r. iFrame. done.
-        + iFrame "H". iLeft. iExact "T".
-      - iDestruct (token_valid_2 with "[$H $T]") as %Hbad.
-        exfalso. exact (Qp.not_add_le_l 1 q Hbad).
-      - iDestruct "H" as (qt qg) "(%Hsum & T0 & G)".
-        iDestruct (token_valid_2 with "[$T0 $T]") as %Hvalid.
-        rewrite -Hsum in Hvalid.
-        apply Qp.add_le_mono_l, Qp.le_lteq in Hvalid as [Hlt | ->].
-        + apply Qp.lt_sum in Hlt as [r Hr].
-          iEval (rewrite Hr fractional) in "G".
-          iDestruct "G" as "[G R]". iFrame "G".
-          iRight. iExists (qt + q)%Qp, r.
-          iSplit; first (iPureIntro; by rewrite -Qp.add_assoc -Hr).
-          iFrame "R". rewrite fractional. iFrame.
-        + iFrame "G". iLeft. rewrite -Hsum fractional. iFrame.
-    Qed.
-
-    Lemma release γ q :
-      token_not_full γ ** given_token γ q |-- token γ q ** token_full γ.
-    Proof.
-      rewrite /token_full /token_not_full. iIntros "[H G]".
-      iDestruct "H" as "[H | H]".
-      - iDestruct (given_token_valid with "G") as %Hq.
-        apply Qp.le_lteq in Hq as [Hq | ->].
-        + apply Qp.lt_sum in Hq as [r Hr].
-          iEval (rewrite Hr fractional) in "H".
-          iDestruct "H" as "[H R]". iFrame "H".
-          iRight. iRight. iExists r, q. iFrame.
-          iPureIntro. by rewrite Qp.add_comm.
-        + iFrame "H". iLeft. iExact "G".
-      - iDestruct "H" as (qt qg) "(%Hsum & T & G0)".
-        iDestruct (given_token_valid_2 with "[$G $G0]") as %Hvalid.
-        rewrite -Hsum in Hvalid.
-        apply Qp.add_le_mono_r, Qp.le_lteq in Hvalid as [Hlt | ->].
-        + apply Qp.lt_sum in Hlt as [r Hr].
-          iEval (rewrite Hr fractional) in "T".
-          iDestruct "T" as "[T R]". iFrame "T".
-          iRight. iRight. iExists r, (q + qg)%Qp.
-          iSplit; first (iPureIntro; by rewrite Qp.add_assoc (Qp.add_comm r q) -Hr).
-          iFrame "R". rewrite fractional. iFrame.
-        + iFrame "T". iLeft. rewrite -Hsum fractional. iFrame.
-    Qed.
-
-    Lemma alloc :
-      ⊢ |==> ∃ γ, token γ 1 ** given_token γ 1.
-    Proof.
-      iMod (own_alloc
-        (((Some 1%Qp, None) ⋅ (None, Some 1%Qp)) : cmraR)) as (γ) "H".
-      { done. }
-      iModIntro. iExists γ.
-      rewrite /token /given_token -own_op. iExact "H".
+      iMod (own_alloc (1%Qp : cmraR)) as (γ) "H"; first done.
+      iModIntro. iExists γ. iExact "H".
     Qed.
   End theory.
 End MutexTokens.

@@ -30,9 +30,10 @@ Import linearity.
 Module RecursiveMutexAtomicSpecs (T : MutexCPPName).
   (* FIXME the hardcoded strings can be derived from T.cpp_ty. *)
 
-  (* Not prodO thread_idTO natO. *)
   (* [locked γ qt th 0] does not identify the thread holding the mutex. *)
-  Canonical Structure phys_stateUR := authR (optionR (exclR (prodO thread_idTO natO))).
+  (** The exclusive owner/count fragment also records the deposited token share. *)
+  Canonical Structure phys_stateUR :=
+    authR (optionR (exclR (prodO (prodO thread_idTO natO) (leibnizO cQp.t)))).
 
   (** [locked γ qt th n] records [n] acquisitions by [th], using token share [qt]. *)
   Class lockedG `{Σ : cpp_logic} := {
@@ -54,49 +55,41 @@ Module RecursiveMutexAtomicSpecs (T : MutexCPPName).
 
   Definition token `{Σ : cpp_logic, !lockedG Σ} (g : gname) (qt : cQp.t) : mpred :=
     MutexTokens.token g.(token_gname) qt.
-  Definition given_token `{Σ : cpp_logic, !lockedG Σ} (g : gname) (qt : cQp.t) : mpred :=
-    MutexTokens.given_token g.(token_gname) qt.
   #[global] Instance token_timeless `{Σ : cpp_logic, !lockedG Σ} g qt :
     Timeless (token g qt).
   Proof. rewrite /token. apply _. Qed.
   #[global] Instance token_WeaklyObjective `{Σ : cpp_logic, !lockedG Σ} g qt :
     WeaklyObjective (token g qt).
   Proof. rewrite /token /MutexTokens.token. apply _. Qed.
-  #[global] Instance given_token_timeless `{Σ : cpp_logic, !lockedG Σ} g qt :
-    Timeless (given_token g qt).
-  Proof. rewrite /given_token. apply _. Qed.
-  #[global] Instance given_token_WeaklyObjective `{Σ : cpp_logic, !lockedG Σ} g qt :
-    WeaklyObjective (given_token g qt).
-  Proof. rewrite /given_token /MutexTokens.given_token. apply _. Qed.
-  #[global] Hint Opaque token given_token : sl_opacity typeclass_instances.
+  #[global] Hint Opaque token : sl_opacity typeclass_instances.
 
-  (** [owned_count_id_auth γ Some (th, n)] implies that the lock's count is [n + 1]. *)
+  (** [owned_count_id_auth γ (Some (th, n, qt))] implies that the lock's count is [n + 1]. *)
   sl.lock
   Definition owned_count_id_auth `{Σ : cpp_logic, !lockedG Σ}
-    (γ : gname) (om : option (thread_idT * natO)) : mpred :=
+    (γ : gname) (om : option (thread_idT * nat * cQp.t)) : mpred :=
     own γ.(owned_count_id) (● (option_map Excl om)).
   #[only(timeless)] derive owned_count_id_auth.
 
-  (** [owned_count_id_frag γ Some (th, n)] implies that the lock's count is [n + 1]. *)
+  (** [owned_count_id_frag γ (Some (th, n, qt))] implies that the lock's count is [n + 1]. *)
   sl.lock
   Definition owned_count_id_frag `{Σ : cpp_logic, !lockedG Σ}
-    (γ : gname) (om : option (thread_idT * natO)) : mpred :=
+    (γ : gname) (om : option (thread_idT * nat * cQp.t)) : mpred :=
     own γ.(owned_count_id) (◯ (option_map Excl om)).
   #[only(timeless)] derive owned_count_id_frag.
 
   #[local] Open Scope nat_scope.
 
   (** For positive [n], [locked γ qt th n] records the physical lock count
-      through [owned_count_id_frag]. At zero it owns the namespace permission
-      and registration token. The first lock transfers that permission into
-      the physical invariant; the final unlock returns it. *)
+      and exact registration share through [owned_count_id_frag]. At zero it
+      owns the namespace permission and registration token. The first lock
+      deposits both in the physical invariant; the final unlock returns them. *)
   sl.lock
   Definition locked `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !lockedG Σ}
       (γ : gname) (qt : cQp.t) (th : thread_idT) (n : nat) : mpred :=
     match n with
     | 0 => MutexSets.my_mutexes th
         (CoPset $ ↑γ.(mutex_inv_namespace)) ** token γ qt
-    | S n => owned_count_id_frag γ (Some (th, n)) ** given_token γ qt
+    | S n => owned_count_id_frag γ (Some (th, n, qt))
     end.
   #[only(timeless)] derive locked.
 
@@ -121,9 +114,8 @@ Module RecursiveMutexAtomicSpecs (T : MutexCPPName).
       rewrite locked.unlock.
       iIntros "[H1 H2]".
       destruct n, m; try auto. iExFalso.
-      iDestruct "H1" as "[A _]". iDestruct "H2" as "[B _]".
       rewrite owned_count_id_frag.unlock.
-      iDestruct (own_valid_2 with "A B") as %HV; exfalso.
+      iDestruct (own_valid_2 with "H1 H2") as %HV; exfalso.
       rewrite -auth_frag_op auth_frag_valid in HV.
       done.
     Qed.
@@ -210,12 +202,12 @@ cinv (
   Definition R `{Σ : cpp_logic, σ : genv, MUTEX_SETS : !mutex_set_G Σ, !lockedG Σ} (γ : gname) (q : cQp.t) : Rep :=
     type_ptrR T.cpp_ty **
     as_Rep (fun this => cinv rmutex_N γ.(inv_gname)
-      (∃ owner count, this |-> rawR owner count **
+      (∃ owner count qt, this |-> rawR owner count **
         (* [owned_count_id_auth] stores [counter - 1]. *)
-        owned_count_id_auth γ ((λ t, (t, Nat.pred count)) <$> owner) **
+        owned_count_id_auth γ ((λ t, (t, Nat.pred count, qt)) <$> owner) **
         match owner with
-        | None => MutexTokens.token_full γ.(token_gname)
-        | Some th => MutexTokens.token_not_full γ.(token_gname) **
+        | None => emp
+        | Some th => token γ qt **
             MutexSets.my_mutexes th
               (CoPset $ ↑γ.(mutex_inv_namespace))
         end)) **
@@ -274,13 +266,13 @@ cinv (
       intros HE.
       rewrite R.unlock locked.unlock /token !_at_sep
         !_at_pureR _at_as_Rep.
-      iIntros "((_ & #HI & Hown) & Htoken & Hcount & _)".
-      iInv rmutex_N as "[(%owner & %count & _ & >Hauth & Hbalance) Hown]".
+      iIntros "((_ & #HI & Hown) & Htoken & Hcount)".
+      iInv rmutex_N as "[(%owner & %count & %held_qt & _ & >Hauth & Hheld) Hown]".
       destruct owner as [owner|].
-      - iDestruct "Hbalance" as "[Hbalance _]".
-        iAssert (▷ False)%I with "[Hbalance Htoken]" as "Hfalse".
-        { iNext. iApply MutexTokens.token_not_full_full_token. iFrame. }
-        iMod "Hfalse" as %[].
+      - iDestruct "Hheld" as "[>Hheld _]".
+        iEval (rewrite /token) in "Hheld".
+        iDestruct (MutexTokens.token_valid_2 with "[$Htoken $Hheld]") as %Hbad.
+        exfalso. exact (Qp.not_add_le_l 1 (cQp.frac held_qt) Hbad).
       - iEval (rewrite owned_count_id_auth.unlock /=) in "Hauth".
         iEval (rewrite owned_count_id_frag.unlock) in "Hcount".
         iDestruct (own_valid_2 with "Hauth Hcount") as %Hvalid.
@@ -363,21 +355,13 @@ Module RecursiveMutexPreds (T : MutexCPPName) <: RECURSIVE_MUTEX_PREDS T.
   Proof. rewrite /token /at_specs.token. apply _. Qed.
   #[global] Hint Opaque token : sl_opacity typeclass_instances.
 
-  Definition given_token `{Σ : cpp_logic, !G Σ}
-      (g : gname) (qt : cQp.t) (th : thread_idT) (n : nat) : mpred :=
-    own g.(level_gname) (◯E (S n, th, qt)).
-  #[global] Hint Opaque given_token : sl_opacity typeclass_instances.
-  #[global] Instance given_token_timeless `{Σ : cpp_logic, !G Σ} g qt th n :
-    Timeless (given_token g qt th n).
-  Proof. rewrite /given_token. apply _. Qed.
-
   Definition not_locked `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ, σ : genv}
       (_this : ptr) (g : gname) (qt : cQp.t) (th : thread_idT) : mpred :=
     token g qt **
     MutexSets.my_mutexes th (CoPset $ ↑rmutex_inv_namespace g).
   Definition locked `{Σ : cpp_logic, !G Σ, σ : genv}
       (_this : ptr) (g : gname) (qt : cQp.t) (th : thread_idT) (n : nat) : mpred :=
-    given_token g qt th n.
+    own g.(level_gname) (◯E (S n, th, qt)).
   #[global] Instance not_locked_timeless `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ, σ : genv} this g qt th :
     Timeless (not_locked this g qt th).
   Proof. rewrite /not_locked. apply _. Qed.
@@ -397,7 +381,7 @@ Module RecursiveMutexPreds (T : MutexCPPName) <: RECURSIVE_MUTEX_PREDS T.
       this |-> R g q P ** token g 1$m ** locked this g qt th n |--
       (|={⊤}=> False).
     Proof.
-      rewrite /R /token /locked /given_token !_at_sep !_at_pureR inv_rmutex.unlock.
+      rewrite /R /token /locked !_at_sep !_at_pureR inv_rmutex.unlock.
       iIntros "((HR & Hown & #Hinv) & Htoken & Hheld)".
       iInv rmutex_namespace as "[(%n' & %th' & %qt' & >Hauth & Hcase) Hown]".
       iDestruct (own_valid_2 with "Hauth Hheld") as %[=]%excl_auth_agree_L; subst.
@@ -492,7 +476,7 @@ Section with_cpp.
     iExists q, qt, (cinv_own g.(cinv_gname) q **
       (∃ t, [| acquire n t |] ∗ ▷ acquireable this g qt th t P))%I.
     wname [bi_wand] "W"; wfocus (bi_wand _ _) "W". { work $usenamed=true. }
-    rewrite inv_rmutex.unlock Spec.acquireable.unlock /not_locked /locked /given_token
+    rewrite inv_rmutex.unlock Spec.acquireable.unlock /not_locked /locked
       /token /rmutex_inv_namespace.
     work; iAcIntro; rewrite /commit_acc/=; work.
     iInv rmutex_namespace as "[(%n' & %th' & %qt' & >Hn & Hcases) ?]" "Hclose".
@@ -513,12 +497,12 @@ Section with_cpp.
         first apply (excl_auth_update _ _ (1, th, qt)).
       wname [Preds.at_specs.locked _ qt th _] "Hlocked";
         iMod ("Hclose" with "[$Hg $Hlocked //]") as "_"; iModIntro.
-      iExists (Held 0 args). rewrite /locked /given_token /=. work.
+      iExists (Held 0 args). rewrite /locked /=. work.
     - iMod (own_update_2 with "Hn [$]") as "(Hg & ?)";
         first apply (excl_auth_update _ _ (S (S n), th, qt)).
       wname [Preds.at_specs.locked _ qt th _] "Hlocked";
         iMod ("Hclose" with "[$Hg $Hlocked //]") as "_"; iModIntro.
-      iExists (Held (S n) args). rewrite /locked /given_token /=. work.
+      iExists (Held (S n) args). rewrite /locked /=. work.
   Qed.
 
   Lemma at_spec_impl_na_spec_unlock this (xs : list val) (K : val -> mpred) :
@@ -534,7 +518,7 @@ Section with_cpp.
     iExists q, qt, (cinv_own g.(cinv_gname) q **
       acquireable this g qt th (release $ Held n args) P)%I.
     wname [bi_wand] "W"; wfocus (bi_wand _ _) "W". { work $usenamed=true. }
-    rewrite inv_rmutex.unlock Spec.acquireable.unlock /not_locked /locked /given_token
+    rewrite inv_rmutex.unlock Spec.acquireable.unlock /not_locked /locked
       /token /rmutex_inv_namespace.
     work; iAcIntro; rewrite /commit_acc/=; work.
     iInv rmutex_namespace as "[(%n' & %th' & %qt' & >Hn & Hcases) ?]" "Hclose".
@@ -545,7 +529,7 @@ Section with_cpp.
     iMod "Hclose'" as "_".
     iMod (own_update_2 with "Hn [$]") as "(Hg & Hcase)";
       first apply (excl_auth_update _ _ (n, th, qt)).
-    rewrite /not_locked /locked /given_token /token
+    rewrite /not_locked /locked /token
       /rmutex_inv_namespace release.unlock; destruct n.
     1: rewrite [in at_specs.locked _ _ _ 0]at_specs.locked.unlock /=.
     1: iDestruct select (MutexSets.my_mutexes _ _ ** at_specs.token _ _) as "[? ?]".
