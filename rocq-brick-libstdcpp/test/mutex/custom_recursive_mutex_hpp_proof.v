@@ -209,6 +209,11 @@ Module custom_recursive_mutex.
        \prepost{qg} globals qg
        \exact Reduce (Spec.unlock_spec_alt this)).
 
+    cpp.spec "MyRecursiveMutex::try_lock()" as try_lock_spec from source with
+      (\this this
+       \prepost{qg} globals qg
+       \exact Reduce (Spec.try_lock_spec this)).
+
     (* Helper specs, proved later. *)
     cpp.spec "std::mutex::lock()" as inner_lock_spec with (
       \this inner
@@ -217,6 +222,16 @@ Module custom_recursive_mutex.
       \persist{th} current_thread th
       \pre{qt} not_locked container g qt th
       \post protected container g.(owner_gname) P ** mutex.locked inner g.(inner_gname) th qt).
+
+    cpp.spec "std::mutex::try_lock()" as inner_try_lock_spec with (
+      \this inner
+      \prepost{(container : ptr) g q P} container |-> R g q P
+      \require inner = container ,, _field "MyRecursiveMutex::m_lock"
+      \persist{th} current_thread th
+      \pre{qt} not_locked container g qt th
+      \post{b}[Vbool b]
+        if b then protected container g.(owner_gname) P ** mutex.locked inner g.(inner_gname) th qt
+        else not_locked container g qt th).
 
     cpp.spec "std::mutex::unlock()" as inner_unlock_spec with (
       \this inner
@@ -301,6 +316,12 @@ Module custom_recursive_mutex.
       (p ,, _base "std::atomic<unsigned long>" "std::__atomic_base<unsigned long>").
 
     Lemma inner_lock_spec_ok : mutex.lock_spec_alt |-- inner_lock_spec.
+    Proof.
+      apply specify_mono. rewrite /R /not_locked. work with br_erefl.
+      iExists qt. work with br_erefl.
+    Qed.
+
+    Lemma inner_try_lock_spec_ok : mutex.try_lock_spec_alt |-- inner_try_lock_spec.
     Proof.
       apply specify_mono. rewrite /R /not_locked. work with br_erefl.
       iExists qt. work with br_erefl.
@@ -511,6 +532,31 @@ Module custom_recursive_mutex.
           rewrite Hcount. iFrame "#∗".
     Qed.
 
+    Lemma try_lock_proof : verify[source] try_lock_spec.
+    Proof using MOD.
+      verify_spec.
+      rewrite Spec.acquireable.unlock. destruct n as [|n xs].
+      - ego.
+        match goal with b : bool |- _ => destruct b end; ego.
+        + rewrite /protected. ego.
+          iDestruct select (this |-> R _ _ _) as "HR".
+          iDestruct select (owner_tid_frag _ None) as "Hfrag".
+          iDestruct select (mutex.locked _ _ _ _) as "Hinner".
+          iDestruct (store_owner_action with "[$HR $Hfrag $Hinner]") as "Hstore".
+          iSplitL "Hstore"; first iExact "Hstore". ego.
+          rewrite /countR. ego.
+          rewrite Spec.acquireable.unlock /locked /countR. ego.
+          wname [P] "HP". iExact "HP".
+        + rewrite Spec.acquireable.unlock. ego.
+      - rewrite /locked /countR. ego.
+        destruct (decide (Z.of_nat (S n) = 18446744073709551615)%Z) as [Hmax|Hmax]; go.
+        + rewrite Hmax. ego.
+          rewrite Spec.acquireable.unlock /locked /countR Hmax. iFrame "#∗".
+        + ego. rewrite Spec.acquireable.unlock /locked /countR.
+          have Hcount : (Z.of_nat (S n) + 1)%Z = Z.of_nat (S (S n)) by lia.
+          rewrite Hcount. iFrame "#∗".
+    Qed.
+
     Lemma unlock_proof : verify[source] unlock_spec.
     Proof using MOD.
       verify_spec.
@@ -554,7 +600,7 @@ Module custom_recursive_mutex.
     Definition standard_library_specs : mpred :=
       denoteModule thread_hpp.source **
       mutex.ctor_spec ** mutex.dtor_spec **
-      mutex.lock_spec_alt ** mutex.unlock_spec_alt **
+      mutex.lock_spec_alt ** mutex.unlock_spec_alt ** mutex.try_lock_spec_alt **
       std.atomic.ctor Tulong ** std.atomic.dtor Tulong **
       std.atomic.cast Tulong ** std.atomic.assign Tulong **
       thread_id_specs.get_id_spec **
@@ -564,7 +610,7 @@ Module custom_recursive_mutex.
     Lemma link
         `{count_objective : !forall this, WeaklyObjective (countR this 0)} :
       denoteModule source ** standard_library_specs |--
-      ctor_spec ** dtor_spec ** lock_spec ** unlock_spec.
+      ctor_spec ** dtor_spec ** lock_spec ** unlock_spec ** try_lock_spec.
     Proof using MOD.
       rewrite /standard_library_specs.
       iIntros "[Hsource [#Hthread Hspecs]]".
@@ -575,8 +621,10 @@ Module custom_recursive_mutex.
       wapply dtor_proof.
       wapply lock_proof.
       wapply unlock_proof.
+      wapply try_lock_proof.
       wapply inner_lock_spec_ok.
       wapply inner_unlock_spec_ok.
+      wapply inner_try_lock_spec_ok.
       wapply id_dtor_ok.
       wapply (thread_id_specs.hash_link (MOD := THREADMOD)).
       work.

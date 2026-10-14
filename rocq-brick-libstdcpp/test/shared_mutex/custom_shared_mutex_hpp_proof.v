@@ -486,6 +486,24 @@ Module custom_shared_mutex.
       (\this this \prepost{qg} globals qg
        \exact Reduce (Spec.unlock_shared_spec this)).
 
+    cpp.spec "MySharedMutex::try_lock()" as try_lock_spec_alt with
+      (\this this \prepost{qg} globals qg
+       \exact Reduce (Spec.try_lock_spec_alt this)).
+    cpp.spec "MySharedMutex::try_lock()" as try_lock_spec with
+      (\this this \prepost{qg} globals qg
+       \exact Reduce (Spec.try_lock_spec this)).
+    cpp.spec "MySharedMutex::try_lock_shared()" as try_lock_shared_spec with
+      (\this this \prepost{qg} globals qg
+       \exact Reduce (Spec.try_lock_shared_spec this)).
+
+    Lemma try_lock_spec_equiv_try_lock_spec_alt : try_lock_spec ⊣⊢ try_lock_spec_alt.
+    Proof.
+      rewrite /try_lock_spec /try_lock_spec_alt /specify.
+      do 2 f_equiv. intros this xs K. rewrite !add_with_equiv.
+      f_equiv=> qg.
+      rewrite !add_prepost_equiv Spec.try_lock_spec_equiv_try_lock_spec_alt; done.
+    Qed.
+
     Lemma lock_spec_equiv_lock_spec_alt : lock_spec ⊣⊢ lock_spec_alt.
     Proof.
       rewrite /lock_spec /lock_spec_alt /specify.
@@ -750,6 +768,29 @@ Module custom_shared_mutex.
       Unshelve. all: exact 1%Qp.
     Qed.
 
+    Lemma mysharedmutex_try_lock_alt_proof : verify[source] try_lock_spec_alt.
+    Proof using MOD HAS_THREADS.
+      verify_spec; go.
+    Qed.
+
+    Lemma mysharedmutex_try_lock_proof : verify[source] try_lock_spec.
+    Proof using MOD HAS_THREADS.
+      rewrite try_lock_spec_equiv_try_lock_spec_alt. exact mysharedmutex_try_lock_alt_proof.
+    Qed.
+
+    Lemma mysharedmutex_try_lock_shared_proof : verify[source] try_lock_shared_spec.
+    Proof using MOD HAS_THREADS.
+      verify_spec; go.
+      repeat (first [case_bool_decide | match goal with b : bool |- _ => destruct b end | wp_if]; go).
+      all: try match goal with
+        | Hb : -1 <= ?v |- _ =>
+          have Hrange : 0 <= v < max_readers by unfold max_readers; lia
+        end.
+      all: try (ework with br_erefl; go).
+      all: repeat (first [case_bool_decide | match goal with b : bool |- _ => destruct b end | wp_if]; go).
+      Unshelve. all: exact 1%Qp.
+    Qed.
+
     Lemma mysharedmutex_unlock_shared_proof : verify[source] unlock_shared_spec.
     Proof using MOD HAS_THREADS.
       verify_spec; go.
@@ -816,7 +857,7 @@ Module custom_shared_mutex.
     Lemma link :
       denoteModule source ** standard_library_specs |--
       ctor_spec ** dtor_spec ** lock_spec ** unlock_spec **
-      lock_shared_spec ** unlock_shared_spec.
+      lock_shared_spec ** unlock_shared_spec ** try_lock_spec ** try_lock_shared_spec.
     Proof using MOD HAS_THREADS.
       rewrite /standard_library_specs.
       work.
@@ -826,6 +867,8 @@ Module custom_shared_mutex.
       wapply mysharedmutex_unlock_proof.
       wapply mysharedmutex_lock_shared_proof.
       wapply mysharedmutex_unlock_shared_proof.
+      wapply mysharedmutex_try_lock_proof.
+      wapply mysharedmutex_try_lock_shared_proof.
       work.
     Qed.
   End with_Σ.
