@@ -24,6 +24,7 @@ Import cpp_notation.
 
 Section with_cpp.
   Context `{Σ : cpp_logic, source ⊧ σ}.
+  Context `{alignment_support : !allocation_alignment_support σ}.
 
   (** <<operator new(size_t)>> is not allowed to return <<nullptr>>, it
       signals failure by raising an exception.

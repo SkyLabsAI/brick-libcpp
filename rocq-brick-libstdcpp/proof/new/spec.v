@@ -6,6 +6,7 @@ Require Import skylabs.brick.libstdcpp.new.inc_new_cpp.
 
 Section with_cpp.
   Context `{Σ : cpp_logic, source ⊧ σ}.
+  Context `{alignment_support : !allocation_alignment_support σ}.
 
   cpp.spec "operator new(std::size_t, const std::nothrow_t&)" as operator_new_nothrow with
     (\arg{sz}        "sz"      (Vn sz)

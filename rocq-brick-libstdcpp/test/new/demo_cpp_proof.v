@@ -13,10 +13,46 @@ Definition AlignedValueR `{Σ : cpp_logic} {σ : genv}
   _field "AlignedValue::value" |-> intR q value.
 #[only(cfracsplittable,type_ptr,lazy_unfold(global))] derive AlignedValueR.
 
+Section alignment_model_examples.
+  Context {σ : genv}.
+
+  (* A sample implementation adds 4096 independently of its declared types.
+     This is test model data, not a default alignment policy for clients. *)
+  Definition alignment_support_example : allocation_alignment_support σ.
+  Proof.
+    refine {| additional_alignments := fun al =>
+      (exists ty : type, align_of ty = Some al) \/ al = 4096%N |}.
+    - intros al [[ty Hty] | ->].
+      + eapply align_of_power_of_two; exact Hty.
+      + exists 12%N; reflexivity.
+    - intros ty al Hty. right; left; exists ty; exact Hty.
+  Defined.
+
+  Example alignment_support_example_additional :
+    @supported_alignment σ alignment_support_example 4096.
+  Proof. right; right; reflexivity. Qed.
+
+  Example alignment_support_example_fundamental :
+    @supported_alignment σ alignment_support_example 1.
+  Proof.
+    left; exists Tuchar; split; first exact I.
+    apply align_of_uchar.
+  Qed.
+End alignment_model_examples.
+
 Section with_cpp.
   Context `{Σ : cpp_logic} {σ : genv}.
+  Context `{alignment_support : !allocation_alignment_support σ}.
 
   Import linearity.
+
+  Lemma supported_alignment_excludes_zero : ~ supported_alignment 0%N.
+  Proof.
+    intros H.
+    destruct (supported_alignment_power_of_two 0 H) as [n Hpow].
+    assert (Hnonzero : N.pow 2 n <> 0%N) by (apply N.pow_nonzero; discriminate).
+    apply Hnonzero; symmetry; exact Hpow.
+  Qed.
 
   cpp.spec "test_new()" from demo_cpp.source with
     (\post{p}[Vptr p]
@@ -282,7 +318,7 @@ Section with_cpp.
   Proof.
     verify_spec; go.
     iSplitR.
-    { iPureIntro. exists ("AlignedValue"%cpp_type).
+    { iPureIntro. apply (supported_alignment_of_type ("AlignedValue"%cpp_type)).
       apply (@_align_of_ok demo_cpp.source σ _). vm_compute. reflexivity. }
     go.
   Qed.
@@ -334,5 +370,17 @@ Section with_cpp.
      \post emp).
   Lemma test_raw_array_partial_receipt_rejected : verify[demo_cpp.source] "test_raw_array_partial_receipt(void*, enum std::align_val_t)".
   Proof. verify_spec; go. Fail Qed. Abort.
+
+  cpp.spec "test_raw_additional_alignment()" from demo_cpp.source with
+    (\require additional_alignments 4096
+     \post emp).
+  Lemma test_raw_additional_alignment_ok :
+    verify[demo_cpp.source] "test_raw_additional_alignment()".
+  Proof.
+    verify_spec; go.
+    iSplitR.
+    { iPureIntro; apply supported_alignment_additional; assumption. }
+    go.
+  Qed.
 
 End with_cpp.
