@@ -3554,4 +3554,26 @@ numpages = {25},
 keywords = {separation logic, relaxed memory, Read-Copy-Update}
 }
 
-  
+@InProceedings{vercors-reentrant,
+author="Haack, Christian
+and Huisman, Marieke
+and Hurlin, Cl{\'e}ment",
+editor="Ramalingam, G.",
+title="Reasoning about Java's Reentrant Locks",
+booktitle="Programming Languages and Systems",
+year="2008",
+publisher="Springer Berlin Heidelberg",
+address="Berlin, Heidelberg",
+pages="171--187",
+abstract="This paper presents a verification technique for a concurrent Java-like language with reentrant locks. The verification technique is based on permissionaccounting separation logic. As usual, each lock is associated with a resource invariant, i.e., when acquiring the lock the resources are obtained by the thread holding the lock, and when releasing the lock, the resources are released. To accommodate for reentrancy, the notion of lockset is introduced: a multiset of locks held by a thread. Keeping track of the lockset enables the logic to ensure that resources are not re-acquired upon reentrancy, thus avoiding the introduction of new resources in the system. To be able to express flexible locking policies, we combine the verification logic with value-parameterized classes. Verified programs satisfy the following properties: data race freedom, absence of null-dereferencing and partial correctness. The verification technique is illustrated on several examples, including a challenging lock-coupling algorithm.",
+isbn="978-3-540-89330-1"
+}
+
+@article{vercors-locks,
+  title={Formal Specifications for Java's Synchronisation Classes},
+  author={Afshin Amighi and Stefan Blom and Marieke Huisman and Wojciech Mostowski and Marina Zaharieva-Stojanovski},
+  journal={2014 22nd Euromicro International Conference on Parallel, Distributed, and Network-Based Processing},
+  year={2013},
+  pages={725-733},
+  url={https://api.semanticscholar.org/CorpusID:2012028}
+}
