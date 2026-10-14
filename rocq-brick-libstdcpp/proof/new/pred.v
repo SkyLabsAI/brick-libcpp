@@ -2,6 +2,7 @@ Require Import skylabs.iris.extra.proofmode.proofmode.
 Require Import skylabs.auto.cpp.prelude.pred.
 Require Import skylabs.auto.cpp.elpi.derive.bi.
 Require Import skylabs.brick.libstdcpp.new.inc_new_cpp.
+Require Export skylabs.brick.libstdcpp.new.model.
 #[local] Set Primitive Projections.
 
 cpp.enum "std::align_val_t" from source alias.
@@ -46,12 +47,6 @@ Section with_cpp.
   #[only(fractional,asfractional,fracvalid,timeless)] derive allocatedR.
   #[global] Instance: Cbn (Learn (any ==> learn_eq ==> learn_eq ==> learn_eq ==> learn_hints.fin) allocatedR).
   Proof. solve_learnable. Qed.
-
-  (** An alignment realized by a type in the current environment is supported
-      by the implementation. This is a conservative precondition for aligned
-      allocation; arbitrary integer values need not be valid alignments. *)
-  Definition supported_alignment (al : N) : Prop :=
-    exists ty : type, align_of ty = Some al.
 
 End with_cpp.
 

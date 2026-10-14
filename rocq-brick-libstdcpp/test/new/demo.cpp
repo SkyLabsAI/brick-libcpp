@@ -233,3 +233,9 @@ void test_raw_scalar_partial_receipt(void* p, std::align_val_t al) {
 void test_raw_array_partial_receipt(void* p, std::align_val_t al) {
   ::operator delete[](p, 16, al);
 }
+
+// Implementation support need not have a matching type declaration here.
+void test_raw_additional_alignment() {
+  auto p = ::operator new(16, std::align_val_t{4096});
+  ::operator delete(p, 16, std::align_val_t{4096});
+}
