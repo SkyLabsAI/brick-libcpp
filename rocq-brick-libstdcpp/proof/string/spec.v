@@ -32,6 +32,14 @@ Section with_cpp.
   Definition string_find (c : Byte.byte) (pos : nat) (s : bs) : option nat :=
     string_find_from c pos (BS.substring pos (BS.length s) s).
 
+  (** [string_erase pos n s] removes from [s] the [min n (length s - pos)]
+      characters that start at [pos]. *)
+  Definition string_erase (pos n : N) (s : bs) : bs :=
+    let len := N.of_nat (BS.length s) in
+    let rlen := N.min n (len - pos) in
+    BS.append (BS.substring 0 (N.to_nat pos) s)
+      (BS.substring (N.to_nat (pos + rlen)) (BS.length s) s).
+
   (* default constructor *)
   cpp.spec "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>::basic_string()" from source as string_default_ctor_spec with (
     \this this
@@ -78,5 +86,40 @@ Section with_cpp.
                | Some i => N.of_nat i
                | None => N.ones 64
                end)] emp).
+
+  (** <<void push_back(char c);>>
+
+      <https://eel.is/c++draft/string.modifiers> -- appends [c]. It is
+      non-const, so it needs the whole string. *)
+  cpp.spec "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>::push_back(char)" from source as string_push_back_spec with (
+    \this this
+    \arg{c} "" (Vchar c)
+    \pre{s} this |-> basic_stringR "char" 1$m s
+    \post this |-> basic_stringR "char" 1$m (BS.append s (BS.String (N_to_byte c) BS.EmptyString))).
+
+  (** <<basic_string& operator+=(char c);>>
+
+      <https://eel.is/c++draft/string.op.append> -- the same as
+      <<push_back(c)>>; returns <<*this>>. *)
+  cpp.spec "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>::operator+=(char)" from source as string_op_plus_eq_char_spec with (
+    \this this
+    \arg{c} "" (Vchar c)
+    \pre{s} this |-> basic_stringR "char" 1$m s
+    \post[Vptr this] this |-> basic_stringR "char" 1$m (BS.append s (BS.String (N_to_byte c) BS.EmptyString))).
+
+  (** <<basic_string& erase(size_type pos = 0, size_type n = npos);>>
+
+      <https://eel.is/c++draft/string.erase> -- removes the
+      <<min(n, size() - pos)>> characters that start at [pos]; returns
+      <<*this>>. A [pos] past the end throws <<out_of_range>>, which is not
+      undefined; since exceptions are not modeled, the spec requires
+      <<pos <= size()>>. *)
+  cpp.spec "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>::erase(unsigned long, unsigned long)" from source as string_erase_spec with (
+    \this this
+    \arg{pos} "" (Vn pos)
+    \arg{n} "" (Vn n)
+    \pre{s} this |-> basic_stringR "char" 1$m s
+    \require (pos <= N.of_nat (BS.length s))%N
+    \post[Vptr this] this |-> basic_stringR "char" 1$m (string_erase pos n s)).
 
 End with_cpp.
