@@ -66,10 +66,6 @@ Module CustomRecursiveMutexPreds
     Timeless (token g qt).
   Proof. rewrite /token. apply _. Qed.
 
-  Definition owner_frag `{Σ : cpp_logic, !G Σ}
-      (g : gname) (owner : option (thread_idT * cQp.t)) : mpred :=
-    owner_tid_frag g.(owner_gname) owner.
-
   Definition countR `{Σ : cpp_logic, σ : genv}
       (this : ptr) (n : Z) : mpred :=
     this ,, _field "MyRecursiveMutex::m_count" |-> ulonglongR 1$m n.
@@ -134,7 +130,7 @@ Module CustomRecursiveMutexPreds
   Definition locked `{Σ : cpp_logic, !G Σ, σ : genv}
       (this : ptr) (g : gname) (qt : cQp.t) (th : thread_idT)
       (n : nat) : mpred :=
-    countR this (Z.of_nat (S n)) ** owner_frag g (Some (th, qt)).
+    countR this (Z.of_nat (S n)) ** owner_tid_frag g.(owner_gname) (Some (th, qt)).
 
   #[global] Hint Opaque not_locked locked : sl_opacity typeclass_instances.
 
@@ -145,9 +141,6 @@ Module CustomRecursiveMutexPreds
     intros [[th qt]|]; apply _.
   Qed.
 
-  #[global] Instance owner_frag_timeless
-      `{Σ : cpp_logic, !G Σ} g owner : Timeless (owner_frag g owner).
-  Proof. rewrite /owner_frag. apply _. Qed.
   #[global] Instance locked_timeless
       `{Σ : cpp_logic, !G Σ, σ : genv} this g qt th n :
       Timeless (locked this g qt th n).
@@ -162,9 +155,6 @@ Module CustomRecursiveMutexPreds
       WeaklyObjective (p |-> R).
   Proof. rewrite INTERNAL._at_eq. apply _. Qed.
 
-  #[global] Instance owner_frag_WeaklyObjective
-      `{Σ : cpp_logic, !G Σ} g owner : WeaklyObjective (owner_frag g owner).
-  Proof. rewrite /owner_frag. apply _. Qed.
   #[global] Instance I_WeaklyObjective
       `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ, σ : genv} this g :
       WeaklyObjective (I this g).
@@ -304,9 +294,9 @@ Module custom_recursive_mutex.
     Qed.
 
     #[local] Existing Instance mpred_BiAffine.
-    #[local] Hint Opaque owner_frag locked not_locked
+    #[local] Hint Opaque locked not_locked
       : sl_opacity typeclass_instances.
-    #[local] Instance owner_frag_learn : LearnEq2 owner_frag.
+    #[local] Instance owner_tid_frag_learn : LearnEq2 owner_tid_frag.
     Proof. solve_learnable. Qed.
 
     Abbreviation BASE p :=
@@ -357,7 +347,7 @@ Module custom_recursive_mutex.
       iMod ("Hclose" with "[Owner Auth Handle]") as "_".
       { iNext. rewrite /I. iExists owner.
         iSplitL "Owner"; first by ework $usenamed=true with br_erefl. iFrame. }
-      iModIntro. rewrite /R /owner_frag _at_sep _at_as_Rep. iFrame "#∗".
+      iModIntro. rewrite /R _at_sep _at_as_Rep. iFrame "#∗".
       iPureIntro. intros Heq.
       apply thread_id_specs.thread_id_hash_injective in Heq.
       destruct owner as [[owner owner_qt]|]; simpl in Heq, Hne; naive_solver.
@@ -368,11 +358,11 @@ Module custom_recursive_mutex.
     Definition load_held_C (this : ptr) :=
       \cancelx
       \consuming{g q P} this |-> R g q P
-      \consuming{th qt} owner_frag g (Some (th, qt))
+      \consuming{th qt} owner_tid_frag g.(owner_gname) (Some (th, qt))
       \proving{K (_ : IsExistential K)}
         std.atomic.do_load Tulong (BASE (this ,, _field "MyRecursiveMutex::m_owner")) K
       \instantiate K := (fun owner => this |-> R g q P **
-        owner_frag g (Some (th, qt)) ** [| owner = thread_id_specs.thread_id_hash th |])
+        owner_tid_frag g.(owner_gname) (Some (th, qt)) ** [| owner = thread_id_specs.thread_id_hash th |])
       \end@{mpredI}.
     Next Obligation.
       intros. iIntros "[HR Hfrag]" (?? ->).
@@ -383,7 +373,6 @@ Module custom_recursive_mutex.
       iInv (owner_namespace g) as "[>Inv CO]" "Hclose".
       iEval (rewrite /I) in "Inv".
       iDestruct "Inv" as (owner) "(Owner & Auth & Handle)".
-      iEval (rewrite /owner_frag) in "Hfrag".
       iDestruct (observe_2 [| owner = Some (th, qt) |] with "Auth Hfrag") as %->.
       iDestruct (fupd_mask_subseteq) as ">Y"; [| iModIntro]; first set_solver.
       iExists (thread_id_specs.thread_id_hash th), (1$m)%cQp.
@@ -392,7 +381,7 @@ Module custom_recursive_mutex.
       iMod ("Hclose" with "[Owner Auth Handle]") as "_".
       { iNext. rewrite /I. iExists (Some (th, qt)).
         iSplitL "Owner"; first by ework $usenamed=true with br_erefl. iFrame. }
-      iModIntro. rewrite /R /owner_frag _at_sep _at_as_Rep. iFrame "#∗". done.
+      iModIntro. rewrite /R _at_sep _at_as_Rep. iFrame "#∗". done.
     Qed.
     #[local] Hint Resolve load_held_C : sl_opacity.
 
@@ -400,7 +389,7 @@ Module custom_recursive_mutex.
       this |-> R g q P ** owner_tid_frag g.(owner_gname) None **
         mutex.locked (this ,, _field "MyRecursiveMutex::m_lock") g.(inner_gname) th qt |--
       std.atomic.do_store Tulong (BASE (this ,, _field "MyRecursiveMutex::m_owner"))
-        (thread_id_specs.thread_id_hash th) (this |-> R g q P ** owner_frag g (Some (th, qt))).
+        (thread_id_specs.thread_id_hash th) (this |-> R g q P ** owner_tid_frag g.(owner_gname) (Some (th, qt))).
     Proof using Type MOD.
       iIntros "(HR & Hfrag & Hhandle)".
       iEval (rewrite /R _at_sep _at_as_Rep) in "HR".
@@ -410,7 +399,6 @@ Module custom_recursive_mutex.
       iInv (owner_namespace g) as "[>Inv CO]" "Hclose".
       iEval (rewrite /I) in "Inv".
       iDestruct "Inv" as (owner) "(Owner & Auth & Handle)".
-      iEval (rewrite /owner_frag) in "Hfrag".
       iDestruct (observe_2 [| owner = None |] with "Auth Hfrag") as %->.
       iDestruct (fupd_mask_subseteq) as ">Y"; [| iModIntro]; first set_solver.
       iExists (thread_id_specs.thread_id_hash thread_id_specs.default_thread_id).
@@ -421,7 +409,7 @@ Module custom_recursive_mutex.
       iMod ("Hclose" with "[Owner Auth Hhandle]") as "_".
       { iNext. rewrite /I. iExists (Some (th, qt)).
         iSplitL "Owner"; first by ework $usenamed=true with br_erefl. iFrame. }
-      iModIntro. rewrite /R /owner_frag _at_sep _at_as_Rep. iFrame "#∗".
+      iModIntro. rewrite /R _at_sep _at_as_Rep. iFrame "#∗".
     Qed.
 
     #[program]
@@ -433,7 +421,7 @@ Module custom_recursive_mutex.
         (this ,, _field "MyRecursiveMutex::m_lock") g.(inner_gname) th qt
       \proving{K (_ : IsExistential K)}
         std.atomic.do_store Tulong (BASE (this ,, _field "MyRecursiveMutex::m_owner")) (thread_id_specs.thread_id_hash th) K
-      \instantiate K := (this |-> R g q P ** owner_frag g (Some (th, qt)))
+      \instantiate K := (this |-> R g q P ** owner_tid_frag g.(owner_gname) (Some (th, qt)))
       \end@{mpredI}.
     Next Obligation.
       intros. iIntros "Hpre" (?? ->). iApply (store_owner_action with "Hpre").
@@ -441,9 +429,9 @@ Module custom_recursive_mutex.
     #[local] Hint Resolve store_owner_C : sl_opacity.
 
     Lemma clear_owner_action (this : ptr) g q P th qt :
-      this |-> R g q P ** owner_frag g (Some (th, qt)) |--
+      this |-> R g q P ** owner_tid_frag g.(owner_gname) (Some (th, qt)) |--
       std.atomic.do_store Tulong (BASE (this ,, _field "MyRecursiveMutex::m_owner"))
-        (thread_id_specs.thread_id_hash thread_id_specs.default_thread_id) (this |-> R g q P ** owner_frag g None **
+        (thread_id_specs.thread_id_hash thread_id_specs.default_thread_id) (this |-> R g q P ** owner_tid_frag g.(owner_gname) None **
           mutex.locked (this ,, _field "MyRecursiveMutex::m_lock") g.(inner_gname) th qt).
     Proof using Type MOD.
       iIntros "[HR Hfrag]".
@@ -454,7 +442,6 @@ Module custom_recursive_mutex.
       iInv (owner_namespace g) as "[>Inv CO]" "Hclose".
       iEval (rewrite /I) in "Inv".
       iDestruct "Inv" as (owner) "(Owner & Auth & Handle)".
-      iEval (rewrite /owner_frag) in "Hfrag".
       iDestruct (observe_2 [| owner = Some (th, qt) |] with "Auth Hfrag") as %->.
       iDestruct (fupd_mask_subseteq) as ">Y"; [| iModIntro]; first set_solver.
       iExists (thread_id_specs.thread_id_hash th).
@@ -465,17 +452,17 @@ Module custom_recursive_mutex.
       iMod ("Hclose" with "[Owner Auth]") as "_".
       { iNext. rewrite /I. iExists None.
         iSplitL "Owner"; first by ework $usenamed=true with br_erefl. iFrame. }
-      iModIntro. rewrite /R /owner_frag _at_sep _at_as_Rep. iFrame "#∗".
+      iModIntro. rewrite /R _at_sep _at_as_Rep. iFrame "#∗".
     Qed.
 
     #[program]
     Definition clear_owner_C (this : ptr) :=
       \cancelx
       \consuming{g q P} this |-> R g q P
-      \consuming{th qt} owner_frag g (Some (th, qt))
+      \consuming{th qt} owner_tid_frag g.(owner_gname) (Some (th, qt))
       \proving{K (_ : IsExistential K)}
         std.atomic.do_store Tulong (BASE (this ,, _field "MyRecursiveMutex::m_owner")) (thread_id_specs.thread_id_hash thread_id_specs.default_thread_id) K
-      \instantiate K := (this |-> R g q P ** owner_frag g None **
+      \instantiate K := (this |-> R g q P ** owner_tid_frag g.(owner_gname) None **
           mutex.locked (this ,, _field "MyRecursiveMutex::m_lock") g.(inner_gname) th qt)
       \end@{mpredI}.
     Next Obligation.
@@ -539,9 +526,9 @@ Module custom_recursive_mutex.
         wname [mutex.locked] "Locked". iFrame "Locked".
         wname [P] "P".
         wname [_ |-> ulonglongR _ _] "Count".
-        wname [owner_frag] "OF".
+        wname [owner_tid_frag] "OF".
         iSplitL "P Count OF".
-        { iNext. rewrite /protected /countR /owner_frag.
+        { iNext. rewrite /protected /countR.
           iFrame "Count OF". iExists args. iExact "P". }
         ego. rewrite Spec.acquireable.unlock release.unlock. iFrame "#∗".
       (* Nested release: decrement the count and keep the resource. *)
