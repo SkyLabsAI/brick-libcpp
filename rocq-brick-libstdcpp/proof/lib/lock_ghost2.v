@@ -14,50 +14,6 @@ Import linearity.
 
 (**  Various ghost state constructions and laws for concurrency library specs and proofs. *)
 
-Module Type MUTEX_TOKENS.
-  Parameter cmraR : cmra.
-
-  Class G `{Σ : cpp_logic} := {
-    #[local] has_own :: HasOwn (iPropI _Σ) cmraR;
-    #[local] has_upd :: HasOwnUpd (iPropI _Σ) cmraR;
-    #[local] has_valid :: HasOwnValid (iPropI _Σ) cmraR;
-  }.
-  #[global] Arguments G {_ _} Σ : assert.
-
-  Parameter token : forall `{Σ : cpp_logic, !G Σ},
-    iprop.gname -> Qp -> mpred.
-  Parameter given_token : forall `{Σ : cpp_logic, !G Σ},
-    iprop.gname -> Qp -> mpred.
-
-  #[global] Declare Instance token_fractional
-      `{Σ : cpp_logic, !G Σ} γ : Fractional (token γ).
-  #[global] Declare Instance given_token_fractional
-      `{Σ : cpp_logic, !G Σ} γ : Fractional (given_token γ).
-  #[global] Declare Instance token_timeless
-      `{Σ : cpp_logic, !G Σ} γ q : Timeless (token γ q).
-  #[global] Declare Instance given_token_timeless
-      `{Σ : cpp_logic, !G Σ} γ q : Timeless (given_token γ q).
-
-  Parameter token_full token_not_full : forall `{Σ : cpp_logic, !G Σ},
-    iprop.gname -> mpred.
-  #[global] Declare Instance token_full_WeaklyObjective
-      `{Σ : cpp_logic, !G Σ} γ : WeaklyObjective (token_full γ).
-  #[global] Declare Instance token_not_full_WeaklyObjective
-      `{Σ : cpp_logic, !G Σ} γ : WeaklyObjective (token_not_full γ).
-
-  Axiom token_full_init : forall `{Σ : cpp_logic, !G Σ} γ,
-    given_token γ 1 |-- token_full γ.
-  Axiom acquire : forall `{Σ : cpp_logic, !G Σ} γ q,
-    token_full γ ** token γ q |-- given_token γ q ** token_not_full γ.
-  Axiom release : forall `{Σ : cpp_logic, !G Σ} γ q,
-    token_not_full γ ** given_token γ q |-- token γ q ** token_full γ.
-  Axiom token_not_full_full_token : forall `{Σ : cpp_logic, !G Σ} γ,
-    token_not_full γ ** token γ 1 |-- False.
-
-  Axiom alloc : forall `{Σ : cpp_logic, !G Σ},
-    ⊢ |==> ∃ γ, token γ 1 ** given_token γ 1.
-End MUTEX_TOKENS.
-
 Module mutex_set_G.
   Canonical Structure cmraR : cmra :=
     thread_idT -d> coPset_disjR.
@@ -281,7 +237,7 @@ End MutexSets.
 
 (** ** The fractional token/given-token pair *)
 
-Module MutexTokens <: MUTEX_TOKENS.
+Module MutexTokens.
   Canonical Structure cmraR : cmra :=
     prodUR (optionUR fracR) (optionUR fracR).
 
