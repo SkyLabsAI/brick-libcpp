@@ -396,7 +396,6 @@ depending on the particular mutex representation.
 \label{lock-guard-ex}
 \end{figure}
 
-
 The \lstinline{lock_guard} class is the basic RAII class of the C++ library, a container for a single lock. \lstinline{lock_guard} is a templated class that takes an arbitrary \lstinline{BasicLockable} class as an argument, acquires it when constructed, and releases it when destroyed. A simple example of its use is shown in Figure~\ref{lock-guard-ex}. The mutex \lstinline{m} is meant to protect the value of \lstinline{size}, and the \lstinline{lock_guard} object \lstinline{lock} in \lstinline{get_size} takes the place of calls to \lstinline{lock} and \lstinline{unlock}; \lstinline{m} is \lstinline{lock}ed at line 5 and \lstinline{unlock}ed after reading \lstinline{size} but before \lstinline{get_size} returns.
 
 The \lstinline{lock_guard} class is parameterized by a \lstinline{BasicLockable} and class, our specification is likewise parameterized, calling $\mathsf{do\_lock}$ on creation and $\mathsf{do\_unlock}$ on destruction:
@@ -419,7 +418,7 @@ The \lstinline{unique_lock} class has many constructors and operators; we specif
 \{u \mapsto \ulock(b, p, q, m) \ast (\text{if } b \text{ then } \dounlock{p}{m}{K} \text{ else } K)\}\\ \texttt{u.}\!\!\sim\!\texttt{unique\_lock}()\\ \{K \ast p \mapsto R(q, m)\}
 \end{array}\]
 The default constructor acquires the mutex $p$, so it needs $\dolock{p}{m}{K}$ in the precondition and creates a $\mathsf{ulock}$ in the $\mathsf{true}$ state. There is also a constructor that takes the \lstinline{std::defer_lock_t} argument does not acquire the mutex, creating a $\mathsf{ulock}$ in the $\mathsf{false}$ state. When a \lstinline{unique_lock} is destroyed, it releases the underlying mutex only if it was in the $\mathsf{true}$ (held) state.
-%verify the code from cppreference or a similar example?
+The standard library implementations of \lstinline{lock_guard} and \lstinline{unique_lock} are simple enough that we were able to verify them directly against our specifications.
 
 %move this to lock_guard?
 \begin{figure}[htb]
@@ -573,6 +572,9 @@ int main() {
 \end{figure}
 
 Objects that make more complex use of locks may have to expose locked states (and thus thread-specific predicates) their clients, but at least in the case of objects that make balanced use of locks and always return to the client in an unlocked state, the thread-specific predicates can be handled internally and do not affect the representation predicate: instead, each thread separately manages its set of namespaces, and any thread that is not using the object's namespace for something else may call its methods. In this instance, the predicate $a \mapsto_q \mathsf{account}_A$ could be transferred to any other thread, and that thread could call $a$'s methods as long as it is not currently holding a mutex with the namespace $A$. Because namespaces are chosen arbitrarily during verification, we can always choose different names for different objects, so that in practice any thread can use $a$. %make this more precise
+
+\section{Proof Methods}
+All specifications and proofs were developed in Rocq using BRiCk. We developed the specifications manually, then used AI tools to refactor the specifications and generate some of the proofs.
 
 \section{Related Work}
 The most closely related work is that of \citet{vercors-reentrant}, who gave separation-logic specifications for reentrant (i.e., recursive) locks in Java in the VerCors logic; these specifications were later generalized to non-reentrant and reader-writer locks~\cite{vercors-locks}. They extended their logic with a primitive \emph{lockset} predicate for each thread that records the list of mutexes currently held by the thread (i.e., the inverse of our $\mutexperm{t}{A}$). The lockset predicate is monolithic and cannot be split or joined, nor can it be transferred between threads, and to support proving that a newly created lock is not in the lockset, their postcondition for the lock constructor explicitly states that the newly created lock is distinct from all previously allocated objects. They also have two separate proof rules for first and repeated acquires, and likewise for release. The lockset cannot be transferred between threads because lock invariants in VerCors are not impredicative, i.e., it is not possible to pass arbitrary resources between threads. In fact, the authors discuss the possibility of a counting $\mathsf{holds}$ predicate like ours, but conclude that it is impossible because they have no way to share it between threads. In contrast, our approach builds lock permissions out of an arbitrary ghost state construction in an impredicative logic and allows them to be passed between threads like any other predicate; the only extension to the logic we require is the presence of the thread-specific $\currentthread{t}$ predicate (which can be defined using the monotonic-predicate construction). We also give a single, intuitive specification for recursive lock acquire/release in terms of the $\mathsf{holds}$ predicate%, using the borrowing approach to solve the problem of acquiring the protected resources twice
