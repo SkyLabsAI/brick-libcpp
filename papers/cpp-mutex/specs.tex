@@ -73,7 +73,11 @@ However, the need to show that the mutex is not already registered presents a fu
 The caller is free to choose $N$, while $\gamma$ is existentially quantified. Each thread can acquire at most one lock from each namespace $N$ at a time, while the $\gamma$ allows the creation of a dynamically determined number of mutexes (e.g., in a loop with unknown bounds).
 
 With this naming scheme established, we can require threads to register themselves mutex before using it. Each thread holds a set of as-yet-unregistered mutex names $\mutexperm{t}{A}$, where $A$ is initially the universe of possible mutex names $\top$. When $t$ wishes to register with a mutex $N$, it removes $N$ from $A$ and exchanges it (along with a share of $\mathsf{token}$) for $\mathsf{not\_locked}$:
-\[ \mutexperm{t}{N} \ast \token{\gamma}{q} \dashv \vdash \notlocked{N, \gamma}{t}{q} \]
+\begin{align*}
+N_1 \textit{ disjoint from } N_2 \implies \mutexperm{t}{N_1 \cup N_2} & \dashv \vdash \mutexperm{t}{N_1} \ast
+  \mutexperm{t}{N_2} \\
+\mutexperm{t}{N} \ast \token{\gamma}{q} & \dashv \vdash \notlocked{N, \gamma}{t}{q}
+\end{align*}
 When a thread is finished using the mutex (and does not currently hold it), it can perform the same operation in reverse to recover $\mutexperm{t}{N}$ and $\token{\gamma}{q}$.
 Each of our mutex types will use this same registration pattern and the same $\mathsf{not\_locked}$ predicate, though the form of their $\mathsf{locked}$ predicate varies according to the mutex type. We explain the implementation of $\mathsf{mutex\_perm}$ and $\mathsf{not\_locked}$ in Section~\ref{login}.
 
