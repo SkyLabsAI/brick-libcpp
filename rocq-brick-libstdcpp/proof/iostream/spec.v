@@ -174,35 +174,45 @@ Module istream.
 
     (** [read_int] reads characters using [Do read] and parses
         the string as an integer. For example, the characters
-        <1>, <2>, <\n> would return <('\n', 12)>.
+        <1>, <2>, <\n> would return <('\n', Some 12)>.
 
-        The function accepts both positive and negative integers.
+        The function accepts both positive and negative integers. It returns
+        [None] if no digits precede the first other character (including after
+        a sign), which is a conversion failure.
 
         The first component is the "overread", the first byte read that
         is not part of the number.
     *)
-    CoFixpoint read_int : itree input_char (N * Z) :=
+    CoFixpoint read_int : itree input_char (N * option Z) :=
       (* Internal state machine to accumulate parsed digits *)
-      let cofix loop (sign : Z) (acc : Z) : itree input_char (N * Z) :=
+      let cofix loop (sign : Z) (acc : Z) : itree input_char (N * option Z) :=
         Do read (fun c =>
           match as_digit c with
           | Some digit =>
             loop sign (acc * 10 + Z.of_N digit)%Z
           | None =>
             (* Not a digit: return the delimiter character and the final signed integer *)
-            Ret (c, (sign * acc)%Z)
+            Ret (c, Some (sign * acc)%Z)
           end
         )
+      in
+      (* After a sign, at least one digit is required *)
+      let signed (sign : Z) : itree input_char (N * option Z) :=
+        Do read (fun c =>
+          match as_digit c with
+          | Some digit => loop sign (Z.of_N digit)
+          | None => Ret (c, None)
+          end)
       in
 
       Do read (fun c =>
         if (c =? 45)%N then
           (* Encountered '-' (ASCII 45) -> Start reading negative number *)
-          loop (-1)%Z 0%Z
+          signed (-1)%Z
 
         else if (c =? 43)%N then
           (* Encountered '+' (ASCII 43) -> Start reading positive number *)
-          loop 1%Z 0%Z
+          signed 1%Z
 
         else if is_ws c then
           (* Whitespace -> Co-recursively skip *)
@@ -213,28 +223,136 @@ Module istream.
                 (* Encountered a digit -> Start accumulating a positive number *)
                 loop 1%Z (Z.of_N digit)
             | None =>
-                (* Unexpected character before any digits -> Abort and return 0 *)
-                Ret (c, 0%Z)
+                (* Unexpected character before any digits -> Conversion failure *)
+                Ret (c, None)
             end
         ).
 
-    (** TODO: this specification is unsound because it needs to re-buffer the
-        next character that it read (the first component of the pair returned by
-        [read_int]).
-     *)
+    (** [run_buf buf it] runs [it] on the characters [buf] first, each in an
+        internal step, and returns the characters of [buf] left over. *)
+    CoFixpoint run_buf {T} (buf : list N) (it : itree input_char T) : itree input_char (T * list N) :=
+      match it with
+      | Ret v => Ret (v, buf)
+      | Tau it => Tau (run_buf buf it)
+      | Do act k =>
+          match buf with
+          | [] => Do act (fun x => run_buf [] (k x))
+          | c :: buf =>
+              Tau (run_buf buf
+                ((match act in input_char U return (U -> _) -> _ with
+                  | read => fun k => k c
+                  end) k))
+          end
+      end.
+
+    #[local] Abbreviation int_min := (int_rank.min_val int_rank.Iint Signed).
+    #[local] Abbreviation int_max := (int_rank.max_val int_rank.Iint Signed).
+
+    (** Whether extracting [r], a result of [read_int], succeeds, and the
+        value it stores: a conversion failure stores 0, and an out-of-range
+        value the nearest [int] limit, and both set [failbit]
+        ([facet.num.get.virtuals], [istream.formatted.arithmetic]). *)
+    Definition int_ok (r : option Z) : bool :=
+      match r with
+      | Some n => bool_decide (int_min <= n <= int_max)%Z
+      | None => false
+      end.
+    Definition int_stored (r : option Z) : Z :=
+      match r with
+      | Some n => Z.max int_min (Z.min int_max n)
+      | None => 0
+      end.
+
+    (** [K ((c, r), buf')] continues after [read_int] returns [r] and the
+        read-ahead [c], with [buf'] left over from the stream's characters.
+        Extraction stops before [c] ([facet.num.get.virtuals] stage 2), which
+        stays in the stream. [istream.R] does not model [failbit], so after a
+        failed extraction the caller loses the stream: further extractions
+        would do nothing. *)
     cpp.spec "std::basic_istream<char, std::char_traits<char>>::operator>>(int&)"
       from source as istream_take_int_spec with (
           \this this
-          \pre{IS isM} this |-> istream.R IS isM 1$m
+          \pre{IS isM buf} this |-> istream.R IS isM buf 1$m
           \arg{nP} "" (Vref nP)
           \pre nP |-> anyR "int" 1$m
-          \pre{K : Z -> mpred} interp_itree as_event IS read_int (K ∘ snd)
-          \post[Vptr this] Exists isM' n,
-            this |-> istream.R IS isM' 1$m **
-              nP |-> intR 1$m n **
-              K n
+          \pre{K : (N * option Z) * list N -> mpred}
+            interp_itree as_event IS (run_buf buf read_int) K
+          \post[Vptr this] Exists isM' c r buf',
+            nP |-> intR 1$m (int_stored r) ** K ((c, r), buf') **
+            if int_ok r then this |-> istream.R IS isM' (c :: buf') 1$m else emp
         ).
 
+    (** ** Streams with known contents *)
+
+    (** [script remaining] delivers the characters of a known input, one per
+        read: [remaining cs] owns the characters [cs] not read yet. *)
+    #[program]
+    Definition script (remaining : list N -> mpred) : Istream :=
+      {| do evts K := ∃ c cs, remaining (c :: cs) ** [| Read c ∈ evts |] **
+                       (remaining cs -∗ K (Read c)) |}%I.
+    Next Obligation.
+      intros remaining evts. constructor => K K'.
+      iIntros "HK (%c & %cs & R & % & W)". iExists c, cs. iFrame "R %".
+      iIntros "R". iApply ("HK" $! (TeleArgCons (f:=λ _ : input_event, TeleO) (Read c) tt)).
+      by iApply "W".
+    Qed.
+    Next Obligation. solve_proper. Qed.
+
+    (** [feed fuel it cs] runs [it] on the input [cs], in at most [fuel]
+        steps, and returns its result and the input left over. *)
+    Fixpoint feed {T} (fuel : nat) (it : itree input_char T) (cs : list N) : option (T * list N) :=
+      match fuel with
+      | O => None
+      | S fuel =>
+          match it with
+          | Ret v => Some (v, cs)
+          | Tau it => feed fuel it cs
+          | Do act k =>
+              match cs with
+              | [] => None
+              | c :: cs =>
+                  (match act in input_char U return (U -> _) -> _ with
+                   | read => fun k => feed fuel (k c) cs
+                   end) k
+              end
+          end
+      end.
+
+    Lemma feed_sound remaining fuel {T} (it : itree input_char T) cs v rest K :
+      feed fuel it cs = Some (v, rest) ->
+      remaining cs ** (remaining rest -∗ K v) ⊢ interp_itree as_event (script remaining) it K.
+    Proof.
+      elim: fuel it cs => [//|fuel IH] it cs /=.
+      rewrite interp_itree_unfold.
+      destruct it as [v'|it|U act k].
+      - move=> [<- <-]. iIntros "[R W]". by iApply "W".
+      - move=> /IH {}IH. iIntros "H !>". by iApply IH.
+      - destruct act, cs as [|c cs] => //= /IH {}IH.
+        iIntros "[R W]". iExists c, cs. iFrame "R".
+        iSplitR; [iPureIntro; rewrite elem_of_PropSet; eauto|].
+        iIntros "R". iExists c. iSplitR; [done|]. iNext. iApply IH. iFrame.
+    Qed.
+
+    (** The automation proves an extraction from [script] by running it, and
+        continues with its result.
+        ponytail: at most 4096 steps (characters and buffered characters);
+        longer runs are left to the user, via [feed_sound]. *)
+    #[program]
+    Definition feed_script_C remaining {T} (it : itree input_char T) cs v rest
+        (_ : feed 4096 it cs =[Vm]=> Some (v, rest)) :=
+      \cancelx
+      \bound_existential (K : T -> mpred)
+      \consuming remaining cs
+      \proving interp_itree as_event (script remaining) it K
+      \instantiate K := (λ x, [| x = v |] ** remaining rest)%I
+      \end.
+    Next Obligation.
+      intros * Hfeed%RedEq_eq. iIntros "R" (K ->). iIntros (->).
+      iApply (feed_sound remaining 4096 _ _ v rest _ Hfeed with "[$R]").
+      iIntros "$". by iPureIntro.
+    Qed.
+
   End with_cpp.
+  #[export] Hint Resolve feed_script_C : br_hints.
 
 End istream.
