@@ -305,3 +305,15 @@ void test_new_delete_aligned_array_dtor() {
   auto p = new AlignedDtor[2];
   delete[] p;
 }
+
+// Delete through a base pointer: the virtual destructor of the over-aligned
+// dynamic type selects the aligned deallocation function
+// (https://eel.is/c++draft/expr.delete#8.1, https://eel.is/c++draft/class.dtor#15).
+struct PolyBase {
+  virtual ~PolyBase() {}
+};
+struct alignas(64) AlignedPoly : PolyBase {
+  ~AlignedPoly() override {}
+};
+void test_delete_aligned_poly(PolyBase* p) { delete p; }
+void make_aligned_poly() { test_delete_aligned_poly(new AlignedPoly); }
