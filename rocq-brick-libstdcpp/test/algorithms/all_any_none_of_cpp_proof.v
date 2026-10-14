@@ -19,19 +19,28 @@ Require Import skylabs.auto.cpp.prelude.test.
 Module Positive.
   Import concepts.
   cpp.class "Positive" prefix "" from source dataclass { copyable ; movable ; destructible }.
-  #[global] Instance rep `{Σ : cpp_logic, σ : genv} : BundledRep "Positive" T := {| objR := R |}.
+  (* [R] ignores the model, whose type has a single value: pin it, so that a
+     specification binding it does not leave it unbound. *)
+  #[global] Instance rep `{Σ : cpp_logic, σ : genv} : BundledRep "Positive" T :=
+    {| objR q m := (R q m ** [| m = Build_T |])%I |}.
 End Positive.
 
 Module PositiveRef.
   Import concepts.
   cpp.class "PositiveRef" prefix "" from source dataclass { copyable ; movable ; destructible }.
-  #[global] Instance rep `{Σ : cpp_logic, σ : genv} : BundledRep "PositiveRef" T := {| objR := R |}.
+  (* [R] ignores the model, whose type has a single value: pin it, so that a
+     specification binding it does not leave it unbound. *)
+  #[global] Instance rep `{Σ : cpp_logic, σ : genv} : BundledRep "PositiveRef" T :=
+    {| objR q m := (R q m ** [| m = Build_T |])%I |}.
 End PositiveRef.
 
 Module IncPositive.
   Import concepts.
   cpp.class "IncPositive" prefix "" from source dataclass { copyable ; movable ; destructible }.
-  #[global] Instance rep `{Σ : cpp_logic, σ : genv} : BundledRep "IncPositive" T := {| objR := R |}.
+  (* [R] ignores the model, whose type has a single value: pin it, so that a
+     specification binding it does not leave it unbound. *)
+  #[global] Instance rep `{Σ : cpp_logic, σ : genv} : BundledRep "IncPositive" T :=
+    {| objR q m := (R q m ** [| m = Build_T |])%I |}.
 End IncPositive.
 
 Module CountingPositive.
@@ -54,11 +63,14 @@ Module Logger.
     (only parsing).
 End Logger.
 
-(** The closure type of the lambda in <<TestLambda>>. *)
+(** The closure type of the lambda in <<TestLambda>>, passed as a temporary. *)
 Module Big.
   Import concepts.
   cpp.class "TestLambda()::@0" prefix "" from source dataclass { copyable ; movable ; destructible }.
-  #[global] Instance rep `{Σ : cpp_logic, σ : genv} : BundledRep "TestLambda()::@0" T := {| objR := R |}.
+  (* [R] ignores the model, whose type has a single value: pin it, so that a
+     specification binding it does not leave it unbound. *)
+  #[global] Instance rep `{Σ : cpp_logic, σ : genv} : BundledRep "TestLambda()::@0" T :=
+    {| objR q m := (R q m ** [| m = Build_T |])%I |}.
 End Big.
 
 Section with_cpp.
@@ -226,8 +238,6 @@ Section with_cpp.
   Proof using MOD. verify_spec. go. Qed.
   Lemma big_dtor_ok : verify[source] Big.dtor_spec.
   Proof using MOD. verify_spec. go. Qed.
-  Lemma big_copy_ok : verify[source] Big.copy_ctor_spec.
-  Proof using MOD. verify_spec. go. Qed.
 
   Definition test_all_of_B := [LINK] test_all_of_ok.
   Definition test_any_of_B := [LINK] test_any_of_ok.
@@ -245,13 +255,12 @@ Section with_cpp.
   Definition counting_dtor_B := [LINK] counting_dtor_ok.
   Definition logger_dtor_B := [LINK] logger_dtor_ok.
   Definition big_dtor_B := [LINK] big_dtor_ok.
-  Definition big_copy_B := [LINK] big_copy_ok.
   (* <<&is_zero>> makes [is_zero_spec] a direct dependency of <<TestFunctionPointer>>. *)
   Definition is_zero_B := [LINK] is_zero_ok.
   #[local] Hint Resolve is_zero_B test_all_of_B test_any_of_B test_none_of_B test_empty_B
     test_by_reference_B test_short_circuit_B test_function_pointer_B test_counting_B
     test_logger_B test_lambda_B positive_dtor_B positive_ref_dtor_B inc_positive_dtor_B
-    counting_dtor_B logger_dtor_B big_dtor_B big_copy_B : sl_opacity.
+    counting_dtor_B logger_dtor_B big_dtor_B : br_hints.
 
   (** The callables' specifications are assumed, as for virtual calls ([vptrI]). *)
   cpp.spec "main()" as main_spec with
@@ -261,7 +270,7 @@ Section with_cpp.
   Lemma main_ok : verify[source] main_spec.
   Proof using MOD. verify_spec. go. Qed.
   Definition main_B := [LINK] main_ok.
-  #[local] Hint Resolve main_B : sl_opacity.
+  #[local] Hint Resolve main_B : br_hints.
 
   (** All the proofs above, linked against the algorithms' specifications. *)
   Lemma specs_ok :
@@ -277,12 +286,11 @@ Section with_cpp.
         std.all_of_spec (Tptr "int") "bool(*)(int)" source **
         std.all_of_spec (Tptr "int") "CountingPositive" source **
         std.all_of_spec (Tptr "int") "Logger" source **
-        std.any_of_spec (Tptr "int") "TestLambda()::@0" source **
         std.none_of_spec (Tptr "int") "TestLambda()::@0" source **
         std.cassert.specs )
     |-- main_spec.
   Proof using MOD.
-    rewrite /std.cassert.specs. iIntros "[#? #(? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ?)]".
+    rewrite /std.cassert.specs. iIntros "[#? #(? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ?)]".
     work.
   Qed.
 

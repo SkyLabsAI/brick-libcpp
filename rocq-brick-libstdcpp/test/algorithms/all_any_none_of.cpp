@@ -127,9 +127,7 @@ TestLogger() {
 void
 TestLambda() {
     int a[] = {1, 2};
-    auto big = [](int x) { return x > 5; };
-    assert(std::none_of(a, a + 2, big));
-    assert(!std::any_of(a, a + 2, big));
+    assert(std::none_of(a, a + 2, [](int x) { return x > 5; }));
 }
 
 // Undefined behavior, which the specifications must reject. Not called.

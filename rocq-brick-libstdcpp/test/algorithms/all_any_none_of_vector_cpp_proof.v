@@ -15,7 +15,10 @@ Require Import skylabs.auto.cpp.prelude.test.
 Module Positive.
   Import concepts.
   cpp.class "Positive" prefix "" from source dataclass { copyable ; movable ; destructible }.
-  #[global] Instance rep `{Σ : cpp_logic, σ : genv} : BundledRep "Positive" T := {| objR := R |}.
+  (* [R] ignores the model, whose type has a single value: pin it, so that a
+     specification binding it does not leave it unbound. *)
+  #[global] Instance rep `{Σ : cpp_logic, σ : genv} : BundledRep "Positive" T :=
+    {| objR q m := (R q m ** [| m = Build_T |])%I |}.
 End Positive.
 
 Section with_cpp.
@@ -39,19 +42,19 @@ Section with_cpp.
   Lemma positive_dtor_ok : verify[source] Positive.dtor_spec.
   Proof using MOD. verify_spec. go. Qed.
   Definition positive_dtor_B := [LINK] positive_dtor_ok.
-  #[local] Hint Resolve positive_dtor_B : sl_opacity.
+  #[local] Hint Resolve positive_dtor_B : br_hints.
 
   cpp.spec "TestVector()" as test_vector with (\persist positive_spec \post emp).
   Lemma test_vector_ok : verify[source] test_vector.
   Proof using MOD. verify_spec. go. Qed.
   Definition test_vector_B := [LINK] test_vector_ok.
-  #[local] Hint Resolve test_vector_B : sl_opacity.
+  #[local] Hint Resolve test_vector_B : br_hints.
 
   cpp.spec "main()" as main_spec with (\persist positive_spec \post[Vint 0] emp).
   Lemma main_ok : verify[source] main_spec.
   Proof using MOD. verify_spec. go. Qed.
   Definition main_B := [LINK] main_ok.
-  #[local] Hint Resolve main_B : sl_opacity.
+  #[local] Hint Resolve main_B : br_hints.
 
   Lemma specs_ok :
     denoteModule source **
