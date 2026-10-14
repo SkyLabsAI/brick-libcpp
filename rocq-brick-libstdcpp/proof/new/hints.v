@@ -126,6 +126,26 @@ Section with_cpp.
   #[global] Instance token_learn : Cbn (Learn (learn_eq ==> learn_eq ==> learn_eq ==> any ==> learn_hints.fin) alloc.tokenR_with_alignment).
   Proof. solve_learnable. Qed.
 
+  (** The alignment of a type declared in the translation unit is supported
+      (<https://eel.is/c++draft/basic.align#4>); this covers the alignment
+      argument that <<new T>> passes for an over-aligned <<T>>. *)
+  #[program]
+  Definition supported_alignment_tu_C `{!allocation_alignment_support σ} tu al
+      (_ : existsb (fun nm => bool_decide (_align_of tu (Tnamed nm) = Some al))
+             (map fst (map_to_list tu.(types))) =[Vm]=> true) :=
+    \cancelx
+    \preserving denoteModule tu
+    \proving [| supported_alignment al |]
+    \end.
+  Next Obligation.
+    intros * Hex%RedEq_eq. iIntros "#M".
+    iDestruct (observe [| _ ⊧ _ |] with "M") as %Hmod.
+    have Hsup : supported_alignment al.
+    { apply existsb_exists in Hex as (nm & _ & Hal%bool_decide_eq_true_1).
+      apply (supported_alignment_of_type (Tnamed nm)). by eapply _align_of_ok. }
+    work.
+  Qed.
+
   (** <<delete nullptr>> hints
       The needs for hints at that AST level is sub-optimal, but something that requires
       a bit more infrastructure to automate. Specifically, [wp_delete_null] reduces to
@@ -201,6 +221,60 @@ Section with_cpp.
   Qed.
 
   #[program]
+  Definition wp_delete_null_operator_delete_align_C source cls Q al
+  (Hdelete : delete_operator.delete_for source "operator delete(void*, enum std::align_val_t)" cls =[Vm]=> Some ("operator delete(void*, enum std::align_val_t)"%cpp_name, delete_operator.mk None false true))
+    (Hal : _align_of source cls =[Vm]=> Some al)
+    :=
+    \cancelx
+    \using operator_delete_align
+    \using denoteModule source
+    \proving wp_delete_null "operator delete(void*, enum std::align_val_t)" cls Q
+    \through Q
+    \end.
+  Next Obligation.
+    intros * Hdel%RedEq_eq_iff Hal%RedEq_eq_iff. rewrite wp_delete_null.unlock; work.
+    rewrite (delete_for_genv_compat Hdel) wp_invoke_delete.unlock/=.
+    move: Hal => /_align_of_ok Hal.
+    go.
+  Qed.
+
+  #[program]
+  Definition wp_delete_null_operator_delete_array_align_C source cls Q al
+  (Hdelete : delete_operator.delete_for source "operator delete[](void*, enum std::align_val_t)" (Tincomplete_array cls) =[Vm]=> Some ("operator delete[](void*, enum std::align_val_t)"%cpp_name, delete_operator.mk None false true))
+    (Hal : _align_of source (Tincomplete_array cls) =[Vm]=> Some al)
+    :=
+    \cancelx
+    \using operator_delete_array_align
+    \using denoteModule source
+    \proving wp_delete_null "operator delete[](void*, enum std::align_val_t)" (Tincomplete_array cls) Q
+    \through Q
+    \end.
+  Next Obligation.
+    intros * Hdel%RedEq_eq_iff Hal%RedEq_eq_iff. rewrite wp_delete_null.unlock; work.
+    rewrite (delete_for_genv_compat Hdel) wp_invoke_delete.unlock/=.
+    move: Hal => /_align_of_ok Hal.
+    go.
+  Qed.
+
+  #[program]
+  Definition wp_delete_null_operator_delete_array_size_align_C source cls Q al
+  (Hdelete : delete_operator.delete_for source "operator delete[](void*, unsigned long, enum std::align_val_t)" (Tincomplete_array cls) =[Vm]=> Some ("operator delete[](void*, unsigned long, enum std::align_val_t)"%cpp_name, delete_operator.mk None true true))
+    (Hal : _align_of source (Tincomplete_array cls) =[Vm]=> Some al)
+    :=
+    \cancelx
+    \using operator_delete_array_size_align
+    \using denoteModule source
+    \proving wp_delete_null "operator delete[](void*, unsigned long, enum std::align_val_t)" (Tincomplete_array cls) Q
+    \through Q
+    \end.
+  Next Obligation.
+    intros * Hdel%RedEq_eq_iff Hal%RedEq_eq_iff. rewrite wp_delete_null.unlock; work.
+    rewrite (delete_for_genv_compat Hdel) wp_invoke_delete.unlock/=.
+    move: Hal => /_align_of_ok Hal.
+    go.
+  Qed.
+
+  #[program]
   Definition wp_delete_null_operator_delete_array_size_C source cls Q
     (Hdelete : delete_operator.delete_for source "operator delete[](void*, unsigned long)" (Tincomplete_array cls) =[Vm]=> Some ("operator delete[](void*, unsigned long)"%cpp_name, delete_operator.mk None true false))
     :=
@@ -251,7 +325,10 @@ Section with_cpp.
 End with_cpp.
 
 #[global] Hint Resolve wp_delete_null_operator_delete_size_C wp_delete_null_operator_delete_C : db_skylabs_wp.
-#[global] Hint Resolve wp_delete_null_operator_delete_size_align_C : db_skylabs_wp.
+#[global] Hint Resolve wp_delete_null_operator_delete_size_align_C
+  wp_delete_null_operator_delete_align_C
+  wp_delete_null_operator_delete_array_align_C
+  wp_delete_null_operator_delete_array_size_align_C : db_skylabs_wp.
 #[global] Hint Resolve wp_delete_null_operator_delete_array_size_C wp_delete_null_operator_delete_array_C
  wp_delete_null_operator_delete_fixed_array_C : db_skylabs_wp.
 
@@ -259,3 +336,4 @@ End with_cpp.
 #[global] Hint Resolve token_prove_using_C token_prove_using_0_C | 99 : sl_opacity.
 #[global] Hint Resolve token_use_non_array_C | 99 : sl_opacity.
 #[global] Hint Resolve token_use_array_C | 100 : sl_opacity.
+#[global] Hint Resolve supported_alignment_tu_C : sl_opacity.

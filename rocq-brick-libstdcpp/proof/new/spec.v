@@ -41,8 +41,7 @@ Section with_cpp.
       (\arg{p} "p" (Vptr p)
        \arg{al} "al" (Vn al)
        \pre if bool_decide (p = nullptr) then emp
-            else ∃ sz, p |-> (allocatedR 1 false (Some al) sz **
-                               blockR sz 1$m ** alignedR al)
+            else ∃ sz, p |-> (allocatedR 1 false (Some al) sz ** blockR sz 1$m)
        \post emp).
 
 (*  #[ignore_missing] *)
@@ -51,7 +50,7 @@ Section with_cpp.
        \arg{sz} "sz" (Vn sz)
        \arg{al} "al" (Vn al)
        \pre if bool_decide (p = nullptr) then emp
-            else p |-> (allocatedR 1 false (Some al) sz ** blockR sz 1$m ** alignedR al)
+            else p |-> (allocatedR 1 false (Some al) sz ** blockR sz 1$m)
        \post emp).
 
 (*  #[ignore_missing] *)
@@ -99,8 +98,7 @@ Section with_cpp.
       (\arg{p} "p" (Vptr p)
        \arg{al} "al" (Vn al)
        \pre if bool_decide (p = nullptr) then emp
-            else ∃ sz, p |-> (allocatedR 1 true (Some al) sz **
-                               blockR sz 1$m ** alignedR al)
+            else ∃ sz, p |-> (allocatedR 1 true (Some al) sz ** blockR sz 1$m)
        \post emp).
 
   cpp.spec "operator delete[](void*, std::size_t, enum std::align_val_t)" as operator_delete_array_size_align with
@@ -108,8 +106,7 @@ Section with_cpp.
        \arg{sz} "sz" (Vn sz)
        \arg{al} "al" (Vn al)
        \pre if bool_decide (p = nullptr) then emp
-            else p |-> (allocatedR 1 true (Some al) sz **
-                         blockR sz 1$m ** alignedR al)
+            else p |-> (allocatedR 1 true (Some al) sz ** blockR sz 1$m)
        \post emp).
 
 End with_cpp.

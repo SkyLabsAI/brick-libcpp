@@ -38,6 +38,8 @@ Section with_cpp.
       [None] for overloads without an alignment parameter or [Some al] for
       overloads passed [al]. Deallocation must match both, including the
       original alignment argument even when the address is more aligned.
+      Since the receipt already pins the alignment argument, aligned
+      deallocation does not separately require [alignedR].
 
       NOTE: While C++ often stores the size of the array next to a dynamically
       allocated array, the memory that backs this is **not** part of [allocatedR].

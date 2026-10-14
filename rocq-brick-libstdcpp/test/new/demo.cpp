@@ -195,6 +195,25 @@ void test_new_delete_aligned() {
   delete p;
 }
 
+struct alignas(64) AlignedPod {
+  int value;
+};
+
+// The token alone (no ambient alignment fact) must suffice to delete.
+void test_delete_aligned(AlignedValue* p) {
+  delete p;
+}
+
+// Null deletes that select the aligned global operators.
+void test_delete_null_aligned() {
+  AlignedValue* p = nullptr;
+  delete p;
+  AlignedValue* q = nullptr;
+  delete[] q;
+  AlignedPod* r = nullptr;
+  delete[] r;
+}
+
 void test_raw_scalar_zero() {
   auto p = ::operator new(0);
   ::operator delete(p, std::size_t{0});
@@ -238,4 +257,22 @@ void test_raw_array_partial_receipt(void* p, std::align_val_t al) {
 void test_raw_additional_alignment() {
   auto p = ::operator new(16, std::align_val_t{4096});
   ::operator delete(p, 16, std::align_val_t{4096});
+}
+
+// End-to-end matrix: each new/delete form, composed with the library specs.
+void test_new_nothrow_delete() {
+  auto p = new (std::nothrow) int;
+  delete p;
+}
+
+void test_new_nothrow_aligned_delete() {
+  auto p = new (std::nothrow) AlignedValue{0};
+  delete p;
+}
+
+void test_delete_null() {
+  int* p = nullptr;
+  delete p;
+  int* q = nullptr;
+  delete[] q;
 }

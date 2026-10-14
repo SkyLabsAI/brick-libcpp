@@ -315,13 +315,34 @@ Section with_cpp.
 
   cpp.spec "test_new_delete_aligned()" from demo_cpp.source with (\post emp).
   Lemma test_new_delete_aligned_ok : verify[demo_cpp.source] "test_new_delete_aligned()".
+  Proof. verify_spec; go. Qed.
+
+  cpp.spec "test_delete_aligned(AlignedValue*)" as test_delete_aligned_spec
+      from demo_cpp.source with
+    (\arg{p} "p" (Vptr p)
+     \pre{v} p |-> (AlignedValueR 1$m v **
+                    alloc.tokenR_with_alignment "AlignedValue" (Some 64%N) 1)
+     \post emp).
+  (* Stated by hand: [verify] does not collect the destructor that a
+     <<delete>> expression invokes. *)
+  Lemma test_delete_aligned_ok :
+    denoteModule demo_cpp.source ⊢
+      ▷ operator_delete_size_align ∗ ▷ AlignedValue_dot__dtor_spec -∗
+      test_delete_aligned_spec.
   Proof.
     verify_spec; go.
-    iSplitR.
-    { iPureIntro. apply (supported_alignment_of_type ("AlignedValue"%cpp_type)).
-      apply (@_align_of_ok demo_cpp.source σ _). vm_compute. reflexivity. }
-    go.
+    (* TODO: automation does not instantiate the destructor's [\pre{value}]. *)
+    iExists v; iFrame "∗"; work.
+    (* TODO: the token hints leave [size_of] of a class type uncomputed. *)
+    have Hsz : sz = 64%N.
+    { have := sizeof._size_of_ok demo_cpp.source "AlignedValue" 64 ltac:(by vm_compute).
+      move: H; rewrite /size_of /=. congruence. }
+    subst sz. go.
   Qed.
+
+  cpp.spec "test_delete_null_aligned()" from demo_cpp.source with (\post emp).
+  Lemma test_delete_null_aligned_ok : verify[demo_cpp.source] "test_delete_null_aligned()".
+  Proof. verify_spec; go. Qed.
 
   cpp.spec "test_raw_scalar_zero()" from demo_cpp.source with (\post emp).
   Lemma test_raw_scalar_zero_ok : verify[demo_cpp.source] "test_raw_scalar_zero()".
@@ -382,5 +403,18 @@ Section with_cpp.
     { iPureIntro; apply supported_alignment_additional; assumption. }
     go.
   Qed.
+
+  (** ** End-to-end matrix of new/delete forms *)
+  cpp.spec "test_new_nothrow_delete()" from demo_cpp.source with (\post emp).
+  Lemma test_new_nothrow_delete_ok : verify[demo_cpp.source] "test_new_nothrow_delete()".
+  Proof. verify_spec; go; case_bool_decide; go. Qed.
+
+  cpp.spec "test_new_nothrow_aligned_delete()" from demo_cpp.source with (\post emp).
+  Lemma test_new_nothrow_aligned_delete_ok : verify[demo_cpp.source] "test_new_nothrow_aligned_delete()".
+  Proof. verify_spec; go; case_bool_decide; go. Qed.
+
+  cpp.spec "test_delete_null()" from demo_cpp.source with (\post emp).
+  Lemma test_delete_null_ok : verify[demo_cpp.source] "test_delete_null()".
+  Proof. verify_spec; go. Qed.
 
 End with_cpp.
