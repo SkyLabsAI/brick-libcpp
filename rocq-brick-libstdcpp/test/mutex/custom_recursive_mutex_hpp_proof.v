@@ -11,6 +11,7 @@ Require Import skylabs.auto.cpp.prelude.proof.
 Require Import skylabs.brick.libstdcpp.atomic.spec.
 Require Import skylabs.brick.libstdcpp.cassert.spec.
 Require Import skylabs.brick.libstdcpp.mutex.spec.mutex.
+Require Import skylabs.brick.libstdcpp.lib.lock_ghost2.
 Require Import skylabs.brick.libstdcpp.mutex.spec.recursive_mutex.
 Require Import skylabs.brick.libstdcpp.thread.spec.
 Require Import skylabs.brick.libstdcpp.test.mutex.custom_recursive_mutex_hpp.
@@ -18,6 +19,7 @@ Require Import skylabs.brick.libstdcpp.test.mutex.custom_recursive_mutex_hpp.
 NES.Open std.atomic.
 
 Import linearity.
+Import OwnerTid.
 
 Module CustomRecursiveMutexName <: MutexCPPName.
   Definition cpp_ty : type := "MyRecursiveMutex"%cpp_type.
@@ -44,82 +46,14 @@ Module CustomRecursiveMutexPreds
   Definition rmutex_inv_namespace (g : gname) : namespace :=
     mutex.mutex_inv_namespace g.(inner_gname).
 
-  (** If there is [Some] owner, it records the thread ID [th] and the fraction
-     in the lock handle [acquireable] for thread [th]. *)
-  Canonical Structure owner_cmraR : cmra :=
-    excl_authR (optionO (prodO thread_idTO (leibnizO cQp.t))).
-
   Class stateG `{Σ : cpp_logic} := {
     #[global] mutex_G :: mutex.G Σ;
-    #[local] has_owner_own :: HasOwn (iPropI _Σ) owner_cmraR;
-    #[local] has_owner_upd :: HasOwnUpd (iPropI _Σ) owner_cmraR;
-    #[local] has_owner_valid :: HasOwnValid (iPropI _Σ) owner_cmraR;
+    #[global] owners_G :: OwnerTid.G Σ;
   }.
   Definition G := @stateG.
   Existing Class G.
   #[global] Arguments G {_ _} Σ : assert.
   #[global] Instance state_G `{Σ : cpp_logic} (H : G Σ) : @stateG _ _ Σ := H.
-
-
-  Definition owner_tid_auth `{Σ : cpp_logic, !G Σ}
-      (γ : iprop.gname) (o : option (thread_idT * cQp.t)) : mpred :=
-    own γ ((●E o) : owner_cmraR).
-  Definition owner_tid_frag `{Σ : cpp_logic, !G Σ}
-      (γ : iprop.gname) (o : option (thread_idT * cQp.t)) : mpred :=
-    own γ ((◯E o) : owner_cmraR).
-
-  #[global] Instance owner_tid_auth_timeless
-      `{Σ : cpp_logic, !G Σ} γ o : Timeless (owner_tid_auth γ o).
-  Proof. rewrite /owner_tid_auth. apply _. Qed.
-  #[global] Instance owner_tid_frag_timeless
-      `{Σ : cpp_logic, !G Σ} γ o : Timeless (owner_tid_frag γ o).
-  Proof. rewrite /owner_tid_frag. apply _. Qed.
-
-  #[global] Instance owner_tid_frag_exclusive
-      `{Σ : cpp_logic, !G Σ} γ : Exclusive1 (owner_tid_frag γ).
-  Proof.
-    intros o1 o2. rewrite /owner_tid_frag.
-    iIntros "H1 H2".
-    iDestruct (own_valid_2 with "H1 H2") as %Hvalid.
-    move: Hvalid. rewrite excl_auth_frag_op_valid. done.
-  Qed.
-
-  #[global] Instance owner_tid_auth_WeaklyObjective
-      `{Σ : cpp_logic, !G Σ} γ o : WeaklyObjective (owner_tid_auth γ o).
-  Proof. rewrite /owner_tid_auth. apply _. Qed.
-  #[global] Instance owner_tid_frag_WeaklyObjective
-      `{Σ : cpp_logic, !G Σ} γ o : WeaklyObjective (owner_tid_frag γ o).
-  Proof. rewrite /owner_tid_frag. apply _. Qed.
-
-  #[global] Instance owner_agree `{Σ : cpp_logic, !G Σ} γ o1 o2 :
-    Observe2 [| o1 = o2 |] (owner_tid_auth γ o1) (owner_tid_frag γ o2).
-  Proof.
-    apply observe_2_intro_only_provable.
-    rewrite /owner_tid_auth /owner_tid_frag. iIntros "A F".
-    iDestruct (own_valid_2 with "A F") as %HV.
-    iPureIntro. apply leibniz_equiv, excl_auth_agree, HV.
-  Qed.
-
-  Lemma owner_alloc `{Σ : cpp_logic, !G Σ} o :
-    ⊢ |==> ∃ γ, owner_tid_auth γ o ** owner_tid_frag γ o.
-  Proof.
-    iMod (own_alloc ((●E o ⋅ ◯E o) : owner_cmraR)) as (γ) "H".
-    { apply excl_auth_valid. }
-    iModIntro. iExists γ.
-    rewrite /owner_tid_auth /owner_tid_frag -own_op. iExact "H".
-  Qed.
-
-  Lemma owner_update `{Σ : cpp_logic, !G Σ} γ oa ofrag o' :
-    owner_tid_auth γ oa ** owner_tid_frag γ ofrag |--
-      (|==> owner_tid_auth γ o' ** owner_tid_frag γ o').
-  Proof.
-    rewrite /owner_tid_auth /owner_tid_frag. iIntros "[A F]".
-    iMod (own_update_2 with "A F") as "[$ $]";
-      first apply (excl_auth_update _ _ o').
-    done.
-  Qed.
-
-  #[global] Hint Opaque owner_tid_auth owner_tid_frag : sl_opacity typeclass_instances.
 
   Definition token `{Σ : cpp_logic, !G Σ} (g : gname) (q : cQp.t) : mpred :=
     mutex.token g.(inner_gname) q.
@@ -325,7 +259,7 @@ Module custom_recursive_mutex.
       iMod "Init" as (g) "(_ & Inner & Token)".
       (* Install the zero count, empty owner fragment, and client resource in
          the inner mutex; keep the matching authority with the atomic owner. *)
-      iMod (owner_alloc None) as (go) "[Auth Frag]".
+      iMod (OwnerTid.alloc None) as (go) "[Auth Frag]".
       wname [_ |-> ulonglongR _ _] "Count".
       iDestruct select (@tele_app TT (fun _ => mpred) P xs) as "P".
       iMod (mutex.init_R (this ,, _field "MyRecursiveMutex::m_lock")

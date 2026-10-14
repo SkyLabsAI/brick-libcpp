@@ -58,41 +58,6 @@ Module Type MUTEX_TOKENS.
     ⊢ |==> ∃ γ, token γ 1 ** given_token γ 1.
 End MUTEX_TOKENS.
 
-(** Authoritative and exclusive fragment ownership of an optional thread ID. *)
-Module Type OWNER_TID.
-  Parameter cmraR : cmra.
-
-  Class G `{Σ : cpp_logic} := {
-    #[local] has_own :: HasOwn (iPropI _Σ) cmraR;
-    #[local] has_upd :: HasOwnUpd (iPropI _Σ) cmraR;
-    #[local] has_valid :: HasOwnValid (iPropI _Σ) cmraR;
-  }.
-  #[global] Arguments G {_ _} Σ : assert.
-
-  Parameter owner_tid_auth owner_tid_frag : forall `{Σ : cpp_logic, !G Σ},
-    iprop.gname -> option thread_idT -> mpred.
-
-  #[global] Declare Instance owner_tid_auth_timeless
-      `{Σ : cpp_logic, !G Σ} γ o : Timeless (owner_tid_auth γ o).
-  #[global] Declare Instance owner_tid_frag_timeless
-      `{Σ : cpp_logic, !G Σ} γ o : Timeless (owner_tid_frag γ o).
-  #[global] Declare Instance owner_tid_frag_exclusive
-      `{Σ : cpp_logic, !G Σ} γ : Exclusive1 (owner_tid_frag γ).
-  #[global] Declare Instance owner_tid_auth_WeaklyObjective
-      `{Σ : cpp_logic, !G Σ} γ o : WeaklyObjective (owner_tid_auth γ o).
-  #[global] Declare Instance owner_tid_frag_WeaklyObjective
-      `{Σ : cpp_logic, !G Σ} γ o : WeaklyObjective (owner_tid_frag γ o).
-  #[global] Declare Instance owner_agree
-      `{Σ : cpp_logic, !G Σ} γ o1 o2 :
-    Observe2 [| o1 = o2 |] (owner_tid_auth γ o1) (owner_tid_frag γ o2).
-
-  Axiom alloc : forall `{Σ : cpp_logic, !G Σ} o,
-    ⊢ |==> ∃ γ, owner_tid_auth γ o ** owner_tid_frag γ o.
-  Axiom owner_update : forall `{Σ : cpp_logic, !G Σ} γ oa ofrag o',
-    owner_tid_auth γ oa ** owner_tid_frag γ ofrag |--
-      (|==> owner_tid_auth γ o' ** owner_tid_frag γ o').
-End OWNER_TID.
-
 Module mutex_set_G.
   Canonical Structure cmraR : cmra :=
     thread_idT -d> coPset_disjR.
@@ -484,9 +449,11 @@ Module MutexTokens <: MUTEX_TOKENS.
   End theory.
 End MutexTokens.
 
-(** The exclusive-authoritative implementation of [OWNER_TID]. *)
-Module OwnerTid : OWNER_TID.
-  Canonical Structure cmraR : cmra := excl_authR (optionO thread_idTO).
+(** Authoritative and exclusive fragment ownership of an optional thread ID
+    and the exact token share deposited by that thread. *)
+Module OwnerTid.
+  Canonical Structure cmraR : cmra :=
+    excl_authR (optionO (prodO thread_idTO (leibnizO cQp.t))).
 
   Class G `{Σ : cpp_logic} := {
     #[local] has_own :: HasOwn (iPropI _Σ) cmraR;
@@ -496,10 +463,10 @@ Module OwnerTid : OWNER_TID.
   #[global] Arguments G {_ _} Σ : assert.
 
   Definition owner_tid_auth `{Σ : cpp_logic, !G Σ}
-      (γ : iprop.gname) (o : option thread_idT) : mpred :=
+      (γ : iprop.gname) (o : option (thread_idT * cQp.t)) : mpred :=
     own γ ((●E o) : cmraR).
   Definition owner_tid_frag `{Σ : cpp_logic, !G Σ}
-      (γ : iprop.gname) (o : option thread_idT) : mpred :=
+      (γ : iprop.gname) (o : option (thread_idT * cQp.t)) : mpred :=
     own γ ((◯E o) : cmraR).
 
   #[global] Instance owner_tid_auth_timeless
