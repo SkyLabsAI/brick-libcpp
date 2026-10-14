@@ -57,52 +57,52 @@ Module CustomMutexPreds <: MUTEX_PREDS.
 
   Definition token `{Σ : cpp_logic, !G Σ} (γ : gname) (q : cQp.t) : mpred :=
     own γ.(token_gname) (cQp.frac q : token_cmraR).
+
   Definition not_locked `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ} {σ : genv}
       (this : ptr) (γ : gname) (th : thread_idT) (q : cQp.t) : mpred :=
-    token γ q **
+    own γ.(token_gname) (cQp.frac q : token_cmraR) **
     MutexSets.my_mutexes th (coPset.CoPset $ ↑mutex_inv_namespace γ).
 
-  Definition state `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ}
-      (γ : state_gname) (b : bool) : mpred :=
+  Definition state `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ} {σ : genv}
+      (this : ptr) (γ : gname) (b : bool) : mpred :=
     ∃ th q,
       owner_tid_auth γ.(owner_gname) (if b then Some (th, q) else None) **
       if b then
-        (* the mutex owner deposits its [my_mutexes] and [token], and take away
-          owner_tid_frag which records the fraction of [token] that it can take
-          back from invariant when it releases the lock. *)
-        MutexSets.my_mutexes th (coPset.CoPset $ ↑γ.(state_namespace)) **
-        own γ.(token_gname) (cQp.frac q : token_cmraR)
+        (* The mutex owner deposits [not_locked] and takes [owner_tid_frag],
+           which records the [th] and [q] stored in the invariant. *)
+        not_locked this γ th q
       else
         owner_tid_frag γ.(owner_gname) None.
 
   #[global] Instance state_WeaklyObjective
-      `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ} γ b :
-    WeaklyObjective (state γ b).
-  Proof. rewrite /state. destruct b; apply _. Qed.
+      `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ} {σ : genv} this γ b :
+    WeaklyObjective (state this γ b).
+  Proof. rewrite /state /not_locked. destruct b; apply _. Qed.
 
   Section state_laws.
     Context `{Σ : cpp_logic}.
     Context `{MUTEX_SETS : !mutex_set_G Σ}.
     Context `{!G Σ}.
 
-    Lemma alloc_state (N : namespace) (HN : N <> nroot) :
+    Lemma alloc_state {σ : genv} this gi (N : namespace) (HN : N <> nroot) :
       ⊢ |==> ∃ γ, [| γ.(state_namespace) = N |] **
-        own γ.(token_gname) (1%Qp : token_cmraR) ** state γ false.
+        token (MkGname γ gi) 1$m **
+        state this (MkGname γ gi) false.
     Proof.
       iMod (own_alloc (1%Qp : token_cmraR)) as (gt) "T"; first done.
       iMod (OwnerTid.alloc None) as (go) "[OA OF]".
       iModIntro. iExists (MkStateGname gt go N HN).
       iSplit; first done.
-      rewrite /state /=. iFrame "T".
+      rewrite /token /state /=. iFrame "T".
       iExists thread_id_specs.default_thread_id, (1$m)%cQp. iFrame.
     Qed.
 
     Lemma state_lock {σ : genv} this (γ : gname) th (q : cQp.t) :
-      state γ false ** not_locked this γ th q |--
-        (|==> state γ true ** owner_tid_frag γ.(owner_gname) (Some (th, q))).
+      state this γ false ** not_locked this γ th q |--
+        (|==> state this γ true ** owner_tid_frag γ.(owner_gname) (Some (th, q))).
     Proof.
-      rewrite /state /not_locked /token /mutex_inv_namespace.
-      iIntros "[State [T Sets]]".
+      rewrite /state.
+      iIntros "[State NL]".
       iDestruct "State" as (old_th old_q) "[OA OF]".
       iMod (owner_update γ.(owner_gname) None None (Some (th, q))
         with "[$OA $OF]") as "[OA OF]".
@@ -110,32 +110,32 @@ Module CustomMutexPreds <: MUTEX_PREDS.
     Qed.
 
     Lemma state_unlock {σ : genv} this (γ : gname) th (q : cQp.t) :
-      state γ true ** owner_tid_frag γ.(owner_gname) (Some (th, q)) |--
-        (|==> state γ false ** not_locked this γ th q).
+      state this γ true ** owner_tid_frag γ.(owner_gname) (Some (th, q)) |--
+        (|==> state this γ false ** not_locked this γ th q).
     Proof.
-      rewrite /state /not_locked /token /mutex_inv_namespace.
+      rewrite /state.
       iIntros "[State OF]".
-      iDestruct "State" as (owner held_q) "(OA & Sets & T)".
+      iDestruct "State" as (owner held_q) "[OA NL]".
       iDestruct (observe_2 [| Some (owner, held_q) = Some (th, q) |]
         with "OA OF") as %Heq.
       injection Heq as -> ->.
       iMod (owner_update γ.(owner_gname) _ _ None with "[$OA $OF]") as "[OA OF]".
-      iModIntro. iFrame "Sets T". iExists th, q. iFrame.
+      iModIntro. iFrame "NL". iExists th, q. iFrame.
     Qed.
 
-    Lemma unlocked_owner_tid_frag γ th q :
-      state γ false ** owner_tid_frag γ.(owner_gname) (Some (th, q)) |-- False.
+    Lemma unlocked_owner_tid_frag {σ : genv} this γ th q :
+      state this γ false ** owner_tid_frag γ.(owner_gname) (Some (th, q)) |-- False.
     Proof.
       rewrite /state. iIntros "[State OF]".
       iDestruct "State" as (old_th old_q) "[_ OF0]".
       iDestruct (owner_tid_frag_exclusive with "OF0 OF") as %[].
     Qed.
 
-    Lemma locked_full_token γ :
-      state γ true ** own γ.(token_gname) (1%Qp : token_cmraR) |-- False.
+    Lemma locked_full_token {σ : genv} this γ :
+      state this γ true ** token γ 1$m |-- False.
     Proof.
-      rewrite /state. iIntros "[State T]".
-      iDestruct "State" as (th q) "(_ & _ & Held)".
+      rewrite /state /not_locked /token. iIntros "[State T]".
+      iDestruct "State" as (th q) "(_ & Held & _)".
       iDestruct (own_valid_2 with "T Held") as %Hbad.
       iPureIntro. exact (Qp.not_add_le_l 1 (cQp.frac q) Hbad).
     Qed.
@@ -207,7 +207,7 @@ Module CustomMutexPreds <: MUTEX_PREDS.
       ∃ b : bool,
       this ,, _field "MyMutex::m_lock" |->
         atomic.R "int" 1$m (if b then 1 else 0)%Z **
-      state γ b **
+      state this γ b **
       if b then emp else
         P ** this ,, _field "MyMutex::m_owner" |-> thread_id_specs.thread_idR 1$m thread_id_specs.default_thread_id.
 
@@ -240,9 +240,9 @@ Module CustomMutexPreds <: MUTEX_PREDS.
       iDestruct "Inv" as (b) "(_ & State & _)".
       iEval (rewrite /locked) in "Locked".
       iDestruct "Locked" as "[_ OF]".
-      iEval (rewrite /state) in "State".
+      iEval (rewrite /state /not_locked) in "State".
       destruct b.
-      - iDestruct "State" as (owner held_q) "(>OA & >Sets & _)".
+      - iDestruct "State" as (owner held_q) "(>OA & _ & >Sets)".
         iDestruct (observe_2 [| Some (owner, held_q) = Some (th, qt) |]
           with "OA OF") as %Heq.
         injection Heq as -> ->.
@@ -299,20 +299,22 @@ Module CustomMutexPreds <: MUTEX_PREDS.
       iEval (rewrite /R _at_sep _at_as_Rep) in "HR".
       iDestruct "HR" as "(S & #CI & CO)".
       iMod (cinv_cancel with "CI CO") as "Inv"; [done..|].
-      iMod (alloc_state N HN) as (gs) "(%Hnamespace & Tnew & Stnew)".
-      iMod (cinv_alloc with "[Inv P Stnew T]") as (gi) "[#CInew COnew]"; last first.
-      - iModIntro. iExists (MkGname gs gi).
-        iSplit; first (iPureIntro; exact Hnamespace).
-        rewrite /R _at_sep _at_as_Rep /token /mutex_inv /=.
-        iFrame "CInew S COnew Tnew".
-      - iNext. rewrite /mutex_inv.
+      iMod (cinv_alloc_cofinite ∅ ⊤ N) as (gi) "(_ & COnew & Alloc)".
+      iMod (alloc_state this gi N HN) as (gs) "(%Hnamespace & Tnew & Stnew)".
+      iMod ("Alloc" $! (mutex_inv this (MkGname gs gi) P)
+        with "[] [Inv P Stnew T]") as "#CInew".
+      { iPureIntro. apply _. }
+      { iNext. rewrite /mutex_inv.
         iDestruct "Inv" as (b) "(L & St & Resources)".
         destruct b.
-        + iDestruct (locked_full_token with "[$St $T]") as %[].
-        + iDestruct "Resources" as "[_ Owner]".
+        - iDestruct (locked_full_token with "[$St $T]") as %[].
+        - iDestruct "Resources" as "[_ Owner]".
           iExists false. iFrame "L Stnew P Owner".
-          iApply (affine with "[St T]"); last iAccu. apply mpred_BiAffine.
-      - apply _.
+          iApply (affine with "[St T]"); last iAccu. apply mpred_BiAffine. }
+      iModIntro. iExists (MkGname gs gi).
+      iSplit; first (iPureIntro; exact Hnamespace).
+      rewrite /R _at_sep _at_as_Rep /mutex_inv_namespace /= Hnamespace.
+      iFrame "CInew S COnew Tnew".
     Qed.
 
   End with_Σ.
@@ -602,15 +604,16 @@ Module custom_mutex.
       wname [P] "P".
       wname [_ |-> atomic.R _ _ _] "L".
       wname [_ |-> thread_id_specs.thread_idR _ _] "Owner".
-      iMod (alloc_state N ltac:(done)) as (gs) "(%Hnamespace & T & State)".
-      iMod (cinv_alloc with "[L P Owner State]")
-        as (gi) "[#CI CO]"; last first.
-      - iModIntro. iExists (MkGname gs gi).
-        iSplit; first (iPureIntro; exact Hnamespace).
-        rewrite /IR _at_sep _at_as_Rep /mutex_inv /=.
-        iFrame "CI". iFrame.
-      - iNext. iExists false. iFrame.
-      - apply _.
+      iMod (cinv_alloc_cofinite ∅ ⊤ N) as (gi) "(_ & CO & Alloc)".
+      iMod (alloc_state this gi N ltac:(done)) as (gs) "(%Hnamespace & T & State)".
+      iMod ("Alloc" $! (mutex_inv this (MkGname gs gi) P)
+        with "[] [L P Owner State]") as "#CI".
+      { iPureIntro. apply _. }
+      { iNext. rewrite /mutex_inv. iExists false. iFrame. }
+      iModIntro. iExists (MkGname gs gi).
+      iSplit; first (iPureIntro; exact Hnamespace).
+      rewrite /IR _at_sep _at_as_Rep /mutex_inv_namespace /= Hnamespace.
+      iFrame "CI". iFrame.
     Qed.
 
     Lemma mymutex_dtor_proof : verify[source] "MyMutex::~MyMutex()".
