@@ -174,35 +174,45 @@ Module istream.
 
     (** [read_int] reads characters using [Do read] and parses
         the string as an integer. For example, the characters
-        <1>, <2>, <\n> would return <('\n', 12)>.
+        <1>, <2>, <\n> would return <('\n', Some 12)>.
 
-        The function accepts both positive and negative integers.
+        The function accepts both positive and negative integers. It returns
+        [None] if no digits precede the first other character (including after
+        a sign), which is a conversion failure.
 
         The first component is the "overread", the first byte read that
         is not part of the number.
     *)
-    CoFixpoint read_int : itree input_char (N * Z) :=
+    CoFixpoint read_int : itree input_char (N * option Z) :=
       (* Internal state machine to accumulate parsed digits *)
-      let cofix loop (sign : Z) (acc : Z) : itree input_char (N * Z) :=
+      let cofix loop (sign : Z) (acc : Z) : itree input_char (N * option Z) :=
         Do read (fun c =>
           match as_digit c with
           | Some digit =>
             loop sign (acc * 10 + Z.of_N digit)%Z
           | None =>
             (* Not a digit: return the delimiter character and the final signed integer *)
-            Ret (c, (sign * acc)%Z)
+            Ret (c, Some (sign * acc)%Z)
           end
         )
+      in
+      (* After a sign, at least one digit is required *)
+      let signed (sign : Z) : itree input_char (N * option Z) :=
+        Do read (fun c =>
+          match as_digit c with
+          | Some digit => loop sign (Z.of_N digit)
+          | None => Ret (c, None)
+          end)
       in
 
       Do read (fun c =>
         if (c =? 45)%N then
           (* Encountered '-' (ASCII 45) -> Start reading negative number *)
-          loop (-1)%Z 0%Z
+          signed (-1)%Z
 
         else if (c =? 43)%N then
           (* Encountered '+' (ASCII 43) -> Start reading positive number *)
-          loop 1%Z 0%Z
+          signed 1%Z
 
         else if is_ws c then
           (* Whitespace -> Co-recursively skip *)
@@ -213,14 +223,25 @@ Module istream.
                 (* Encountered a digit -> Start accumulating a positive number *)
                 loop 1%Z (Z.of_N digit)
             | None =>
-                (* Unexpected character before any digits -> Abort and return 0 *)
-                Ret (c, 0%Z)
+                (* Unexpected character before any digits -> Conversion failure *)
+                Ret (c, None)
             end
         ).
 
-    (** This contract only covers parsed values representable as [int].
-        Out-of-range extraction saturates and sets [failbit], which the current
-        stream predicate does not model.
+    (** [take_int_k K r] continues with [K n] if [read_int] returned [r]
+        holding a value [n] representable as an [int], and is [False]
+        otherwise. A conversion failure stores 0, and an out-of-range value the
+        nearest [int] limit, and both set [failbit] ([facet.num.get.virtuals],
+        [istream.formatted.arithmetic]), which [istream.R] does not model. *)
+    Definition take_int_k (K : Z -> mpred) (r : N * option Z) : mpred :=
+      match r.2 with
+      | Some n =>
+          [| (int_rank.min_val int_rank.Iint Signed <= n <=
+              int_rank.max_val int_rank.Iint Signed)%Z |] ** K n
+      | None => False
+      end.
+
+    (** This contract only covers successful extractions (see [take_int_k]).
 
         TODO: this specification is unsound because it needs to re-buffer the
         next character that it read (the first component of the pair returned by
@@ -232,9 +253,7 @@ Module istream.
           \pre{IS isM} this |-> istream.R IS isM 1$m
           \arg{nP} "" (Vref nP)
           \pre nP |-> anyR "int" 1$m
-          \pre{K : Z -> mpred} interp_itree as_event IS read_int (fun '(_, n) =>
-            [| (int_rank.min_val int_rank.Iint Signed <= n <=
-                int_rank.max_val int_rank.Iint Signed)%Z |] ** K n)
+          \pre{K : Z -> mpred} interp_itree as_event IS read_int (take_int_k K)
           \post[Vptr this] Exists isM' n,
             this |-> istream.R IS isM' 1$m **
               nP |-> intR 1$m n **
