@@ -48,4 +48,31 @@ Section with_cpp.
     \post[Vptr this]
       this |-> basic_stringR "char" 1$m otherS).
 
+  (** <<size_type size() const noexcept;>>
+
+      <https://eel.is/c++draft/string.capacity> -- the number of characters.
+      Total: it only reads the model, so no call is undefined. *)
+  cpp.spec "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>::size() const" from source as string_size_spec with (
+    \this this
+    \prepost{q s} this |-> basic_stringR "char" q s
+    \post[Vn (N.of_nat (BS.length s))] emp).
+
+  (** <<size_type length() const noexcept;>>
+
+      <https://eel.is/c++draft/string.capacity> -- the same as <<size()>>.
+      Total, as <<size()>>. *)
+  cpp.spec "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>::length() const" from source as string_length_spec with (
+    \this this
+    \prepost{q s} this |-> basic_stringR "char" q s
+    \post[Vn (N.of_nat (BS.length s))] emp).
+
+  (** <<bool empty() const noexcept;>>
+
+      <https://eel.is/c++draft/string.capacity> -- whether <<size() == 0>>.
+      Total, as <<size()>>. *)
+  cpp.spec "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>::empty() const" from source as string_empty_spec with (
+    \this this
+    \prepost{q s} this |-> basic_stringR "char" q s
+    \post[Vbool (bool_decide (s = BS.EmptyString))] emp).
+
 End with_cpp.
