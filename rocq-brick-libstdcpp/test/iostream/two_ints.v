@@ -10,10 +10,8 @@ Require Import skylabs.brick.libstdcpp.iostream.spec.
 (** * Two consecutive [int] extractions
 
     On the input "12-34 ", [second] returns -34 with libstdc++: the first
-    extraction stops at '-' and leaves it in the stream.
-
-    UNSOUND: [istream_take_int_spec] consumes the '-', so [second_ok] proves
-    that [second] returns 34. *)
+    extraction stops at '-' and leaves it in the stream, as the read-ahead of
+    [istream.R]. *)
 cpp.prog source flags "-std=c++20 -stdlib=libstdc++" prog cpp:{{
   #include <istream>
   int second(std::istream &in) {
@@ -22,7 +20,15 @@ cpp.prog source flags "-std=c++20 -stdlib=libstdc++" prog cpp:{{
     in >> b;
     return b;
   }
+  int first(std::istream &in) {
+    int a = 5;
+    in >> a;
+    return a;
+  }
 }}.
+
+(** On the inputs "x" and "99999999999 ", [first] returns 0 and 2147483647
+    with libstdc++, and the extraction sets [failbit]. *)
 
 (** A stream that delivers the characters of a fixed input, one per read.
     [remaining cs] owns the characters [cs] not read yet. *)
@@ -66,32 +72,56 @@ Section with_cpp.
 
   cpp.spec "second(std::istream&)" from source as second_spec with (
     \arg{inp} "in" (Vref inp)
-    \pre{g} inp |-> istream.R (script remaining) g 1$m
+    \pre{g} inp |-> istream.R (script remaining) g None 1$m
     \pre remaining (chars "12-34 ")
-    \post{n}[Vint n] [| n = 34 |]%Z **
-      ∃ g' cs, inp |-> istream.R (script remaining) g' 1$m ** remaining cs).
+    \post{n}[Vint n] [| n = -34 |]%Z **
+      ∃ g' la cs, inp |-> istream.R (script remaining) g' la 1$m ** remaining cs).
 
   (** One read from [script], of the character [c] at the head of the input. *)
   #[local] Ltac read_char :=
     rewrite interp_unfold; cbn -[interp_itree]; iExists _, _; iFrame "R";
     iSplitR; [iPureIntro; rewrite elem_of_PropSet; eauto|];
     iIntros "R"; iExists _; iSplitR; [iPureIntro; reflexivity|]; iNext.
-  #[local] Ltac finish :=
-    rewrite interp_unfold; cbn -[interp_itree]; iFrame "R"; iPureIntro;
-    split; [split; vm_compute; congruence|vm_compute; reflexivity].
+  cpp.spec "first(std::istream&)" from source as first_fail_spec with (
+    \arg{inp} "in" (Vref inp)
+    \pre{g} inp |-> istream.R (script remaining) g None 1$m
+    \pre remaining (chars "x")
+    \post{n}[Vint n] [| n = 0 |]%Z ** ∃ cs, remaining cs).
 
-  (** The first extraction reads "12-", the second "34 ". *)
+  cpp.spec "first(std::istream&)" from source as first_big_spec with (
+    \arg{inp} "in" (Vref inp)
+    \pre{g} inp |-> istream.R (script remaining) g None 1$m
+    \pre remaining (chars "99999999999 ")
+    \post{n}[Vint n] [| n = 2147483647 |]%Z ** ∃ cs, remaining cs).
+
+  #[local] Ltac finish :=
+    rewrite interp_unfold; cbn -[interp_itree]; iFrame "R"; iPureIntro; vm_compute; auto.
+
+  (** The first extraction reads "12-" and keeps '-' as the read-ahead; the
+      second starts from it and reads "34 ". *)
   Lemma read_12 :
     remaining (chars "12-34 ") ⊢
-    interp_itree istream.as_event (script remaining) istream.read_int
-      (istream.take_int_k (λ n, [| n = 12%Z |] ∗ remaining (chars "34 "))).
+    interp_itree istream.as_event (script remaining) (istream.pushback None istream.read_int)
+      (λ '(c, r), [| c = 45%N /\ r = Some 12%Z |] ∗ remaining (chars "34 ")).
   Proof. iIntros "R". do 3 read_char. finish. Qed.
 
-  Lemma read_34 :
+  Lemma read_m34 :
     remaining (chars "34 ") ⊢
-    interp_itree istream.as_event (script remaining) istream.read_int
-      (istream.take_int_k (λ n, [| n = 34%Z |] ∗ remaining [])).
+    interp_itree istream.as_event (script remaining) (istream.pushback (Some 45%N) istream.read_int)
+      (λ '(c, r), [| r = Some (-34)%Z |] ∗ remaining []).
   Proof. iIntros "R". do 3 read_char. finish. Qed.
+
+  Lemma read_x :
+    remaining (chars "x") ⊢
+    interp_itree istream.as_event (script remaining) (istream.pushback None istream.read_int)
+      (λ '(c, r), [| r = None |] ∗ remaining []).
+  Proof. iIntros "R". read_char. finish. Qed.
+
+  Lemma read_big :
+    remaining (chars "99999999999 ") ⊢
+    interp_itree istream.as_event (script remaining) (istream.pushback None istream.read_int)
+      (λ '(c, r), [| r = Some 99999999999%Z |] ∗ remaining []).
+  Proof. iIntros "R". do 12 read_char. finish. Qed.
 
   #[local] Hint Opaque interp_itree : sl_opacity.
 
@@ -101,7 +131,25 @@ Section with_cpp.
     iDestruct select (remaining _) as "R".
     iExists _. iSplitL "R"; [by iApply read_12|]. go.
     iDestruct select (remaining _) as "R".
-    iExists _. iSplitL "R"; [by iApply read_34|]. go.
+    iExists _. iSplitL "R"; [by iApply read_m34|]. go.
+    iDestruct select (remaining _) as "R". by iExists _.
+  Qed.
+
+  (** After a failed extraction, the caller continues with the stored value,
+      without the stream. *)
+  Lemma first_fail_ok : verify[source] first_fail_spec.
+  Proof.
+    verify_spec. go.
+    iDestruct select (remaining _) as "R".
+    iExists _. iSplitL "R"; [by iApply read_x|]. go.
+    iDestruct select (remaining _) as "R". by iExists _.
+  Qed.
+
+  Lemma first_big_ok : verify[source] first_big_spec.
+  Proof.
+    verify_spec. go.
+    iDestruct select (remaining _) as "R".
+    iExists _. iSplitL "R"; [by iApply read_big|]. go.
     iDestruct select (remaining _) as "R". by iExists _.
   Qed.
 End with_cpp.

@@ -22,8 +22,11 @@ Fixpoint feed {T} (it : itree istream.input_char T) (cs : list N) : option T :=
   | _, _ => None
   end.
 
+Definition chars (s : String.string) : list N :=
+  Byte.to_N <$> String.list_byte_of_string s.
+
 Definition parse (s : String.string) : option (N * option Z) :=
-  feed istream.read_int (Byte.to_N <$> String.list_byte_of_string s).
+  feed istream.read_int (chars s).
 
 (** Values, with the delimiter that [read_int] consumed. *)
 Example parse_plain : parse "12
@@ -40,40 +43,20 @@ Example parse_sign_only : parse "-
 " = Some (10%N, None) := eq_refl.
 Example parse_two_signs : parse "+-5" = Some (45%N, None) := eq_refl.
 
-(** What [istream_take_int_spec] lets a caller continue with, given the
-    result of [read_int]. *)
-Section with_cpp.
-  Context `{Σ : cpp_logic, σ : genv}.
+(** What extraction stores, and whether it succeeds, for each result. *)
+Example ok_plain : istream.int_ok (Some 12%Z) = true := eq_refl.
+Example ok_max : istream.int_ok (Some 2147483647%Z) = true := eq_refl.
+Example ok_min : istream.int_ok (Some (-2147483648)%Z) = true := eq_refl.
+Example stored_plain : istream.int_stored (Some (-35)%Z) = (-35)%Z := eq_refl.
+(** Out-of-range values store the nearest limit, and conversion failures 0;
+    both fail. *)
+Example ok_big : istream.int_ok (Some 2147483648%Z) = false := eq_refl.
+Example stored_big : istream.int_stored (Some 2147483648%Z) = 2147483647%Z := eq_refl.
+Example ok_small : istream.int_ok (Some (-2147483649)%Z) = false := eq_refl.
+Example stored_small : istream.int_stored (Some (-2147483649)%Z) = (-2147483648)%Z := eq_refl.
+Example ok_failure : istream.int_ok None = false := eq_refl.
+Example stored_failure : istream.int_stored None = 0%Z := eq_refl.
 
-  #[local] Ltac accept :=
-    rewrite /istream.take_int_k; cbn [snd];
-    iIntros "$"; iPureIntro; split; vm_compute; congruence.
-  #[local] Ltac reject :=
-    rewrite /istream.take_int_k; cbn [snd];
-    iIntros "[% _]"; exfalso; revert select (_ <= _ <= _)%Z;
-    vm_compute; intros [? ?]; congruence.
-
-  (** Representable values, including the limits, continue. *)
-  Lemma take_int_plain K : K 12%Z ⊢ istream.take_int_k K (10%N, Some 12%Z).
-  Proof. accept. Qed.
-
-  Lemma take_int_max K :
-    K 2147483647%Z ⊢ istream.take_int_k K (32%N, Some 2147483647%Z).
-  Proof. accept. Qed.
-
-  Lemma take_int_min K :
-    K (-2147483648)%Z ⊢ istream.take_int_k K (32%N, Some (-2147483648)%Z).
-  Proof. accept. Qed.
-
-  (** Out-of-range values and conversion failures are defined behavior: the
-      stream stores the nearest [int] limit, or 0, and sets [failbit]. The spec
-      does not model [failbit], so it blocks these callers, soundly. *)
-  Lemma take_int_big K : istream.take_int_k K (32%N, Some 2147483648%Z) ⊢ False.
-  Proof. reject. Qed.
-
-  Lemma take_int_small K : istream.take_int_k K (32%N, Some (-2147483649)%Z) ⊢ False.
-  Proof. reject. Qed.
-
-  Lemma take_int_failure K c : istream.take_int_k K (c, None) ⊢ False.
-  Proof. rewrite /istream.take_int_k; cbn [snd]. by iIntros "[]". Qed.
-End with_cpp.
+(** A read-ahead character is read first. *)
+Example parse_pushback :
+  feed (istream.pushback (Some 45%N) istream.read_int) (chars "34 ") = Some (32%N, Some (-34)%Z) := eq_refl.

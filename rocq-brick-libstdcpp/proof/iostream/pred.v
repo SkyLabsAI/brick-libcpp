@@ -52,13 +52,15 @@ End ostream.
 
 Module istream.
   Parameter gname : Set.
-  Parameter R : forall `{Σ : cpp_logic} {σ : genv}, Istream -> gname -> cQp.t -> Rep.
+  (** [R IS g la q]: a stream reading from [IS], after reading ahead [la],
+      a character that the stream holds but has not extracted yet. *)
+  Parameter R : forall `{Σ : cpp_logic} {σ : genv}, Istream -> gname -> option N -> cQp.t -> Rep.
   #[only(cfracsplittable)] derive R.
 
   Section with_cpp.
     Context `{Σ : cpp_logic, σ : genv}.
 
-    #[global] Instance: Cbn (Learn (learn_eq ==> learn_eq ==> any ==> learn_hints.fin) R).
+    #[global] Instance: Cbn (Learn (learn_eq ==> learn_eq ==> learn_eq ==> any ==> learn_hints.fin) R).
     Proof. solve_learnable. Qed.
 
   End with_cpp.

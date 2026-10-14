@@ -228,36 +228,48 @@ Module istream.
             end
         ).
 
-    (** [take_int_k K r] continues with [K n] if [read_int] returned [r]
-        holding a value [n] representable as an [int], and is [False]
-        otherwise. A conversion failure stores 0, and an out-of-range value the
-        nearest [int] limit, and both set [failbit] ([facet.num.get.virtuals],
-        [istream.formatted.arithmetic]), which [istream.R] does not model. *)
-    Definition take_int_k (K : Z -> mpred) (r : N * option Z) : mpred :=
-      match r.2 with
-      | Some n =>
-          [| (int_rank.min_val int_rank.Iint Signed <= n <=
-              int_rank.max_val int_rank.Iint Signed)%Z |] ** K n
-      | None => False
+    (** [pushback la it] runs [it] on the read-ahead character [la] first. *)
+    Definition pushback {T} (la : option N) (it : itree input_char T) : itree input_char T :=
+      match la, it with
+      | Some c, Do act k =>
+          (match act in input_char U return (U -> _) -> _ with
+           | read => fun k => k c
+           end) k
+      | _, _ => it
       end.
 
-    (** This contract only covers successful extractions (see [take_int_k]).
+    #[local] Abbreviation int_min := (int_rank.min_val int_rank.Iint Signed).
+    #[local] Abbreviation int_max := (int_rank.max_val int_rank.Iint Signed).
 
-        TODO: this specification is unsound because it needs to re-buffer the
-        next character that it read (the first component of the pair returned by
-        [read_int]).
-     *)
+    (** Whether extracting [r], a result of [read_int], succeeds, and the
+        value it stores: a conversion failure stores 0, and an out-of-range
+        value the nearest [int] limit, and both set [failbit]
+        ([facet.num.get.virtuals], [istream.formatted.arithmetic]). *)
+    Definition int_ok (r : option Z) : bool :=
+      match r with
+      | Some n => bool_decide (int_min <= n <= int_max)%Z
+      | None => false
+      end.
+    Definition int_stored (r : option Z) : Z :=
+      match r with
+      | Some n => Z.max int_min (Z.min int_max n)
+      | None => 0
+      end.
+
+    (** [K c r] continues after [read_int] returns [r] with the read-ahead [c].
+        [istream.R] does not model [failbit], so after a failed extraction the
+        caller loses the stream: further extractions would do nothing. *)
     cpp.spec "std::basic_istream<char, std::char_traits<char>>::operator>>(int&)"
       from source as istream_take_int_spec with (
           \this this
-          \pre{IS isM} this |-> istream.R IS isM 1$m
+          \pre{IS isM la} this |-> istream.R IS isM la 1$m
           \arg{nP} "" (Vref nP)
           \pre nP |-> anyR "int" 1$m
-          \pre{K : Z -> mpred} interp_itree as_event IS read_int (take_int_k K)
-          \post[Vptr this] Exists isM' n,
-            this |-> istream.R IS isM' 1$m **
-              nP |-> intR 1$m n **
-              K n
+          \pre{K : N -> option Z -> mpred}
+            interp_itree as_event IS (pushback la read_int) (fun '(c, r) => K c r)
+          \post[Vptr this] Exists isM' c r,
+            nP |-> intR 1$m (int_stored r) ** K c r **
+            if int_ok r then this |-> istream.R IS isM' (Some c) 1$m else emp
         ).
 
   End with_cpp.
