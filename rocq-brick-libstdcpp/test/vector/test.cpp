@@ -98,6 +98,33 @@ TestAllocCtor() {
     test(v.size() == 0);
 }
 
+// Iterators are named before they are converted or compared, as in
+// TestIntIter: binding a temporary iterator to a const reference needs
+// wp_make_const on the locked iterator representation.
+void
+TestErase() {
+    vector<int> v;
+    v.push_back(1);
+    v.push_back(2);
+    v.push_back(3);
+    vector<int>::iterator b = v.begin();
+    vector<int>::const_iterator first = b;
+    auto it = v.erase(first);
+    test(*it == 2);
+    test(v.size() == 2);
+    vector<int>::iterator b1 = v.begin() + 1;
+    vector<int>::const_iterator last = b1;
+    auto it1 = v.erase(last);
+    auto e1 = v.end();
+    test(it1 == e1);
+    vector<int>::iterator b2 = v.begin();
+    vector<int>::iterator e2 = v.end();
+    vector<int>::const_iterator f2 = b2;
+    vector<int>::const_iterator l2 = e2;
+    v.erase(f2, l2);
+    test(v.size() == 0);
+}
+
 int
 main() {
     TestBasic();
@@ -105,5 +132,6 @@ main() {
     TestIntIter();
     TestForEach();
     TestAllocCtor();
+    TestErase();
     return 0;
 }

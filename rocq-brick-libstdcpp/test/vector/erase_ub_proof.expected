@@ -1,0 +1,106 @@
+1 goal
+  
+  thread_info : biIndex
+  _Σ : gFunctors
+  Σ : cpp_logic thread_info _Σ
+  σ : genv
+  _H_ : source ⊧ σ
+  _PostPred_ : ptr → mpred
+  PostCond : PostCondition
+  v_addr : ptr
+  st' : std.vector.InternalState
+  e_addr, last_addr, p : ptr
+  GUARDS : GWs.GUARDS
+  _x_ : valid<"int"> 1
+  _H_0 : 0 < 0 + 1
+  _H_1 : 0 ≤ 0 + 1
+  _H_2 : list.ListSizeZ [1] (0 + 1 - 0)
+  _p_ : ptr
+  ============================
+  _ : denoteModule source
+  _ : std.vector.iterator.iter_to_const "int" "std::allocator<int>"
+  _ : std.vector.default_ctor "int" "std::allocator<int>"
+  _ : std.vector.ctor_with_alloc "int" "std::allocator<int>"
+  _ : std.vector.sized_ctor "int" "std::allocator<int>"
+  _ : std.vector.init_ctor "int" "std::allocator<int>"
+  _ : std.vector.copy_alloc_ctor "int" "std::allocator<int>"
+  _ : std.vector.move_alloc_ctor "int" "std::allocator<int>"
+  _ : std.vector.copy_ctor "int" "std::allocator<int>"
+  _ : std.vector.move_ctor "int" "std::allocator<int>"
+  _ : std.vector.dtor "int" "std::allocator<int>"
+  _ : std.vector.subscript "int" "std::allocator<int>" true
+  _ : std.vector.subscript "int" "std::allocator<int>" false
+  _ : std.vector.push_back_copy "int" "std::allocator<int>"
+  _ : std.vector.push_back_move "int" "std::allocator<int>"
+  _ : std.vector.pop_back "int" "std::allocator<int>"
+  _ : std.vector.front "int" "std::allocator<int>" true
+  _ : std.vector.front "int" "std::allocator<int>" false
+  _ : std.vector.back "int" "std::allocator<int>" true
+  _ : std.vector.back "int" "std::allocator<int>" false
+  _ : std.vector.clear "int" "std::allocator<int>"
+  _ : std.vector.erase_one "int" "std::allocator<int>"
+  _ : std.vector.erase_range "int" "std::allocator<int>"
+  _ : std.vector.resize_default "int" "std::allocator<int>"
+  _ : std.vector.resize "int" "std::allocator<int>"
+  _ : std.vector.size "int" "std::allocator<int>"
+  _ : std.vector.begin_spec "int" "std::allocator<int>" true
+  _ : std.vector.begin_spec "int" "std::allocator<int>" false
+  _ : std.vector.end_spec "int" "std::allocator<int>" true
+  _ : std.vector.end_spec "int" "std::allocator<int>" false
+  _ : std.vector.iterator.iter_default_ctor false "int" "std::allocator<int>"
+  _ : std.vector.iterator.iter_copy_ctor false "int" "std::allocator<int>"
+  _ : std.vector.iterator.iter_dtor false "int" "std::allocator<int>"
+  _ : std.vector.iterator.iter_move_assign false "int" "std::allocator<int>"
+  _ : std.vector.iterator.iter_deref false "int" "std::allocator<int>"
+  _ : std.vector.iterator.iter_op_post_inc false "int" "std::allocator<int>"
+  _ : std.vector.iterator.iter_op_pre_inc false "int" "std::allocator<int>"
+  _ : std.vector.iterator.iter_op_plus false "int" "std::allocator<int>"
+  _ : std.vector.iterator.iter_op_eq false "int" "std::allocator<int>"
+  _ : std.vector.iterator.iter_op_ne false "int" "std::allocator<int>"
+  _ : std.vector.iterator.iter_default_ctor true "int" "std::allocator<int>"
+  _ : std.vector.iterator.iter_copy_ctor true "int" "std::allocator<int>"
+  _ : std.vector.iterator.iter_dtor true "int" "std::allocator<int>"
+  _ : std.vector.iterator.iter_move_assign true "int" "std::allocator<int>"
+  _ : std.vector.iterator.iter_deref true "int" "std::allocator<int>"
+  _ : std.vector.iterator.iter_op_post_inc true "int" "std::allocator<int>"
+  _ : std.vector.iterator.iter_op_pre_inc true "int" "std::allocator<int>"
+  _ : std.vector.iterator.iter_op_plus true "int" "std::allocator<int>"
+  _ : std.vector.iterator.iter_op_eq true "int" "std::allocator<int>"
+  _ : std.vector.iterator.iter_op_ne true "int" "std::allocator<int>"
+  _ : std.allocator.ctor "int"
+  _ : std.allocator.dtor "int"
+  _ : type_ptr "std::vector<int, std::allocator<int>>" v_addr
+  _ : type_ptr "int" (std.vector.base_pointer st' .[ "int" ! 0 ])
+  _ : type_ptr
+        "__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int>>>"
+        e_addr
+  _ : type_ptr
+        "__gnu_cxx::__normal_iterator<const int*, std::vector<int, std::allocator<int>>>"
+        last_addr
+  _ : type_ptr
+        "__gnu_cxx::__normal_iterator<const int*, std::vector<int, std::allocator<int>>>"
+        p
+  --------------------------------------□
+  _ : PostCond
+  _ : e_addr
+      |-> std.vector.iterator.R "int" 1$m (std.vector.base_pointer st') 1
+  _ : last_addr
+      |-> std.vector.iterator.R_const "int" 1$m (std.vector.base_pointer st')
+            1
+  --------------------------------------∗
+  [| 1 < 1 |] ∗
+  ∀ x : ptr,
+    p
+    |-> std.vector.iterator.R_const "int" 1$m (std.vector.base_pointer st') 1 ∗
+    x |-> std.vector.iterator.R "int" 1$m (std.vector.base_pointer st') 1 ∗
+    v_addr
+    |-> (std.vector.spineR "int" "std::allocator<int>" 1$m (1 - 1) st' ∗
+         pureR
+           (std.vector.base_pointer st'
+            |-> array_sliceR "int" 0 (1 - 1) (λ v : Z, intR 1$m v)
+                  (take (Z.to_nat 1) [1] ++ drop (Z.to_nat 1 + 1) [1]))) -∗
+    ::interp
+      { FreeTemps.delete
+          "__gnu_cxx::__normal_iterator<const int*, std::vector<int, std::allocator<int>>>"
+          p >*>
+        1 }
