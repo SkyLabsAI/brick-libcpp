@@ -17,6 +17,11 @@ public:
       { idle = 0; }
   }
 
+  bool try_lock() noexcept {
+    int idle = 0;
+    return sharers.compare_exchange_strong(idle, -1);
+  }
+
   void unlock() {
     sharers = 0;
   }
@@ -27,6 +32,13 @@ public:
     // wait if val=-1 (writer-locked) or val=INT_MAX (so to avoid overflow)
     while (val < 0 || val == INT_MAX ||
            !sharers.compare_exchange_strong(val, val + 1));
+  }
+
+  bool try_lock_shared() noexcept {
+    int val = sharers;
+    if (val < 0 || val == INT_MAX)
+      return false;
+    return sharers.compare_exchange_strong(val, val + 1);
   }
 
   void unlock_shared() {

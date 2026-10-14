@@ -392,6 +392,24 @@ Module custom_mutex.
        \exact Reduce
         (Spec.unlock_spec this)).
 
+    cpp.spec "MyMutex::try_lock()" as try_lock_spec_alt with
+      (\this this
+       \prepost{qg} globals qg
+       \exact Reduce (Spec.try_lock_spec_alt this)).
+
+    cpp.spec "MyMutex::try_lock()" as try_lock_spec with
+      (\this this
+       \prepost{qg} globals qg
+       \exact Reduce (Spec.try_lock_spec this)).
+
+    Lemma try_lock_spec_equiv_try_lock_spec_alt : try_lock_spec ⊣⊢ try_lock_spec_alt.
+    Proof.
+      rewrite /try_lock_spec /try_lock_spec_alt /specify.
+      do 2 f_equiv. intros this xs K.
+      rewrite !add_with_equiv. f_equiv=> qg.
+      rewrite !add_prepost_equiv Spec.try_lock_spec_equiv_try_lock_spec_alt; done.
+    Qed.
+
     Lemma lock_spec_equiv_lock_spec_alt : lock_spec ⊣⊢ lock_spec_alt.
     Proof.
       rewrite /lock_spec /lock_spec_alt /specify.
@@ -556,6 +574,18 @@ Module custom_mutex.
       wname [CustomMutexPreds.not_locked] "NL".
       iFrame "NL". ego.
       Unshelve. all: exact (1$m)%cQp.
+    Qed.
+
+    Lemma mymutex_try_lock_alt_proof : verify[source] try_lock_spec_alt.
+    Proof using MOD HAS_THREADS.
+      verify_spec; ego.
+      repeat (first [case_bool_decide | wp_if]; ego).
+    Qed.
+
+    Lemma mymutex_try_lock_proof : verify[source] try_lock_spec.
+    Proof using MOD HAS_THREADS.
+      rewrite try_lock_spec_equiv_try_lock_spec_alt.
+      exact mymutex_try_lock_alt_proof.
     Qed.
 
     Lemma mymutex_unlock_alt_proof : verify[source] unlock_spec_alt.

@@ -181,6 +181,15 @@ Module recursive_mutex_spec (T : MutexCPPName)
        \pre{qt n args} acquireable this g qt th (Held n args) P
        \post acquireable this g qt th (release $ Held n args) P).
 
+    Definition try_lock_spec : ptr -> WpSpec mpred val val :=
+      (\this this
+       \prepost{g TT P q} this |-> R g q (∃ xs, @tele_app TT (fun _ => mpred) P xs)
+       \persist{th} current_thread th
+       \pre{qt n} acquireable this g qt th n P
+       \post{b}[Vbool b]
+         if b then Exists n', [| acquire n n' |] ** ▷ acquireable this g qt th n' P
+         else acquireable this g qt th n P).
+
     Definition do_lock (this : ptr) (lk : gname * mpred) (K : mpred) : mpred :=
       ∃ TT P qt th n,
         [| lk.2 = (∃ xs, @tele_app TT (fun _ => mpred) P xs)%I |] **

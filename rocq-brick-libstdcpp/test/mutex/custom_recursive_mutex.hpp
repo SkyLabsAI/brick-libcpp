@@ -57,6 +57,22 @@ public:
     }
     m_count++;
   }
+
+  bool try_lock() noexcept {
+    size_t this_id = std::hash<std::thread::id>{}(std::this_thread::get_id());
+    if (m_owner != this_id) {
+      if (!m_lock.try_lock())
+        return false;
+      m_owner = this_id;
+    }
+
+    // At the recursion limit, leave ownership and the count unchanged.
+    if (m_count + 1 == 0)
+      return false;
+    m_count++;
+    return true;
+  }
+
   // TODO: connect token and given token to the exclusive token somehow, so that
 
   void unlock() {
