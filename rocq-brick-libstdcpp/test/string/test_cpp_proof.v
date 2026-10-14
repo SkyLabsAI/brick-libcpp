@@ -103,4 +103,28 @@ Section with_cpp.
   Lemma find_in_const_local_ok : verify[source] find_in_const_local_spec.
   Proof using MOD. verify_spec; go. Qed.
 
+  cpp.spec "SizeAfterAssign(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&)" as size_after_assign_spec with (
+    \arg{p} "s" (Vref p)
+    \pre{s} p |-> basic_stringR "char" 1$m s
+    \post[Vbool true] p |-> basic_stringR "char" 1$m "a").
+
+  Lemma size_after_assign_ok : verify[source] size_after_assign_spec.
+  Proof using MOD. verify_spec; go. Qed.
+
+  cpp.spec "SizeIsLength(const std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&)" as size_is_length_spec with (
+    \arg{p} "s" (Vref p)
+    \prepost{q s} p |-> basic_stringR "char" q s
+    \post[Vbool true] emp).
+
+  Lemma size_is_length_ok : verify[source] size_is_length_spec.
+  Proof using MOD. verify_spec; go. Qed.
+
+  cpp.spec "EmptyIffZero(const std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&)" as empty_iff_zero_spec with (
+    \arg{p} "s" (Vref p)
+    \prepost{q s} p |-> basic_stringR "char" q s
+    \post[Vbool true] emp).
+
+  Lemma empty_iff_zero_ok : verify[source] empty_iff_zero_spec.
+  Proof using MOD. verify_spec; destruct s; go. Qed.
+
 End with_cpp.
