@@ -12,6 +12,12 @@ Require Import skylabs.brick.libstdcpp.test.algorithms.all_any_none_of_vector_cp
 
 Require Import skylabs.auto.cpp.prelude.test.
 
+Module Positive.
+  Import concepts.
+  cpp.class "Positive" prefix "" from source dataclass { copyable ; movable ; destructible }.
+  #[global] Instance rep `{Σ : cpp_logic, σ : genv} : BundledRep "Positive" T := {| objR := R |}.
+End Positive.
+
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
   Context `{MOD : all_any_none_of_vector_cpp.source ⊧ σ}.
@@ -19,53 +25,29 @@ Section with_cpp.
   #[local] Abbreviation alloc_int := (std.allocator.T "int").
   #[local] Abbreviation iter_int := (std.vector.iterator.T "int").
 
-  (** The adapter dereferences the library iterator, so it relies on its <<operator*>>. *)
-  #[local] Instance : std.IteratorDeps iter_int (std.vector.iterator.iter_deref false "int" alloc_int) := {}.
-
-  #[local] Instance Positive_rep : BundledRep "Positive" unit :=
-    {| objR q _ := structR "Positive" q |}.
-  #[local] Instance Positive_pred : std.Predicate "Positive" unit Z :=
+  #[local] Instance Positive_pred : std.Predicate "Positive" Positive.T Z :=
     std.pure_predicate (fun _ x => bool_decide (x > 0)%Z).
 
   cpp.spec "Positive::operator()(int) const" as positive_spec with
     (\this this
      \arg{x} "x" (Vint x)
-     \prepost{q} this |-> structR "Positive" q
+     \prepost{q m} this |-> Positive.R q m
      \post[Vbool (bool_decide (x > 0)%Z)] emp).
 
   Lemma positive_ok : verify[source] positive_spec.
   Proof using MOD. verify_spec. go. Qed.
-
-  cpp.spec "Positive::~Positive()" as positive_dtor_spec with
-    (\this this
-     \pre this |-> structR "Positive" 1$m
-     \post emp).
-
-  Lemma positive_dtor_ok : verify[source] positive_dtor_spec.
+  Lemma positive_dtor_ok : verify[source] Positive.dtor_spec.
   Proof using MOD. verify_spec. go. Qed.
   Definition positive_dtor_B := [LINK] positive_dtor_ok.
   #[local] Hint Resolve positive_dtor_B : sl_opacity.
 
-  cpp.spec "TestVector()" as test_vector with
-    (\persist positive_spec
-     \persist std.vector.iterator.iter_deref false "int" alloc_int
-     \post emp).
+  cpp.spec "TestVector()" as test_vector with (\persist positive_spec \post emp).
   Lemma test_vector_ok : verify[source] test_vector.
-  Proof using MOD.
-    verify_spec. go.
-    iExists tt. go.
-    iExists (std.vector.base_pointer st', 2%Z), (std.vector.base_pointer st', 0%Z). go.
-  Qed.
-
-  Definition positive_B := [LINK] positive_ok.
+  Proof using MOD. verify_spec. go. Qed.
   Definition test_vector_B := [LINK] test_vector_ok.
-  #[local] Hint Resolve positive_B test_vector_B : sl_opacity.
+  #[local] Hint Resolve test_vector_B : sl_opacity.
 
-  cpp.spec "main()" as main_spec with
-    (\persist positive_spec
-     \persist std.vector.iterator.iter_deref false "int" alloc_int
-     \post[Vint 0] emp).
-
+  cpp.spec "main()" as main_spec with (\persist positive_spec \post[Vint 0] emp).
   Lemma main_ok : verify[source] main_spec.
   Proof using MOD. verify_spec. go. Qed.
   Definition main_B := [LINK] main_ok.

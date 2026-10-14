@@ -10,19 +10,18 @@ Require Export skylabs.brick.libstdcpp.algorithms.spec.
 
 (** Automation for clients of [spec.v]. *)
 
-(* [specify_raw] is what [predicate_call] unfolds to. *)
-#[global] Hint Opaque specify_raw : sl_opacity.
-
 NES.Begin std.
 
 Section raw_pointer_iterators.
   Context `{Σ : cpp_logic, σ : genv}.
 
-  (* <<T*>> over an array: the state is the array base and an index. *)
-  #[global] Instance ptr_iter_rep ty : BundledRep (Tptr ty) (ptr * Z) | 100 :=
-    {| objR q st := ptrR<ty> q (st.1 .[ ty ! st.2 ]) |}.
+  (* <<T*>> over an array: positions are the array base and an index. *)
   #[global] Instance ptr_iter_ranges ty : HasRanges (Tptr ty) ptr Z | 100 :=
     array_ranges ty (Tptr ty).
+  (* The iterator itself is the pointer [basep .[ ty ! i ]], with the builtin
+     [BundledRep] for pointers. *)
+  #[global] Instance ptr_IterState ty : IterState (Tptr ty) ptr Z ptr :=
+    fun basep i => basep .[ ty ! i ].
 
   (* [typed_sliceR] is what survives of [array_spine] after a call. *)
   Lemma array_spine_of_typed_sliceR ty (basep : ptr) q i j :
@@ -54,6 +53,37 @@ Section raw_pointer_iterators.
     intros. iIntros "_" (q ? A R vs) "[-> A]".
     iDestruct (array_sliceR_eqv_spine_payload_rangeZ ty (Tptr ty) 1$m%cQp with "A") as "[$ $]".
   Qed.
+
+  (* The spine of an empty range; [q] is irrelevant. *)
+  #[program]
+  Definition ptr_spine_empty_C (ty : type) (basep : ptr) i j (_ : TCEq i j) :=
+    \cancelx
+    \bound_existential q
+    \proving array_spine ty basep q i (rangeZ i j) j
+    \instantiate q := 1$m%cQp
+    \through [| is_Some (size_of σ ty) |]
+    \through valid_ptr (basep .[ ty ! j ])
+    \end.
+  Next Obligation.
+    intros * Hij%TCEq_eq; subst. iIntros "_" (q ?) "(-> & %Hsz & #V)".
+    rewrite /array_spine rangeZ_oob; last lia.
+    iSplit; first by iPureIntro; lia. do 2 (iSplit; first done). by iSplit.
+  Qed.
+
+  (* The element Rep and values of a slice are the context's; the end bound is checked
+     separately. *)
+  #[program]
+  Definition array_sliceR_pick_C (ty : type) (basep : ptr) i j {A} (R0 : A -> Rep) (xs0 : list A) :=
+    \cancelx
+    \consuming basep |-> array_sliceR ty i j R0 xs0
+    \bound_existential (R : A -> Rep)
+    \bound_existential (xs : list A)
+    \proving{j'} basep |-> array_sliceR ty i j' R xs
+    \instantiate R := R0
+    \instantiate xs := xs0
+    \through [| j' = j |]
+    \end.
+  Next Obligation. intros. iIntros "H" (R ? xs ? j') "(-> & -> & ->)". iExact "H". Qed.
 
   (* And back. *)
   #[program]
@@ -98,117 +128,107 @@ Section raw_pointer_iterators.
   Qed.
 
 End raw_pointer_iterators.
-#[global] Hint Resolve ptr_spine_intro_CB ptr_spine_elim_CF ptr_iter_offset_C : sl_opacity.
+#[global] Hint Resolve ptr_spine_intro_CB ptr_spine_elim_CF ptr_iter_offset_C array_sliceR_pick_C : sl_opacity.
+#[global] Hint Resolve ptr_spine_empty_C | 5 : sl_opacity.
 #[global] Hint Resolve ptr_iter_base_C | 200 : sl_opacity.
 
-#[global] Hint Opaque predicate_call : sl_opacity.
-
-(** [S] is the registered specification of the call operator of [pred_ty]. *)
-Class CallableSpec `{Σ : cpp_logic} (pred_ty : type) (S : mpred) : Prop := {}.
-#[global] Hint Mode CallableSpec - - - + - : typeclass_instances.
-
-(** [predicate_call] follows in [tu] from the callable specification [S]. *)
-Class PredicateCallFrom `{Σ : cpp_logic, σ : genv} (tu : translation_unit) (S : mpred)
-    (negated : bool) (it_ty pred_ty : type) {C : Set} {Iter P V : Type}
-    `{!BundledRep it_ty (C * Iter)%type, !HasRanges it_ty C Iter,
-      !BundledRep pred_ty P, !Predicate pred_ty P V}
-    (R : V -> Rep) : Prop :=
-  predicate_call_from : denoteModule tu ⊢ □ S -∗ predicate_call negated it_ty pred_ty R.
-
-(** [D] is what the adapter's body needs about the iterator type [it_ty] besides the
-    translation unit, e.g. the specification of a library iterator's <<operator*>>. *)
-Class IteratorDeps `{Σ : cpp_logic} (it_ty : type) (D : mpred) : Prop := {}.
-#[global] Hint Mode IteratorDeps - - - + - : typeclass_instances.
-
-(** [predicate_call] follows in [tu] from [S] and the iterator's [D]. *)
-Class PredicateCallFromDeps `{Σ : cpp_logic, σ : genv} (tu : translation_unit) (S D : mpred)
-    (negated : bool) (it_ty pred_ty : type) {C : Set} {Iter P V : Type}
-    `{!BundledRep it_ty (C * Iter)%type, !HasRanges it_ty C Iter,
-      !BundledRep pred_ty P, !Predicate pred_ty P V}
-    (R : V -> Rep) : Prop :=
-  predicate_call_from_deps :
-    denoteModule tu ⊢ □ S -∗ □ D -∗ predicate_call negated it_ty pred_ty R.
-
-(* Verifies the adapter's body against [tu], using [S] (and [D]). *)
-#[global] Hint Extern 10 (PredicateCallFromDeps _ _ _ _ _ _ _) =>
-  (unfold PredicateCallFromDeps;
-   rewrite /predicate_call /predicate_call_body /ops_adapterR
-     /ops_adapter_call /ops_adapter /=;
-   verify_spec; go $usenamed=true; fail) : typeclass_instances.
-#[global] Hint Extern 10 (PredicateCallFrom _ _ _ _ _ _) =>
-  (unfold PredicateCallFrom;
-   rewrite /predicate_call /predicate_call_body /ops_adapterR
-     /ops_adapter_call /ops_adapter /=;
-   verify_spec; go $usenamed=true; fail) : typeclass_instances.
-
-Section callable.
+Section spec_entailment.
   Context `{Σ : cpp_logic, σ : genv}.
 
-  (** A caller that assumes the callable's specification [S] gets [predicate_call]. *)
+  (** A function pointer [p] with specification [fs] satisfies any specification
+      [fs'] that [fs] entails. This applies to the higher-order requirements
+      ([pred_callable]) of the algorithms: [p] is the callable, [fs] the specification
+      the client assumes for it, and [fs'] the contract the algorithm needs.
+
+      It leaves the entailment [fs_entails fs fs'] as a side condition, which [go]
+      proves when [fs] is close enough to [fs'] (see the [pure] hint below); otherwise
+      it stays in the goal for the client. Exact matches are found by [find_cptrR]
+      first. *)
   #[program]
-  Definition predicate_call_from_C (tu : translation_unit) (negated : bool) (it_ty pred_ty : type)
-      {C : Set} {Iter P V : Type}
-      `{!BundledRep it_ty (C * Iter)%type, !HasRanges it_ty C Iter,
-        !BundledRep pred_ty P, !Predicate pred_ty P V}
-      (R : V -> Rep) (S : mpred) (_ : CallableSpec pred_ty S)
-      (Hcall : PredicateCallFrom tu S negated it_ty pred_ty R) :=
+  Definition cptrR_weaken_C (p : ptr) fs' P fs
+      (FS : find_spec.FindSpec σ false p P fs) :=
     \cancelx
-    \preserving denoteModule tu
-    \preserving □ S
-    \proving predicate_call negated it_ty pred_ty R
+    \preserving P
+    \proving p |-> cptrR fs'
+    \through [| fs_entails fs fs' |]
     \end.
   Next Obligation.
-    intros. iIntros "[#M #S]". iApply (predicate_call_from (PredicateCallFrom := Hcall) with "M S").
+    intros. iIntros "P".
+    iDestruct (find_spec._spec_ok FS with "[P]") as "#X"; first by destruct b => //=.
+    iFrame "P". iIntros "%E". iPoseProof E as "#I".
+    iPoseProof (_at_mono (p:=p) _ _ (cptrR_fs_impl fs fs') with "[]") as "W".
+    { by rewrite _at_pureR. }
+    by iApply (_at_wand with "W X").
   Qed.
+End spec_entailment.
+#[global] Hint Resolve cptrR_weaken_C | 1000 : sl_opacity.
+
+(** [UniqueModel A v]: [v] is the only value of [A], e.g. [tt], or the model of a
+    class without fields generated by <<cpp.class>>. *)
+Class UniqueModel (A : Type) (v : A) : Prop := unique_model : ∀ x : A, x = v.
+#[global] Hint Mode UniqueModel + - : typeclass_instances.
+#[global] Instance unit_UniqueModel : UniqueModel unit tt.
+Proof. by intros []. Qed.
+
+(* Inductives with a single constant constructor: [destruct] leaves one goal, which
+   picks [v]; any other type leaves goals that [reflexivity] cannot close. *)
+#[global] Hint Extern 10 (UniqueModel _ _) =>
+  (unfold UniqueModel; solve [let x := fresh in intros x; destruct x; reflexivity])
+  : typeclass_instances.
+
+Section unique_model.
+  Context `{Σ : cpp_logic, σ : genv}.
+
+  (** A model with a unique value, e.g. of a stateless predicate, is determined by its
+      type, but representations such as <<cpp.class>>'s for a class without fields
+      drop it when unfolded: e.g. the [\prepost{q m} other |-> R q m] of a generated
+      copy constructor would leave [m] unbound. Pick the context's value if there is
+      one (it may differ syntactically from [v]), and [v] otherwise. *)
+  #[program]
+  Definition unique_model_frac_C (p : ptr) {A} (R : cQp.t -> A -> Rep) (v : A) (_ : UniqueModel A v) :=
+    \cancelx
+    \bound q
+    \bound_existential x
+    \proving p |-> R q x
+    \instantiate x := v
+    \through p |-> R q v
+    \end.
+  Next Obligation. intros. iIntros "_" (q x ?) "[-> $]". Qed.
 
   #[program]
-  Definition predicate_call_from_deps_C (tu : translation_unit) (negated : bool) (it_ty pred_ty : type)
-      {C : Set} {Iter P V : Type}
-      `{!BundledRep it_ty (C * Iter)%type, !HasRanges it_ty C Iter,
-        !BundledRep pred_ty P, !Predicate pred_ty P V}
-      (R : V -> Rep) (S D : mpred) (_ : CallableSpec pred_ty S) (_ : IteratorDeps it_ty D)
-      (Hcall : PredicateCallFromDeps tu S D negated it_ty pred_ty R) :=
+  Definition unique_model_frac_ctx_C (p : ptr) {A} (R : cQp.t -> A -> Rep) (v : A) (_ : UniqueModel A v) q0 y :=
     \cancelx
-    \preserving denoteModule tu
-    \preserving □ S
-    \preserving □ D
-    \proving predicate_call negated it_ty pred_ty R
+    \preserving p |-> R q0 y
+    \bound q
+    \bound_existential x
+    \proving p |-> R q x
+    \instantiate x := y
+    \through p |-> R q y
     \end.
-  Next Obligation.
-    intros. iIntros "(#M & #S & #D)".
-    iApply (predicate_call_from_deps (PredicateCallFromDeps := Hcall) with "M S D").
-  Qed.
+  Next Obligation. intros. iIntros "$" (q x ?) "[-> $]". Qed.
 
-  (* The element Rep and values of a range over a whole array are the array's. *)
+  (** A pair-valued model read through projections, as for <<std::vector>>'s iterators
+      ([R st.1 st.2]), is the pair of what the context holds. *)
   #[program]
-  Definition array_sliceR_pick_C (ty : type) (basep : ptr) i j {A} (R0 : A -> Rep) (xs0 : list A) :=
+  Definition pair_model_C (p : ptr) {A B} (R : A -> B -> Rep) (a : A) (b : B) :=
     \cancelx
-    \consuming basep |-> array_sliceR ty i j R0 xs0
-    \bound_existential (R : A -> Rep)
-    \bound_existential (xs : list A)
-    \proving basep |-> array_sliceR ty i j R xs
-    \instantiate R := R0
-    \instantiate xs := xs0
+    \consuming p |-> R a b
+    \bound_existential (x : A * B)
+    \proving p |-> R x.1 x.2
+    \instantiate x := (a, b)
     \end.
-  Next Obligation. intros. iIntros "H" (R ? xs ?) "[%HR %Hxs]". subst. iExact "H". Qed.
-End callable.
-#[global] Hint Resolve predicate_call_from_C predicate_call_from_deps_C array_sliceR_pick_C : sl_opacity.
+  Next Obligation. intros. iIntros "H" (x ?) "->". iExact "H". Qed.
+End unique_model.
+
+#[global] Hint Resolve unique_model_frac_ctx_C pair_model_C | 0 : sl_opacity.
+#[global] Hint Resolve unique_model_frac_C | 1 : sl_opacity.
+
+
+#[global] Hint Resolve calls_ok_True : pure.
+(* On a concrete range, [calls_ok] unfolds to one precondition per tested element. *)
+#[global] Hint Extern 10 (calls_ok _ _ _) => solve [simpl; repeat split; lia] : pure.
+
+(** Proves the [fs_entails] side conditions of [cptrR_weaken_C] when [go] can. *)
+#[global] Hint Extern 100 (fs_entails _ _) => solve [rewrite /fs_entails; go] : pure.
 
 NES.End std.
-
-(* Finds [S] for a class type from the [SpecFor] registration of its <<operator()>>. *)
-Module algorithms_callable_spec.
-  Import Ltac2.Ltac2.
-  Ltac2 find (ty : constr) : unit :=
-    lazy_match! ty with
-    | Tnamed ?cls =>
-        let nm := open_constr:(Nscoped $cls (Nop _ OOCall _)) in
-        let x := Database.query "callable_spec" open_constr:(SpecFor.C (∅ : translation_unit) $nm) in
-        lazy_match! Std.eval_whd_all x with
-        | SpecFor.mk _ _ ?spec => Control.refine (fun () => open_constr:(std.Build_CallableSpec _ _ _ _ $spec))
-        end
-    end.
-End algorithms_callable_spec.
-#[global] Hint Extern 10 (std.CallableSpec ?ty _) =>
-  (let f := ltac2:(ty |- algorithms_callable_spec.find (Option.get (Ltac1.to_constr ty))) in f ty)
-  : typeclass_instances.
