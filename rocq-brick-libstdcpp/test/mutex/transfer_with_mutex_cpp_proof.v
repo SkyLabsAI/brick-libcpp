@@ -375,6 +375,7 @@ Section class_C.
       \arg{initial_balance} "initial_balance" (Vint initial_balance)
       \persist{th} current_thread th
       \pre{N} emp
+      \require N <> nroot
       \post this |-> accountR N 1$m
     ).
 
@@ -557,6 +558,10 @@ Section clients.
 
   Lemma main_ok : verify[source] main_spec.
   Proof.
+    have Hfrom : from_namespace <> nroot.
+    { rewrite /from_namespace namespaces.ndot_unseal. discriminate. }
+    have Hto : to_namespace <> nroot.
+    { rewrite /to_namespace namespaces.ndot_unseal. discriminate. }
     verify_spec.
     let rec expose_names :=
       first [iDestruct select (MutexSets.my_mutexes th _) as "Hnames"

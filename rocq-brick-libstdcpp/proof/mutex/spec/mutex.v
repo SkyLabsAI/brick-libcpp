@@ -24,6 +24,9 @@ Module Type MUTEX_PREDS.
   Parameter gname : Set.
   Parameter cpp_ty : type.
   Parameter mutex_inv_namespace : gname -> namespace.
+  (* The invariant namespace cannot be [nroot] for practical purposes.
+   TODO maybe other mutex preds should also have this? *)
+  Axiom mutex_inv_namespace_not_root : forall g, mutex_inv_namespace g <> nroot.
 
   Parameter G : forall `{Σ : cpp_logic}, Type.
   Existing Class G.
@@ -132,18 +135,27 @@ Module Type MUTEX_PREDS.
         implementation. *)
     Axiom init_R : forall (this : ptr) (old : gname)
         (N : namespace) (P : mpred),
-      WeaklyObjective P ->
+      WeaklyObjective P -> 
+      N <> nroot ->
       this |-> R old 1$m emp ** token old 1$m ** ▷P |--
         (|={⊤}=> ∃ g,
           [| mutex_inv_namespace g = N |] **
           this |-> R g 1$m P ** token g 1$m).
 
-    (** FIXME do we really need this? *)
-    Axiom locked_my_mutexes_exclusive : forall
-        `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ} {σ : genv} this g th qt,
-      locked this g th qt **
+    (** For any [h1],[h2] ∈ {[locked _ _ th _], [not_locked _ _ th _]}, we
+      would like [h1 ** h2 ⊢ False] because there should be at most one such
+      handle for thread [th]. We already have [locked_exclusive] and
+      [not_locked_exclusive], so we also want [locked ** not_locked ⊢ False].
+      But here we require something more specific because it is easier for the
+      implementation proof: we don't need the whole [not_locked] but just the
+      [my_mutex] part, and we also need to prove this by opening the mutex
+      invariant in [R], thus the [this |-> R ...] in the LHS and the update on
+      the RHS. *)
+    Axiom locked_my_mutexes_exclusive : forall (this : ptr) g th q qt P E,
+      ↑mutex_inv_namespace g ⊆ E ->
+      this |-> R g q P ** locked this g th qt **
         MutexSets.my_mutexes th
-          (coPset.CoPset $ ↑mutex_inv_namespace g) |-- False.
+          (coPset.CoPset $ ↑mutex_inv_namespace g) |-- (|={E}=> False).
 
   End with_cpp.
 End MUTEX_PREDS.
@@ -160,19 +172,35 @@ Section with_cpp.
   Context {HAS_THREADS : HasStdThreads Σ}.
 
 
-  Lemma locked_not_locked_exclusive (this : ptr) g th qt qt' :
-    locked this g th qt ** not_locked this g th qt' |-- False.
+  (** Choose a sibling namespace for an auxiliary invariant. *)
+  Lemma mutex_inv_namespace_disjoint g :
+    ∃ No : namespace, mutex_inv_namespace g ## No.
   Proof.
-    rewrite /not_locked. iIntros "[HL [_ Hnames]]".
-    iApply (locked_my_mutexes_exclusive with "[$HL $Hnames]").
+    have HN := mutex_inv_namespace_not_root g.
+    destruct (mutex_inv_namespace g) as [[|p ns]]; first done.
+    exists (Namespace ns .@ Pos.succ p).
+    have -> : Namespace (p :: ns) = Namespace ns .@ p.
+    { by rewrite namespaces.ndot_unseal. }
+    apply ndot_ne_disjoint. lia.
+  Qed.
+
+  Lemma locked_not_locked_exclusive (this : ptr) g th q qt qt' P E :
+    ↑mutex_inv_namespace g ⊆ E ->
+    this |-> R g q P ** locked this g th qt ** not_locked this g th qt' |--
+      (|={E}=> False).
+  Proof.
+    rewrite /not_locked. iIntros (Hmask) "(HR & HL & _ & Hnames)".
+    iApply (locked_my_mutexes_exclusive with "[$HR $HL $Hnames]"). done.
   Qed.
 
   (** The guarded predicate must be weakly objective for invariant allocation,
       which R likely has. *)
   Definition ctor_spec (this : ptr) : WpSpec mpred val val :=
-    (\pre{P} ▷P
+    (\pre{N P} ▷P
+     \require N <> nroot
      \require WeaklyObjective P
      \post |={⊤}=> Exists g,
+       [| mutex_inv_namespace g = N |] **
        this |-> R g 1$m P ** token g 1$m).
 
   Definition dtor_spec : ptr -> WpSpec mpred val val :=

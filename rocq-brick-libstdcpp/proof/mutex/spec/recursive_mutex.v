@@ -256,6 +256,7 @@ Module recursive_mutex_spec (T : MutexCPPName)
     Definition ctor_spec : ptr -> WpSpec mpred val val :=
       (\this this
        \pre{N TT P xs} |> tele_app (TT := TT) P xs
+       \require N <> nroot
        \require ∀ xs, Objective (tele_app P xs)
        \post Exists g,
          [| rmutex_inv_namespace g = N |] **
