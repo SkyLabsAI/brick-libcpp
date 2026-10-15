@@ -169,8 +169,137 @@ Section with_cpp.
 End with_cpp.
 
 
-(* Specialization of [ctor_ok] for <mutex>, <recursive_mutex>, <shared_mutex>,
-  and <unique_lock<mutex>>, whatever that means. *)
+Definition lock_guard_dtor_template : Dtor.
+Proof.
+  let c := eval vm_compute in
+    (meta__source.(skylabs.lang.cpp.syntax.templates.msymbols) !!
+      (("std::lock_guard" .<< Atype (Tparam "_Mutex") >>) .:: Ndtor)) in
+  lazymatch c with
+  | Some (mcore.Template _ (Odestructor ?dtor)) => exact dtor
+  end.
+Defined.
+
+Definition lock_guard_dtor_subst (mutex : name) : subst.subst.t :=
+  (∅ &: subst.subst._type_param .= {["_Mutex"%pstring := Tnamed mutex]}
+     &: subst.subst._resolved_member_type .=
+       {[(Tnamed mutex, Nlocal (Nid "unlock")) :=
+          Tnamed (mutex .:: Nfunction function_qualifiers.N "unlock" [])]}
+     &: subst.subst._resolved_call .=
+       {[(mutex .:: Nfunction function_qualifiers.N "unlock" [], []) :=
+          fun es => Emember_call false
+            (inl (mutex .:: Nfunction function_qualifiers.N "unlock" [],
+              Direct, "void()"%cpp_type))
+            (Emember true (Ethis (Tptr (Tnamed (lock_guard_name mutex))))
+              (Nid "_M_device") false (Tref (Tnamed mutex))) es]})%lens.
+
+(* Resolve the destructor's implicit noexcept after instantiation. *)
+Definition lock_guard_dtor (mutex : name) : Dtor.
+Proof.
+  let rec extract result :=
+    let result := eval cbv -[compare.name_eq_dec compare.type_eq_dec] in result in
+    lazymatch result with
+    | inr ?dtor =>
+        exact (Build_Dtor dtor.(d_class) dtor.(d_cc) exception_spec.NoThrow dtor.(d_body))
+    | context C [compare.name_eq_dec ?n ?n] =>
+        let result := context C [@left (n = n) (n ≠ n) eq_refl] in extract result
+    | context C [compare.type_eq_dec ?ty ?ty] =>
+        let result := context C [@left (ty = ty) (ty ≠ ty) eq_refl] in extract result
+    end in
+  extract (subst_ap.subst.run2
+    (subst_ap.subst.M2.subst_dtor lock_guard_dtor_template)
+    (lock_guard_dtor_subst mutex)).
+Defined.
+
+Lemma lock_guard_dtor_std_mutex_ast :
+  source.(symbols) !! "std::lock_guard<std::mutex>::~lock_guard()"%cpp_name =
+    Some (Odestructor (lock_guard_dtor "std::mutex")).
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma lock_guard_dtor_std_recursive_mutex_ast :
+  source.(symbols) !! "std::lock_guard<std::recursive_mutex>::~lock_guard()"%cpp_name =
+    Some (Odestructor (lock_guard_dtor "std::recursive_mutex"%cpp_name)).
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma lock_guard_dtor_std_shared_mutex_ast :
+  source.(symbols) !! "std::lock_guard<std::shared_mutex>::~lock_guard()"%cpp_name =
+    Some (Odestructor (lock_guard_dtor "std::shared_mutex"%cpp_name)).
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma lock_guard_dtor_std_unique_lock_mutex_ast :
+  source.(symbols) !! "std::lock_guard<std::unique_lock<std::mutex>>::~lock_guard()"%cpp_name =
+    Some (Odestructor (lock_guard_dtor "std::unique_lock<std::mutex>"%cpp_name)).
+Proof. vm_compute. reflexivity. Qed.
+
+Section with_generic_dtor.
+  Context `{Σ : cpp_logic, σ : genv}.
+  Context (tu : translation_unit) (mutex : name) (sz al : N).
+  Context {mutexT : Type} (mutexR : cQp.t -> mutexT -> Rep).
+  Context `{!BasicLockable (Tnamed mutex) mutexR}.
+  Definition inner_unlock_spec : mpred :=
+    specify.exact.method (mutex .:: Nfunction function_qualifiers.N "unlock" [])
+      function_qualifiers.N Tvoid [] (unlock_basic_lockable (Tnamed mutex) mutexR).
+  #[local] Hint Opaque do_unlock : sl_opacity.
+  #[local] Hint Opaque inner_unlock_spec : sl_opacity.
+  Hypothesis Hstruct : tu.(types) !! lock_guard_name mutex =
+    Some (Gstruct (lock_guard_struct mutex sz al)).
+  Hypothesis Hcode :
+    genv_tu.find_code (lock_guard_name mutex .:: Ndtor) tu =
+    Some (genv_tu.CTdtor (inl (lock_guard_struct mutex sz al)) (lock_guard_dtor mutex)).
+  (* Verification of lock_guard.dtor_spec against the template code (Hcode). *)
+  Lemma dtor_template_ok :
+    denoteModule tu ** inner_unlock_spec |--
+    lock_guard.dtor_spec (mutexR:=mutexR) (Tnamed mutex) tu.
+  Proof using Hcode Hstruct.
+    have Hfuel : exists n, NM.cardinal (tu.(types)) = S n.
+    { rewrite NM.cardinal_1.
+      have Hin := NM.elements_1 (NM.find_2 Hstruct).
+      destruct (NM.elements tu.(types)) eqn:Helems.
+      - inversion Hin.
+      - eexists. reflexivity. }
+    destruct Hfuel as [fuel Hfuel].
+    match goal with |- _ |-- ?SP =>
+      unshelve epose proof (tactics.VerifySpec.verify_spec_hint_obligation_1
+        false false tu σ _ _ Σ _ _
+        (genv_tu.CTdtor (inl (lock_guard_struct mutex sz al)) (lock_guard_dtor mutex))
+        SP ltac:(unfold lock_guard.dtor_spec, specify.template.dtor,
+          specify.exact.dtor; apply find_spec.unmaterialized_isspec) ltac:(
+          unfold mvcg.find_code_of_type; rewrite Hcode;
+          rewrite bool_decide_true; [constructor | reflexivity])) as Hverify
+    end.
+    iIntros "[#Htu #Hunlock]".
+    iDestruct (Hverify with "Htu") as "(%Hmodels & Hverify)".
+    iApply "Hverify".
+    iClear "Hverify".
+    clear Hverify.
+    unfold lock_guard_dtor, lock_guard_struct, lock_guard_name.
+    unfold inner_unlock_spec, specify.exact.method, unlock_basic_lockable.
+    go.
+    rewrite wp_minvoke_O.unlock /wp_minvoke /wp_mfptr.
+    cbn.
+    go.
+    iApply (invoke.use_cptrR_method tu _ (Tnamed mutex) CC_C mutex QM
+      Tvoid Ar_Definite [] _ _ "void()"%cpp_type (mutex_ptr m) [] _ eq_refl with "Hunlock").
+    go.
+    iExists ((mutex_q m)$m)%cQp, (mutex_m m), K.
+    rewrite cQp.scale_mut (right_id_L 1%Qp Qp.mul).
+    repeat lazymatch goal with
+      | |- environments.envs_entails _ (wp_revert_identity _ _ _ _) => fail
+      | _ => step
+      end.
+    PostCondition.hide_post.
+    iApply (identity.revert_identity_struct' tu (lock_guard_name mutex) _ this Hmodels
+      (identity.Rec []) (identity.Rec []) emp emp
+      ltac:(cbn zeta; rewrite Hfuel; cbn [identity.derivations];
+        rewrite Hstruct; constructor)
+      (identity.red_result _) (identity.red_result _)).
+    iSplit; first done.
+    iIntros "_".
+    go.
+  Qed.
+End with_generic_dtor.
+
+(* Specialization of [ctor_ok] and [dtor_template_ok] for <mutex>,
+  <recursive_mutex>, <shared_mutex>, and <unique_lock<mutex>>, whatever that means. *)
 
 Section with_std_mutex.
   Context `{Σ : cpp_logic, σ : genv}.
@@ -193,21 +322,23 @@ Section with_std_mutex.
       vm_compute. reflexivity.
   Qed.
 
+  Lemma dtor_std_mutex_ok :
+    denoteModule source ** mutex.unlock_spec |--
+    lock_guard.dtor_spec "std::mutex" source.
+  Proof.
+    apply (dtor_template_ok source "std::mutex" 8 8
+      (fun q gP => mutex.R gP.1 q gP.2)).
+    - vm_compute. reflexivity.
+    - unfold genv_tu.find_code.
+      rewrite lock_guard_dtor_std_mutex_ast.
+      vm_compute. reflexivity.
+  Qed.
+
   #[global] Instance UNSAFE_R_learnable : forall {HAS_THREADS : HasStdThreads Σ} {σ : genv},
       Cbn (Learn (learn_eq ==> learn_eq ==> learn_eq ==> fin_at) mutex.R).
   Proof. solve_learnable. Qed.
 
   #[local] Instance: `{SplitRecord (M T)} := {}.
-
-  Lemma dtor_ok : verify[source] "std::lock_guard<std::mutex>::~lock_guard()".
-  Proof.
-    verify_spec.
-    rewrite !R.unlock.
-    go.
-    iExists K, t.
-    go with br_erefl.
-    by rewrite cQp.scale_mut (right_id_L 1%Qp Qp.mul).
-  Qed.
 
 End with_std_mutex.
 
@@ -228,6 +359,18 @@ Section with_std_recursive_mutex.
       rewrite lock_guard_ctor_std_recursive_mutex_ast.
       vm_compute. reflexivity.
   Qed.
+
+  Lemma dtor_std_recursive_mutex_ok :
+    denoteModule source ** std_recursive_mutex.std_unlock_spec_alt |--
+    lock_guard.dtor_spec "std::recursive_mutex" source.
+  Proof.
+    apply (dtor_template_ok source "std::recursive_mutex" 8 8
+      (fun q gP => std_recursive_mutex.R gP.1 q gP.2)).
+    - vm_compute. reflexivity.
+    - unfold genv_tu.find_code.
+      rewrite lock_guard_dtor_std_recursive_mutex_ast.
+      vm_compute. reflexivity.
+  Qed.
 End with_std_recursive_mutex.
 
 Section with_std_shared_mutex.
@@ -245,6 +388,18 @@ Section with_std_shared_mutex.
     - vm_compute. reflexivity.
     - unfold genv_tu.find_code.
       rewrite lock_guard_ctor_std_shared_mutex_ast.
+      vm_compute. reflexivity.
+  Qed.
+
+  Lemma dtor_std_shared_mutex_ok :
+    denoteModule source ** shared_mutex.unlock_spec |--
+    lock_guard.dtor_spec "std::shared_mutex" source.
+  Proof.
+    apply (dtor_template_ok source "std::shared_mutex" 8 8
+      (fun q gP => shared_mutex.R gP.1 q gP.2)).
+    - vm_compute. reflexivity.
+    - unfold genv_tu.find_code.
+      rewrite lock_guard_dtor_std_shared_mutex_ast.
       vm_compute. reflexivity.
   Qed.
 End with_std_shared_mutex.
@@ -308,6 +463,31 @@ Section with_std_unique_lock_mutex.
     ework with br_erefl.
   Qed.
 
+  Lemma unique_lock_mutex_unlock_spec :
+    unique_lock.unlock_spec "std::mutex" source |--
+    inner_unlock_spec "std::unique_lock<std::mutex>"%cpp_name unique_lock_mutexR.
+  Proof.
+    unfold unique_lock.unlock_spec, inner_unlock_spec.
+    rewrite specify_notation.template_specify.unlock.
+    cbn.
+    have -> : resolve_value source "std::unique_lock<std::mutex>"%cpp_name = None
+      by vm_compute.
+    change (specify.exact.method "std::unique_lock<std::mutex>::unlock()"
+      function_qualifiers.N Tvoid []
+      (\this this
+       \pre{mm} this |-> unique_lockR 1$m (Some mm)
+       \require mm.(unique_lock.is_held)
+       \pre{K} do_unlock "std::mutex" mm.(unique_lock.mutex_ptr)
+         mm.(unique_lock.mutex_m) K
+       \post this |-> unique_lockR 1$m
+         (Some (mm &: unique_lock._is_held .= false)%lens) ** K) |--
+      inner_unlock_spec "std::unique_lock<std::mutex>"%cpp_name unique_lock_mutexR).
+    iApply specify_mono; intros this xs Q.
+    unfold unlock_basic_lockable, unique_lock_mutex_do_unlock.
+    cbn.
+    ework with br_erefl.
+  Qed.
+
   Lemma ctor_std_unique_lock_mutex_ok :
     denoteModule source ** unique_lock.lock_spec "std::mutex" source |--
     lock_guard.ctor_spec (mutexR := unique_lock_mutexR)
@@ -319,6 +499,20 @@ Section with_std_unique_lock_mutex.
     - vm_compute. reflexivity.
     - unfold genv_tu.find_code.
       rewrite lock_guard_ctor_std_unique_lock_mutex_ast.
+      vm_compute. reflexivity.
+  Qed.
+
+  Lemma dtor_std_unique_lock_mutex_ok :
+    denoteModule source ** unique_lock.unlock_spec "std::mutex" source |--
+    lock_guard.dtor_spec (mutexR := unique_lock_mutexR)
+      "std::unique_lock<std::mutex>" source.
+  Proof.
+    rewrite unique_lock_mutex_unlock_spec.
+    apply (dtor_template_ok source "std::unique_lock<std::mutex>"%cpp_name 8 8
+      unique_lock_mutexR).
+    - vm_compute. reflexivity.
+    - unfold genv_tu.find_code.
+      rewrite lock_guard_dtor_std_unique_lock_mutex_ast.
       vm_compute. reflexivity.
   Qed.
 End with_std_unique_lock_mutex.
