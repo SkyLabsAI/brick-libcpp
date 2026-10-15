@@ -334,9 +334,13 @@ implementation, such as a spinlock. They also support \emph{daring
 \texttt{*x = *x + 1;} & \texttt{*y = *x + 1;}\\
 \texttt{release(b);} & \texttt{release(a);}
 \end{array}\]
-In this program, each thread passes ownership of its lock to the other via another lock: if the left thread executes first, then when the second thread acquires \texttt{b} it also gains permission to release \texttt{a} (in the form of $\mathsf{locked}(a)$), and vice versa. Indeed, the ability to verify daring synchronization was one of the originally advertised strengths of concurrent separation logic~\cite{csl}.
+In this program, each thread passes ownership of its lock to the other via another lock: if the left thread executes first, then when the second thread acquires \texttt{b} it also gains permission to release \texttt{a} (in the form of $\mathsf{locked}(a)$), and vice versa.
 
-However, the locks used in systems programming languages are not generally implemented this way, instead building on operating system primitives (e.g., Linux's futex~\cite{futex}) and highly optimized libraries (e.g., Pthread~\cite{pthread}) whose behavior depends on the thread holding the lock. This leads to both additional restrictions---e.g., locks may only be released by the thread that acquired them, or can only be deallocated if not held---and additional features---e.g., locks may be recursive, so that the holder can re-acquire them any number of times and only exits the critical section after performing an equal number of releases. In this paper, we show how to extend lock specifications to account for the restrictions and features of the mutexes in C++'s standard library.
+Support for daring synchronization is a strength of CSL, but typical locks such
+as pthread~\cite{pthread} locks add further restrictions: for instance, locks may only be
+released by the thread that acquired them (forbidding daring concurrency), or
+can only be deallocated if not held.
+In this paper, we lock specifications to account for the restrictions and features of the mutexes in C++'s standard library.
 
 \subsection{The BRiCk Logic for C++}
 \label{brick}
