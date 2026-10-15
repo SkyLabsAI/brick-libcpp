@@ -196,7 +196,7 @@ Using $\mathsf{holds}$, we can specify \lstinline{lock} and \lstinline{unlock} a
 \[\begin{array}{c}
 \{\currentthread{t} \ast m \mapsto_\pi \rmutex{N, \gamma}{P}\ast\acquirable{N, \gamma}{t}{n}{q}{P}{a}\}\\ {\texttt{m.lock()}} \\ \{\currentthread{t} \ast m \mapsto_\pi \rmutex{N, \gamma}{P}\ast \exists a'.\ \mathsf{acquire}(n, a, a') \ast \acquirable{N, \gamma}{t}{n+1}{q}{P}{a'}\}  \vspace{1em}\\
     \{\currentthread{t} \ast m \mapsto_\pi \rmutex{N, \gamma}{P}\ast\acquirable{N, \gamma}{t}{n+1}{q}{P}{a}\}\\ {\texttt{m.unlock}()}\\
-    \{\currentthread{t} \ast m \mapsto_q \rmutex{N, \gamma}{P}\ast\acquirable{N, \gamma}{t}{n}{q}{P}{a}\}
+    \{\currentthread{t} \ast m \mapsto_\pi \rmutex{N, \gamma}{P}\ast\acquirable{N, \gamma}{t}{n}{q}{P}{a}\}
 \end{array}\]
 where $\mathsf{acquire}(n, a, a') \triangleq (n > 0 \Rightarrow a' = a)$ allows the argument $a$ to change arbitrarily if the caller of \lstinline{lock} did not already own the lock, but enforces that $a$ is unchanged if the caller did already own the lock. Other than that, these specifications are entirely agnostic to whether any given call is the first \lstinline{lock} or last \lstinline{unlock} on the mutex: we can thus reason about a method that acquires a recursive mutex, manipulates the associated resources, and releases the mutex without ever having to do case analysis on whether the caller already owned the mutex.
 
