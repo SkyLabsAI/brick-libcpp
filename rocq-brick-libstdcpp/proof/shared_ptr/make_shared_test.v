@@ -30,6 +30,9 @@ std::shared_ptr<Payload const> make_const_payload(int const& n) {
 std::shared_ptr<Payload> make_rvalue_payload(int&& n) {
     return std::make_shared<Payload>(static_cast<int&&>(n));
 }
+std::shared_ptr<int const*> make_pointer_payload(int const*& p) {
+    return std::make_shared<int const*>(p);
+}
 Payload* construct_payload(Payload* p, int& n) {
     return std::construct_at(p, n);
 }
@@ -53,17 +56,16 @@ Section with_cpp.
   cpp.spec "make_payload(int&)" from source as make_payload_spec with (
     \arg{argp : ptr} "n" (Vref argp)
     \prepost argp |-> type_ptrR "int"
-    \pre{Rpiece before after}
+    \pre{{D} (pieces : D -> nat -> Rep) before after}
       make_shared_construction "Payload" ["int&"%cpp_type] [Vref argp]
-        Rpiece before after
+        pieces before after
     \pre before
-    \pre payload_destructible "Payload" Rpiece
     \post{retp : ptr} [Vptr retp]
-      Exists (id : CtrlBlockId) (p : ptr),
+      Exists (d : D) (id : CtrlBlockId) (p : ptr),
         [| payload_type id = "Payload"%cpp_type |] **
-        retp |-> SharedPtrR "Payload" 1$m id 0 Rpiece p **
-        p |-> Rpiece 0%nat **
-        ([∗ list] i ∈ allButFirstPieceId, pieceRight id i) ** after
+        retp |-> SharedPtrR "Payload" 1$m id 0 (pieces d) p **
+        p |-> pieces d 0%nat **
+        ([∗ list] i ∈ allButFirstPieceId, pieceRight id i) ** after d
   ).
 
   Lemma make_payload_ok : verify[source] make_payload_spec.
@@ -71,24 +73,25 @@ Section with_cpp.
     have Hnoesft := payload_no_esft.
     verify_spec.
     go.
-    iExists [Vref argp], Rpiece, before, after.
+    iExists [Vref argp], D, pieces, before, after.
+    go.
+    match goal with d : D |- _ => iExists d end.
     go.
   Qed.
 
   cpp.spec "make_const_payload(const int&)" from source as make_const_payload_spec with (
     \arg{argp : ptr} "n" (Vref argp)
     \prepost argp |-> type_ptrR "int"
-    \pre{Rpiece before after}
-      make_shared_construction "const Payload" ["const int&"%cpp_type] [Vref argp]
-        Rpiece before after
+    \pre{{D} (pieces : D -> nat -> Rep) before after}
+      make_shared_construction "Payload" ["const int&"%cpp_type] [Vref argp]
+        pieces before after
     \pre before
-    \pre payload_destructible "const Payload" Rpiece
     \post{retp : ptr} [Vptr retp]
-      Exists (id : CtrlBlockId) (p : ptr),
-        [| payload_type id = "const Payload"%cpp_type |] **
-        retp |-> SharedPtrR "const Payload" 1$m id 0 Rpiece p **
-        p |-> Rpiece 0%nat **
-        ([∗ list] i ∈ allButFirstPieceId, pieceRight id i) ** after
+      Exists (d : D) (id : CtrlBlockId) (p : ptr),
+        [| payload_type id = "Payload"%cpp_type |] **
+        retp |-> SharedPtrR "const Payload" 1$m id 0 (pieces d) p **
+        p |-> pieces d 0%nat **
+        ([∗ list] i ∈ allButFirstPieceId, pieceRight id i) ** after d
   ).
 
   Lemma make_const_payload_ok : verify[source] make_const_payload_spec.
@@ -96,24 +99,25 @@ Section with_cpp.
     have Hnoesft := payload_no_esft.
     verify_spec.
     go.
-    iExists [Vref argp], Rpiece, before, after.
+    iExists [Vref argp], D, pieces, before, after.
+    go.
+    match goal with d : D |- _ => iExists d end.
     go.
   Qed.
 
   cpp.spec "make_rvalue_payload(int&&)" from source as make_rvalue_payload_spec with (
     \arg{argp : ptr} "n" (Vref argp)
     \prepost argp |-> type_ptrR "int"
-    \pre{Rpiece before after}
+    \pre{{D} (pieces : D -> nat -> Rep) before after}
       make_shared_construction "Payload" ["int"%cpp_type] [Vref argp]
-        Rpiece before after
+        pieces before after
     \pre before
-    \pre payload_destructible "Payload" Rpiece
     \post{retp : ptr} [Vptr retp]
-      Exists (id : CtrlBlockId) (p : ptr),
+      Exists (d : D) (id : CtrlBlockId) (p : ptr),
         [| payload_type id = "Payload"%cpp_type |] **
-        retp |-> SharedPtrR "Payload" 1$m id 0 Rpiece p **
-        p |-> Rpiece 0%nat **
-        ([∗ list] i ∈ allButFirstPieceId, pieceRight id i) ** after
+        retp |-> SharedPtrR "Payload" 1$m id 0 (pieces d) p **
+        p |-> pieces d 0%nat **
+        ([∗ list] i ∈ allButFirstPieceId, pieceRight id i) ** after d
   ).
 
   Lemma make_rvalue_payload_ok : verify[source] make_rvalue_payload_spec.
@@ -121,7 +125,36 @@ Section with_cpp.
     have Hnoesft := payload_no_esft.
     verify_spec.
     go.
-    iExists [Vref argp], Rpiece, before, after.
+    iExists [Vref argp], D, pieces, before, after.
+    go.
+    match goal with d : D |- _ => iExists d end.
+    go.
+  Qed.
+
+  (* remove_cv_t removes only top-level qualifiers: the managed pointer's
+     pointee must stay const, including in the construction obligation. *)
+  cpp.spec "make_pointer_payload(const int*&)" from source as make_pointer_payload_spec with (
+    \arg{argp : ptr} "p" (Vref argp)
+    \prepost argp |-> type_ptrR "const int*"
+    \pre{{D} (pieces : D -> nat -> Rep) before after}
+      make_shared_construction "const int*" ["const int*&"%cpp_type] [Vref argp]
+        pieces before after
+    \pre before
+    \post{retp : ptr} [Vptr retp]
+      Exists (d : D) (id : CtrlBlockId) (p : ptr),
+        [| payload_type id = "const int*"%cpp_type |] **
+        retp |-> SharedPtrR "const int*" 1$m id 0 (pieces d) p **
+        p |-> pieces d 0%nat **
+        ([∗ list] i ∈ allButFirstPieceId, pieceRight id i) ** after d
+  ).
+
+  Lemma make_pointer_payload_ok : verify[source] make_pointer_payload_spec.
+  Proof using MOD.
+    verify_spec.
+    go.
+    iExists [Vref argp], D, pieces, before, after.
+    go.
+    match goal with d : D |- _ => iExists d end.
     go.
   Qed.
 
@@ -172,17 +205,19 @@ Section with_cpp.
   (* The client supplies a partition of genuine field ownership, not a
      constructor axiom for an arbitrary [Rpiece]. *)
   #[local] cpp.spec "std::forward<int&>(int&)" inline.
-  Lemma construct_payload_ok (q : cQp.t) (qflag : Qp) (argp : ptr) (n : Z)
-      (Rpiece : nat -> Rep) (after : mpred) :
+  Lemma construct_payload_ok {D : Type}
+      (q : cQp.t) (qflag : Qp) (argp : ptr) (n : Z)
+      (pieces : D -> nat -> Rep) (after : D -> mpred) :
     verify[source]
       (make_shared_construction "Payload" ["int&"%cpp_type] [Vref argp]
-        Rpiece
+        pieces
         (argp |-> intR q n **
          _global "std::is_array_v<Payload>" |-> boolR qflag$c false **
          Forall p : ptr, p |-> PayloadR 1$m n -*
-           p |-> ([∗ list] i ∈ allPieceIds, Rpiece i) ** after)
-        (argp |-> intR q n **
-         _global "std::is_array_v<Payload>" |-> boolR qflag$c false ** after)).
+           Exists d : D, p |-> ([∗ list] i ∈ allPieceIds, pieces d i) **
+             payload_destructible "Payload" (pieces d) ** after d)
+        (fun d => argp |-> intR q n **
+         _global "std::is_array_v<Payload>" |-> boolR qflag$c false ** after d)).
   Proof using MOD.
     verify_spec.
     go.
@@ -194,23 +229,25 @@ Section with_cpp.
     go.
     rewrite (bi.forall_elim _x_4).
     wapply (bi.wand_elim_l (_x_4 |-> PayloadR 1$m n)
-      (_x_4 |-> ([∗ list] i ∈ allPieceIds, Rpiece i) ** after)).
+      (Exists d : D, _x_4 |-> ([∗ list] i ∈ allPieceIds, pieces d i) **
+        payload_destructible "Payload" (pieces d) ** after d)).
     go.
   Qed.
 
-  Lemma construct_payload_from_code (q : cQp.t) (qflag : Qp)
-      (argp : ptr) (n : Z) (Rpiece : nat -> Rep) (after : mpred) :
+  Lemma construct_payload_from_code {D : Type} (q : cQp.t) (qflag : Qp)
+      (argp : ptr) (n : Z) (pieces : D -> nat -> Rep) (after : D -> mpred) :
     denoteModule source |--
       make_shared_construction "Payload" ["int&"%cpp_type] [Vref argp]
-        Rpiece
+        pieces
         (argp |-> intR q n **
          _global "std::is_array_v<Payload>" |-> boolR qflag$c false **
          Forall p : ptr, p |-> PayloadR 1$m n -*
-           p |-> ([∗ list] i ∈ allPieceIds, Rpiece i) ** after)
-        (argp |-> intR q n **
-         _global "std::is_array_v<Payload>" |-> boolR qflag$c false ** after).
+           Exists d : D, p |-> ([∗ list] i ∈ allPieceIds, pieces d i) **
+             payload_destructible "Payload" (pieces d) ** after d)
+        (fun d => argp |-> intR q n **
+         _global "std::is_array_v<Payload>" |-> boolR qflag$c false ** after d).
   Proof using MOD.
-    wapply (construct_payload_ok q qflag argp n Rpiece after).
+    wapply (construct_payload_ok q qflag argp n pieces after).
     go using (spec_bwd payload_ctor_ok), (spec_bwd payload_dtor_ok),
       (spec_bwd placement_new_ok).
   Qed.
