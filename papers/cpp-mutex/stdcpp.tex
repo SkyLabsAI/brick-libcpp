@@ -309,7 +309,9 @@ Our specifications and examples are implemented in BRiCk, but we expect that our
 
 \section{Background}
 \subsection{Lock Specifications in Separation Logic}
-The standard specification of a lock in CSL associates each lock with a protected resource (sometimes called a \emph{lock invariant}, although we prefer to avoid overloading the word ``invariant'') that is gained when the lock is acquired and restored when it is released. The specifications are written as follows:
+According to standard CSL specs, each lock is associated with a protected
+resource that is gained when the lock is acquired and restored when it is
+released. Formally:
 \[\begin{array}{c}
 \{\ell \mapsto \mathsf{lock}(P)\}\ \texttt{lock}(\ell)\ \{\ell \mapsto \mathsf{lock}(P) \ast \mathsf{locked}(\ell) \ast P\}\vspace{.5em}\\
 \{\ell \mapsto \mathsf{lock}(P) \ast \mathsf{locked}(\ell) \ast P\}\ \texttt{unlock}(\ell)\ \{\ell \mapsto \mathsf{lock}(P)\}
@@ -324,7 +326,9 @@ In the atomic style, a lock is simply in one of two states, represented by e.g. 
 \end{mathpar}
 While one thread is trying to acquire the lock, its state is unknown and may shift back and forth due to the behavior of other threads; at the lock's linearization point, we observe that the lock is not held ($\neg b$), and shift it to the held state ($\mathsf{true}$). By combining these specifications with a global invariant of the form $P \vee \ell \mapsto \mathsf{true}$, we can derive the invariant-style specs: an acquiring thread trades its ownership of the lock $\ell \mapsto \mathsf{true}$ for the invariant $P$, and then returns it before releasing the lock. (Less obviously, the TaDA-style specs can also be derived from invariant-style specs, using an invariant that is simply a ghost variable indicating the state $b$ of the lock%; see \citet{} for more details
 .)}
-These specifications capture the core idea of mutual exclusion, and can easily be shown to be satisfied by a simple implementation, such as a spinlock. They can also be used to verify very flexible synchronization patterns, such as the following \emph{daring concurrency} pattern:
+These specifications formalize mutual exclusion, and can be proven for a simple
+implementation, such as a spinlock. They also support \emph{daring
+  concurrency}~\cite{csl} such as the following:
 \[\begin{array}{l || l}
 \texttt{acquire(a);} & \texttt{acquire(b);}\\
 \texttt{*x = *x + 1;} & \texttt{*y = *x + 1;}\\
