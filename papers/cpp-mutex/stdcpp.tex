@@ -414,9 +414,9 @@ The \lstinline{unique_lock} class has many constructors and operators; we specif
 \[\begin{array}{c}%consider removing some newlines
 \{p \mapsto R(q, m) \ast \dolock{p}{m}{K}\}\\ \texttt{unique\_lock(p)}\\ \{u.\ u \mapsto \ulock(\mathsf{true}, p, q, m) \ast K\} \vspace{1em}\\
 \{p \mapsto R(q, m)\}\\ \texttt{unique\_lock(p, std::defer\_lock\_t)}\\ \{u.\ u \mapsto \ulock(\mathsf{false}, p, q, m)\} \vspace{1em}\\
-\{u \mapsto \ulock(\mathsf{false}, p, q, m)\ast \dolock{p}{m}{K}\}\\ {\texttt{u.lock()}} \\ \{m \mapsto \ulock(\mathsf{true}, p, q, m) \ast K\}  \vspace{1em}\\
+\{u \mapsto \ulock(\mathsf{false}, p, q, m)\ast \dolock{p}{m}{K}\}\\ {\texttt{u.lock()}} \\ \{u \mapsto \ulock(\mathsf{true}, p, q, m) \ast K\}  \vspace{1em}\\
     \{u \mapsto \ulock(\mathsf{true}, p, q, m) \ast \dounlock{p}{m}{K}\}\\ {\texttt{u.unlock}()}\\
-    \{m \mapsto \ulock(\mathsf{false}, p, q, m) \ast K\}  \vspace{1em} \\
+    \{u \mapsto \ulock(\mathsf{false}, p, q, m) \ast K\}  \vspace{1em} \\
 \{u \mapsto \ulock(b, p, q, m) \ast (\text{if } b \text{ then } \dounlock{p}{m}{K} \text{ else } K)\}\\ \texttt{u.}\!\!\sim\!\texttt{unique\_lock}()\\ \{K \ast p \mapsto R(q, m)\}
 \end{array}\]
 The default constructor acquires the mutex $p$, so it needs $\dolock{p}{m}{K}$ in the precondition and creates a $\mathsf{ulock}$ in the $\mathsf{true}$ state. There is also a constructor that takes the \lstinline{std::defer_lock_t} argument and does not acquire the mutex, creating a $\mathsf{ulock}$ in the $\mathsf{false}$ state. When a \lstinline{unique_lock} is destroyed, it releases the underlying mutex only if it was in the $\mathsf{true}$ (held) state.
