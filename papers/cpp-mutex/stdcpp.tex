@@ -520,19 +520,6 @@ in order to acquire \lstinline{mut}. On the other hand, \lstinline{transfer_to} 
 \[ \{ a \mapsto_q \mathsf{account}_A \ast b \mapsto_q \mathsf{account}_B \}\ \texttt{a.transfer\_to(b, n)}\ \{ a \mapsto_q \mathsf{account}_A \ast b \mapsto_q \mathsf{account}_B \}\]
 In particular, if $\mathsf{account}$ takes a thread $t$ as an argument, then we will not be able to freely transfer ownership of it between threads (since it would only be usable by that thread $t$). The mutex permission library allows us to isolate this thread-local information. 
 
-The representation predicate for \lstinline{Account} is defined as
-\[p \mapsto_q \mathsf{account}_N \triangleq \exists \gamma.\ p.\texttt{mut} \mapsto_q \rmutex{N, \gamma}{\lambda n.\ p.\texttt{balance} \mapsto n} \ast \mathsf{token}_\gamma(q) %can we get away with this quantification?
-\]
-Ownership of an \lstinline{Account} is simply ownership of the mutex protecting the \lstinline{balance} field plus a fraction of the mutex's $\mathsf{token}$. In particular, it makes no mention of a thread $t$ or the $\mathsf{holds}$ predicate. When we create an \lstinline{Account} we choose a namespace $N$ for it, which in turn is used as the namespace of its mutex field \lstinline{mut}. Inside \lstinline{incr_balance} and \lstinline{transfer_to}, we register the calling thread with $N$, %recap the registration rule
-acquire \lstinline{mut}, release \lstinline{mut} at the end of the method, and then unregister the thread. Registration requires both $\mutexperm{}{N}$ and $\token{N, \gamma}{q}$; the latter is part of $\mathsf{account}$, while the former is passed separately. Concretely, the specification we use for \lstinline{incr_balance} is:
-\[\begin{array}{c}
-\{ a \mapsto_q \mathsf{account}_A \ast \mutexperm{t}{A} \ast \currentthread{t} \} \\ \texttt{a.incr\_balance(i)}\\ 
-\{ a \mapsto_q \mathsf{account}_A \ast \mutexperm{t}{A} \ast \currentthread{t} \} \end{array}\]
-and the specification for \lstinline{transfer_to} is:
-\[\begin{array}{c}\{ a \mapsto_q \mathsf{account}_A \ast b \mapsto_q \mathsf{account}_B \ast \mutexperm{t}{A} \ast \mutexperm{t}{B} \ast \currentthread{t} \}\\ \texttt{a.transfer\_to(b, n)}\\ \{ a \mapsto_q \mathsf{account}_A \ast b \mapsto_q \mathsf{account}_B  \ast \mutexperm{t}{A} \ast \mutexperm{t}{B} \ast \currentthread{t} \}
-\end{array}\]
-By choosing distinct namespaces $A \neq B$ for the two accounts (and thus their mutexes), we can easily obtain $\mutexperm{t}{A} \ast \mutexperm{t}{B}$ from a thread's starting $\mutexperm{t}{\top}$. The full proof outline for the example is shown in Figure~\ref{transfer-proof}.
-
 \begin{figure}[htb]
 \begin{lstlisting}[escapeinside    = {(*@}{@*)}]
 class Account {
@@ -576,6 +563,19 @@ int main() {
 \caption{The proof outline of our case study}
 \label{transfer-proof}
 \end{figure}
+
+The representation predicate for \lstinline{Account} is defined as
+\[p \mapsto_q \mathsf{account}_N \triangleq \exists \gamma.\ p.\texttt{mut} \mapsto_q \rmutex{N, \gamma}{\lambda n.\ p.\texttt{balance} \mapsto n} \ast \mathsf{token}_\gamma(q) %can we get away with this quantification?
+\]
+Ownership of an \lstinline{Account} is simply ownership of the mutex protecting the \lstinline{balance} field plus a fraction of the mutex's $\mathsf{token}$. In particular, it makes no mention of a thread $t$ or the $\mathsf{holds}$ predicate. When we create an \lstinline{Account} we choose a namespace $N$ for it, which in turn is used as the namespace of its mutex field \lstinline{mut}. Inside \lstinline{incr_balance} and \lstinline{transfer_to}, we register the calling thread with $N$, %recap the registration rule
+acquire \lstinline{mut}, release \lstinline{mut} at the end of the method, and then unregister the thread. Registration requires both $\mutexperm{}{N}$ and $\token{N, \gamma}{q}$; the latter is part of $\mathsf{account}$, while the former is passed separately. Concretely, the specification we use for \lstinline{incr_balance} is:
+\[\begin{array}{c}
+\{ a \mapsto_q \mathsf{account}_A \ast \mutexperm{t}{A} \ast \currentthread{t} \} \\ \texttt{a.incr\_balance(i)}\\ 
+\{ a \mapsto_q \mathsf{account}_A \ast \mutexperm{t}{A} \ast \currentthread{t} \} \end{array}\]
+and the specification for \lstinline{transfer_to} is:
+\[\begin{array}{c}\{ a \mapsto_q \mathsf{account}_A \ast b \mapsto_q \mathsf{account}_B \ast \mutexperm{t}{A} \ast \mutexperm{t}{B} \ast \currentthread{t} \}\\ \texttt{a.transfer\_to(b, n)}\\ \{ a \mapsto_q \mathsf{account}_A \ast b \mapsto_q \mathsf{account}_B  \ast \mutexperm{t}{A} \ast \mutexperm{t}{B} \ast \currentthread{t} \}
+\end{array}\]
+By choosing distinct namespaces $A \neq B$ for the two accounts (and thus their mutexes), we can easily obtain $\mutexperm{t}{A} \ast \mutexperm{t}{B}$ from a thread's starting $\mutexperm{t}{\top}$. The full proof outline for the example is shown in Figure~\ref{transfer-proof}.
 
 More complex synchronization patterns may have to expose locked states (and thus thread-specific predicates) to their clients, but when objects always return to the client in an unlocked state, the thread-specific predicates can be handled internally and do not affect the representation predicate: instead, each thread separately manages its set of namespaces, and any thread that is not already using the object's namespace may call its methods. In this case, the predicate $a \mapsto_q \mathsf{account}_A$ can be transferred to any other thread, and that thread can call $a$'s methods as long as it is not currently holding a mutex with the namespace $A$. Namespaces are chosen arbitrarily during verification, so we can always choose a unique name for $A$ and allow any thread to use $a$. %make this more precise
 
