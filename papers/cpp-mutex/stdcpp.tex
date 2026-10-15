@@ -327,7 +327,7 @@ While one thread is trying to acquire the lock, its state is unknown and may shi
 These specifications capture the core idea of mutual exclusion, and can easily be shown to be satisfied by a simple implementation, such as a spinlock. They can also be used to verify very flexible synchronization patterns, such as the following \emph{daring concurrency} pattern:
 \[\begin{array}{l || l}
 \texttt{acquire(a);} & \texttt{acquire(b);}\\
-\texttt{*x = *x + 1;} & \texttt{*x = *x + 1;}\\
+\texttt{*x = *x + 1;} & \texttt{*y = *x + 1;}\\
 \texttt{release(b);} & \texttt{release(a);}
 \end{array}\]
 In this program, each thread passes ownership of its lock to the other via another lock: if the left thread executes first, then when the second thread acquires \texttt{b} it also gains permission to release \texttt{a} (in the form of $\mathsf{locked}(a)$), and vice versa. Indeed, the ability to verify daring synchronization was one of the originally advertised strengths of concurrent separation logic~\cite{csl}.
