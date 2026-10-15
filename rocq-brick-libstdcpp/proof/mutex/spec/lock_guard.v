@@ -89,12 +89,15 @@ NES.Begin lock_guard.
     Definition SpecFor_ctor_spec := RegisterSpec (ctor_spec source).
     #[global] Existing Instance SpecFor_ctor_spec.
 
-    cpp.spec "std::lock_guard<$ty>::~lock_guard()" as dtor_spec from source templates templates (
-      \\with
+    Definition dtor_spec (tu : translation_unit) : mpred :=
+      specify.template.dtor ("std::lock_guard" .<< Atype ty >>) $
       \this this
       \pre{m} this |-> R 1$m m
       \pre{K} do_unlock ty m.(mutex_ptr) m.(mutex_m) K
-      \post K ** m.(mutex_ptr) |-> mutexR m.(mutex_q)$m m.(mutex_m)
-    ).
+      \post K ** m.(mutex_ptr) |-> mutexR m.(mutex_q)$m m.(mutex_m).
+    #[global] Hint Opaque dtor_spec : sl_opacity.
+    #[global] Arguments dtor_spec : simpl never.
+    Definition SpecFor_dtor_spec := RegisterSpec (dtor_spec source).
+    #[global] Existing Instance SpecFor_dtor_spec.
   End with_cpp.
 NES.End lock_guard.
