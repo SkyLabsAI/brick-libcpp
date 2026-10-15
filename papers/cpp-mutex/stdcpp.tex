@@ -544,7 +544,7 @@ public:
   (*@ $\{ \currentthread{t} \ast a \mapsto_q \mathsf{account}_A \ast \mutexperm{t}{A}  \}$ @*)
   void incr_balance(unsigned long i) {
     (*@ $\{ \currentthread{t} \ast a.\texttt{mut} \mapsto_q \rmutex{A, \gamma}{\lambda n.\,p.\texttt{balance} \mapsto n} \ast \mathsf{token}_\gamma(q) \ast \mutexperm{t}{A} \} \Rightarrow$ @*) 
-    (*@ $\{ \currentthread{t} \ast a.\texttt{mut} \mapsto_q \rmutex{A, \gamma}{\lambda n.\,p.\texttt{balance} \mapsto n} \ast \notlocked{N, \gamma}{t}{q} \}$ @*) 
+    (*@ $\{ \currentthread{t} \ast a.\texttt{mut} \mapsto_q \rmutex{A, \gamma}{\lambda n.\,p.\texttt{balance} \mapsto n} \ast \notlocked{A, \gamma}{t}{q} \}$ @*) 
     std::lock_guard<std::recursive_mutex> lg(mut);
     balance += i;
     (*@ $\{ \currentthread{t} \ast a.\texttt{mut} \mapsto_q \rmutex{A, \gamma}{\lambda n.\ p.\texttt{balance} \mapsto n} \ast \notlocked{A, \gamma}{t}{q} \} \Rightarrow$ @*)
