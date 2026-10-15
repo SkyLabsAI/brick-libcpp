@@ -476,7 +476,7 @@ class Mutex2 {
   (*@ $\{\currentthread{t} \ast m \mapsto_\pi \mutex{N, \gamma}{P}\ast\notlocked{N, \gamma}{t}{q}\}$ @*)
   void lock(){
     while(lock.exchange(true)) { yield(); }
-    (*@ $\{ \currentthread{t} \ast m \mapsto_\pi \mutex{N, \gamma}{P}\ast P \ast \ownGhost{}{\authfrag \bot} \ast \giventoken{\gamma}{q} \ast \texttt{owner} \mapsto \bot \}$ @*)
+    (*@ $\{ \currentthread{t} \ast m \mapsto_\pi \mutex{N, \gamma}{P}\ast P \ast \ownGhost{}{\authfrag \bot} \ast \texttt{owner} \mapsto \bot \}$ @*)
     owner = get_id();
   }
   (*@ $\{\currentthread{t} \ast m \mapsto_\pi \mutex{N, \gamma}{P}\ast P\ast\locked{N, \gamma}{t}{q}\}$ @*)
@@ -502,7 +502,7 @@ class Mutex2 {
 \label{mutex-proof}
 \end{figure}
 
-With these definitions, we can prove that each method meets its specification. The proofs are outlined in Figure~\ref{mutex-proof}. In the constructor, we allocate $I(P)$ in its $\mathsf{false}$ state, with default owner and $\giventoken{\gamma}{1}$ held in the invariant, and return $\token{\gamma}{1}$ to the caller. In \lstinline{lock}, when the \lstinline{exchange} succeeds, we exchange $\notlocked{N, \gamma}{t}{q}$ for the resources in the $\mathsf{false}$ state and use them to assemble $\locked{N, \gamma}{t}{q}$ once \lstinline{owner} is set to $t$. In \lstinline{unlock}, since $\locked{N, \gamma}{t}{q}$ includes $\texttt{owner} \mapsto t$, we know that \lstinline{assert(owner == get_id())} will succeed.
+With these definitions, we can prove that each method meets its specification. The proofs are outlined in Figure~\ref{mutex-proof}. In the constructor, we allocate $I(P)$ in its $\mathsf{false}$ state with the default owner held in the invariant, and return $\token{\gamma}{1}$ to the caller. In \lstinline{lock}, when the \lstinline{exchange} succeeds, we exchange $\notlocked{N, \gamma}{t}{q}$ for the resources in the $\mathsf{false}$ state and use them to assemble $\locked{N, \gamma}{t}{q}$ once \lstinline{owner} is set to $t$. In \lstinline{unlock}, since $\locked{N, \gamma}{t}{q}$ includes $\texttt{owner} \mapsto t$, we know that \lstinline{assert(owner == get_id())} will succeed.
 
 \subsubsection{\lstinline{std::recursive_mutex}}
 \ignore{\begin{figure}[htb]
