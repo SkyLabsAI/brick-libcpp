@@ -424,7 +424,7 @@ We consider two spinlock implementations of \lstinline{std::mutex}, shown in Fig
 The standard Iris approach to verifying a spinlock is to define an invariant of the form
 \[\knowInv{}{(\texttt{lock} \mapsto \mathsf{true})    {}\vee{} (\texttt{lock} \mapsto \mathsf{false} \ast P \ast \mathsf{token}_\gamma)}
 \]
-where whenever the lock is not held the invariant contains the protected resources $P$ and some exclusive token $\mathsf{token}_\gamma$, and when the lock is held, these are transferred to the holder. Having $\mathsf{token}_\gamma$ allows the thread to unlock the mutex: when it opens the invariant, it must be in the unlocked branch because there cannot be two copies of $\mathsf{token}_\gamma$. The mutex invariant is slightly more complex:
+where whenever the lock is not held the invariant contains the protected resources $P$ and some exclusive token $\mathsf{token}_\gamma$, and when the lock is held, these are transferred to the holder. Having $\mathsf{token}_\gamma$ allows the thread to lock the mutex: when it opens the invariant, it must be in the unlocked branch because there cannot be two copies of $\mathsf{token}_\gamma$. The mutex invariant is slightly more complex:
 \[
   I_{N, \gamma}(P) \triangleq \begin{aligned}
     &\exists o.\ \ownGhost{}{\authfull o} \\
