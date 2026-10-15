@@ -306,11 +306,15 @@ Accordingly, in our specifications each user of a shared mutex has one of three 
 \]
 
 \begin{figure}[htb]
-\begin{lstlisting}[escapeinside    = {(*@}{@*)}]
+\centering
+\lstset{aboveskip=0pt,belowskip=0pt}
+\begin{subfigure}[t]{0.49\textwidth}
+\begin{lstlisting}[escapeinside={(*@}{@*)},firstnumber=1]
 bool resource = false;
 std::shared_mutex m{};
 
-(*@ $\{ \currentthread{t} \ast \texttt{m} \mapsto_\pi \smutex{N, \gamma}{P} \ast \notlocked{N, \gamma}{t}{q} \}$ @*)
+(*@ $\{ \currentthread{t} \ast \texttt{m} \mapsto_\pi \smutex{N, \gamma}{P}$ @*)
+(*@ $\qquad {}\ast \notlocked{N, \gamma}{t}{q} \}$ @*)
 void set_resource() {
   m.lock();
   (*@ $\{ ... \ast \texttt{resource} \mapsto b \ast \smlocked{N, \gamma}{t}{q} \}$ @*)
@@ -319,14 +323,20 @@ void set_resource() {
   m.unlock();
   (*@ $\{ ... \ast \notlocked{N, \gamma}{t}{q} \}$ @*)
 }
-(*@ $\{ \currentthread{t} \ast \texttt{m} \mapsto_\pi \smutex{N, \gamma}{P} \ast \notlocked{N, \gamma}{t}{q} \}$ @*)
-
+(*@ $\{ \currentthread{t} \ast \texttt{m} \mapsto_\pi \smutex{N, \gamma}{P}$ @*)
+(*@ $\qquad {}\ast \notlocked{N, \gamma}{t}{q} \}$ @*)
+\end{lstlisting}
+\end{subfigure}\hfill
+\begin{subfigure}[t]{0.49\textwidth}
+\begin{lstlisting}[escapeinside={(*@}{@*)},firstnumber=last]
 (*@ $\{ \texttt{m} \mapsto_\pi \smutex{N, \gamma}{P} \ast \notlocked{N, \gamma}{t}{q} \}$ @*)
 void await_resource() {
-  (*@ $\{ \currentthread{t} \ast \texttt{m} \mapsto_\pi \smutex{N, \gamma}{P} \ast \notlocked{N, \gamma}{t}{q} \}$ @*)
+  (*@ $\{ \currentthread{t} \ast \texttt{m} \mapsto_\pi \smutex{N, \gamma}{P}$ @*)
+  (*@ $\qquad {}\ast \notlocked{N, \gamma}{t}{q} \}$ @*)
   for (;;) {
     m.lock_shared();
-    (*@ $\{ ... \ast \texttt{resource} \mapsto_{q_P} b \ast \smreaderlocked{N, \gamma}{t}{q}{q_P} \}$ @*)
+    (*@ $\{ ... \ast \texttt{resource} \mapsto_{q_P} b$ @*)
+    (*@ $\qquad {}\ast \smreaderlocked{N, \gamma}{t}{q}{q_P} \}$ @*)
     bool ret = resource;
     m.unlock_shared();
     (*@ $\{ ... \ast \notlocked{N, \gamma}{t}{q} \}$ @*)
@@ -335,8 +345,10 @@ void await_resource() {
       break;
   }
 }
-(*@ $\{ \currentthread{t} \ast \texttt{m} \mapsto_\pi \smutex{N, \gamma}{P} \ast \notlocked{N, \gamma}{t}{q} \}$ @*)
+(*@ $\{ \currentthread{t} \ast \texttt{m} \mapsto_\pi \smutex{N, \gamma}{P}$ @*)
+(*@ $\qquad {}\ast \notlocked{N, \gamma}{t}{q} \}$ @*)
 \end{lstlisting}
+\end{subfigure}
 \caption{A program using \lstinline{shared_mutex} and its proof outline.}
 \label{shared-mutex-ex-proof}
 \end{figure}
