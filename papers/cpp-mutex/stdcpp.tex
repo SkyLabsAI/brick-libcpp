@@ -336,11 +336,12 @@ implementation, such as a spinlock. They also support \emph{daring
 \end{array}\]
 In this program, each thread passes ownership of its lock to the other via another lock: if the left thread executes first, then when the second thread acquires \texttt{b} it also gains permission to release \texttt{a} (in the form of $\mathsf{locked}(a)$), and vice versa.
 
-Support for daring synchronization is a strength of CSL, but typical locks such
-as pthread~\cite{pthread} locks add further restrictions: for instance, locks must only be
+Support for daring concurrency is a strength of CSL, but typical locks (such
+as pthread~\cite{pthread} ones) add further restrictions: for instance, locks must only be
 released by the thread that acquired them (forbidding daring concurrency), or
 must only be deallocated if not held.
-In this paper, we give lock specifications that account for the restrictions and features of the mutexes in C++'s standard library.
+Hence, mutex specifications in this paper account for the restrictions and
+features of the C++ standard library.
 
 \subsection{The BRiCk Logic for C++}
 \label{brick}
