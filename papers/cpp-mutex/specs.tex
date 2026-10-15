@@ -361,46 +361,41 @@ When a thread $t$ wants to interact with a mutex $N$, it separates $\mutexperm{t
 \newcommand{\giventoken}[2]{\ensuremath{\mathsf{given\_token}_{#1}(#2)}}
 
 \begin{figure}[htb]
-\begin{subfigure}[t]{0.45\textwidth}
+\centering
+\lstset{aboveskip=0pt,belowskip=0pt}
+\begin{subfigure}[t]{0.38\textwidth}
 \begin{lstlisting}
 class Mutex1 {
   std::atomic<bool> lock;
 
-
   Mutex1() { lock = false; }
-
 
   void lock(){
     while(lock.exchange(true))
       { yield(); }
   }
-
   void unlock(){
     lock = false;
   }
 }
 \end{lstlisting}
-\end{subfigure}~
-\begin{subfigure}[t]{0.55\textwidth}
+\end{subfigure}\hfill
+\begin{subfigure}[t]{0.60\textwidth}
 \begin{lstlisting}
 class Mutex2 {
   std::atomic<bool> lock;
   std::thread::id owner;
-
   Mutex2() { lock = false;
               owner = std::thread::id(); }
-
   void lock(){
     while(lock.exchange(true)) { yield(); }
     owner = std::this_thread::get_id();
   }
-
   void unlock(){
     assert(owner == std::this_thread::get_id());
     owner = std::thread::id();
     lock = false;
   }
-  
   ~Mutex2() {
     assert(!lock);
     assert(owner == std::thread::id());
