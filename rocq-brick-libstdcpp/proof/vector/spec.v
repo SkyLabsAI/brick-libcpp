@@ -556,51 +556,39 @@ NES.Begin std.
         Definition SpecFor_subscript := RegisterSpec (@subscript).
         #[global] Existing Instance SpecFor_subscript.
 
+        (** Select the source separately for each call: [None] preserves an
+            external source, while [Some i] reads a direct element of the
+            pre-call vector model. For [v.push_back(v[0])] with model [[7]],
+            use [iExists (Some 0%Z), (7%Z), (cQp.m 1); go]; an external lvalue uses
+            [iExists None; go]. Both cases use the same registered contract,
+            so one client may mix them without changing instances. The
+            fraction witness is used only for external sources.
+
+            An aliased source's old address need not survive reallocation.
+            Sources owned indirectly through an element's representation are
+            not covered. The rvalue overload has no alias case because
+            [res.on.arguments] permits assuming an rvalue reference is unique. *)
         Definition push_back_copy :=
           let qf := function_qualifiers.N in
           specify.template.method vector "push_back" qf Tvoid [Tref (Tconst ty)] $
             \this this
             \arg{p} "p" (Vref p)
-            \prepost{q x} p |-> objR ty q x
-            \pre{size st xs}
-                      this |-> R_cap (cQp.m 1) size st xs
-            \post     this |-> R_resized (cQp.m 1) (size + 1) st (xs ++ [x]).
+            \with (src : option Z) x
+            \prepost{q} match src with
+              | None => p |-> objR ty q x
+              | Some _ => emp
+              end
+            \pre{size st xs} this |-> R_cap (cQp.m 1) size st xs
+            \require match src with
+              | None => True
+              | Some i => 0 ≤ i ∧ p = base_pointer st .[ ty ! i ] ∧
+                  xs !! Z.to_nat i = Some x
+              end
+            \post this |-> R_resized (cQp.m 1) (size + 1) st (xs ++ [x]).
         #[global] Hint Opaque push_back_copy : sl_opacity.
         #[global] Arguments push_back_copy : simpl never.
         Definition SpecFor_push_back_copy := RegisterSpec push_back_copy.
         #[global] Existing Instance SpecFor_push_back_copy.
-
-        (** The source value is already owned through the vector payload. Its
-            old address need not remain valid if the vector reallocates.
-
-            Alias contracts are opt-in; the external-source contracts remain
-            the default. Select the appropriate instance in a section containing
-            alias client proofs, for example:
-            <<
-              #[local] Existing Instance std.vector.SpecFor_push_back_copy_alias | 0.
-              #[local] Existing Instance std.vector.SpecFor_resize_alias | 0.
-            >>
-            After [verify_spec; go], supply the source index and its value from
-            the pre-call model. For [v.push_back(v[0])] with model [[7]], use
-            [iExists (0%Z), (7%Z); go]. End the section before proofs that copy
-            external lvalues. See [test/vector/test_cpp_proof.v] for a complete
-            example. *)
-        Definition push_back_copy_alias :=
-          let qf := function_qualifiers.N in
-          specify.template.method vector "push_back" qf Tvoid [Tref (Tconst ty)] $
-            \this this
-            \arg{p} "p" (Vref p)
-            \with size st xs i x
-            \pre this |-> R_cap (cQp.m 1) size st xs
-            \require 0 ≤ i < size
-            \require p = base_pointer st .[ ty ! i ]
-            \require xs !! Z.to_nat i = Some x
-            \post this |-> R_resized (cQp.m 1) (size + 1) st (xs ++ [x]).
-        #[global] Hint Opaque push_back_copy_alias : sl_opacity.
-        #[global] Arguments push_back_copy_alias : simpl never.
-        Definition SpecFor_push_back_copy_alias := RegisterSpec push_back_copy_alias.
-        (* Keep the external-source contract as the default for automation. *)
-        #[global] Existing Instance SpecFor_push_back_copy_alias | 100.
 
         Definition push_back_move `{!concepts.MovedValue ty V} :=
             let qf := function_qualifiers.N in
@@ -693,46 +681,27 @@ NES.Begin std.
         Definition SpecFor_resize_default := RegisterSpec (@resize_default).
         #[global] Existing Instance SpecFor_resize_default.
 
+        (** Use the same source selector as [push_back_copy]. The value is
+            captured before the call: shrinking can erase its source, and
+            growing can invalidate the old address. Shrinking and unchanged
+            size preserve the original internal state directly. *)
         Definition resize `{!IsAllocator alloc_ty} :=
           let qf := function_qualifiers.N in
           specify.template.method vector "resize" qf Tvoid [size_type; Tref (Tconst ty)] $
             \this this
             \arg{new_size} "new_size" (Vint new_size)
-            \arg{vp}       "v0"       (Vptr vp)
-            \prepost{q v0} vp |-> objR ty q v0
-            \with size st xs
-            \pre  this |-> R_cap (cQp.m 1) size st xs
-            \post
-              ∃ xs',
-                (if bool_decide (size = new_size) then
-                   [| xs' = xs |]
-                 else if bool_decide (new_size < size) then     (* it would be better to have [new_size ≤
-                                                                   size] for when neither [new_size = size]
-                                                                   nor [new_size ≠ size] *)
-                   [| xs' = takeN (Z.to_N new_size) xs |]       (* would [sliceZ] be better here (because of Z vs N)? *)
-                 else (* size < new_size *)
-                   [| xs' = xs ++ replicateZ (new_size - size) v0 |] ) ∗
-                this |-> R_resized (cQp.m 1) new_size st xs'.
-        #[global] Hint Opaque resize : sl_opacity.
-        #[global] Arguments resize : simpl never.
-        Definition SpecFor_resize := RegisterSpec (@resize).
-        #[global] Existing Instance SpecFor_resize.
-
-        (** Capture the source value before resizing. Shrinking can remove the
-            source element, and growing can invalidate its old address.
-            Select [SpecFor_resize_alias] locally as described for
-            [push_back_copy_alias], and supply the pre-call index and value. *)
-        Definition resize_alias `{!IsAllocator alloc_ty} :=
-          let qf := function_qualifiers.N in
-          specify.template.method vector "resize" qf Tvoid [size_type; Tref (Tconst ty)] $
-            \this this
-            \arg{new_size} "new_size" (Vint new_size)
-            \arg{vp} "v0" (Vptr vp)
-            \with size st xs i v0
-            \pre this |-> R_cap (cQp.m 1) size st xs
-            \require 0 ≤ i < size
-            \require vp = base_pointer st .[ ty ! i ]
-            \require xs !! Z.to_nat i = Some v0
+            \arg{vp} "v0" (Vref vp)
+            \with (src : option Z) v0
+            \prepost{q} match src with
+              | None => vp |-> objR ty q v0
+              | Some _ => emp
+              end
+            \pre{size st xs} this |-> R_cap (cQp.m 1) size st xs
+            \require match src with
+              | None => True
+              | Some i => 0 ≤ i ∧ vp = base_pointer st .[ ty ! i ] ∧
+                  xs !! Z.to_nat i = Some v0
+              end
             \post
               ∃ xs',
                 (if bool_decide (size = new_size) then
@@ -741,11 +710,14 @@ NES.Begin std.
                    [| xs' = takeN (Z.to_N new_size) xs |]
                  else
                    [| xs' = xs ++ replicateZ (new_size - size) v0 |]) ∗
-                this |-> R_resized (cQp.m 1) new_size st xs'.
-        #[global] Hint Opaque resize_alias : sl_opacity.
-        #[global] Arguments resize_alias : simpl never.
-        Definition SpecFor_resize_alias := RegisterSpec (@resize_alias).
-        #[global] Existing Instance SpecFor_resize_alias | 100.
+                (if bool_decide (new_size ≤ size) then
+                   this |-> R_cap (cQp.m 1) new_size st xs'
+                 else
+                   this |-> R_resized (cQp.m 1) new_size st xs').
+        #[global] Hint Opaque resize : sl_opacity.
+        #[global] Arguments resize : simpl never.
+        Definition SpecFor_resize := RegisterSpec (@resize).
+        #[global] Existing Instance SpecFor_resize.
 
         Definition size `{!IsAllocator alloc_ty} :=
           let qf := function_qualifiers.Nc in
@@ -824,7 +796,6 @@ NES.Begin std.
           dtor **
           MaybeConst subscript **
           push_back_copy **
-          push_back_copy_alias **
           push_back_move **
           pop_back **
           MaybeConst front  **
@@ -832,7 +803,6 @@ NES.Begin std.
           clear **
           resize_default **
           resize **
-          resize_alias **
           size **
           MaybeConst begin_spec **
           MaybeConst end_spec.

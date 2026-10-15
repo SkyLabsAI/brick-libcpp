@@ -139,6 +139,26 @@ TestResizeAliasEmpty(vector<int>& v) {
 }
 
 void
+TestMixedSources() {
+    vector<int> v;
+    int x = 7;
+    v.push_back(x);
+    v.push_back(v[0]);
+    x = 9;
+    v.push_back(x);
+    v.resize(4, x);
+    v.resize(6, v[0]);
+    v.resize(5, x);
+    test(x == 9);
+    test(v.size() == 5);
+    test(v[0] == 7);
+    test(v[1] == 7);
+    test(v[2] == 9);
+    test(v[3] == 9);
+    test(v[4] == 7);
+}
+
+void
 TestAliases() {
     vector<int> v;
     v.push_back(7);
@@ -161,6 +181,7 @@ TestAliases() {
     y.push_back(2);
     y.push_back(3);
     TestResizeAliasEmpty(y);
+    TestMixedSources();
 }
 
 int

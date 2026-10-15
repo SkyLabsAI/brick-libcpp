@@ -8,27 +8,16 @@ Require Import skylabs.brick.libstdcpp.vector.spec.
 Require Import skylabs.brick.libstdcpp.test.vector.alias_cpp.
 Require Import skylabs.auto.cpp.prelude.test.
 
-(** Positive controls and rejected claims about the copied value and index.
+(** Rejected claims about the copied value and index.
     The final goals in [alias_cpp_proof.expected] pin the rejected claims to
-    [7 = 8] and [4 = 9], rather than an unrelated verification failure. *)
+    [7 = 8] and [4 = 9], rather than an unrelated verification failure.
+    Positive clients are verified in [test_cpp_proof.v]. *)
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
   Context `{MOD : alias_cpp.source ⊧ σ}.
   Import linearity.
   Import normalize.normalize_ptr normalize.only_provable_norm.
   #[local] Hint Resolve prim.primR_aggressiveC : sl_opacity.
-  #[local] Existing Instance std.vector.SpecFor_push_back_copy_alias | 0.
-  #[local] Existing Instance std.vector.SpecFor_resize_alias | 0.
-
-  cpp.spec "AliasAppend(std::vector<int, std::allocator<int>>&)" as append_good with
-    (\arg{vp} "v" (Vptr vp)
-     \with st
-     \pre vp |-> std.vector.R_cap "int" 1$m 1 st [7]
-     \post vp |-> std.vector.R_resized "int" 1$m 2 st [7; 7]).
-  Lemma append_good_ok : verify[ source ] append_good.
-  Proof using MOD.
-    verify_spec. go. iExists (0%Z), (7%Z). go.
-  Qed.
 
   cpp.spec "AliasAppend(std::vector<int, std::allocator<int>>&)" as append_wrong_value with
     (\arg{vp} "v" (Vptr vp)
@@ -38,8 +27,8 @@ Section with_cpp.
   Goal verify[ source ] append_wrong_value.
   Proof using MOD.
     verify_spec. go.
-    Fail solve [iExists (0%Z), (8%Z); go].
-    iExists (0%Z), (7%Z). go.
+    Fail solve [iExists (Some 0%Z), (8%Z), (cQp.m 1); go].
+    iExists (Some 0%Z), (7%Z), (cQp.m 1). go.
     Show. Fail Qed.
   Abort.
 
@@ -51,21 +40,10 @@ Section with_cpp.
   Goal verify[ source ] append_wrong_index.
   Proof using MOD.
     verify_spec. go.
-    Fail solve [iExists (1%Z), (8%Z); go].
-    iExists (0%Z), (7%Z). go.
+    Fail solve [iExists (Some 1%Z), (8%Z), (cQp.m 1); go].
+    iExists (Some 0%Z), (7%Z), (cQp.m 1). go.
     Show. Fail Qed.
   Abort.
-
-  cpp.spec "AliasFill(std::vector<int, std::allocator<int>>&, unsigned long)" as fill_good with
-    (\arg{vp} "v" (Vptr vp)
-     \arg "n" (Vint 4)
-     \with st
-     \pre vp |-> std.vector.R_cap "int" 1$m 2 st [9; 4]
-     \post vp |-> std.vector.R_resized "int" 1$m 4 st [9; 4; 4; 4]).
-  Lemma fill_good_ok : verify[ source ] fill_good.
-  Proof using MOD.
-    verify_spec. go. iExists (1%Z), (4%Z). go.
-  Qed.
 
   cpp.spec "AliasFill(std::vector<int, std::allocator<int>>&, unsigned long)" as fill_wrong_value with
     (\arg{vp} "v" (Vptr vp)
@@ -76,8 +54,8 @@ Section with_cpp.
   Goal verify[ source ] fill_wrong_value.
   Proof using MOD.
     verify_spec. go.
-    Fail solve [iExists (1%Z), (9%Z); go].
-    iExists (1%Z), (4%Z). go.
+    Fail solve [iExists (Some 1%Z), (9%Z), (cQp.m 1); go].
+    iExists (Some 1%Z), (4%Z), (cQp.m 1). go.
     Show. Fail Qed.
   Abort.
 End with_cpp.

@@ -26,7 +26,7 @@
   _ : type_ptr "std::vector<int, std::allocator<int>>&" v_addr
   _ : type_ptr "std::vector<int, std::allocator<int>>" vp
   _ : type_ptr "int" (std.vector.base_pointer st .[ "int" ! 0 ])
-  _ : std.vector.push_back_copy_alias "int" "std::allocator<int>"
+  _ : std.vector.push_back_copy "int" "std::allocator<int>"
   _ : std.vector.subscript "int" "std::allocator<int>" false
   _ : std.vector.base_pointer st' |-> typed_sliceR "int" 0 (1 + 1)
   --------------------------------------□
@@ -58,7 +58,7 @@
   _ : std.vector.base_pointer st |-> typed_sliceR "int" 0 2
   _ : type_ptr "std::vector<int, std::allocator<int>>&" v_addr
   _ : type_ptr "std::vector<int, std::allocator<int>>" vp
-  _ : std.vector.push_back_copy_alias "int" "std::allocator<int>"
+  _ : std.vector.push_back_copy "int" "std::allocator<int>"
   _ : std.vector.subscript "int" "std::allocator<int>" false
   _ : std.vector.base_pointer st' |-> typed_sliceR "int" 0 (2 + 1)
   --------------------------------------□
@@ -92,7 +92,7 @@
   _ : type_ptr "unsigned long" n_addr
   _ : type_ptr "std::vector<int, std::allocator<int>>&" v_addr
   _ : type_ptr "std::vector<int, std::allocator<int>>" vp
-  _ : std.vector.resize_alias "int" "std::allocator<int>"
+  _ : std.vector.resize "int" "std::allocator<int>"
   _ : std.vector.subscript "int" "std::allocator<int>" false
   _ : std.vector.base_pointer st' |-> typed_sliceR "int" 0 4
   --------------------------------------□

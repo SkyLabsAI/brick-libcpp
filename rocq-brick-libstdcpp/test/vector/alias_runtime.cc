@@ -12,7 +12,10 @@
 #undef main
 
 // Native-only: reserve/capacity and string operations have no client contracts
-// here. Run with: dune build @rocq-brick-libstdcpp/test/vector/runtest
+// here. From this repository:
+//   dune build @rocq-brick-libstdcpp/test/vector/runtest
+// From the workspace:
+//   dune build @fmdeps/brick-libcpp/rocq-brick-libstdcpp/test/vector/runtest
 template<class T>
 void
 CheckAppendAlias(const T& value, bool reallocate) {

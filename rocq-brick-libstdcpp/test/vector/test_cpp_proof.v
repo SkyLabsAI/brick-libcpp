@@ -218,6 +218,9 @@ Section with_cpp.
     cpp.spec "TestAliases()" as test_aliases with
         (\post emp).
 
+    cpp.spec "TestMixedSources()" as test_mixed_sources with
+        (\post emp).
+
     cpp.spec "main()" as main with
         (\post[Vint 0] emp).
 
@@ -304,24 +307,18 @@ Section with_cpp.
     Proof using MOD.
       verify_spec.
       go.
+      iExists None. go.
+      iExists None. go.
+      iExists None. go.
     Qed.
     Definition test_aggregate_B := [LINK] test_aggregate_ok.
     #[local] Hint Resolve test_aggregate_B : sl_opacity.
-
-    Section alias_clients.
-    #[local] Existing Instance std.vector.SpecFor_push_back_copy_alias | 0.
-    #[local] Existing Instance std.vector.SpecFor_resize_alias | 0.
-
-    (* Retain the original capacity bound when a call consumes the spine. *)
-    Definition vector_size_bounds_F :=
-      ltac:(mk_at_obs_fwd (std.vector.spineR_valid_size "int" alloc_int)).
-    #[local] Hint Resolve vector_size_bounds_F : sl_opacity.
 
     Lemma test_push_back_alias_ok : verify[ source ] test_push_back_alias.
     Proof using MOD.
       verify_spec.
       go.
-      iExists (0%Z), (7%Z). go.
+      iExists (Some 0%Z), (7%Z), (cQp.m 1). go.
     Qed.
     Definition test_push_back_alias_B := [LINK] test_push_back_alias_ok.
 
@@ -329,7 +326,7 @@ Section with_cpp.
     Proof using MOD.
       verify_spec.
       go.
-      iExists (1%Z), (4%Z). go.
+      iExists (Some 1%Z), (4%Z), (cQp.m 1). go.
     Qed.
     Definition test_resize_alias_grow_B := [LINK] test_resize_alias_grow_ok.
 
@@ -337,9 +334,8 @@ Section with_cpp.
     Proof using MOD.
       verify_spec.
       go.
-      iExists (2%Z), (3%Z). go.
-      rewrite std.vector.resizedR.unlock bool_decide_true; last lia.
-      go.
+      iExists (Some 2%Z), (3%Z), (cQp.m 1). go.
+      rewrite /takeN /= in H. simplify_eq. go.
     Qed.
     Definition test_resize_alias_shrink_B := [LINK] test_resize_alias_shrink_ok.
 
@@ -347,9 +343,7 @@ Section with_cpp.
     Proof using MOD.
       verify_spec.
       go.
-      iExists (2%Z), (3%Z). go.
-      rewrite std.vector.resizedR.unlock bool_decide_true; last lia.
-      go.
+      iExists (Some 2%Z), (3%Z), (cQp.m 1). go.
     Qed.
     Definition test_resize_alias_same_B := [LINK] test_resize_alias_same_ok.
 
@@ -357,12 +351,9 @@ Section with_cpp.
     Proof using MOD.
       verify_spec.
       go.
-      iExists (2%Z), (3%Z). go.
-      rewrite std.vector.resizedR.unlock bool_decide_true; last lia.
-      go.
+      iExists (Some 2%Z), (3%Z), (cQp.m 1). go.
     Qed.
     Definition test_resize_alias_empty_B := [LINK] test_resize_alias_empty_ok.
-    End alias_clients.
 
     #[local] Hint Resolve
       test_push_back_alias_B
@@ -370,6 +361,19 @@ Section with_cpp.
       test_resize_alias_shrink_B
       test_resize_alias_same_B
       test_resize_alias_empty_B : sl_opacity.
+
+    Lemma test_mixed_sources_ok : verify[ source ] test_mixed_sources.
+    Proof using MOD.
+      verify_spec. go.
+      iExists None. go.
+      iExists (Some 0%Z), (7%Z), (cQp.m 1). go.
+      iExists None. go.
+      iExists None. go.
+      iExists (Some 0%Z), (7%Z), (cQp.m 1). go.
+      iExists None. go.
+    Qed.
+    Definition test_mixed_sources_B := [LINK] test_mixed_sources_ok.
+    #[local] Hint Resolve test_mixed_sources_B : sl_opacity.
 
     Lemma test_aliases_ok : verify[ source ] test_aliases.
     Proof using MOD.
