@@ -371,7 +371,7 @@ We represent an implementation of \lstinline{BasicLockable} by a predicate
 $R(q,m)$ describing fractional ownership $q$ of a lock with abstract state
 $m$, together with two predicates $\dolock{p}{m}{K}$ and $\dounlock{p}{m}{K}$.
 These predicates
-describe the resources required to lock/unlock the object at pointer $p$ and produce the
+describe the resources required to lock/unlock the object at pointer $p$ and produce
 the postcondition $K$ afterwards, in the predicate transformer style.  The generic specifications of \lstinline{lock} and \lstinline{unlock} are:
 \[\begin{array}{c}    \{p\mapsto R(q,m)\ast \dolock{p}{m}{K}\}\ \texttt{p.lock()}\ \{p\mapsto R(q,m)\ast K\}\vspace{.5em}\\
 \{p\mapsto R(q,m)\ast \dounlock{p}{m}{K}\}\ \texttt{p.unlock()}\ \{p\mapsto R(q,m)\ast K\}
