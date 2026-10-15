@@ -361,12 +361,7 @@ The \lstinline{BasicLockable} named requirement describes the common interface
 of types that provide \lstinline{lock()} and \lstinline{unlock()}
 operations~\cite{ISO:2024:IIP}.  An invocation of \lstinline{lock()} blocks
 until the calling thread acquires the lock, and \lstinline{unlock()} releases a
-lock owned by the calling thread. 
-\ignore{%this is probably untrue
- The caller must not already own the lock
-when invoking \lstinline{lock()}, and must own it when invoking
-\lstinline{unlock()}.
-}
+lock owned by the calling thread. The caller must own the lock when invoking \lstinline{unlock()}.
 This is not a concrete class but a requirement on types: all the mutex classes implement it, and
 user-defined lock types can as well.  Classes that are generic over a \lstinline{BasicLockable}
 can operate on any such implementation.
