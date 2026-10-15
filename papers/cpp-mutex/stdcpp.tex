@@ -388,11 +388,14 @@ implementation-specific predicates describe the change in ownership.
 For example, the \lstinline{std::mutex} instance defines $\mathsf{do\_lock}$ to exchange the
 calling thread's $\mathsf{not\_locked}$ predicate for the protected resource and the $\mathsf{m\_locked}$ predicate, and $\mathsf{do\_unlock}$ to perform the reverse exchange.  The
 recursive and shared mutexes instantiate the same interface with their own
-predicates.  Thus clients can use the two generic specifications without
+predicates. Thus clients can use the two generic specifications without
 depending on the particular mutex representation.
 
 \subsection{\lstinline{std::lock_guard}}
-\begin{figure}[htb]
+The \lstinline{lock_guard} template is C++'s basic RAII class, a container for a
+single lock; a \lstinline{lock_guard} object takes an arbitrary
+\lstinline{BasicLockable} as an argument, acquires it when constructed,
+and releases it when destroyed, like in this example:
 \begin{lstlisting}
   std::mutex m;
   int size;
@@ -402,13 +405,12 @@ depending on the particular mutex representation.
     return size;
   }
 \end{lstlisting}
-\caption{A simple use of \lstinline{std::lock_guard} with a \lstinline{mutex}}
-\label{lock-guard-ex}
-\end{figure}
+The mutex \lstinline{m} protects the value of \lstinline{size}; the
+\lstinline{lock_guard} object \lstinline{lock} in \lstinline{get_size} both calls
+\lstinline{lock} (at line 5) and ensures \lstinline{unlock} is called on all
+exit paths (here, only one).
 
-The \lstinline{lock_guard} class C++'s basic RAII class, a container for a single lock. It is a templated class that takes an arbitrary \lstinline{BasicLockable} class as an argument, acquires it when constructed, and releases it when destroyed. A simple example of its use is shown in Figure~\ref{lock-guard-ex}. The mutex \lstinline{m} is meant to protect the value of \lstinline{size}, and the \lstinline{lock_guard} object \lstinline{lock} in \lstinline{get_size} takes the place of calls to \lstinline{lock} and \lstinline{unlock}; \lstinline{m} is \lstinline{lock}ed at line 5 and \lstinline{unlock}ed after reading \lstinline{size} but before \lstinline{get_size} returns.
-
-The \lstinline{lock_guard} class is parameterized by a \lstinline{BasicLockable} and class, our specification is likewise parameterized, calling $\mathsf{do\_lock}$ on creation and $\mathsf{do\_unlock}$ on destruction:
+Since the \lstinline{lock_guard} class is parameterized by a \lstinline{BasicLockable} class, our specification is likewise parameterized, calling $\mathsf{do\_lock}$ on creation and $\mathsf{do\_unlock}$ on destruction:
 \[\begin{array}{c}
 \{p \mapsto R(q, m) \ast \dolock{p}{m}{K}\}\ \texttt{lock\_guard(p)}\ \{g.\ g \mapsto \lguard(p, q, m) \ast K\} \vspace{.5em}\\
 \{g \mapsto \lguard(p, q, m) \ast \dounlock{p}{m}{K}\}\}\ \texttt{g.}\!\!\sim\!\texttt{lock\_guard}()\ \{K \ast p \mapsto R(q, m)\}
