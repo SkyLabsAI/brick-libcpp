@@ -10,13 +10,14 @@ Require Import skylabs.cpp.spec.concepts.
 
 NES.Begin std.allocator_traits.
 
-  Class IsAllocator `{Σ : cpp_logic,σ : genv} (ty : type) :=
+  (** Independent of the logic, so that [size_type ty] is a closed term for
+      concrete allocators (the automation evaluates names that mention it).
+      Specs that need the allocator's representation take [BundledRep]. *)
+  Class IsAllocator (ty : type) :=
     { size_type : type ;
-      alloc_state : Set ;
       #[global] size_type_is_prim_int :: PrimVal size_type Z ;
-      #[global] is_RepFor :: BundledRep ty alloc_state ;
     }.
-  Arguments size_type {_ _ _ _} ty {_}.
+  Arguments size_type ty {_}.
 
 NES.End std.allocator_traits.
 
@@ -34,9 +35,8 @@ NES.Begin std.allocator.
 
   #[global] Instance R_HasRep `{Σ : cpp_logic,σ : genv} ty : BundledRep (T ty) () := {| objR := R ty |}.
 
-  #[global] Instance is_allocator `{Σ : cpp_logic,σ : genv} (ty : type) : IsAllocator (T ty) :=
-    {| size_type := "unsigned long" ;
-       alloc_state := () |}.
+  #[global] Instance is_allocator (ty : type) : IsAllocator (T ty) :=
+    {| size_type := "unsigned long" |}.
 
   Section with_cpp.
     Context `{Σ : cpp_logic, σ : genv}.

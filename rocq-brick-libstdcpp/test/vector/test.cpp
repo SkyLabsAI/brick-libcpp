@@ -98,6 +98,21 @@ TestAllocCtor() {
     test(v.size() == 0);
 }
 
+// [vector.cons]: n default-inserted (here, value-initialized) elements, or n
+// copies of a value.
+// TODO: also use the default allocator argument (`vector<int> v(3)`), once the
+// automation materializes the `const allocator<int>` temporary it creates.
+void
+TestSizedCtor() {
+    allocator<int> a;
+    vector<int> v(3, a);
+    test(v.size() == 3);
+    test(v[2] == 0);
+    vector<int> w(2, 7, a);
+    test(w.size() == 2);
+    test(w[1] == 7);
+}
+
 int
 main() {
     TestBasic();

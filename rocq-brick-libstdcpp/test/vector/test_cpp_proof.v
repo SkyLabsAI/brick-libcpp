@@ -185,6 +185,9 @@ Section with_cpp.
     cpp.spec "TestAggregate()" as test_aggregate with
         (\post emp).
 
+    cpp.spec "TestSizedCtor()" as test_sized_ctor with
+        (\post emp).
+
     cpp.spec "main()" as main with
         (\post[Vint 0] emp).
 
@@ -262,10 +265,18 @@ Section with_cpp.
     Proof using MOD.
       verify_spec.
       go.
-      iExists (). iFrame. iIntros "?". go.
+      iExists _, (). iFrame. iIntros "?". go.
     Qed.
     Definition test_alloc_ctor_B := [LINK] test_alloc_ctor_ok.
     #[local] Hint Resolve test_alloc_ctor_B : sl_opacity.
+
+    Lemma test_sized_ctor_ok : verify[ source ] test_sized_ctor.
+    Proof using MOD.
+      verify_spec.
+      go.
+      iExists _, (). iFrame. iIntros "?". go.
+      iExists _, (). iFrame. iIntros "?". go.
+    Qed.
 
     Lemma test_aggregate_ok : verify[ source ] test_aggregate.
     Proof using MOD.
