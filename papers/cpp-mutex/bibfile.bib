@@ -3477,9 +3477,138 @@ series = {ICFP '11}
   acknowledgement = ack-nhfb,
 }
 
-@misc{brick,
+@website{brick,
   title = "The {BRiCk} Project",
-  authors = "Gregory Malecha, Paolo Giarrusso, David Swasey, Hai Dang, František Farka, Abhishek Anand, Hai Dang",
+  author = "Gregory Malecha and Paolo Giarrusso and David Swasey and Hai Dang and František Farka and Abhishek Anand and Hai Dang",
   howpublished = {\url{https://github.com/SkylabsAI/BRiCk}},
   year = {2025}
+}
+
+@website{pthread, title={pthread.h -- threads}, url={https://pubs.opengroup.org/onlinepubs/9799919799/}, journal={The Open Group Base Specifications Issue 8}, author={The IEEE and The Open Group}, year={2024}} 
+
+@inproceedings{futex,
+  title={Fuss, futexes and furwocks: Fast userlevel locking in Linux},
+  author={Franke, Hubertus and Russell, Rusty and Kirkwood, Matthew},
+  booktitle={AUUG Conference Proceedings},
+  volume={85},
+  pages={479--495},
+  year={2002},
+  organization={AUUG, Inc}
+}
+
+@website{heaplang-rw-lock, title={rw\_spin\_lock.v}, url={https://gitlab.mpi-sws.org/iris/iris/-/blob/master/iris_heap_lang/lib/rw_spin_lock.v}, author={Isaac van Bakel and Ralf Jung and Robbert Krebbers and Ike Mulder}, year={2023}}
+
+@inproceedings{brick-os,
+author = {Malecha, Gregory and Dang, Hoang-Hai and Giarrusso, Paolo G. and Hudon, Simon and Kaiser, Jan-Oliver and Swasey, David},
+title = {Modular, Full-System Verification},
+year = {2025},
+isbn = {9798400714757},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3713082.3730387},
+doi = {10.1145/3713082.3730387},
+abstract = {We present an approach to specifying operating systems that is both highly modular and supports deriving various properties necessary to modern operating systems. The approach combines a machine semantics decomposed by privilege levels with a separation logic specification of the operating system API. We describe how the specification style enables natural proofs of robust safety in addition to deep behavioral refinements of user-mode applications running atop the OS. This approach enables simple and flexible concurrent specifications and unlocks new opportunities for whole-system verification.},
+booktitle = {Proceedings of the 2025 Workshop on Hot Topics in Operating Systems},
+pages = {42–49},
+numpages = {8},
+keywords = {Formal verification, Iris, Multi-core verification, Operating system specification, Separation logic},
+location = {Banff, AB, Canada},
+series = {HotOS '25}
+}
+
+@InProceedings{cakeml-io,
+author="F{\'e}r{\'e}e, Hugo
+and {\AA}man Pohjola, Johannes
+and Kumar, Ramana
+and Owens, Scott
+and Myreen, Magnus O.
+and Ho, Son",
+editor="Piskac, Ruzica
+and R{\"u}mmer, Philipp",
+title="Program Verification in the Presence of I/O",
+booktitle="Verified Software. Theories, Tools, and Experiments",
+year="2018",
+publisher="Springer International Publishing",
+address="Cham",
+pages="88--111",
+abstract="Software verification tools that build machine-checked proofs of functional correctness usually focus on the algorithmic content of the code. Their proofs are not grounded in a formal semantic model of the environment that the program runs in, or the program's interaction with that environment. As a result, several layers of translation and wrapper code must be trusted. In contrast, the CakeML project focuses on end-to-end verification to replace this trusted code with verified code in a cost-effective manner.",
+isbn="978-3-030-03592-1"
+}
+
+@article{irc11-rcu,
+author = {Jung, Jaehwang and Park, Sunho and Lee, Janggun and Yeon, Jeho and Kang, Jeehoon},
+title = {Verifying General-Purpose RCU for Reclamation in Relaxed Memory Separation Logic},
+year = {2025},
+issue_date = {June 2025},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {9},
+number = {PLDI},
+url = {https://doi.org/10.1145/3729246},
+doi = {10.1145/3729246},
+abstract = {Read-Copy-Update (RCU) is a critical synchronization mechanism for concurrent data structures, enabling efficient deferred memory reclamation. However, implementing and using RCU correctly is challenging due to its inherent concurrency complexities. While previous work verified RCU, they either relied on unrealistic assumptions of sequentially consistent (SC) memory model or lacked three key features of general-purpose RCU libraries: modular specification, switchable critical sections, and concurrent writer support.We present the first formal verification of a general-purpose RCU in realistic relaxed memory consistency (RMC), addressing the challenges posed by these features. To achieve modular specification that encompasses relaxed behaviors, we extend existing SC specifications to account for explicit synchronization. To support switchable critical sections, which require read-after-write (RAW) synchronization, we introduce a reasoning principle for RAW-synchronizing SC fences. Using this principle, we also present the first formal verification of Peterson's mutex in RMC. To support concurrent writers performing partially ordered writes, we avoid assuming a total order of links and instead formulate invariants based on per-node incoming link histories. Our proofs are mechanized in the iRC11 relaxed memory separation logic, built upon Iris, in Rocq.},
+journal = {Proc. ACM Program. Lang.},
+month = jun,
+articleno = {147},
+numpages = {25},
+keywords = {separation logic, relaxed memory, Read-Copy-Update}
+}
+
+@InProceedings{vercors-reentrant,
+author="Haack, Christian
+and Huisman, Marieke
+and Hurlin, Cl{\'e}ment",
+editor="Ramalingam, G.",
+title="Reasoning about Java's Reentrant Locks",
+booktitle="Programming Languages and Systems",
+year="2008",
+publisher="Springer Berlin Heidelberg",
+address="Berlin, Heidelberg",
+pages="171--187",
+abstract="This paper presents a verification technique for a concurrent Java-like language with reentrant locks. The verification technique is based on permissionaccounting separation logic. As usual, each lock is associated with a resource invariant, i.e., when acquiring the lock the resources are obtained by the thread holding the lock, and when releasing the lock, the resources are released. To accommodate for reentrancy, the notion of lockset is introduced: a multiset of locks held by a thread. Keeping track of the lockset enables the logic to ensure that resources are not re-acquired upon reentrancy, thus avoiding the introduction of new resources in the system. To be able to express flexible locking policies, we combine the verification logic with value-parameterized classes. Verified programs satisfy the following properties: data race freedom, absence of null-dereferencing and partial correctness. The verification technique is illustrated on several examples, including a challenging lock-coupling algorithm.",
+isbn="978-3-540-89330-1"
+}
+
+@article{vercors-locks,
+  title={Formal Specifications for Java's Synchronisation Classes},
+  author={Afshin Amighi and Stefan Blom and Marieke Huisman and Wojciech Mostowski and Marina Zaharieva-Stojanovski},
+  journal={2014 22nd Euromicro International Conference on Parallel, Distributed, and Network-Based Processing},
+  year={2013},
+  pages={725-733},
+  url={https://api.semanticscholar.org/CorpusID:2012028}
+}
+
+@inproceedings{rust-stdlib,
+author = {Cook, Byron and Delmas, Remi and Hassan, Zyad and Jacobs, Bart and Jhala, Ranjit and Kumar, Rahul and Monteiro, Felipe R. and Nguyen, Thanh and Rumbul, Rebecca and Tautschnig, Michael and Val, Celina and Zech, Carolyn},
+title = {Verifying the Rust Standard Library},
+year = {2026},
+isbn = {978-3-032-28078-7},
+publisher = {Springer-Verlag},
+address = {Berlin, Heidelberg},
+url = {https://doi.org/10.1007/978-3-032-28079-4_19},
+doi = {10.1007/978-3-032-28079-4_19},
+abstract = {Rust’s type system prevents many classes of memory errors, yet its standard library relies heavily on unsafe code whose correctness is validated through testing, including dynamic checks under Miri, but lacks static verification. We present what is, to the best of our knowledge, the largest verification campaign reported for a software library: an open, crowdsourced effort that integrates complementary verification tools into the continuous integration of a verification repository forked from the Rust standard library. We analyze the campaign’s effectiveness, discuss the practical value of machine-checked proofs for a subset of undefined behaviors (e.g., out-of-bounds access, null and dangling pointer dereferences, and use of uninitialized memory), and frame the remaining obstacles as open challenges for the formal-methods community.},
+booktitle = {NASA Formal Methods: 18th International Symposium, NFM 2026, Los Angeles, CA, USA, May 5–7, 2026, Proceedings},
+pages = {415–435},
+numpages = {21}
+}
+
+@misc{libcpp-tests,
+  author       = {{LLVM Project Authors}},
+  title        = {LLVM Project: libc++ tests},
+  year         = {2026},
+  howpublished = {\url{https://github.com/llvm/llvm-project/tree/ca7933e47d3a3451d81e72ac174dcb5aa28b59d1/libcxx/test/std/thread/thread.mutex}},
+  note          = {Accessed: 2026-10-14. Release llvmorg-22.1.8, commit ca7933e.}
+}
+
+@inproceedings{vercors,
+  author    = {Stefan Blom and Marieke Huisman},
+  title     = {The VerCors Tool for Verification of Concurrent Programs},
+  booktitle = {{FM}},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {8442},
+  pages     = {127--131},
+  publisher = {Springer},
+  year      = {2014},
+  url       = {https://link.springer.com/chapter/10.1007/978-3-319-06410-9_9}
 }
