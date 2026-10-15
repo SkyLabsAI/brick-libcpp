@@ -458,7 +458,7 @@ class Mutex2 {
   (*@ $\{\currentthread{t} \ast m \mapsto_\pi \mutex{N, \gamma}{P}\ast\notlocked{N, \gamma}{t}{q}\}$ @*)
   void lock(){
     while(lock.exchange(true)) { yield(); }
-    (*@ $\{ \currentthread{t} \ast m \mapsto_\pi \mutex{N, \gamma}{P}\ast P \ast \ownGhost{}{\authfrag \bot} \ast \texttt{owner} \mapsto \bot \}$ @*)
+    (*@ $\{ \currentthread{t} \ast m \mapsto_\pi \mutex{N, \gamma}{P}\ast P \ast \ownGhost{}{\authfrag (t, q)} \ast \texttt{owner} \mapsto \bot \}$ @*)
     owner = get_id();
   }
   (*@ $\{\currentthread{t} \ast m \mapsto_\pi \mutex{N, \gamma}{P}\ast P\ast\locked{N, \gamma}{t}{q}\}$ @*)
