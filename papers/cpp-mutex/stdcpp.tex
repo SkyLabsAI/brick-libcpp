@@ -513,7 +513,7 @@ For question 2, recall that our specifications for \lstinline{recursive_mutex} a
 \end{array}\]
 The $\mathsf{holds}$ predicate takes a thread $t$ that must match the current thread, and we must have it at line 15 %%confirm
 in order to acquire \lstinline{mut}. On the other hand, \lstinline{transfer_to} is a function that can be called by any thread that has access to the two accounts involved, and should have a specification like
-\[ \{ a \mapsto_q \mathsf{account}_A \ast b \mapsto_q \mathsf{account}_B \}\ \texttt{a.transfer\_to(b, n)}\ \{ a \mapsto_q \mathsf{account}_A \ast b \mapsto_q \mathsf{account}_B \}\]
+\[ \{ a \mapsto_q \mathsf{account}_A \ast b \mapsto_q \mathsf{account}_B \}\ \texttt{a.transfer\_to(b, n)}\ \{ a \mapsto_q \mathsf{account}_A \ast b \mapsto_q \mathsf{account}_B \}\]\footnote{Here we focus on demonstrating the object access patterns. Proving a more interesting spec about the account balances is possible with more ghost states, but that is orthogonal to the discussion here.}
 In particular, if $\mathsf{account}$ takes a thread $t$ as an argument, then we will not be able to freely transfer ownership of it between threads (since it would only be usable by that thread $t$). The mutex permission library allows us to isolate this thread-local information. 
 
 The representation predicate for \lstinline{Account} is defined as
