@@ -555,7 +555,7 @@ class RecursiveMutex {
   RecursiveMutex() { owner = std::thread::id(); count = 0; m = new std::mutex(); }
   (*@ $\{\currentthread{t} \ast p \mapsto_\pi \rmutex{N, \gamma}{P}\ast\acquirable{N, \gamma}{t}{n}{q}{P}{a}\}$ @*)
   void lock(){
-    (*@ $\{ \currentthread{t} \ast p.\texttt{m} \mapsto_\pi \mutex{N, \gamma}{R(P)} \ast \knowInv{}{I_\gamma(P)}_\pi \ast \textrm{if } n = 0 \textrm{ then } \notlocked{N, \gamma}{t}{q} \textrm{ else } ... \}$ @*)
+    (*@ $\{ \currentthread{t} \ast p.\texttt{m} \mapsto_\pi \mutex{N, \gamma}{R(P)} \ast \knowInv{}{I_{N, \gamma}(P)}_\pi \ast \textrm{if } n = 0 \textrm{ then } \notlocked{N, \gamma}{t}{q} \textrm{ else } ... \}$ @*)
     if(owner != std::this_thread::get_id()){
       (*@ $\{ ... \ast n = 0 \ast \notlocked{N, \gamma}{t}{q} \}$ @*)
       m.lock();
@@ -584,7 +584,7 @@ class RecursiveMutex {
 \label{rmutex-simple-proof}
 \end{figure}
 
-The proof of \lstinline{lock} is particularly subtle. The precondition includes $\acquirable{N, \gamma}{t}{n}{q}{P}{a}$, but we must consider separately the cases where $n = 0$ and $n > 0$. If $n > 0$, then we have $\ownGhost{}{\authfrag (t, q)}$, which in combination with the invariant $I_\gamma(P)$ tells us that the value of the \lstinline{owner} field is exactly $t$, and so the condition of the \lstinline{if} will fail and we will simply increment the count (which we already own as part of $\mathsf{holds}$). On the other hand, if $n = 0$, then we have $\notlocked{N, \gamma}{t}{q}$, which in combination with the invariant $I_\gamma(P)$ tells us that $t$ \emph{cannot} be the current owner: $o$ may be $\bot$ or $(t', q)$, but if $t' = t$ then the invariant would hold $\locked{N, \gamma}{t}{q}$, which is inconsistent with $\notlocked{N, \gamma}{t}{q}$. Thus, in the 0 case the condition of the \lstinline{if} will succeed and we will acquire the underlying mutex \lstinline{m}, gaining access to the resources needed to increment \lstinline{count} and establish $\acquirable{N, \gamma}{t}{1}{q}{P}{a}$.
+The proof of \lstinline{lock} is particularly subtle. The precondition includes $\acquirable{N, \gamma}{t}{n}{q}{P}{a}$, but we must consider separately the cases where $n = 0$ and $n > 0$. If $n > 0$, then we have $\ownGhost{}{\authfrag (t, q)}$, which in combination with the invariant $I_{N, \gamma}(P)$ tells us that the value of the \lstinline{owner} field is exactly $t$, and so the condition of the \lstinline{if} will fail and we will simply increment the count (which we already own as part of $\mathsf{holds}$). On the other hand, if $n = 0$, then we have $\notlocked{N, \gamma}{t}{q}$, which in combination with the invariant $I_{N, \gamma}(P)$ tells us that $t$ \emph{cannot} be the current owner: $o$ may be $\bot$ or $(t', q)$, but if $t' = t$ then the invariant would hold $\locked{N, \gamma}{t}{q}$, which is inconsistent with $\notlocked{N, \gamma}{t}{q}$. Thus, in the 0 case the condition of the \lstinline{if} will succeed and we will acquire the underlying mutex \lstinline{m}, gaining access to the resources needed to increment \lstinline{count} and establish $\acquirable{N, \gamma}{t}{1}{q}{P}{a}$.
 
 The proof of \lstinline{unlock} is simpler, since it can only be called by a thread with $\mathsf{holds}$ at $n + 1 > 0$; thus, the thread already owns \lstinline{count}, and needs only to check whether it has set \lstinline{count} to 0 and, if so, retrieve $\locked{N, \gamma}{t}{q}$ from the invariant and release \lstinline{m}.
 
