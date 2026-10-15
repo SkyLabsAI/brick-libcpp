@@ -294,7 +294,7 @@ Accordingly, in our specifications each user of a shared mutex has one of three 
   \texttt{m.unlock()} \\[-1pt]
 \{\currentthread{t} \ast m \mapsto_\pi \smutex{N, \gamma}{P}\ast\notlocked{N, \gamma}{t}{q}\} \\[1.8em]
 
-\{\currentthread{t} \ast m \mapsto_\pi \smutex{N, \gamma}{P}\ast\notlocked{N, \gamma}{t}\}\\
+\{\currentthread{t} \ast m \mapsto_\pi \smutex{N, \gamma}{P}\ast\notlocked{N, \gamma}{t}{q}\}\\
   \texttt{m.lock\_shared()} \\[-1pt]
 \{\currentthread{t} \ast m \mapsto_\pi \smutex{N, \gamma}{P}\ast\exists q_P.\;\smreaderlocked{N, \gamma}{t}{q}{q_P} \ast P(q_P)\} \\[1.8em]
 
@@ -608,7 +608,7 @@ Recall from Section~\ref{shared-mutex} that the two \lstinline{lock} methods are
   \texttt{m.lock()} \\[-1pt]
 \{\currentthread{t} \ast m \mapsto_\pi \smutex{N, \gamma}{P}\ast P(1)\ast\smlocked{N, \gamma}{t}{q}\} \\[1.8em]
 
-\{\currentthread{t} \ast m \mapsto_\pi \smutex{N, \gamma}{P}\ast\notlocked{N, \gamma}{t}\}\\
+\{\currentthread{t} \ast m \mapsto_\pi \smutex{N, \gamma}{P}\ast\notlocked{N, \gamma}{t}{q}\}\\
   \texttt{m.lock\_shared()} \\[-1pt]
 \{\currentthread{t} \ast m \mapsto_\pi \smutex{N, \gamma}{P}\ast\exists q_P.\;\smreaderlocked{N, \gamma}{t}{q}{q_P} \ast P(q_P)\} \end{array}\]
 Each thread that holds the mutex has two shares associated with it: the fraction $q$ from $\mathsf{not\_locked}$ (representing a share of the token used to ensure that there are no owners at deallocation), and the fraction $q_P$ of the protected resource $P$ (which is 1 for a writer and arbitrary for a reader). Thus, the state of the shared mutex can be modeled as a map from thread IDs to pairs of shares $(q, q_P)$. The central invariant of the shared mutex is then
