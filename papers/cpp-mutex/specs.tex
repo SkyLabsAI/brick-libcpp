@@ -468,14 +468,20 @@ class Mutex2 {
   (*@ $\{\currentthread{t} \ast m \mapsto_\pi \mutex{N, \gamma}{P}\ast\locked{N, \gamma}{t}{q}
       \ast\triangleright P\}$ @*)
   void unlock(){
+    (*@ $\{\currentthread{t} \ast m \mapsto_\pi \mutex{N, \gamma}{P}\ast \ownGhost{}{\authfrag (t, q)} \ast \texttt{owner} \mapsto t
+      \ast\triangleright P\}$ @*)
     assert(owner == get_id());
     owner = std::thread::id();
+    (*@ $\{\currentthread{t} \ast m \mapsto_\pi \mutex{N, \gamma}{P}\ast \ownGhost{}{\authfrag (t, q)} \ast \texttt{owner} \mapsto \bot
+      \ast P\}$ @*)
     lock = false;
   }
   (*@ $\{\currentthread{t} \ast m \mapsto_\pi \mutex{N, \gamma}{P}\ast\notlocked{N, \gamma}{t}{q}\}$ @*)
 
   (*@ $\{m \mapsto \mutex{N, \gamma}{P} \ast \token{\gamma}{1}\}$ @*)
   ~Mutex2() {
+    (*@ $\{I_{N, \gamma}(P) \ast \token{\gamma}{1}\} \Rightarrow$ @*)
+    (*@ $\{\texttt{lock} \mapsto \mathsf{false} \ast P \ast \texttt{owner} \mapsto \bot \ast \token{\gamma}{1}\}$ @*)
     assert(!lock);
     assert(owner == std::thread::id()); //unowned
   }
