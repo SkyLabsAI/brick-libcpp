@@ -547,6 +547,7 @@ public:
     (*@ $\{ \currentthread{t} \ast a.\texttt{mut} \mapsto_q \rmutex{A, \gamma}{\lambda n.\,p.\texttt{balance} \mapsto n} \ast \notlocked{A, \gamma}{t}{q} \}$ @*) 
     std::lock_guard<std::recursive_mutex> lg(mut);
     balance += i;
+    // lg.~lock_guard()
     (*@ $\{ \currentthread{t} \ast a.\texttt{mut} \mapsto_q \rmutex{A, \gamma}{\lambda n.\ p.\texttt{balance} \mapsto n} \ast \notlocked{A, \gamma}{t}{q} \} \Rightarrow$ @*)
     (*@ $\{ \currentthread{t} \ast a.\texttt{mut} \mapsto_q \rmutex{A, \gamma}{\lambda n.\ p.\texttt{balance} \mapsto n} \ast \mathsf{token}_A(q) \ast \mutexperm{t}{A} \}$ @*)
   }
