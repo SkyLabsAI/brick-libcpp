@@ -473,7 +473,7 @@ class Mutex2 {
     lock = false;
   }
   (*@ $\{\currentthread{t} \ast m \mapsto_\pi \mutex{N, \gamma}{P}\ast\notlocked{N, \gamma}{t}{q}\}$ @*)
-  
+
   (*@ $\{m \mapsto \mutex{N, \gamma}{P} \ast \token{\gamma}{1}\}$ @*)
   ~Mutex2() {
     assert(!lock);
@@ -519,7 +519,7 @@ class RecursiveMutex {
 \label{rmutex-simple}
 \end{figure}}
 
-The simplest way to implement a recursive mutex is by combining an underlying non-recursive mutex \lstinline{m} with an integer \lstinline{count}: each thread's first acquire and last release of the recursive mutex (per critical section) are performed on \lstinline{m}, while all intervening operations by the same thread only increment and decrement \lstinline{count}. Threads must check whether they already hold the recursive mutex before locking \lstinline{m}, so the \lstinline{owner} field may be accessed concurrently and must be atomic\footnote{Because atomic objects are currently not supported in BRiCk, in the formalization, the \lstinline|owner| field instead stores the \lstinline|std::hash| of the thread ID (which is a primitive type), and we additionally assume no hash collisions for the thread IDs. This is orthogonal to the contents of the paper.}.
+The simplest way to implement a recursive mutex is by combining an underlying non-recursive mutex \lstinline{m} with an integer \lstinline{count}: each thread's first acquire and last release of the recursive mutex (per critical section) are performed on \lstinline{m}, while all intervening operations by the same thread only increment and decrement \lstinline{count}. Threads must check whether they already hold the recursive mutex before locking \lstinline{m}, so the \lstinline{owner} field may be accessed concurrently and must be atomic\footnote{Because atomic aggregates are currently not supported in BRiCk, in the formalization, the \lstinline|owner| field instead stores the \lstinline|std::hash| of the thread ID (which is a primitive type), and we additionally assume no hash collisions for the thread IDs. This is orthogonal to the contents of the paper.}.
 
 Because the implementation includes both a mutex and an atomic field, the resources associated with the recursive mutex are divided across \emph{three} places: the mutex's protected resources, an invariant (containing atomically accessed resources), and the thread holding the lock (i.e., the $\mathsf{holds}$ predicate for $n > 0$). For a resource function $P$, these three parts are defined as follows:
 \[\begin{array}{l}%vertical spacing
