@@ -258,9 +258,9 @@ where $\mathsf{acquire}(n, a, a') \triangleq (n > 0 \Rightarrow a' = a)$ allows 
   (*@ $\{ \texttt{m} \mapsto_q \rmutex{N, \gamma}{P} \ast \acquirable{N, \gamma}{t}{n}{q}{P}{(a,b)} \}$ @*)
   void transfer(int x) {
     m.lock();
-    (*@ $\{ ... \ast \acquirable{N, \gamma}{t}{n+1}{q}{P}{(a,b)} \} \Rightarrow$ @*)
-    (*@ $\{ ... \ast P(a, b) \ast (\forall a', b'.\ P(a', b') \wand \acquirable{N, \gamma}{t}{n+1}{q}{P}{(a',b')}) \}$ @*)
+    (*@ $\{ ... \ast \acquirable{N, \gamma}{t}{n+1}{q}{P}{(a,b)} \} $ @*)
     update_a(x);
+    (*@ $\{ ... \ast \acquirable{N, \gamma}{t}{n+1}{q}{P}{(a+x,b)} \} $ @*)
     update_b(-(long)x);
     (*@ $\{ ... \ast \acquirable{N, \gamma}{t}{n+1}{q}{P}{(a+x,b-x)} \}$ @*)
     m.unlock();
