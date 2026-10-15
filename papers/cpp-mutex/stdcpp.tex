@@ -392,10 +392,13 @@ predicates. Thus clients can use the two generic specifications without
 depending on the particular mutex representation.
 
 \subsection{\lstinline{std::lock_guard}}
-The \lstinline{lock_guard} template is C++'s basic RAII class, a container for a
-single lock; a \lstinline{lock_guard} object takes an arbitrary
-\lstinline{BasicLockable} as an argument, acquires it when constructed,
-and releases it when destroyed, like in this example:
+% TODO fix linebreaks
+The \lstinline{lock_guard} template is C++'s basic RAII class: a
+\lstinline{lock_guard} object takes an arbitrary
+\lstinline{BasicLockable}
+as an argument, acquires it when constructed,
+and releases it when destroyed.
+Consider this example:
 \begin{lstlisting}
   std::mutex m;
   int size;
