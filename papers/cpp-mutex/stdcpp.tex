@@ -340,7 +340,7 @@ Support for daring concurrency is a strength of CSL, but typical locks (such
 as pthread~\cite{pthread} ones) add further restrictions: for instance, locks must only be
 released by the thread that acquired them (forbidding daring concurrency), or
 must only be deallocated if not held.
-Hence, mutex specifications in this paper account for the restrictions and
+The mutex specifications we develop in this paper account for the restrictions and
 features of the C++ standard library.
 
 \subsection{The BRiCk Logic for C++}
@@ -362,7 +362,7 @@ One feature of BRiCk that is particularly relevant to our work is thread-specifi
 \newcommand{\ulock}[0]{\ensuremath{\mathsf{ulock}}}
 
 Managing locks manually is error-prone: it is easy to write code that acquires the same lock twice, forgets to release a lock, or releases a lock that has not been acquired. The Resource Acquisition Is Initialization (RAII) pattern avoids these problems by connecting lock ownership to the lifetime of an object: the lock is acquired when the object is created and released when the object is destroyed, thus enjoying the guarantees of the language's memory management (an object will only be created and destroyed once each, will only be destroyed after it is created, will eventually be destroyed if unused, etc.). In this section we give specifications for two\footnote{In our Rocq development we also specify \lstinline{scoped_lock}, which takes a list of locks and acquires/releases them in an order guaranteed to avoid deadlock, but because we are working in a partial-correctness logic these specifications are not any more complicated and we do not discuss them here.} of the C++ standard library's RAII lock classes, \lstinline{lock_guard} and \lstinline{unique_lock}, and show how they build on our mutex specifications. %Their basic specifications are simple: the object's constructor has the same specification as the underlying lock's \lstinline{lock} method, and the destructor has the same specification as the underlying \lstinline{unlock}. The \lstinline{unique_lock} adds some complexity by allowing the user to manually acquire, release, and change the lock associated with the object.
-The standard library implementations of \lstinline{lock_guard} and \lstinline{unique_lock} are simple enough that we were able to verify them directly against our specifications.
+The libstdc++ implementations of \lstinline{lock_guard} and \lstinline{unique_lock} are simple enough that we were able to verify them directly against our specifications.
 
 \subsection{Generic \lstinline{lock} and \lstinline{unlock}}
 \label{basic-lockable}
