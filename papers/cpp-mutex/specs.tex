@@ -149,7 +149,7 @@ Finally, the main thread joins with the spawned thread and recollects its shares
     (*@ $\{ \currentthread{t_0} \ast \texttt{m} \mapsto \mutex{N, \gamma}{P} \ast \token{\gamma}{1} \ast \mutexperm{t_0}{\top} \}$ @*)
   }
 \end{lstlisting}
-\caption{An example program using \lstinline{std::mutex} and its proof outline\kedu{can we use t0 for the main thread, t1 for the spawned thread, and t for a general thread (used in double\_incr)?} \wm{We can, but the spawned thread's ID never actually appears, since it just runs a thread-generic function.}}
+\caption{An example program using \lstinline{std::mutex} and its proof outline}
 \label{mutex-ex-proof}
 \end{figure}
 
