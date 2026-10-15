@@ -552,7 +552,7 @@ public:
   }
   (*@ $\{ \currentthread{t} \ast a \mapsto_q \mathsf{account}_A \ast \mutexperm{t}{A}\}$ @*)
 
-  void transfer_to(Account target, unsigned long i) { %%needs outline
+  void transfer_to(Account target, unsigned long i) {
     std::lock_guard<std::recursive_mutex> lg(mut);
     balance -= i;
     target.incr_balance(i);
