@@ -288,6 +288,11 @@ NES.Begin std.
             \with basep i
             \let  itemp := basep .[ ty ! i ]
             \prepost{q} this |-> R_base const ty alloc_ty q basep i
+            (* [*it] requires [it] to be dereferenceable ([input.iterators]):
+               an element of the vector, so not null or past the end. As for
+               raw pointers, this does not establish that the element is alive
+               (cf. #211). *)
+            \persist type_ptr ty itemp
             \post[Vref itemp] emp.
         #[global] Hint Opaque iter_deref : sl_opacity.
         #[global] Arguments iter_deref : simpl never.
@@ -299,17 +304,9 @@ NES.Begin std.
           specify.template.op (N_base const ty alloc_ty) OOPlusPlus qf (T_base const ty alloc_ty) [Tint] $
             \this this
             \arg{dummy} "_ignored_" (Vint dummy)
-            (* TODO: we need a precondition to state that we don't go out of bounds.
-               Maybe something like:
-               <<
-                 \prepost range (T_base const ty) basep (basep .[ ty ! i ]) [basep .[ ty ! i ]] (basep .[ ty ! i + 1 ])
-               >>
-               this would have the following benefit:
-                - bounds can be checked even when a vector isn't around to specify the bounds
-                - available ranges, even if incomplete specify how far we can go with a given iterator
-                  even when we don't dereference them
-             *)
             \with basep i
+            (* [it++] requires [it] to be dereferenceable ([input.iterators]). *)
+            \persist type_ptr ty (basep .[ ty ! i ])
             \pre  this |-> R_base const ty alloc_ty 1$m basep i
             \post{prevp}[Vptr prevp]
               prevp |-> R_base const ty alloc_ty 1$m basep i **
@@ -324,7 +321,8 @@ NES.Begin std.
           specify.template.op (N_base const ty alloc_ty) OOPlusPlus qf (Tref (T_base const ty alloc_ty)) [] $
             \this this
             \with basep i
-            (* TODO bound-checking, like above *)
+            (* [++it] requires [it] to be dereferenceable ([input.iterators]). *)
+            \persist type_ptr ty (basep .[ ty ! i ])
             \pre             this |-> R_base const ty alloc_ty 1$m basep i
             \post[Vptr this] this |-> R_base const ty alloc_ty 1$m basep (i + 1).
         #[global] Hint Opaque iter_op_pre_inc : sl_opacity.
