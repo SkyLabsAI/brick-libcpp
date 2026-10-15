@@ -529,7 +529,7 @@ in order to acquire \lstinline{mut}. On the other hand, \lstinline{transfer_to} 
 \[ \{ a \mapsto_q \mathsf{account}_A \ast b \mapsto_q \mathsf{account}_B \}\ \texttt{a.transfer\_to(b, n)}\ \{ a \mapsto_q \mathsf{account}_A \ast b \mapsto_q \mathsf{account}_B \}\]
 In particular, if $\mathsf{account}$ takes a thread $t$ as an argument, then we will not be able to freely transfer ownership of it between threads (since it would only be usable by that thread $t$). The mutex permission library allows us to isolate this thread-local information. 
 
-\begin{figure}[htb]
+\begin{figure}[hp]
 \begin{lstlisting}[escapeinside    = {(*@}{@*)}]
 class Account {
 private:
@@ -553,11 +553,16 @@ public:
   }
   (*@ $\{ \currentthread{t} \ast a \mapsto_q \mathsf{account}_A \ast \mutexperm{t}{A}\}$ @*)
 
+  (*@ $\{ \currentthread{t} \ast a \mapsto_q \mathsf{account}_A \ast \mutexperm{t}{A} \ast b \mapsto_q \mathsf{account}_B \ast \mutexperm{t}{B} \}$ @*)
   void transfer_to(Account target, unsigned long i) {
+    (*@ $\{ \currentthread{t} \ast a.\texttt{mut} \mapsto_q \rmutex{A, \gamma}{\lambda n.\,p.\texttt{balance} \mapsto n} \ast \mathsf{token}_\gamma(q) \ast \mutexperm{t}{A} \ast ... \} \Rightarrow$ @*)
+    (*@ $\{ \currentthread{t} \ast a.\texttt{mut} \mapsto_q \rmutex{A, \gamma}{\lambda n.\,p.\texttt{balance} \mapsto n} \ast \notlocked{A, \gamma}{t}{q} \ast ... \}$ @*)
     std::lock_guard<std::recursive_mutex> lg(mut);
     balance -= i;
+    (*@ $\{ \currentthread{t} \ast ... \ast  b \mapsto_q \mathsf{account}_B \ast \mutexperm{t}{B} \}$ @*)
     target.incr_balance(i);
   }
+  (*@ $\{ \currentthread{t} \ast a \mapsto_q \mathsf{account}_A \ast \mutexperm{t}{A} \ast b \mapsto_q \mathsf{account}_B  \ast \mutexperm{t}{B} \}$ @*)
 }
 
 int main() {
@@ -565,7 +570,7 @@ int main() {
   Account from{4};
   Account to{2};
   (*@ $\{ \currentthread{t_0} \ast \mutexperm{t_0}{\top} \ast a \mapsto \mathsf{account}_A \ast b \mapsto \mathsf{account}_B \} \Rightarrow$ @*)
-  (*@ $\{ \currentthread{t_0} \ast \mutexperm{t_0}{\top \setminus A \setminus B} \ast \mutexperm{t_0}{A} \ast \mutexperm{t_0}{B} \ast a \mapsto \mathsf{account}_A \ast b \mapsto \mathsf{account}_B \}$ @*)
+  (*@ $\{ \currentthread{t_0} \ast \mutexperm{t_0}{\top \setminus A \setminus B} \ast \mutexperm{t_0}{A \uplus B} \ast a \mapsto \mathsf{account}_A \ast b \mapsto \mathsf{account}_B \}$ @*)
   from.transfer_to(to, 3);
 }
 \end{lstlisting}
@@ -579,10 +584,10 @@ The representation predicate for \lstinline{Account} is defined as
 Ownership of an \lstinline{Account} is simply ownership of the mutex protecting the \lstinline{balance} field plus a fraction of the mutex's $\mathsf{token}$. In particular, it makes no mention of a thread $t$ or the $\mathsf{holds}$ predicate. When we create an \lstinline{Account} we choose a namespace $N$ for it, which in turn is used as the namespace of its mutex field \lstinline{mut}. Inside \lstinline{incr_balance} and \lstinline{transfer_to}, we register the calling thread with $N$, %recap the registration rule
 acquire \lstinline{mut}, release \lstinline{mut} at the end of the method, and then unregister the thread. Registration requires both $\mutexperm{}{N}$ and $\token{N, \gamma}{q}$; the latter is part of $\mathsf{account}$, while the former is passed separately. Concretely, the specification we use for \lstinline{incr_balance} is:
 \[\begin{array}{c}
-\{ a \mapsto_q \mathsf{account}_A \ast \mutexperm{t}{A} \ast \currentthread{t} \} \\ \texttt{a.incr\_balance(i)}\\ 
-\{ a \mapsto_q \mathsf{account}_A \ast \mutexperm{t}{A} \ast \currentthread{t} \} \end{array}\]
+\{  \currentthread{t} \ast a \mapsto_q \mathsf{account}_A \ast \mutexperm{t}{A} \} \\ \texttt{a.incr\_balance(i)}\\ 
+\{  \currentthread{t} \ast a \mapsto_q \mathsf{account}_A \ast \mutexperm{t}{A} \} \end{array}\]
 and the specification for \lstinline{transfer_to} is:
-\[\begin{array}{c}\{ a \mapsto_q \mathsf{account}_A \ast b \mapsto_q \mathsf{account}_B \ast \mutexperm{t}{A} \ast \mutexperm{t}{B} \ast \currentthread{t} \}\\ \texttt{a.transfer\_to(b, n)}\\ \{ a \mapsto_q \mathsf{account}_A \ast b \mapsto_q \mathsf{account}_B  \ast \mutexperm{t}{A} \ast \mutexperm{t}{B} \ast \currentthread{t} \}
+\[\begin{array}{c}\{ \currentthread{t} \ast a \mapsto_q \mathsf{account}_A \ast \mutexperm{t}{A} \ast b \mapsto_q \mathsf{account}_B \ast \mutexperm{t}{B} \}\\ \texttt{a.transfer\_to(b, n)}\\ \{  \currentthread{t} \ast a \mapsto_q \mathsf{account}_A \ast \mutexperm{t}{A} \ast b \mapsto_q \mathsf{account}_B  \ast \mutexperm{t}{B} \}
 \end{array}\]
 By choosing distinct namespaces $A \neq B$ for the two accounts (and thus their mutexes), we can easily obtain $\mutexperm{t}{A} \ast \mutexperm{t}{B}$ from a thread's starting $\mutexperm{t}{\top}$. The full proof outline for the example is shown in Figure~\ref{transfer-proof}.
 
