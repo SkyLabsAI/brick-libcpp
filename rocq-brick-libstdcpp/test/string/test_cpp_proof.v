@@ -39,4 +39,13 @@ Section with_cpp.
   Lemma copy_assign_ok : verify[source] copy_assign_spec.
   Proof using MOD. verify_spec; case_bool_decide; go. Qed.
 
+  cpp.spec "FindChar(const std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&)" as find_char_spec with (
+    \arg{p} "s" (Vref p)
+    \prepost{q} p |-> basic_stringR "char" q "abca"
+    \prepost{qn} string_npos_global qn
+    \post[Vbool true] emp).
+
+  Lemma find_char_ok : verify[source] find_char_spec.
+  Proof using MOD. verify_spec; go. Qed.
+
 End with_cpp.
