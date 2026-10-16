@@ -56,3 +56,17 @@
  (rule
   (alias runtest)
   (action (diff null_ub.warnings.expected null_ub.warnings))))
+
+; The .cc runner is native-only and is not translated by dune-gen.sh.
+; Keep assertions enabled and check memory accesses during reallocation.
+(subdir vector
+ (rule
+  (targets alias_runtime.exe)
+  (deps alias_runtime.cc alias.cpp test.cpp)
+  (action
+   (run clang++ -std=c++20 -stdlib=libstdc++ -UNDEBUG
+    -fsanitize=address,undefined -fno-omit-frame-pointer
+    alias_runtime.cc -o alias_runtime.exe)))
+ (rule
+  (alias runtest)
+  (action (run ./alias_runtime.exe))))

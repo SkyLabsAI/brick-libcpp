@@ -554,15 +554,35 @@ NES.Begin std.
         Definition SpecFor_subscript := RegisterSpec (@subscript).
         #[global] Existing Instance SpecFor_subscript.
 
+        (** Select the source separately for each call: [None] preserves an
+            external source, while [Some i] reads a direct element of the
+            pre-call vector model. For [v.push_back(v[0])] with model [[7]],
+            use [iExists (Some 0%Z), (7%Z), (cQp.m 1); go]; an external lvalue uses
+            [iExists None; go]. Both cases use the same registered contract,
+            so one client may mix them without changing instances. The
+            fraction witness is used only for external sources.
+
+            An aliased source's old address need not survive reallocation.
+            Sources owned indirectly through an element's representation are
+            not covered. The rvalue overload has no alias case because
+            [res.on.arguments] permits assuming an rvalue reference is unique. *)
         Definition push_back_copy :=
           let qf := function_qualifiers.N in
           specify.template.method vector "push_back" qf Tvoid [Tref (Tconst ty)] $
             \this this
             \arg{p} "p" (Vref p)
-            \prepost{q x} p |-> objR ty q x
-            \pre{size st xs}
-                      this |-> R_cap (cQp.m 1) size st xs
-            \post     this |-> R_resized (cQp.m 1) (size + 1) st (xs ++ [x]).
+            \with (src : option Z) x
+            \prepost{q} match src with
+              | None => p |-> objR ty q x
+              | Some _ => emp
+              end
+            \pre{size st xs} this |-> R_cap (cQp.m 1) size st xs
+            \require match src with
+              | None => True
+              | Some i => 0 ≤ i ∧ p = base_pointer st .[ ty ! i ] ∧
+                  xs !! Z.to_nat i = Some x
+              end
+            \post this |-> R_resized (cQp.m 1) (size + 1) st (xs ++ [x]).
         #[global] Hint Opaque push_back_copy : sl_opacity.
         #[global] Arguments push_back_copy : simpl never.
         Definition SpecFor_push_back_copy := RegisterSpec push_back_copy.
@@ -659,26 +679,39 @@ NES.Begin std.
         Definition SpecFor_resize_default := RegisterSpec (@resize_default).
         #[global] Existing Instance SpecFor_resize_default.
 
+        (** Use the same source selector as [push_back_copy]. The value is
+            captured before the call: shrinking can erase its source, and
+            growing can invalidate the old address. Shrinking and unchanged
+            size preserve the original internal state directly. *)
         Definition resize `{!IsAllocator alloc_ty} :=
           let qf := function_qualifiers.N in
           specify.template.method vector "resize" qf Tvoid [size_type; Tref (Tconst ty)] $
             \this this
             \arg{new_size} "new_size" (Vint new_size)
-            \arg{vp}       "v0"       (Vptr vp)
-            \prepost{q v0} vp |-> objR ty q v0
-            \with size st xs
-            \pre  this |-> R_cap (cQp.m 1) size st xs
+            \arg{vp} "v0" (Vref vp)
+            \with (src : option Z) v0
+            \prepost{q} match src with
+              | None => vp |-> objR ty q v0
+              | Some _ => emp
+              end
+            \pre{size st xs} this |-> R_cap (cQp.m 1) size st xs
+            \require match src with
+              | None => True
+              | Some i => 0 ≤ i ∧ vp = base_pointer st .[ ty ! i ] ∧
+                  xs !! Z.to_nat i = Some v0
+              end
             \post
               ∃ xs',
                 (if bool_decide (size = new_size) then
                    [| xs' = xs |]
-                 else if bool_decide (new_size < size) then     (* it would be better to have [new_size ≤
-                                                                   size] for when neither [new_size = size]
-                                                                   nor [new_size ≠ size] *)
-                   [| xs' = takeN (Z.to_N new_size) xs |]       (* would [sliceZ] be better here (because of Z vs N)? *)
-                 else (* size < new_size *)
-                   [| xs' = xs ++ replicateZ (new_size - size) v0 |] ) ∗
-                this |-> R_resized (cQp.m 1) new_size st xs'.
+                 else if bool_decide (new_size < size) then
+                   [| xs' = takeN (Z.to_N new_size) xs |]
+                 else
+                   [| xs' = xs ++ replicateZ (new_size - size) v0 |]) ∗
+                (if bool_decide (new_size ≤ size) then
+                   this |-> R_cap (cQp.m 1) new_size st xs'
+                 else
+                   this |-> R_resized (cQp.m 1) new_size st xs').
         #[global] Hint Opaque resize : sl_opacity.
         #[global] Arguments resize : simpl never.
         Definition SpecFor_resize := RegisterSpec (@resize).
