@@ -185,6 +185,9 @@ Section with_cpp.
     cpp.spec "TestAggregate()" as test_aggregate with
         (\post emp).
 
+    cpp.spec "TestErase()" as test_erase with
+        (\post emp).
+
     cpp.spec "main()" as main with
         (\post[Vint 0] emp).
 
@@ -275,6 +278,14 @@ Section with_cpp.
     Definition test_aggregate_B := [LINK] test_aggregate_ok.
     #[local] Hint Resolve test_aggregate_B : sl_opacity.
 
+    Lemma test_erase_ok : verify[ source ] test_erase.
+    Proof using MOD.
+      verify_spec.
+      go.
+    Qed.
+    Definition test_erase_B := [LINK] test_erase_ok.
+    #[local] Hint Resolve test_erase_B : sl_opacity.
+
     Lemma test_ok : verify[ source ] test_spec.
     Proof using MOD.
       verify_spec.
@@ -300,6 +311,8 @@ Section with_cpp.
           std.vector.specs "unsigned" alloc_uint **
           std.vector.iterator.specs true "unsigned" alloc_uint **
           std.vector.iterator.specs false "int" alloc_int **
+          std.vector.iterator.specs true "int" alloc_int **
+          std.vector.iterator.iter_to_const "int" alloc_int **
           std.find_spec (std.vector.iterator.T "int") "int" source **
           std.allocator.specs "int" **
           std.cassert.specs)
