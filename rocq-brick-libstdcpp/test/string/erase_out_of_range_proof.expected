@@ -17,6 +17,9 @@
   ============================
   _ : denoteModule source
   _ : type_ptr
+        "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>"
+        p
+  _ : type_ptr
         "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&"
         s_addr
   _ : type_ptr "unsigned long"

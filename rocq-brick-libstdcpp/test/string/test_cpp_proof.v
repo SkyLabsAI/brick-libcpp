@@ -82,4 +82,25 @@ Section with_cpp.
   Lemma eraseatend_ok : verify[source] eraseatend_spec.
   Proof using MOD. verify_spec; go. Qed.
 
+  cpp.spec "FindA(const std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&)" as find_a_spec with (
+    \arg{p} "s" (Vref p)
+    \prepost{q s} p |-> basic_stringR "char" q s
+    \post[Vn (match string_find (N_to_byte 97) 0 s with
+               | Some i => N.of_nat i
+               | None => N.ones 64
+               end)] emp).
+
+  Lemma find_a_ok : verify[source] find_a_spec.
+  Proof using MOD. verify_spec; go. Qed.
+
+  cpp.spec "FindInLocal()" as find_in_local_spec with (\post emp).
+
+  Lemma find_in_local_ok : verify[source] find_in_local_spec.
+  Proof using MOD. verify_spec; go. Qed.
+
+  cpp.spec "FindInConstLocal()" as find_in_const_local_spec with (\post emp).
+
+  Lemma find_in_const_local_ok : verify[source] find_in_const_local_spec.
+  Proof using MOD. verify_spec; go. Qed.
+
 End with_cpp.

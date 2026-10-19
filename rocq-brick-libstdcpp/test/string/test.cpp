@@ -44,3 +44,20 @@ void EraseMiddle(std::string& s) {
 void EraseAtEnd(std::string& s) {
     s.erase(1);
 }
+
+std::string::size_type FindA(const std::string& s) {
+    return s.find('a');
+}
+
+// Binds a local std::string to FindA's const std::string& parameter.
+void FindInLocal() {
+    std::string s;
+    FindA(s);
+}
+
+// The same with a const local, which is made const after construction and
+// mutable again before destruction.
+void FindInConstLocal() {
+    const std::string s;
+    FindA(s);
+}
