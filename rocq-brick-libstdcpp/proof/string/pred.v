@@ -18,19 +18,12 @@ To support wider character types, we need to generalize this to something like `
 *)
 #[global] Abbreviation string_type := bs (only parsing).
 
+Parameter basic_stringR :
+  forall `{Σ : cpp_logic} {σ : genv} (value_type : type), cQp.t -> string_type -> Rep.
+
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
 
-  (** [basic_stringR] takes [σ] although nothing in its type needs it, as the
-      other abstract [Rep]s with a [type_ptr] instance do (e.g.
-      <<proof/mutex/spec/defer_lock_t.v>>). Without it, a hypothesis
-      [p |-> basic_stringR ...] cannot determine the [σ] of its [type_ptr]
-      observation. The automation's forward hint [observe_type_ptr_fwd] then
-      never fires (its [EnsureGenvInstantiated] premise stays open), and
-      binding a local <<std::string>> to a <<const std::string&>> gets stuck
-      at [reference_to]. *)
-  Parameter basic_stringR :
-    forall {σ : genv} (value_type : type), cQp.t -> string_type -> Rep.
   #[only(type_ptr="std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>",cfracsplittable)] derive basic_stringR.
 
   #[global] Instance: Cbn (Learn (learn_eq ==> any ==> learn_eq ==> learn_hints.fin) basic_stringR) := ltac:(solve_learnable).
