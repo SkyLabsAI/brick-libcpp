@@ -38,6 +38,8 @@ Section with_cpp.
       [None] for overloads without an alignment parameter or [Some al] for
       overloads passed [al]. Deallocation must match both, including the
       original alignment argument even when the address is more aligned.
+      Since the receipt already pins the alignment argument, aligned
+      deallocation does not separately require [alignedR].
 
       NOTE: While C++ often stores the size of the array next to a dynamically
       allocated array, the memory that backs this is **not** part of [allocatedR].
@@ -54,7 +56,7 @@ NES.Begin alloc.
 
   (** [tokenR_with_alignment ty alignment q] bundles the dynamic allocation
       token with its allocator resource, preserving the allocation overload's
-      alignment argument. [tokenR ty q] covers allocation without that argument.
+      alignment argument.
    *)
   sl.lock
   Definition tokenR_with_alignment `{Σ : cpp_logic} {σ : genv}
@@ -66,7 +68,20 @@ NES.Begin alloc.
   #[only(fractional,asfractional,fracvalid,timeless)] derive new_token.R.
   #[only(fracvalid,timeless)] derive tokenR_with_alignment.
 
-  Abbreviation tokenR ty q := (tokenR_with_alignment ty None q) (only parsing).
+  (** The alignment argument that a global new-expression passes for [ty]:
+      only over-aligned types use the aligned allocation functions
+      (<https://eel.is/c++draft/expr.new#20>). *)
+  Definition default_new_alignment `{Σ : cpp_logic} {σ : genv} (ty : type) : option N :=
+    match align_of ty with
+    | Some al => if (STDCPP_DEFAULT_NEW_ALIGNMENT <? al)%N then Some al else None
+    | None => None
+    end.
+
+  (** [tokenR ty q] is the token of an allocation by a global new-expression.
+      Class-specific allocation functions may differ; use
+      [tokenR_with_alignment] for those. *)
+  Abbreviation tokenR ty q :=
+    (tokenR_with_alignment ty (default_new_alignment ty) q) (only parsing).
 
   #[local] Open Scope string_scope. (* for IPM *)
   #[global] Instance tokenR_xxx `{Σ : cpp_logic} {σ : genv}
