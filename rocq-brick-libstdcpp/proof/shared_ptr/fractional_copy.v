@@ -40,7 +40,7 @@ Section with_cpp.
     ).
 
   Lemma copy_then_destroy_ok : verify[source] copy_then_destroy_spec.
-  Proof.
+  Proof using MOD.
     verify_spec.
     go.
     iExists pieceid.
