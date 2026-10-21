@@ -70,8 +70,9 @@ Section with_cpp.
       [| control = root ,, o_base CU cn SP_counted_base |] **
       match kind with
       | SeparateAllocation =>
-          root |-> alloc.tokenR (Tnamed cn) 1%Qp **
-          owned |-> alloc.tokenR payload_ty 1%Qp
+          Exists control_alignment payload_alignment,
+            root |-> alloc.tokenR_with_alignment (Tnamed cn) control_alignment 1%Qp **
+            owned |-> alloc.tokenR_with_alignment payload_ty payload_alignment 1%Qp
       | CombinedAllocation =>
           match erase_qualifiers payload_ty with
           | Tarray _ _ =>
@@ -79,22 +80,26 @@ Section with_cpp.
                  the element allocation. [offset] includes alignment padding;
                  [total] includes both objects and any unused tail bytes.
                  Retain the allocation at [storage], not at the tail object.
+                 std::allocator uses scalar operator new, even for an array.
+                 Keep its actual alignment argument for matching deallocation.
                  Exact _S_tail arithmetic and the other control-block fields
                  belong to a future verification of the library bodies. *)
-              Exists (storage : ptr) (offset total payload_size control_size : N),
+              Exists (storage : ptr) (offset total payload_size control_size : N)
+                  (alignment : option N),
                 [| size_of CU payload_ty = Some payload_size |] **
                 [| size_of CU (Tnamed cn) = Some control_size |] **
                 [| (payload_size <= offset /\ offset + control_size <= total)%N |] **
-                storage |-> allocatedR 1%Qp total **
+                storage |-> allocatedR 1%Qp false alignment total **
                 root |-> new_token.R 1%Qp
                   (new_token.mk (Tnamed cn) (storage .[ Tuchar ! Z.of_N offset ]) 0) **
                 provides_storage storage owned payload_ty
           | _ =>
               (* One allocation for the enclosing control block, and only a
                  placement/storage relationship for the managed object. *)
-              root |-> alloc.tokenR (Tnamed cn) 1%Qp **
-              provides_storage (shared_inplace_storage payload_ty root)
-                owned payload_ty
+              Exists alignment,
+                root |-> alloc.tokenR_with_alignment (Tnamed cn) alignment 1%Qp **
+                provides_storage (shared_inplace_storage payload_ty root)
+                  owned payload_ty
           end
       end.
 End with_cpp.

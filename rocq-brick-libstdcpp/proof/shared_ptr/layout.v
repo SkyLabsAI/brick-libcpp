@@ -2,6 +2,7 @@
     control block are not subobjects of the handle. *)
 Require Import skylabs.auto.cpp.proof.
 Require Import skylabs.auto.cpp.hints.const.
+Require Import Stdlib.FSets.FMapFacts.
 
 Set Default Goal Selector "!".
 Import linearity.
@@ -98,6 +99,8 @@ Definition shared_ptr_const_tu (ty : type) : translation_unit :=
           (NM.add SP_count (Gstruct SP_count_struct) empty))))
     empty [] [] abi.abi_default empty empty empty empty.
 
+Module SPNameMapFacts := WFacts_fun NM.E NM.
+
 #[local] Lemma SP_lookup_outer ty :
   (shared_ptr_const_tu ty).(types) !! SP_name ty =[Vm?]=>
     Some (Gstruct (SP_outer_struct ty)).
@@ -105,7 +108,7 @@ Proof.
   rewrite VmEq_eq_iff.
   change (NM.find (SP_name ty) (types (shared_ptr_const_tu ty)) =
     Some (Gstruct (SP_outer_struct ty))).
-  apply complete_type.NMFacts.add_eq_o.
+  apply SPNameMapFacts.add_eq_o.
   apply NM.E.eq_refl.
 Qed.
 
@@ -116,8 +119,8 @@ Proof.
   rewrite VmEq_eq_iff.
   change (NM.find (SP_impl ty) (types (shared_ptr_const_tu ty)) =
     Some (Gstruct (SP_impl_struct ty))).
-  rewrite complete_type.NMFacts.add_neq_o.
-  { apply complete_type.NMFacts.add_eq_o, NM.E.eq_refl. }
+  rewrite SPNameMapFacts.add_neq_o.
+  { apply SPNameMapFacts.add_eq_o, NM.E.eq_refl. }
   { intro H. apply NM.eqL in H. discriminate. }
 Qed.
 
@@ -129,9 +132,9 @@ Proof.
   change (NM.find (SP_access ty) (types (shared_ptr_const_tu ty)) =
     Some (Gstruct (SP_access_struct ty))).
   unfold shared_ptr_const_tu. cbn [types].
-  rewrite -> complete_type.NMFacts.add_neq_o,
-    complete_type.NMFacts.add_neq_o.
-  { apply complete_type.NMFacts.add_eq_o, NM.E.eq_refl. }
+  rewrite -> SPNameMapFacts.add_neq_o,
+    SPNameMapFacts.add_neq_o.
+  { apply SPNameMapFacts.add_eq_o, NM.E.eq_refl. }
   { intro H. apply NM.eqL in H. discriminate. }
   { intro H. apply NM.eqL in H. discriminate. }
 Qed.
@@ -144,9 +147,9 @@ Proof.
   change (NM.find SP_count (types (shared_ptr_const_tu ty)) =
     Some (Gstruct SP_count_struct)).
   unfold shared_ptr_const_tu. cbn [types].
-  rewrite -> complete_type.NMFacts.add_neq_o,
-    complete_type.NMFacts.add_neq_o, complete_type.NMFacts.add_neq_o.
-  { apply complete_type.NMFacts.add_eq_o, NM.E.eq_refl. }
+  rewrite -> SPNameMapFacts.add_neq_o,
+    SPNameMapFacts.add_neq_o, SPNameMapFacts.add_neq_o.
+  { apply SPNameMapFacts.add_eq_o, NM.E.eq_refl. }
   { intro H. apply NM.eqL in H. discriminate. }
   { intro H. apply NM.eqL in H. discriminate. }
   { intro H. apply NM.eqL in H. discriminate. }
