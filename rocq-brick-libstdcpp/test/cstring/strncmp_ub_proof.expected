@@ -7,17 +7,19 @@
   _H_ : source ⊧ σ
   _PostPred_ : ptr → mpred
   PostCond : PostCondition
-  a_addr : ptr
-  _x_ : valid<"char"> (Vchar 97)
-  _x_0 : ptr
+  a_addr, _x_0 : ptr
   GUARDS : GWs.GUARDS
+  _H_0 : 0 ≤ 1
+  _H_1 : list.ListSizeZ [97%N] (1 - 0)
+  _H_2 : 0 < 1
+  _x_ : valid<"char"> (Vchar 97)
   p : ptr
   _x_1 : Qp
   _x_2 : cstring.WF "a"
   ============================
   _ : denoteModule source
   _ : strncmp_spec
-  _ : type_ptr "char" (a_addr .[ "char" ! 0 ])
+  _ : a_addr |-> typed_sliceR "char" 0 1
   _ : type_ptr "char[1]" a_addr
   _ : type_ptr "char" _x_0
   _ : ∀ q : Qp, _x_0 |-> cstring.R q$c "a" ={⊤}=∗ emp
@@ -42,17 +44,19 @@
   _H_ : source ⊧ σ
   _PostPred_ : ptr → mpred
   PostCond : PostCondition
-  a_addr : ptr
-  _x_ : valid<"char"> (Vchar 97)
-  _x_0 : ptr
+  a_addr, _x_0 : ptr
   GUARDS : GWs.GUARDS
+  _H_0 : 0 ≤ 1
+  _H_1 : list.ListSizeZ [97%N] (1 - 0)
+  _H_2 : 0 < 1
+  _x_ : valid<"char"> (Vchar 97)
   p : ptr
   _x_1 : Qp
   _x_2 : cstring.WF "a"
   ============================
   _ : denoteModule source
   _ : strncmp_spec
-  _ : type_ptr "char" (a_addr .[ "char" ! 0 ])
+  _ : a_addr |-> typed_sliceR "char" 0 1
   _ : type_ptr "char[1]" a_addr
   _ : type_ptr "char" _x_0
   _ : ∀ q : Qp, _x_0 |-> cstring.R q$c "a" ={⊤}=∗ emp
