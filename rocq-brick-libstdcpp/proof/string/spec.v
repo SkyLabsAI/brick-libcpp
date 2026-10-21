@@ -129,7 +129,7 @@ Section with_cpp.
   cpp.spec "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>::size() const" from source as string_size_spec with (
     \this this
     \prepost{q s} this |-> basic_stringR "char" q s
-    \post[Vn (N.of_nat (BS.length s))] emp).
+    \post[Vint (Z.of_nat (BS.length s))] emp).
 
   (** <<size_type length() const noexcept;>>
 
@@ -138,7 +138,7 @@ Section with_cpp.
   cpp.spec "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>::length() const" from source as string_length_spec with (
     \this this
     \prepost{q s} this |-> basic_stringR "char" q s
-    \post[Vn (N.of_nat (BS.length s))] emp).
+    \post[Vint (Z.of_nat (BS.length s))] emp).
 
   (** <<bool empty() const noexcept;>>
 
