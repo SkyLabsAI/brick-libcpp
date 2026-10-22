@@ -621,7 +621,7 @@ NES.Begin std.
             \this this
             \with size st xs
             \pre  this |-> R_cap (cQp.m 1) size st xs
-            \post this |-> R_cap (cQp.m 1) 0 st [].
+            \post this |-> R_null (cQp.m 1).
         #[global] Hint Opaque clear : sl_opacity.
         #[global] Arguments clear : simpl never.
         Definition SpecFor_clear := RegisterSpec clear.
