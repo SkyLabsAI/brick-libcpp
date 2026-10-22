@@ -405,6 +405,69 @@ NES.Begin std.
       #[local] Abbreviation spineR q size st := (spineR ty alloc_ty q size st).
       #[local] Abbreviation size_type := (allocator_traits.size_type alloc_ty).
 
+      (** * On iterator invalidation
+
+          The following table is taken from [1]
+
+          | Operations               | Invalidated                                                    |
+          |--------------------------|----------------------------------------------------------------|
+          | All read only operations | Never.                                                         |
+          | swap, std::swap          | end()                                                          |
+          | clear, operator=, assign | Always.                                                        |
+          | reserve, shrink_to_fit   | If the vector changed capacity, all of them. If not, none.     |
+          | erase                    | Erased elements and all elements after them (including end()). |
+          | push_back, emplace_back  | If the vector changed capacity, all of them.                   |
+          |                          | If not, only end().                                            |
+          | insert, emplace          | If the vector changed capacity, all of them.                   |
+          |                          | If not, only those at or after the insertion                   |
+          |                          | point (including end()).                                       |
+          | resize                   | If the vector changed capacity, all of them.                   |
+          |                          | If not, only end() and any elements erased.                    |
+          | pop_back                 | The element erased and end().                                  |
+
+          In addition, from [2], we know that with the move assignment << *this = std::move(other) >>
+          and similarly for the move constructor, every iterator initially valid for << other >>,
+          they become valid for << *this >> at the end of the operation and they refer to the same
+          elements that they initially referred to.
+
+
+          ** Iterator validity, formally
+
+          The state of <<std::vector::iterator>> is modelled as a pair <<ptr * Z>>, a base pointer
+          and a subscript. An iterator state <<(p, i)>> is deemed valid if we have a premise
+          <<type_ptr ty (p .[ ty ! i ])>>. It can be dereferenced if we own the object at that
+          particular address.
+
+          This limits our ability to specify iterator invalidation. We can either:
+            1) invalidate the complete set of iterators of a given vector; or
+            2) lose the ability to dereference individual iterators.
+
+          When the standard specifies that certain iterators become invalid but not others, we opt
+          instead to maintain the validity of all iterators but to lose the ability to dereference
+          the would-be invalid iterators.
+
+
+          ** Divergence from the standard
+
+          This file specifies the following:
+           * clear
+           * copy and move ctor
+           * copy and move operator =
+           * resize
+           * push_back
+           * pop_back
+
+
+          For all but <<pop_back>>, the provided specs are as required by the standard. For
+          <<pop_back>>, the standard specifies that both the <<end()>> iterator and the iterator
+          pointing to the removed element become invalid. Instead we merely remove the ownership of
+          the item from circulation.
+
+          References:
+           [1] https://en.cppreference.com/cpp/container/vector#:~:text=Iterator%20invalidation
+           [2] https://en.cppreference.com/cpp/container/vector/operator%3D
+       *)
+
       Definition default_ctor :=
         specify.template.ctor vector [] $
           \this this
