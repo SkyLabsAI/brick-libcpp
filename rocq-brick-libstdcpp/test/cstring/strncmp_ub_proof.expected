@@ -7,12 +7,10 @@
   _H_ : source ⊧ σ
   _PostPred_ : ptr → mpred
   PostCond : PostCondition
-  a_addr, _x_0 : ptr
-  GUARDS : GWs.GUARDS
-  _H_0 : 0 < 1
-  _H_1 : 0 ≤ 1
-  _H_2 : list.ListSizeZ [97%N] (1 - 0)
+  a_addr : ptr
   _x_ : valid<"char"> (Vchar 97)
+  _x_0 : ptr
+  GUARDS : GWs.GUARDS
   p : ptr
   _x_1 : Qp
   _x_2 : cstring.WF "a"
@@ -44,12 +42,10 @@
   _H_ : source ⊧ σ
   _PostPred_ : ptr → mpred
   PostCond : PostCondition
-  a_addr, _x_0 : ptr
-  GUARDS : GWs.GUARDS
-  _H_0 : 0 < 1
-  _H_1 : 0 ≤ 1
-  _H_2 : list.ListSizeZ [97%N] (1 - 0)
+  a_addr : ptr
   _x_ : valid<"char"> (Vchar 97)
+  _x_0 : ptr
+  GUARDS : GWs.GUARDS
   p : ptr
   _x_1 : Qp
   _x_2 : cstring.WF "a"
