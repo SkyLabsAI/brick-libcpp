@@ -740,7 +740,7 @@ NES.Begin std.
             \pre this |-> R_cap (cQp.m 1) size st xs
             \post{rp}[Vptr rp]
               rp |-> iterator.R_base false ty alloc_ty 1$m (base_pointer st) i **
-              this |-> R_cap (cQp.m 1) (size - 1) st (take (Z.to_nat i) xs ++ drop (Z.to_nat i + 1) xs).
+              this |-> R_cap (cQp.m 1) (size - 1) st (takeZ i xs ++ dropZ (i + 1) xs).
         #[global] Hint Opaque erase_one : sl_opacity.
         #[global] Arguments erase_one : simpl never.
         Definition SpecFor_erase_one := RegisterSpec erase_one.
@@ -766,7 +766,7 @@ NES.Begin std.
             \pre this |-> R_cap (cQp.m 1) size st xs
             \post{rp}[Vptr rp]
               rp |-> iterator.R_base false ty alloc_ty 1$m (base_pointer st) i **
-              this |-> R_cap (cQp.m 1) (size - (j - i)) st (take (Z.to_nat i) xs ++ drop (Z.to_nat j) xs).
+              this |-> R_cap (cQp.m 1) (size - (j - i)) st (takeZ i xs ++ dropZ j xs).
         #[global] Hint Opaque erase_range : sl_opacity.
         #[global] Arguments erase_range : simpl never.
         Definition SpecFor_erase_range := RegisterSpec erase_range.

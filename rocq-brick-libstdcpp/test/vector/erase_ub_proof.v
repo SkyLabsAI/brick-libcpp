@@ -19,17 +19,10 @@ Require Import skylabs.brick.libstdcpp.test.vector.erase_ub_cpp.
 Section with_cpp.
   Context `{Σ : cpp_logic} {σ : genv}.
 
-  cpp.spec "erase_end()" from source as erase_end_spec with (
-    \prepost std.vector.specs "int" (std.allocator.T "int")
-    \prepost std.vector.iterator.specs false "int" (std.allocator.T "int")
-    \prepost std.vector.iterator.specs true "int" (std.allocator.T "int")
-    \prepost std.vector.iterator.iter_to_const "int" (std.allocator.T "int")
-    \prepost std.allocator.specs "int"
-    \post emp).
+  cpp.spec "erase_end()" from source as erase_end_spec with (\post emp).
   Lemma erase_end_ok : verify[source] erase_end_spec.
   Proof.
     verify_spec.
-    rewrite /std.vector.specs /std.vector.iterator.specs /std.allocator.specs.
     go. Show. Fail Qed.
   Abort.
 End with_cpp.
