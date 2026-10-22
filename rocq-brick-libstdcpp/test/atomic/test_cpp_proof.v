@@ -13,7 +13,7 @@ NES.Open std.atomic.
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
 
-  Abbreviation GLOBALS q := (_global "std::__1::memory_order_seq_cst" |-> primR "enum std::__1::memory_order" q 5).
+  Abbreviation GLOBALS q := (_global "std::memory_order_seq_cst" |-> primR "enum std::memory_order" q 5).
 
   Section specs.
     Context `{MOD : test_cpp.source ⊧ σ}.
@@ -61,16 +61,15 @@ Section with_cpp.
       test_load **
       test_store **
       test_cas **
-      test_arith.
+      test_arith **
+      test_fetch_add.
     #[global] Hint Opaque specs : sl_opacity.
 
   End specs.
 
   #[local] Hint Resolve fractional.UNSAFE_read_prim_cancel : sl_opacity.
 
-  Abbreviation BASE p := (p ,, _base "std::__1::atomic<int>" "std::__1::__atomic_base<int, 1b>" ,, _base "std::__1::__atomic_base<int, 1b>" "std::__1::__atomic_base<int, 0b>").
-
-  Abbreviation BASE1 p := (p ,, _base "std::__1::atomic<int>" "std::__1::__atomic_base<int, 1b>").
+  Abbreviation BASE p := (p ,, _base "std::atomic<int>" "std::__atomic_base<int>").
 
   #[program]
   Definition do_load_C (p : ptr) :=
@@ -168,7 +167,7 @@ Section with_cpp.
     \using denoteModule test_cpp.source
     \consuming{n} p |-> atomic.R "int" 1$m n
     \proving{K (_ : IsExistential K)}
-      do_op "int" op (BASE1 p) K
+      do_op "int" op (BASE p) K
     \instantiate K := (fun res => [| res = n |] **
                                p |-> atomic.R "int" 1$m (op n))
     \end@{mpredI}.
@@ -189,7 +188,10 @@ Section with_cpp.
   Abbreviation OK spec :=
     (verify?[test_cpp.source] spec) (only parsing).
 
-  Lemma arith_ok : OK test_fetch_add.
+  Lemma fetch_add_ok : OK test_fetch_add.
+  Proof. verify_spec. go. Qed.
+
+  Lemma arith_ok : OK test_arith.
   Proof. verify_spec. go. Qed.
 
   Lemma cas_ok : OK test_cas.
