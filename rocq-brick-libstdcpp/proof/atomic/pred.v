@@ -25,13 +25,13 @@ Module Type ATOMIC_PREDS.
 
   (** Type [t] indexing our spec models the type name T in Atomic<T>. *)
 
-  (** The type where the actual methods are implemented *)
+  (** The base class used by libstdc++ integral specializations (excluding bool).
+  Pointer, bool, and primary-template atomics have different layouts and are
+  not covered by these partial specs. *)
   #[global] Abbreviation base_name ty :=
-    (Ninst "std::__1::__atomic_base" [Atype ty; Avalue (Eint 0 Tbool)]).
-  #[global] Abbreviation base_name1 ty :=
-    (Ninst "std::__1::__atomic_base" [Atype ty; Avalue (Eint 1 Tbool)]).
+    (Ninst "std::__atomic_base" [Atype ty]).
   (** The type <<std::atomic<T>>> *)
-  #[global] Abbreviation class_name ty := (Ninst "std::__1::atomic" [Atype ty]).
+  #[global] Abbreviation class_name ty := (Ninst "std::atomic" [Atype ty]).
   #[global] Abbreviation T ty := (Tnamed (class_name ty)).
 
   (** Abstract predicates *)

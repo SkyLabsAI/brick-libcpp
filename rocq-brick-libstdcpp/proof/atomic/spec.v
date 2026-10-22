@@ -21,10 +21,9 @@ Module atomic_specs (Import atomic : ATOMIC_PREDS).
     Context (ty : type).
     Context `{!PrimVal ty A,!DefaultValue ty A}.
     Abbreviation s := (class_name ty) (only parsing).	(** [Atomic<T>] *)
-    Abbreviation b0 := (base_name ty) (only parsing).
-    Abbreviation b1 := (base_name1 ty) (only parsing).
+    Abbreviation b := (base_name ty) (only parsing).
     Abbreviation R := (R ty).
-    Abbreviation bR q v := (_derived b0 b1 ,, _derived b1 s |-> R q%cQp v) (only parsing).
+    Abbreviation bR q v := (_derived b s |-> R q%cQp v) (only parsing).
 
     Definition default_ctor : mpred :=
       specify.template.ctor s [] $
@@ -61,7 +60,7 @@ Module atomic_specs (Import atomic : ATOMIC_PREDS).
     #[global] Hint Opaque do_load : typeclass_instances sl_opacity.
 
     Definition load : mpred :=
-      specify.template.method b0 "load" function_qualifiers.N ty [Tmemory_order] $
+      specify.template.method b "load" function_qualifiers.N ty [Tmemory_order] $
         \this this
         \arg "mo" (memory_order.to_val memory_order.seq_cst)
         \pre{K} do_load this K
@@ -72,7 +71,7 @@ Module atomic_specs (Import atomic : ATOMIC_PREDS).
     #[global] Existing Instance SpecFor_load.
 
     Definition load_const : mpred :=
-      specify.template.method b0 "load" function_qualifiers.Nc ty [Tmemory_order] $
+      specify.template.method b "load" function_qualifiers.Nc ty [Tmemory_order] $
         \this this
         \arg "mo" (memory_order.to_val memory_order.seq_cst)
         \pre{K} do_load this K
@@ -88,7 +87,7 @@ Module atomic_specs (Import atomic : ATOMIC_PREDS).
     #[global] Hint Opaque do_store : typeclass_instances sl_opacity.
 
     Definition store : mpred :=
-      specify.template.method b0 "store" function_qualifiers.N Tvoid [ty; Tmemory_order] $
+      specify.template.method b "store" function_qualifiers.N Tvoid [ty; Tmemory_order] $
         \this this
         \arg{n} "v" (Vinj ty n)
         \arg "mo" (memory_order.to_val memory_order.seq_cst)
@@ -101,7 +100,7 @@ Module atomic_specs (Import atomic : ATOMIC_PREDS).
 
     (** *** <<operator=>> *)
     Definition assign : mpred :=
-      specify.template.op b0 OOEqual function_qualifiers.N ty [ty] $
+      specify.template.op b OOEqual function_qualifiers.N ty [ty] $
         \this this
         \arg{n} "v" (Vinj ty n)
         \pre{K} do_store this n K
@@ -113,7 +112,7 @@ Module atomic_specs (Import atomic : ATOMIC_PREDS).
 
     (** *** <<operator ty>> *)
     Definition cast : mpred :=
-      specify.template.conv b0 ty function_qualifiers.Nc $
+      specify.template.conv b ty function_qualifiers.Nc $
         \this this
         \pre{K} do_load this K
         \post{n}[Vinj ty n] K n.
@@ -129,7 +128,7 @@ Module atomic_specs (Import atomic : ATOMIC_PREDS).
     #[global] Hint Opaque do_exchange : typeclass_instances sl_opacity.
 
     Definition exchange : mpred :=
-      specify.template.method b0 "exchange" function_qualifiers.N ty
+      specify.template.method b "exchange" function_qualifiers.N ty
           [ty; Tmemory_order] $
         \this this
         \arg{desired} "desired" (Vinj ty desired)
@@ -162,7 +161,7 @@ Module atomic_specs (Import atomic : ATOMIC_PREDS).
 
     (** NOTE: the difference between the following two specs is not immediately obvious. *)
     Definition compare_exchange_strong : mpred :=
-      specify.template.method b0 "compare_exchange_strong" function_qualifiers.N "bool"
+      specify.template.method b "compare_exchange_strong" function_qualifiers.N "bool"
           [Tref ty; ty; Tmemory_order; Tmemory_order] $
         \this this
         \arg{expected_p} "o" (Vref expected_p)
@@ -178,7 +177,7 @@ Module atomic_specs (Import atomic : ATOMIC_PREDS).
     #[global] Existing Instance SpecFor_compare_exchange_strong.
 
     Definition compare_exchange_strong_1 : mpred :=
-      specify.template.method b0 "compare_exchange_strong" function_qualifiers.N "bool"
+      specify.template.method b "compare_exchange_strong" function_qualifiers.N "bool"
         [Tref ty; ty; Tmemory_order] $
         \this this
         \arg{expected_p} "o" (Vref expected_p)
@@ -193,7 +192,7 @@ Module atomic_specs (Import atomic : ATOMIC_PREDS).
     #[global] Existing Instance SpecFor_compare_exchange_strong_1.
 
     Definition compare_exchange_weak : mpred :=
-      specify.template.method b0 "compare_exchange_weak" function_qualifiers.N "bool"
+      specify.template.method b "compare_exchange_weak" function_qualifiers.N "bool"
         [Tref ty; ty; Tmemory_order; Tmemory_order] $
         \this this
         \arg{expected_p} "o" (Vref expected_p)
@@ -209,7 +208,7 @@ Module atomic_specs (Import atomic : ATOMIC_PREDS).
     #[global] Existing Instance SpecFor_compare_exchange_weak.
 
     Definition compare_exchange_weak_1 : mpred :=
-      specify.template.method b0 "compare_exchange_weak" function_qualifiers.N "bool"
+      specify.template.method b "compare_exchange_weak" function_qualifiers.N "bool"
         [Tref ty; ty; Tmemory_order] $
         \this this
         \arg{expected_p} "o" (Vref expected_p)
@@ -263,8 +262,8 @@ Module atomic_specs (Import atomic : ATOMIC_PREDS).
     Context `{PrimVal ty A}.
 
     #[local] Abbreviation s := (class_name ty) (only parsing).	(** [Atomic<T>] *)
-    #[local] Abbreviation b1 := (base_name1 ty) (only parsing).
-    #[local] Abbreviation bR q v := (_derived b1 s |-> R ty q v) (only parsing).
+    #[local] Abbreviation b := (base_name ty) (only parsing).
+    #[local] Abbreviation bR q v := (_derived b s |-> R ty q v) (only parsing).
 
     (** Apply operation [op] to the atomic cell pointed by [this],
     and return the old contents to continuation [K]. *)
@@ -278,7 +277,7 @@ Module atomic_specs (Import atomic : ATOMIC_PREDS).
 
       (** Triple for unary operators that return the new value *)
       Definition unop_fetch : mpred :=
-        specify.template.op b1 op_name function_qualifiers.N ty [] $
+        specify.template.op b op_name function_qualifiers.N ty [] $
           \this this
           \pre{K} do_op (atomic_un_op (UnOp := UO)) this K
           \post{m}[Vinj ty (atomic_un_op (UnOp := UO) m)] K m.
@@ -290,7 +289,7 @@ Module atomic_specs (Import atomic : ATOMIC_PREDS).
 
       (** Triple for unary operators that return the old value *)
       Definition fetch_unop : mpred :=
-        specify.template.op b1 op_name function_qualifiers.N ty [Tint] $
+        specify.template.op b op_name function_qualifiers.N ty [Tint] $
           \this this
           \arg{dummy} "dummy" (Vint dummy)
           \pre{K} do_op (atomic_un_op (UnOp := UO)) this K
@@ -308,7 +307,7 @@ Module atomic_specs (Import atomic : ATOMIC_PREDS).
 
       (** Triple for binary operators that return the new value *)
       Definition binop_fetch : mpred :=
-        specify.template.op b1 op_name function_qualifiers.N ty [tyM] $
+        specify.template.op b op_name function_qualifiers.N ty [tyM] $
           \this this
           \arg{n : B} "v" (Vinj tyM n)
           \pre{K} do_op (flip (atomic_bin_op (BinOp := BO)) n) this K
@@ -320,7 +319,7 @@ Module atomic_specs (Import atomic : ATOMIC_PREDS).
 
       (** Triple for methods that return the old value *)
       Definition fetch_binop : mpred :=
-        specify.template.method b1 fun_name function_qualifiers.N ty [tyM; Tmemory_order] $
+        specify.template.method b fun_name function_qualifiers.N ty [tyM; Tmemory_order] $
           \this this
           \arg{n : B} "v" (Vinj tyM n)
           \arg "mo" (memory_order.to_val memory_order.seq_cst)
