@@ -1,0 +1,99 @@
+1 goal
+  
+  thread_info : biIndex
+  _Σ : gFunctors
+  Σ : cpp_logic thread_info _Σ
+  σ : genv
+  MOD : source ⊧ σ
+  _PostPred_ : ptr → mpred
+  v_addr, vp : ptr
+  st : std.vector.InternalState
+  PostCond : PostCondition
+  _x_0 : valid<"std::vector<int, std::allocator<int>>&"> (Vptr vp)
+  st' : std.vector.InternalState
+  GUARDS : GWs.GUARDS
+  _H_ : 0 < 1
+  _H_0 : 0 ≤ 1
+  _H_1 : list.ListSizeZ [7] (1 - 0)
+  _x_1 : valid<"int"> 7
+  _x_2 : valid<"int&"> (Vptr (std.vector.base_pointer st .[ "int" ! 0 ]))
+  _H_2 : 0 < 1 + 1
+  _H_3 : 0 ≤ 1 + 1
+  H : list.ListSizeZ [7; 7] (1 + 1 - 0)
+  _x_ : valid<"void"> Vvoid
+  ============================
+  _ : denoteModule source
+  _ : type_ptr "std::vector<int, std::allocator<int>>&" v_addr
+  _ : type_ptr "std::vector<int, std::allocator<int>>" vp
+  _ : type_ptr "int" (std.vector.base_pointer st .[ "int" ! 0 ])
+  _ : std.vector.push_back_copy "int" "std::allocator<int>"
+  _ : std.vector.subscript "int" "std::allocator<int>" false
+  _ : std.vector.base_pointer st' |-> typed_sliceR "int" 0 (1 + 1)
+  --------------------------------------□
+  [| 7%positive = 8%positive |]
+1 goal
+  
+  thread_info : biIndex
+  _Σ : gFunctors
+  Σ : cpp_logic thread_info _Σ
+  σ : genv
+  MOD : source ⊧ σ
+  _PostPred_ : ptr → mpred
+  v_addr, vp : ptr
+  st : std.vector.InternalState
+  PostCond : PostCondition
+  _x_0 : valid<"std::vector<int, std::allocator<int>>&"> (Vptr vp)
+  st' : std.vector.InternalState
+  GUARDS : GWs.GUARDS
+  _H_ : 0 < 2
+  _H_0 : 0 ≤ 2
+  _H_1 : list.ListSizeZ [7; 8] (2 - 0)
+  _x_1 : valid<"int&"> (Vptr (std.vector.base_pointer st .[ "int" ! 0 ]))
+  _H_2 : 0 < 2 + 1
+  _H_3 : 0 ≤ 2 + 1
+  H : list.ListSizeZ [7; 8; 7] (2 + 1 - 0)
+  _x_ : valid<"void"> Vvoid
+  ============================
+  _ : denoteModule source
+  _ : std.vector.base_pointer st |-> typed_sliceR "int" 0 2
+  _ : type_ptr "std::vector<int, std::allocator<int>>&" v_addr
+  _ : type_ptr "std::vector<int, std::allocator<int>>" vp
+  _ : std.vector.push_back_copy "int" "std::allocator<int>"
+  _ : std.vector.subscript "int" "std::allocator<int>" false
+  _ : std.vector.base_pointer st' |-> typed_sliceR "int" 0 (2 + 1)
+  --------------------------------------□
+  [| 7%positive = 8%positive |]
+1 goal
+  
+  thread_info : biIndex
+  _Σ : gFunctors
+  Σ : cpp_logic thread_info _Σ
+  σ : genv
+  MOD : source ⊧ σ
+  _PostPred_ : ptr → mpred
+  v_addr, n_addr, vp : ptr
+  st : std.vector.InternalState
+  PostCond : PostCondition
+  _x_0 : valid<"std::vector<int, std::allocator<int>>&"> (Vptr vp)
+  st' : std.vector.InternalState
+  GUARDS : GWs.GUARDS
+  _H_ : 0 < 2
+  _H_0 : 0 ≤ 2
+  _H_1 : list.ListSizeZ [9; 4] (2 - 0)
+  _x_1 : valid<"unsigned long"> 4
+  _x_2 : valid<"int&"> (Vptr (std.vector.base_pointer st .[ "int" ! 1 ]))
+  _H_2 : 0 < 4
+  _H_3 : 0 ≤ 4
+  H : list.ListSizeZ (9 :: 4 :: replicateZ (4 - 2) 4) (4 - 0)
+  _x_ : valid<"void"> Vvoid
+  ============================
+  _ : denoteModule source
+  _ : std.vector.base_pointer st |-> typed_sliceR "int" 0 2
+  _ : type_ptr "unsigned long" n_addr
+  _ : type_ptr "std::vector<int, std::allocator<int>>&" v_addr
+  _ : type_ptr "std::vector<int, std::allocator<int>>" vp
+  _ : std.vector.resize "int" "std::allocator<int>"
+  _ : std.vector.subscript "int" "std::allocator<int>" false
+  _ : std.vector.base_pointer st' |-> typed_sliceR "int" 0 4
+  --------------------------------------□
+  [| 4%positive = 9%positive |] ∗ [| 4%positive = 9%positive |]

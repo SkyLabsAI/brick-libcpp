@@ -185,6 +185,42 @@ Section with_cpp.
     cpp.spec "TestAggregate()" as test_aggregate with
         (\post emp).
 
+    cpp.spec "TestPushBackAlias(std::vector<int, std::allocator<int>>&)" as test_push_back_alias with
+        (\arg{vp} "v" (Vptr vp)
+         \with st
+         \pre vp |-> std.vector.R_cap "int" 1$m 1 st [7]
+         \post vp |-> std.vector.R_resized "int" 1$m 2 st [7; 7]).
+
+    cpp.spec "TestResizeAliasGrow(std::vector<int, std::allocator<int>>&)" as test_resize_alias_grow with
+        (\arg{vp} "v" (Vptr vp)
+         \with st
+         \pre vp |-> std.vector.R_cap "int" 1$m 2 st [9; 4]
+         \post vp |-> std.vector.R_resized "int" 1$m 4 st [9; 4; 4; 4]).
+
+    cpp.spec "TestResizeAliasShrink(std::vector<int, std::allocator<int>>&)" as test_resize_alias_shrink with
+        (\arg{vp} "v" (Vptr vp)
+         \with st
+         \pre vp |-> std.vector.R_cap "int" 1$m 3 st [1; 2; 3]
+         \post vp |-> std.vector.R_cap "int" 1$m 1 st [1]).
+
+    cpp.spec "TestResizeAliasSame(std::vector<int, std::allocator<int>>&)" as test_resize_alias_same with
+        (\arg{vp} "v" (Vptr vp)
+         \with st
+         \pre vp |-> std.vector.R_cap "int" 1$m 3 st [1; 2; 3]
+         \post vp |-> std.vector.R_cap "int" 1$m 3 st [1; 2; 3]).
+
+    cpp.spec "TestResizeAliasEmpty(std::vector<int, std::allocator<int>>&)" as test_resize_alias_empty with
+        (\arg{vp} "v" (Vptr vp)
+         \with st
+         \pre vp |-> std.vector.R_cap "int" 1$m 3 st [1; 2; 3]
+         \post vp |-> std.vector.R_cap "int" 1$m 0 st []).
+
+    cpp.spec "TestAliases()" as test_aliases with
+        (\post emp).
+
+    cpp.spec "TestMixedSources()" as test_mixed_sources with
+        (\post emp).
+
     cpp.spec "main()" as main with
         (\post[Vint 0] emp).
 
@@ -271,9 +307,81 @@ Section with_cpp.
     Proof using MOD.
       verify_spec.
       go.
+      iExists None. go.
+      iExists None. go.
+      iExists None. go.
     Qed.
     Definition test_aggregate_B := [LINK] test_aggregate_ok.
     #[local] Hint Resolve test_aggregate_B : sl_opacity.
+
+    Lemma test_push_back_alias_ok : verify[ source ] test_push_back_alias.
+    Proof using MOD.
+      verify_spec.
+      go.
+      iExists (Some 0%Z), (7%Z), (cQp.m 1). go.
+    Qed.
+    Definition test_push_back_alias_B := [LINK] test_push_back_alias_ok.
+
+    Lemma test_resize_alias_grow_ok : verify[ source ] test_resize_alias_grow.
+    Proof using MOD.
+      verify_spec.
+      go.
+      iExists (Some 1%Z), (4%Z), (cQp.m 1). go.
+    Qed.
+    Definition test_resize_alias_grow_B := [LINK] test_resize_alias_grow_ok.
+
+    Lemma test_resize_alias_shrink_ok : verify[ source ] test_resize_alias_shrink.
+    Proof using MOD.
+      verify_spec.
+      go.
+      iExists (Some 2%Z), (3%Z), (cQp.m 1). go.
+      rewrite /takeN /= in H. simplify_eq. go.
+    Qed.
+    Definition test_resize_alias_shrink_B := [LINK] test_resize_alias_shrink_ok.
+
+    Lemma test_resize_alias_same_ok : verify[ source ] test_resize_alias_same.
+    Proof using MOD.
+      verify_spec.
+      go.
+      iExists (Some 2%Z), (3%Z), (cQp.m 1). go.
+    Qed.
+    Definition test_resize_alias_same_B := [LINK] test_resize_alias_same_ok.
+
+    Lemma test_resize_alias_empty_ok : verify[ source ] test_resize_alias_empty.
+    Proof using MOD.
+      verify_spec.
+      go.
+      iExists (Some 2%Z), (3%Z), (cQp.m 1). go.
+    Qed.
+    Definition test_resize_alias_empty_B := [LINK] test_resize_alias_empty_ok.
+
+    #[local] Hint Resolve
+      test_push_back_alias_B
+      test_resize_alias_grow_B
+      test_resize_alias_shrink_B
+      test_resize_alias_same_B
+      test_resize_alias_empty_B : sl_opacity.
+
+    Lemma test_mixed_sources_ok : verify[ source ] test_mixed_sources.
+    Proof using MOD.
+      verify_spec. go.
+      iExists None. go.
+      iExists (Some 0%Z), (7%Z), (cQp.m 1). go.
+      iExists None. go.
+      iExists None. go.
+      iExists (Some 0%Z), (7%Z), (cQp.m 1). go.
+      iExists None. go.
+    Qed.
+    Definition test_mixed_sources_B := [LINK] test_mixed_sources_ok.
+    #[local] Hint Resolve test_mixed_sources_B : sl_opacity.
+
+    Lemma test_aliases_ok : verify[ source ] test_aliases.
+    Proof using MOD.
+      verify_spec.
+      go.
+    Qed.
+    Definition test_aliases_B := [LINK] test_aliases_ok.
+    #[local] Hint Resolve test_aliases_B : sl_opacity.
 
     Lemma test_ok : verify[ source ] test_spec.
     Proof using MOD.

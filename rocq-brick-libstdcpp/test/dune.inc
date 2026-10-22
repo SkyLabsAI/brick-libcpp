@@ -385,6 +385,18 @@
 )
 (subdir vector
  (rule
+  (targets alias_cpp.v.stderr alias_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input alias.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to alias_cpp.v.stderr (run cpp2v -v %{input} -o alias_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps alias.cpp))
+)
+(subdir vector
+ (rule
   (targets test_cpp.v.stderr test_cpp.v)
   (alias test_ast)
   (deps
