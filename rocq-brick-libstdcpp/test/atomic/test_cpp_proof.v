@@ -61,7 +61,8 @@ Section with_cpp.
       test_load **
       test_store **
       test_cas **
-      test_arith.
+      test_arith **
+      test_fetch_add.
     #[global] Hint Opaque specs : sl_opacity.
 
   End specs.
@@ -185,7 +186,10 @@ Section with_cpp.
   Abbreviation OK spec :=
     (verify?[test_cpp.source] spec) (only parsing).
 
-  Lemma arith_ok : OK test_fetch_add.
+  Lemma fetch_add_ok : OK test_fetch_add.
+  Proof. verify_spec. go. Qed.
+
+  Lemma arith_ok : OK test_arith.
   Proof. verify_spec. go. Qed.
 
   Lemma cas_ok : OK test_cas.

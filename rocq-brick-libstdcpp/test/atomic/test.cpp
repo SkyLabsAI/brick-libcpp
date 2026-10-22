@@ -39,6 +39,8 @@ TestStore() {
     std::atomic<int> atomicInt;
     atomicInt.store(25);
     test(atomicInt.load() == 25);
+    test((atomicInt = 31) == 31);
+    test(atomicInt.load() == 31);
 }
 
 void
@@ -84,5 +86,6 @@ main() {
     TestStore();
     TestCAS();
     TestArith();
+    TestFetchAdd();
     return 0;
 }
