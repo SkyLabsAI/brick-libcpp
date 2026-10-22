@@ -582,7 +582,7 @@ NES.Begin std.
             \require match src with
               | None => True
               | Some i => 0 ≤ i ∧ p = base_pointer st .[ ty ! i ] ∧
-                  xs !! Z.to_nat i = Some x
+                  xs !! i = Some x
               end
             \post this |-> R_resized (cQp.m 1) (size + 1) st (xs ++ [x]).
         #[global] Hint Opaque push_back_copy : sl_opacity.
@@ -700,14 +700,14 @@ NES.Begin std.
             \require match src with
               | None => True
               | Some i => 0 ≤ i ∧ vp = base_pointer st .[ ty ! i ] ∧
-                  xs !! Z.to_nat i = Some v0
+                  xs !! i = Some v0
               end
             \post
               ∃ xs',
                 (if bool_decide (size = new_size) then
                    [| xs' = xs |]
                  else if bool_decide (new_size < size) then
-                   [| xs' = takeN (Z.to_N new_size) xs |]
+                   [| xs' = takeZ new_size xs |]
                  else
                    [| xs' = xs ++ replicateZ (new_size - size) v0 |]) ∗
                 (if bool_decide (new_size ≤ size) then
