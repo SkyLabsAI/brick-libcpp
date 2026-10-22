@@ -138,13 +138,6 @@ NES.Begin std.
       forall `{Σ : cpp_logic} {σ : genv} (ty alloc_ty : type)
         (q : cQp.t) (size : Z) (intl : InternalState), Rep.
 
-    sl.lock
-    Definition resizedR `{Σ : cpp_logic} (size : Z) (st st' : InternalState) : Rep :=
-      if bool_decide (size ≤ capacity st)
-      then [| st' = st |]
-      else emp.
-    #[global] Arguments resizedR {_ _ Σ} size st st' : assert.
-
     (** Question(Simon): Should we take a predicate as a parameter instead of using [objR]? That would allow varying the
         representation of the contents of the vector of the course of a single proof. That's also enabled by manipulating
         [spineR] and [array_sliceR] separately. *)
@@ -174,15 +167,13 @@ NES.Begin std.
         Reference:
           - https://en.cppreference.com/w/cpp/container/vector, section Iterator invalidation
      *)
-    #[global] Abbreviation R_alloc_resized ty alloc_ty q size st xs :=
-      (∃ st',
-         resizedR size st st' **
-         R_alloc_cap ty alloc_ty q size st' xs)%I
+    #[global] Abbreviation R_alloc_resized ty alloc_ty q size xs :=
+      (∃ st', R_alloc_cap ty alloc_ty q size st' xs)%I
         (size in scope Z_scope).
 
       (** See [R_alloc_resized] above *)
-    #[global] Abbreviation R_resized ty q size st xs :=
-      (R_alloc_resized ty (std.allocator.T ty) q size st xs).
+    #[global] Abbreviation R_resized ty q size xs :=
+      (R_alloc_resized ty (std.allocator.T ty) q size xs).
 
     #[global] Abbreviation null_state := ({| base_pointer := nullptr; capacity := 0 |}).
     (** [R_null q] allows us to specify an empty vector without using a [Rep] predicate for [ty].
@@ -409,7 +400,7 @@ NES.Begin std.
       #[local] Abbreviation R_cap q size st xs := (R_alloc_cap ty alloc_ty q size st xs).
 
       (** See [R_resized] and [R_alloc_resized] above *)
-      #[local] Abbreviation R_resized q size s xs := (R_alloc_resized ty alloc_ty q size s xs).
+      #[local] Abbreviation R_resized q size xs := (R_alloc_resized ty alloc_ty q size xs).
 
       #[local] Abbreviation spineR q size st := (spineR ty alloc_ty q size st).
       #[local] Abbreviation size_type := (allocator_traits.size_type alloc_ty).
@@ -562,7 +553,7 @@ NES.Begin std.
             \prepost{q x} p |-> objR ty q x
             \pre{size st xs}
                       this |-> R_cap (cQp.m 1) size st xs
-            \post     this |-> R_resized (cQp.m 1) (size + 1) st (xs ++ [x]).
+            \post     this |-> R_resized (cQp.m 1) (size + 1) (xs ++ [x]).
         #[global] Hint Opaque push_back_copy : sl_opacity.
         #[global] Arguments push_back_copy : simpl never.
         Definition SpecFor_push_back_copy := RegisterSpec push_back_copy.
@@ -578,7 +569,7 @@ NES.Begin std.
               \post*    p |-> moved_objR ty (cQp.m 1) x
               \pre{size st xs}
                         this |-> R_cap (cQp.m 1) size st xs
-              \post     this |-> R_resized (cQp.m 1) (size+1) st (xs ++ [x]).
+              \post     this |-> R_resized (cQp.m 1) (size+1) (xs ++ [x]).
         #[global] Hint Opaque push_back_move : sl_opacity.
         #[global] Arguments push_back_move : simpl never.
         Definition SpecFor_push_back_move := RegisterSpec (@push_back_move).
@@ -590,7 +581,7 @@ NES.Begin std.
               \this this
               \with size st xs x
               \pre  this |-> R_cap (cQp.m 1) size st (xs ++ [x])
-              \post this |-> R_resized (cQp.m 1) (size - 1) st xs.
+              \post this |-> R_resized (cQp.m 1) (size - 1) xs.
         #[global] Hint Opaque pop_back : sl_opacity.
         #[global] Arguments pop_back : simpl never.
         Definition SpecFor_pop_back := RegisterSpec pop_back.
@@ -653,7 +644,7 @@ NES.Begin std.
                    [| xs' = takeN (Z.to_N new_size) xs |]       (* would [sliceZ] be better here (because of Z vs N)? *)
                  else (* size < new_size *)
                    [| xs' = xs ++ replicateZ (new_size - size) (default_val ty) |] ) ∗
-                this |-> R_resized (cQp.m 1) new_size st xs'.
+                this |-> R_resized (cQp.m 1) new_size xs'.
         #[global] Hint Opaque resize_default : sl_opacity.
         #[global] Arguments resize_default : simpl never.
         Definition SpecFor_resize_default := RegisterSpec (@resize_default).
@@ -678,7 +669,7 @@ NES.Begin std.
                    [| xs' = takeN (Z.to_N new_size) xs |]       (* would [sliceZ] be better here (because of Z vs N)? *)
                  else (* size < new_size *)
                    [| xs' = xs ++ replicateZ (new_size - size) v0 |] ) ∗
-                this |-> R_resized (cQp.m 1) new_size st xs'.
+                this |-> R_resized (cQp.m 1) new_size xs'.
         #[global] Hint Opaque resize : sl_opacity.
         #[global] Arguments resize : simpl never.
         Definition SpecFor_resize := RegisterSpec (@resize).
@@ -805,14 +796,6 @@ NES.Begin std.
           [q = q' ].
       Proof. solve_learnable. Qed.
 
-      #[global] Instance resizedR_affine size s s' : Affine (resizedR size s s').
-      Proof. rewrite resizedR.unlock; apply _. Qed.
-
-      Lemma trivial_resized_elim (p basep : ptr) size s' :
-        p |-> resizedR size {| base_pointer := basep ; capacity := 0 |} s' |-- emp.
-      Proof. rewrite resizedR.unlock; by iIntros. Qed.
-      Definition trivial_resized_elim_F := [FWD] trivial_resized_elim.
-
       #[program]
       Definition vector_spine_intro_CB (p : ptr) q q' st size i j :=
         \cancelx
@@ -850,16 +833,14 @@ NES.Begin std.
       Qed.
 
       Definition congr_spineR q := normalize.NormCongr2 (vector.spineR ty alloc_ty q).
-      Definition congr_resizedR s s' := normalize.NormCongr1 (fun size => vector.resizedR size s s').
 
     End instances_hints.
-    #[global] Hint Resolve nullptr_cap_size_F learn_spineR trivial_resized_elim_F : sl_opacity.
+    #[global] Hint Resolve nullptr_cap_size_F learn_spineR : sl_opacity.
 
     #[global] Hint Resolve vector_spine_elim_CF : sl_opacity.
     #[global] Hint Resolve vector_spine_intro_CB : sl_opacity.
 
     #[global] Hint Resolve congr_spineR : tc_strong_opacity.
-    #[global] Hint Resolve congr_resizedR : tc_strong_opacity.
 
     (** These abbreviations hardcode the default allocator, so they are not used in this file. *)
     #[global] Abbreviation R_cap ty q size st xs :=
