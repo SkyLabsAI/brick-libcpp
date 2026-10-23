@@ -3,7 +3,7 @@
 
 usage() {
 	cat >&2 <<-EOF
-		usage: $(basename "$0") [ -t ] <filename>.<ext> <cpp2v-options> -- [ <clang-options> ]
+		usage: $(basename "$0") [ --toolchain CONFIG ] [ -t ] <filename>.<ext> <cpp2v-options> -- [ <clang-options> ]
 
 		This will output (to stdout) dune rules for building <filename>.<ext>,
 		passing <options> to cpp2v. Redirect output to dune.inc and
@@ -39,7 +39,13 @@ outRule() {
 	# if [ "$system" = 1 ]; then
 	# 	universe=" (universe)"
 	# fi
-	local cpp2v="cpp2v -v %{input} -o ${module} --no-elaborate"
+	local cpp2v="cpp2v"
+	local action_indent=$'\t '
+	if [ -n "$toolchain" ]; then
+		action_indent=" "
+		cpp2v="%{bin:cpp2v-run} --config %{dep:${toolchain}} --host-tool %{bin:cpp2v} --container-tool cpp2v --"
+	fi
+	cpp2v="${cpp2v} -v %{input} -o ${module} --no-elaborate"
 
 	if [ "$gen_names" = 1 ]; then
 		local names="${name}_${ext}_names.v"
@@ -61,10 +67,9 @@ outRule() {
 		 (alias test_ast)
 		 (deps
 		  (:input ${name}.${ext})
-		  (env_var CPP2V_DOCKER_ENABLED)
 		  (glob_files_rec ${prefix}*.hpp)${universe})
 		 (action
-		 	 (with-stderr-to ${module}.stderr ${action})))
+		 ${action_indent}(with-stderr-to ${module}.stderr ${action})))
 		(alias (name srcs) (deps ${name}.${ext}))
 	EOF
 	# TODO: maybe drop @srcs alias, seems leftover from !2613
@@ -85,7 +90,12 @@ traverse() {
 		#echo DIR $firstDir
 		#echo REST $rest
 		echo "${indent}(subdir ${firstDir}"
-		(cd "${firstDir}"; traverse " $indent" "$rest" "$@")
+		(
+			cd "${firstDir}" || exit
+			# Resolve CONFIG relative to each generated subdir scope.
+			case "$toolchain" in ""|/*) ;; *) toolchain="../$toolchain" ;; esac
+			traverse " $indent" "$rest" "$@"
+		) || return
 		echo "${indent})"
 	fi
 }
@@ -94,9 +104,15 @@ gen_names=0
 templates=0
 system=0
 prefix="../"
+toolchain=""
 while :
 do
 	case "$1" in
+	--toolchain)
+		[ $# -ge 2 ] && [ -n "$2" ] || usage
+		toolchain="$2"
+		shift 2
+		;;
 	-n)
 		gen_names=1
 		shift
