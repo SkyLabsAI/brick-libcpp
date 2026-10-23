@@ -12,9 +12,6 @@
   e_addr, last_addr, p : ptr
   GUARDS : GWs.GUARDS
   _x_ : valid<"int"> 1
-  _H_0 : 0 ≤ 0 + 1
-  _H_1 : list.ListSizeZ [1] (0 + 1 - 0)
-  _H_2 : 0 < 0 + 1
   _p_ : ptr
   ============================
   _ : denoteModule source
@@ -28,7 +25,7 @@
   _ : std.vector.iterator.iter_to_const "int" "std::allocator<int>"
   _ : std.vector.push_back_move "int" "std::allocator<int>"
   _ : type_ptr "std::vector<int, std::allocator<int>>" v_addr
-  _ : std.vector.base_pointer st' |-> typed_sliceR "int" 0 (0 + 1)
+  _ : type_ptr "int" (std.vector.base_pointer st' .[ "int" ! 0 ])
   _ : type_ptr
         "__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int>>>"
         e_addr
