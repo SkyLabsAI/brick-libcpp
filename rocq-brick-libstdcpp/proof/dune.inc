@@ -5,10 +5,9 @@
   (alias test_ast)
   (deps
    (:input inc_algorithms.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_algorithms_cpp.v.stderr (run cpp2v -v %{input} -o inc_algorithms_cpp.v --no-elaborate --templates=inc_algorithms_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to inc_algorithms_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o inc_algorithms_cpp.v --no-elaborate --templates=inc_algorithms_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_algorithms.cpp))
 )
 (subdir array
@@ -17,10 +16,9 @@
   (alias test_ast)
   (deps
    (:input inc_array.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_array_cpp.v.stderr (run cpp2v -v %{input} -o inc_array_cpp.v --no-elaborate --templates=inc_array_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to inc_array_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o inc_array_cpp.v --no-elaborate --templates=inc_array_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_array.cpp))
 )
 (subdir cassert
@@ -29,10 +27,9 @@
   (alias test_ast)
   (deps
    (:input inc_cassert.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_cassert_cpp.v.stderr (run cpp2v -v %{input} -o inc_cassert_cpp.v --no-elaborate --templates=inc_cassert_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to inc_cassert_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o inc_cassert_cpp.v --no-elaborate --templates=inc_cassert_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_cassert.cpp))
 )
 (subdir cctype
@@ -41,10 +38,9 @@
   (alias test_ast)
   (deps
    (:input inc_cctype.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_cctype_cpp.v.stderr (run cpp2v -v %{input} -o inc_cctype_cpp.v --no-elaborate --templates=inc_cctype_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to inc_cctype_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o inc_cctype_cpp.v --no-elaborate --templates=inc_cctype_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_cctype.cpp))
 )
 (subdir compare
@@ -53,10 +49,9 @@
   (alias test_ast)
   (deps
    (:input inc_compare.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_compare_cpp.v.stderr (run cpp2v -v %{input} -o inc_compare_cpp.v --no-elaborate --templates=inc_compare_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to inc_compare_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o inc_compare_cpp.v --no-elaborate --templates=inc_compare_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_compare.cpp))
 )
 (subdir cstdlib
@@ -65,10 +60,9 @@
   (alias test_ast)
   (deps
    (:input inc_cstdlib.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_cstdlib_cpp.v.stderr (run cpp2v -v %{input} -o inc_cstdlib_cpp.v --no-elaborate --templates=inc_cstdlib_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to inc_cstdlib_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o inc_cstdlib_cpp.v --no-elaborate --templates=inc_cstdlib_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_cstdlib.cpp))
 )
 (subdir cstring
@@ -77,10 +71,9 @@
   (alias test_ast)
   (deps
    (:input inc_cstring.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_cstring_cpp.v.stderr (run cpp2v -v %{input} -o inc_cstring_cpp.v --no-elaborate --templates=inc_cstring_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to inc_cstring_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o inc_cstring_cpp.v --no-elaborate --templates=inc_cstring_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_cstring.cpp))
 )
 (subdir initializer_list
@@ -89,10 +82,9 @@
   (alias test_ast)
   (deps
    (:input inc_initializer_list.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_initializer_list_cpp.v.stderr (run cpp2v -v %{input} -o inc_initializer_list_cpp.v --no-elaborate --templates=inc_initializer_list_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to inc_initializer_list_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o inc_initializer_list_cpp.v --no-elaborate --templates=inc_initializer_list_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_initializer_list.cpp))
 )
 (subdir iostream
@@ -101,10 +93,9 @@
   (alias test_ast)
   (deps
    (:input inc_iostream.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_iostream_cpp.v.stderr (run cpp2v -v %{input} -o inc_iostream_cpp.v --no-elaborate --templates=inc_iostream_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to inc_iostream_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o inc_iostream_cpp.v --no-elaborate --templates=inc_iostream_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_iostream.cpp))
 )
 (subdir iostream_trace
@@ -113,10 +104,9 @@
   (alias test_ast)
   (deps
    (:input inc_iostream.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_iostream_cpp.v.stderr (run cpp2v -v %{input} -o inc_iostream_cpp.v --no-elaborate --templates=inc_iostream_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to inc_iostream_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o inc_iostream_cpp.v --no-elaborate --templates=inc_iostream_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_iostream.cpp))
 )
 (subdir memory
@@ -125,10 +115,9 @@
   (alias test_ast)
   (deps
    (:input inc.hpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_hpp.v.stderr (run cpp2v -v %{input} -o inc_hpp.v --no-elaborate --templates=inc_hpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to inc_hpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o inc_hpp.v --no-elaborate --templates=inc_hpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc.hpp))
 )
 (subdir mutex
@@ -137,10 +126,9 @@
   (alias test_ast)
   (deps
    (:input demo.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to demo_cpp.v.stderr (run cpp2v -v %{input} -o demo_cpp.v --no-elaborate --templates=demo_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to demo_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o demo_cpp.v --no-elaborate --templates=demo_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps demo.cpp))
 )
 (subdir mutex
@@ -149,10 +137,9 @@
   (alias test_ast)
   (deps
    (:input inc.hpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_hpp.v.stderr (run cpp2v -v %{input} -o inc_hpp.v --no-elaborate --templates=inc_hpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to inc_hpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o inc_hpp.v --no-elaborate --templates=inc_hpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc.hpp))
 )
 (subdir new
@@ -161,10 +148,9 @@
   (alias test_ast)
   (deps
    (:input inc_new.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_new_cpp.v.stderr (run cpp2v -v %{input} -o inc_new_cpp.v --no-elaborate --templates=inc_new_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to inc_new_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o inc_new_cpp.v --no-elaborate --templates=inc_new_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_new.cpp))
 )
 (subdir semaphore
@@ -173,10 +159,9 @@
   (alias test_ast)
   (deps
    (:input inc.hpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_hpp.v.stderr (run cpp2v -v %{input} -o inc_hpp.v --no-elaborate --templates=inc_hpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to inc_hpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o inc_hpp.v --no-elaborate --templates=inc_hpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc.hpp))
 )
 (subdir semaphore
@@ -185,10 +170,9 @@
   (alias test_ast)
   (deps
    (:input test.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate --templates=test_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to test_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o test_cpp.v --no-elaborate --templates=test_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
 (subdir shared_mutex
@@ -197,10 +181,9 @@
   (alias test_ast)
   (deps
    (:input inc.hpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_hpp.v.stderr (run cpp2v -v %{input} -o inc_hpp.v --no-elaborate --templates=inc_hpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to inc_hpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o inc_hpp.v --no-elaborate --templates=inc_hpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc.hpp))
 )
 (subdir string
@@ -209,10 +192,9 @@
   (alias test_ast)
   (deps
    (:input inc_string.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_string_cpp.v.stderr (run cpp2v -v %{input} -o inc_string_cpp.v --no-elaborate --templates=inc_string_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to inc_string_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o inc_string_cpp.v --no-elaborate --templates=inc_string_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_string.cpp))
 )
 (subdir vector
@@ -221,9 +203,8 @@
   (alias test_ast)
   (deps
    (:input inc_vector.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to inc_vector_cpp.v.stderr (run cpp2v -v %{input} -o inc_vector_cpp.v --no-elaborate --templates=inc_vector_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to inc_vector_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o inc_vector_cpp.v --no-elaborate --templates=inc_vector_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_vector.cpp))
 )

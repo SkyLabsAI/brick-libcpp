@@ -5,10 +5,9 @@
   (alias test_ast)
   (deps
    (:input test.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to test_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
 (subdir cctype
@@ -17,10 +16,9 @@
   (alias test_ast)
   (deps
    (:input test.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to test_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
 (subdir compare
@@ -29,10 +27,9 @@
   (alias test_ast)
   (deps
    (:input test.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to test_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
 (subdir cstdlib
@@ -41,10 +38,9 @@
   (alias test_ast)
   (deps
    (:input test.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to test_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
 (subdir cstring
@@ -53,10 +49,9 @@
   (alias test_ast)
   (deps
    (:input null_ub.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to null_ub_cpp.v.stderr (run cpp2v -v %{input} -o null_ub_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to null_ub_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o null_ub_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps null_ub.cpp))
 )
 (subdir cstring
@@ -65,10 +60,9 @@
   (alias test_ast)
   (deps
    (:input strncmp_ub.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to strncmp_ub_cpp.v.stderr (run cpp2v -v %{input} -o strncmp_ub_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to strncmp_ub_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o strncmp_ub_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps strncmp_ub.cpp))
 )
 (subdir cstring
@@ -77,10 +71,9 @@
   (alias test_ast)
   (deps
    (:input test.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to test_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
 (subdir g4g
@@ -89,10 +82,9 @@
   (alias test_ast)
   (deps
    (:input N12_area.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to N12_area_cpp.v.stderr (run cpp2v -v %{input} -o N12_area_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to N12_area_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o N12_area_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N12_area.cpp))
 )
 (subdir g4g
@@ -101,10 +93,9 @@
   (alias test_ast)
   (deps
    (:input N1_hello_world.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to N1_hello_world_cpp.v.stderr (run cpp2v -v %{input} -o N1_hello_world_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to N1_hello_world_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o N1_hello_world_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N1_hello_world.cpp))
 )
 (subdir g4g
@@ -113,10 +104,9 @@
   (alias test_ast)
   (deps
    (:input N4_sum.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to N4_sum_cpp.v.stderr (run cpp2v -v %{input} -o N4_sum_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to N4_sum_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o N4_sum_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N4_sum.cpp))
 )
 (subdir g4g
@@ -125,10 +115,9 @@
   (alias test_ast)
   (deps
    (:input N4_sum_a.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to N4_sum_a_cpp.v.stderr (run cpp2v -v %{input} -o N4_sum_a_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to N4_sum_a_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o N4_sum_a_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N4_sum_a.cpp))
 )
 (subdir g4g
@@ -137,10 +126,9 @@
   (alias test_ast)
   (deps
    (:input N5_swap.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to N5_swap_cpp.v.stderr (run cpp2v -v %{input} -o N5_swap_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to N5_swap_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o N5_swap_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N5_swap.cpp))
 )
 (subdir g4g
@@ -149,10 +137,9 @@
   (alias test_ast)
   (deps
    (:input N5_swap_a.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to N5_swap_a_cpp.v.stderr (run cpp2v -v %{input} -o N5_swap_a_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to N5_swap_a_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o N5_swap_a_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N5_swap_a.cpp))
 )
 (subdir g4g
@@ -161,10 +148,9 @@
   (alias test_ast)
   (deps
    (:input N6_print_sizeof.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to N6_print_sizeof_cpp.v.stderr (run cpp2v -v %{input} -o N6_print_sizeof_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to N6_print_sizeof_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o N6_print_sizeof_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N6_print_sizeof.cpp))
 )
 (subdir g4g_trace
@@ -173,10 +159,9 @@
   (alias test_ast)
   (deps
    (:input N12_area.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to N12_area_cpp.v.stderr (run cpp2v -v %{input} -o N12_area_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to N12_area_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o N12_area_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N12_area.cpp))
 )
 (subdir g4g_trace
@@ -185,10 +170,9 @@
   (alias test_ast)
   (deps
    (:input N1_hello_world.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to N1_hello_world_cpp.v.stderr (run cpp2v -v %{input} -o N1_hello_world_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to N1_hello_world_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o N1_hello_world_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N1_hello_world.cpp))
 )
 (subdir g4g_trace
@@ -197,10 +181,9 @@
   (alias test_ast)
   (deps
    (:input N4_sum.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to N4_sum_cpp.v.stderr (run cpp2v -v %{input} -o N4_sum_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to N4_sum_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o N4_sum_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N4_sum.cpp))
 )
 (subdir g4g_trace
@@ -209,10 +192,9 @@
   (alias test_ast)
   (deps
    (:input N4_sum_a.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to N4_sum_a_cpp.v.stderr (run cpp2v -v %{input} -o N4_sum_a_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to N4_sum_a_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o N4_sum_a_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N4_sum_a.cpp))
 )
 (subdir g4g_trace
@@ -221,10 +203,9 @@
   (alias test_ast)
   (deps
    (:input N5_swap.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to N5_swap_cpp.v.stderr (run cpp2v -v %{input} -o N5_swap_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to N5_swap_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o N5_swap_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N5_swap.cpp))
 )
 (subdir g4g_trace
@@ -233,10 +214,9 @@
   (alias test_ast)
   (deps
    (:input N5_swap_a.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to N5_swap_a_cpp.v.stderr (run cpp2v -v %{input} -o N5_swap_a_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to N5_swap_a_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o N5_swap_a_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N5_swap_a.cpp))
 )
 (subdir g4g_trace
@@ -245,10 +225,9 @@
   (alias test_ast)
   (deps
    (:input N6_print_sizeof.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to N6_print_sizeof_cpp.v.stderr (run cpp2v -v %{input} -o N6_print_sizeof_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to N6_print_sizeof_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o N6_print_sizeof_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N6_print_sizeof.cpp))
 )
 (subdir initializer_list
@@ -257,10 +236,9 @@
   (alias test_ast)
   (deps
    (:input test.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to test_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
 (subdir limits
@@ -269,10 +247,9 @@
   (alias test_ast)
   (deps
    (:input test.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to test_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
 (subdir memory
@@ -281,10 +258,9 @@
   (alias test_ast)
   (deps
    (:input test.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to test_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
 (subdir mutex
@@ -293,10 +269,9 @@
   (alias test_ast)
   (deps
    (:input custom_mutex.hpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to custom_mutex_hpp.v.stderr (run cpp2v -v %{input} -o custom_mutex_hpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to custom_mutex_hpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o custom_mutex_hpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps custom_mutex.hpp))
 )
 (subdir mutex
@@ -305,10 +280,9 @@
   (alias test_ast)
   (deps
    (:input custom_recursive_mutex.hpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to custom_recursive_mutex_hpp.v.stderr (run cpp2v -v %{input} -o custom_recursive_mutex_hpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to custom_recursive_mutex_hpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o custom_recursive_mutex_hpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps custom_recursive_mutex.hpp))
 )
 (subdir mutex
@@ -317,10 +291,9 @@
   (alias test_ast)
   (deps
    (:input guard_recursive.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to guard_recursive_cpp.v.stderr (run cpp2v -v %{input} -o guard_recursive_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to guard_recursive_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o guard_recursive_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps guard_recursive.cpp))
 )
 (subdir mutex
@@ -329,10 +302,9 @@
   (alias test_ast)
   (deps
    (:input test.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to test_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
 (subdir new
@@ -341,10 +313,9 @@
   (alias test_ast)
   (deps
    (:input demo.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to demo_cpp.v.stderr (run cpp2v -v %{input} -o demo_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to demo_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o demo_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps demo.cpp))
 )
 (subdir shared_mutex
@@ -353,10 +324,9 @@
   (alias test_ast)
   (deps
    (:input test.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to test_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
 (subdir string
@@ -365,10 +335,9 @@
   (alias test_ast)
   (deps
    (:input erase_out_of_range.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to erase_out_of_range_cpp.v.stderr (run cpp2v -v %{input} -o erase_out_of_range_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to erase_out_of_range_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o erase_out_of_range_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps erase_out_of_range.cpp))
 )
 (subdir string
@@ -377,10 +346,9 @@
   (alias test_ast)
   (deps
    (:input test.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to test_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
 (subdir vector
@@ -389,10 +357,9 @@
   (alias test_ast)
   (deps
    (:input erase_ub.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to erase_ub_cpp.v.stderr (run cpp2v -v %{input} -o erase_ub_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to erase_ub_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o erase_ub_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps erase_ub.cpp))
 )
 (subdir vector
@@ -401,9 +368,8 @@
   (alias test_ast)
   (deps
    (:input test.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to test_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
