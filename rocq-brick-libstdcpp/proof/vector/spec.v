@@ -330,6 +330,40 @@ NES.Begin std.
         Definition iter_op_pre_inc_SpecFor := RegisterSpec iter_op_pre_inc.
         #[global] Existing Instance iter_op_pre_inc_SpecFor.
 
+        (** <<__normal_iterator operator+(difference_type n) const;>>
+
+            Like <<operator++>>, this does not check bounds yet (see the TODO
+            there). *)
+        Definition iter_op_plus const ty alloc_ty :=
+          let qf := function_qualifiers.mk true false Prvalue in
+          specify.template.op (N_base const ty alloc_ty) OOPlus qf (T_base const ty alloc_ty) [Tlong] $
+            \this this
+            \arg{n} "" (Vint n)
+            \with basep i
+            \prepost{q} this |-> R_base const ty alloc_ty q basep i
+            \post{rp}[Vptr rp] rp |-> R_base const ty alloc_ty 1$m basep (i + n).
+        #[global] Hint Opaque iter_op_plus : sl_opacity.
+        #[global] Arguments iter_op_plus : simpl never.
+        Definition iter_op_plus_SpecFor := RegisterSpec iter_op_plus.
+        #[global] Existing Instance iter_op_plus_SpecFor.
+
+        (** The converting constructor from <<iterator>> to <<const_iterator>>,
+            a constructor template of <<__normal_iterator>> in libstdc++. *)
+        Definition iter_to_const ty alloc_ty :=
+          let argty := Tref (Tconst (T_base false ty alloc_ty)) in
+          _global (Ninst (Nscoped (N_base true ty alloc_ty) (Nctor [argty]))
+                     [Atype (Tptr ty); Atype Tvoid])
+          |-> unmaterialized_specR (tCtor (N_base true ty alloc_ty) [argty]) (
+            \this this
+            \arg{otherp} "" (Vptr otherp)
+            \with basep i
+            \prepost{q} otherp |-> R_base false ty alloc_ty q basep i
+            \post this |-> R_base true ty alloc_ty 1$m basep i).
+        #[global] Hint Opaque iter_to_const : sl_opacity.
+        #[global] Arguments iter_to_const : simpl never.
+        Definition iter_to_const_SpecFor := RegisterSpec iter_to_const.
+        #[global] Existing Instance iter_to_const_SpecFor.
+
         Definition iter_op_eq const ty alloc_ty :=
           specify.template.static_op NS OOEqualEqual
               [Atype (Tptr (Tconst_if const ty)); Atype (vector.T ty alloc_ty)]
@@ -368,6 +402,7 @@ NES.Begin std.
           iter_deref const ty alloc_ty **
           iter_op_post_inc const ty alloc_ty **
           iter_op_pre_inc const ty alloc_ty **
+          iter_op_plus const ty alloc_ty **
           iter_op_eq const ty alloc_ty **
           iter_op_ne const ty alloc_ty.
         #[global] Hint Opaque specs : typeclass_instances sl_opacity.
@@ -684,6 +719,57 @@ NES.Begin std.
         Definition SpecFor_resize := RegisterSpec (@resize).
         #[global] Existing Instance SpecFor_resize.
 
+        (** <<iterator erase(const_iterator pos);>>
+
+            <https://eel.is/c++draft/vector.modifiers>,
+            <https://eel.is/c++draft/sequence.reqmts> ("q denotes a valid
+            dereferenceable constant iterator to a"): removes the element at
+            [pos] without reallocating, and returns an iterator to the element
+            after it. The later elements move down by move assignment, so each
+            keeps its value. *)
+        Definition erase_one :=
+          let qf := function_qualifiers.N in
+          specify.template.method vector "erase" qf (iterator.T_base false ty alloc_ty) [iterator.T_base true ty alloc_ty] $
+            \this this
+            \arg{posp} "" (Vptr posp)
+            \with size st xs i
+            \prepost posp |-> iterator.R_base true ty alloc_ty 1$m (base_pointer st) i
+            \require 0 ≤ i < size
+            \pre this |-> R_cap (cQp.m 1) size st xs
+            \post{rp}[Vptr rp]
+              rp |-> iterator.R_base false ty alloc_ty 1$m (base_pointer st) i **
+              this |-> R_cap (cQp.m 1) (size - 1) st (takeZ i xs ++ dropZ (i + 1) xs).
+        #[global] Hint Opaque erase_one : sl_opacity.
+        #[global] Arguments erase_one : simpl never.
+        Definition SpecFor_erase_one := RegisterSpec erase_one.
+        #[global] Existing Instance SpecFor_erase_one.
+
+        (** <<iterator erase(const_iterator first, const_iterator last);>>
+
+            <https://eel.is/c++draft/sequence.reqmts> ("[q1, q2) is a valid
+            range in a"): removes the elements in [first, last) without
+            reallocating, and returns an iterator to the element that followed
+            them. *)
+        Definition erase_range :=
+          let qf := function_qualifiers.N in
+          specify.template.method vector "erase" qf (iterator.T_base false ty alloc_ty)
+              [iterator.T_base true ty alloc_ty; iterator.T_base true ty alloc_ty] $
+            \this this
+            \arg{firstp} "" (Vptr firstp)
+            \arg{lastp} "" (Vptr lastp)
+            \with size st xs i j
+            \prepost firstp |-> iterator.R_base true ty alloc_ty 1$m (base_pointer st) i
+            \prepost lastp |-> iterator.R_base true ty alloc_ty 1$m (base_pointer st) j
+            \require 0 ≤ i ≤ j ∧ j ≤ size
+            \pre this |-> R_cap (cQp.m 1) size st xs
+            \post{rp}[Vptr rp]
+              rp |-> iterator.R_base false ty alloc_ty 1$m (base_pointer st) i **
+              this |-> R_cap (cQp.m 1) (size - (j - i)) st (takeZ i xs ++ dropZ j xs).
+        #[global] Hint Opaque erase_range : sl_opacity.
+        #[global] Arguments erase_range : simpl never.
+        Definition SpecFor_erase_range := RegisterSpec erase_range.
+        #[global] Existing Instance SpecFor_erase_range.
+
         Definition size `{!IsAllocator alloc_ty} :=
           let qf := function_qualifiers.Nc in
           specify.template.method vector "size" qf size_type [] $
@@ -766,6 +852,8 @@ NES.Begin std.
           MaybeConst front  **
           MaybeConst back **
           clear **
+          erase_one **
+          erase_range **
           resize_default **
           resize **
           size **

@@ -1,0 +1,61 @@
+1 goal
+  
+  thread_info : biIndex
+  _Σ : gFunctors
+  Σ : cpp_logic thread_info _Σ
+  σ : genv
+  _H_ : source ⊧ σ
+  _PostPred_ : ptr → mpred
+  PostCond : PostCondition
+  v_addr : ptr
+  st' : std.vector.InternalState
+  e_addr, last_addr, p : ptr
+  GUARDS : GWs.GUARDS
+  _x_ : valid<"int"> 1
+  _p_ : ptr
+  ============================
+  _ : denoteModule source
+  _ : std.vector.default_ctor "int" "std::allocator<int>"
+  _ : std.vector.dtor "int" "std::allocator<int>"
+  _ : std.vector.end_spec "int" "std::allocator<int>" false
+  _ : std.vector.erase_one "int" "std::allocator<int>"
+  _ : std.vector.iterator.iter_copy_ctor true "int" "std::allocator<int>"
+  _ : std.vector.iterator.iter_dtor true "int" "std::allocator<int>"
+  _ : std.vector.iterator.iter_dtor false "int" "std::allocator<int>"
+  _ : std.vector.iterator.iter_to_const "int" "std::allocator<int>"
+  _ : std.vector.push_back_move "int" "std::allocator<int>"
+  _ : type_ptr "std::vector<int, std::allocator<int>>" v_addr
+  _ : type_ptr "int" (std.vector.base_pointer st' .[ "int" ! 0 ])
+  _ : type_ptr
+        "__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int>>>"
+        e_addr
+  _ : type_ptr
+        "__gnu_cxx::__normal_iterator<const int*, std::vector<int, std::allocator<int>>>"
+        last_addr
+  _ : type_ptr
+        "__gnu_cxx::__normal_iterator<const int*, std::vector<int, std::allocator<int>>>"
+        p
+  --------------------------------------□
+  _ : PostCond
+  _ : e_addr
+      |-> std.vector.iterator.R "int" 1$m (std.vector.base_pointer st') 1
+  _ : last_addr
+      |-> std.vector.iterator.R_const "int" 1$m (std.vector.base_pointer st')
+            1
+  --------------------------------------∗
+  [| 1 < 1 |] ∗
+  ∀ x : ptr,
+    p
+    |-> std.vector.iterator.R_const "int" 1$m (std.vector.base_pointer st') 1 ∗
+    x |-> std.vector.iterator.R "int" 1$m (std.vector.base_pointer st') 1 ∗
+    v_addr
+    |-> (std.vector.spineR "int" "std::allocator<int>" 1$m (1 - 1) st' ∗
+         pureR
+           (std.vector.base_pointer st'
+            |-> array_sliceR "int" 0 (1 - 1) (λ v : Z, intR 1$m v)
+                  (takeZ 1 [1] ++ dropZ (1 + 1) [1]))) -∗
+    ::interp
+      { FreeTemps.delete
+          "__gnu_cxx::__normal_iterator<const int*, std::vector<int, std::allocator<int>>>"
+          p >*>
+        1 }
