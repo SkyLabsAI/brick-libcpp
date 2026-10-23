@@ -12,9 +12,6 @@
   e_addr, last_addr, p : ptr
   GUARDS : GWs.GUARDS
   _x_ : valid<"int"> 1
-  _H_0 : 0 < 0 + 1
-  _H_1 : 0 ≤ 0 + 1
-  _H_2 : list.ListSizeZ [1] (0 + 1 - 0)
   _p_ : ptr
   ============================
   _ : denoteModule source
