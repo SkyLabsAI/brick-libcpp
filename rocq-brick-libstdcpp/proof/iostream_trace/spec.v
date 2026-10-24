@@ -83,13 +83,18 @@ Section with_cpp.
   ).
 
   (** NOTE: this specification is weak because it does not connect to the
-      actual stream "contents". *)
+      actual stream "contents".
+
+      The argument must hold a value: if the sentry fails (e.g. at the end of
+      the input, or after an earlier failed extraction), nothing is stored
+      ([istream.formatted.reqmts]/1), so an uninitialized argument would stay
+      uninitialized. *)
   cpp.spec "std::basic_istream<char, std::char_traits<char>>::operator>>(int&)"
     from source as istream_take_int_spec with (
     \this this
     \pre{isM} this |-> istreamR 1$m isM
     \arg{nP} "" (Vptr nP)
-    \pre nP |-> anyR "int" 1$m
+    \pre{n0} nP |-> intR 1$m n0
     \post[Vptr this] Exists isM' n,
         this |-> istreamR 1$m isM' **
           nP |-> intR 1$m n

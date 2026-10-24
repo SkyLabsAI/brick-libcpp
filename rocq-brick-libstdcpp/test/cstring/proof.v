@@ -393,14 +393,16 @@ Section with_cpp.
   Lemma test_strchr_ok : verify[source] "test_strchr()".
   Proof.
     verify_spec; go.
-    all: simpl in *; by normalize_ptrs.
+    all: simpl in *; Arith.arith_simpl; normalize_ptrs; go.
+    all: by exfalso.
   Qed.
 
   cpp.spec "test_strrchr()" from source default.
   Lemma test_strrchr_ok : verify[source] "test_strrchr()".
   Proof.
     verify_spec; go.
-    all: simpl in *; by normalize_ptrs.
+    all: simpl in *; Arith.arith_simpl; normalize_ptrs; go.
+    all: by exfalso.
   Qed.
 
   cpp.spec "test_strspn()" from source default.
@@ -415,20 +417,169 @@ Section with_cpp.
   Lemma test_strpbrk_ok : verify[source] "test_strpbrk()".
   Proof.
     verify_spec; go.
-    exfalso.
-    by normalize_ptrs.
+    all: Arith.arith_simpl; normalize_ptrs; go.
+    all: by exfalso.
   Qed.
 
   cpp.spec "test_strstr()" from source default.
   Lemma test_strstr_ok : verify[source] "test_strstr()".
   Proof.
     verify_spec; go.
-    all: exfalso.
-    all: by normalize_ptrs.
+    all: Arith.arith_simpl; normalize_ptrs; go.
+    all: by exfalso.
   Qed.
 
   cpp.spec "test_cstring_slice1()" from source default.
   Lemma test_cstring_slice1_ok : verify[source] "test_cstring_slice1()".
   Proof. verify_spec; go. Qed.
+
+  (** * [mem*] clients *)
+
+  (* TODO: some of this automation should be upstreamed, but it needs revisions and improvements for it. *)
+  (** Stated on a plain [xs] so that [go] can use auto's [arrayR_entails_C];
+      at the use sites below, [xs] is a [takeZ]/[dropZ] term and that hint's
+      side condition [lengthZ xs = lengthZ ys] does not normalize to anything
+      [go] can solve. *)
+  Lemma array_sliceR_ucharR_anyR (p : ptr) m n q (xs : list Z) :
+    p |-> array_sliceR Tuchar m n (λ b : Z, ucharR q b) xs ⊢
+    p |-> array_sliceR Tuchar m n (λ _ : unit, anyR Tuchar q) (replicateZ (n - m) ()).
+  Proof. go. Qed.
+
+  (** The destination of [memset]/[memcpy]/[memmove] is a sub-slice of an
+      initialized buffer, given up as [anyR]. *)
+  #[local, program] Definition array_sliceR_ucharR_anyR_C
+      (p : ptr) (m n m' n' : Z) (q : cQp.t) (xs : list Z)
+      (_ : SolveArith (m <= m' <= n' /\ n' <= n)%Z) :=
+    \cancelx
+    \consuming p |-> array_sliceR Tuchar m n (λ b : Z, ucharR q b) xs
+    \proving{(l : list unit)}
+      p |-> array_sliceR Tuchar m' n' (λ _ : unit, anyR Tuchar q) l
+    \through [| l = replicateZ (n' - m') () |]
+    \deduce p |-> array_sliceR Tuchar m m' (λ b : Z, ucharR q b) (takeZ (m' - m) xs)
+    \deduce p |-> array_sliceR Tuchar n' n (λ b : Z, ucharR q b)
+                (dropZ (n' - m') (dropZ (m' - m) xs))
+    \end@{mpred}.
+  Next Obligation.
+    intros * [Hb].
+    rewrite (array_sliceR_split' p m m' n); [|lia..].
+    rewrite (array_sliceR_split' p m' n' n); [|lia..].
+    iIntros "($ & A & $)" (l ->).
+    by iApply array_sliceR_ucharR_anyR.
+  Qed.
+  #[local] Hint Resolve array_sliceR_ucharR_anyR_C : sl_opacity.
+
+  (** Returning a buffer whose first byte was split off. *)
+  #[local, program] Definition array_sliceR_ucharR_cons_anyR_C
+      (p : ptr) (n : Z) (q : cQp.t) (x : Z) (xs : list Z) :=
+    \cancelx
+    \consuming p |-> ucharR q x
+    \consuming p |-> array_sliceR Tuchar 1 n (λ b : Z, ucharR q b) xs
+    \proving{(l : list unit)}
+      p |-> array_sliceR Tuchar 0 n (λ _ : unit, anyR Tuchar q) l
+    \through [| l = replicateZ n () |]
+    \end@{mpred}.
+  Next Obligation.
+    intros. iIntros "[X XS]" (l ->).
+    rewrite -[n in replicateZ n](Z.sub_0_r n).
+    iApply (array_sliceR_ucharR_anyR p 0 n q (x :: xs)).
+    rewrite array_sliceR_cons offset_ptr_sub_0 //. iFrame "XS".
+    iDestruct (observe (type_ptr Tuchar p) with "X") as "#$". iFrame.
+  Qed.
+  #[local] Hint Resolve array_sliceR_ucharR_cons_anyR_C : sl_opacity.
+
+  (** Evaluate closed applications of the [cstring] model functions. *)
+  #[local] Ltac is_model t :=
+    lazymatch t with
+    | memchr _ _ => idtac | memcmp _ _ => idtac | memset _ _ => idtac
+    | byte_of_int _ => idtac | dropZ _ _ => idtac | takeZ _ _ => idtac
+    | replicateZ _ _ => idtac
+    end.
+  (* TODO: reuse skylabs.auto.closed. *)
+  #[local] Ltac closed t :=
+    match t with context [?v] => is_var v; fail 1 | _ => idtac end.
+  #[local] Ltac compute_model :=
+    repeat match goal with
+    | |- context [?t] =>
+        is_model t; closed t;
+        let v := eval vm_compute in t in progress change t with v
+    | H : context [?t] |- _ =>
+        is_model t; closed t;
+        let v := eval vm_compute in t in progress change t with v in H
+    end.
+
+  (** Destruct a list variable whose length is a known literal. *)
+  #[local] Ltac destruct_sized_list :=
+    match goal with
+    | H : list.ListSizeZ ?xs ?n |- _ =>
+        is_var xs; closed n;
+        (* TODO: this OOMs unnecessarily on large lists *)
+        let k := eval vm_compute in (Z.to_nat n) in
+        let Hl := fresh "Hl" in
+        assert (Hl : length xs = k)
+          by (apply list.ListSizeZ_iff in H; rewrite lengthZ_correct in H; lia);
+        clear H;
+        repeat (destruct xs as [|? xs];
+                [first [discriminate Hl | clear Hl]
+                |first [discriminate Hl | injection Hl as Hl]])
+    end.
+
+  (** [go] stops at model computations, list shapes, and the unconstrained
+      [unit]/fraction witnesses of (empty) slices. *)
+  #[local] Ltac finish :=
+    repeat (first [progress compute_model | progress destruct_sized_list
+                  | progress simplify_eq/= | iExists () | iExists 1%cQp
+                  | progress normalize_ptrs]; go).
+
+  cpp.spec "test_memchr()" from source default.
+  Lemma test_memchr_ok : verify[source] "test_memchr()".
+  Proof. verify_spec; go; finish. Qed.
+
+  cpp.spec "test_memchr_embedded_null()" from source default.
+  Lemma test_memchr_embedded_null_ok : verify[source] "test_memchr_embedded_null()".
+  Proof. verify_spec; go; finish. Qed.
+
+  cpp.spec "test_memcmp()" from source default.
+  Lemma test_memcmp_ok : verify[source] "test_memcmp()".
+  Proof. verify_spec; go; finish. Qed.
+
+  cpp.spec "test_memcmp_embedded_null()" from source default.
+  Lemma test_memcmp_embedded_null_ok : verify[source] "test_memcmp_embedded_null()".
+  Proof. verify_spec; go; finish. Qed.
+
+  cpp.spec "test_memset()" from source default.
+  Lemma test_memset_ok : verify[source] "test_memset()".
+  Proof. verify_spec; go; finish. Qed.
+
+  cpp.spec "test_memset_embedded_null()" from source default.
+  Lemma test_memset_embedded_null_ok : verify[source] "test_memset_embedded_null()".
+  Proof. verify_spec; go; finish. Qed.
+
+  cpp.spec "test_memcpy()" from source default.
+  Lemma test_memcpy_ok : verify[source] "test_memcpy()".
+  Proof. verify_spec; go; finish. Qed.
+
+  cpp.spec "test_memcpy_embedded_null()" from source default.
+  Lemma test_memcpy_embedded_null_ok : verify[source] "test_memcpy_embedded_null()".
+  Proof. verify_spec; go; finish. Qed.
+
+  cpp.spec "test_memmove()" from source default.
+  Lemma test_memmove_ok : verify[source] "test_memmove()".
+  Proof. verify_spec; go; finish. Qed.
+
+  (* [test_memmove_overlap()] and [test_memmove_embedded_null()] are out of
+     reach: the [memmove] spec requires disjoint [unsigned char] buffers. *)
+
+  cpp.spec "test_cstring_slice4()" from source default.
+  Lemma test_cstring_slice4_ok : verify[source] "test_cstring_slice4()".
+  Proof. verify_spec; go. Qed.
+
+  cpp.spec "test_mem_zero_length()" from source default.
+  Lemma test_mem_zero_length_ok : verify[source] "test_mem_zero_length()".
+  Proof. verify_spec; go; finish. Qed.
+
+  cpp.spec "test_search_embedded_null_array_buffer()" from source default.
+  Lemma test_search_embedded_null_array_buffer_ok :
+    verify[source] "test_search_embedded_null_array_buffer()".
+  Proof. verify_spec; go; finish. Qed.
 
 End with_cpp.

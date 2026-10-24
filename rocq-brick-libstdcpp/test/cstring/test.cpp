@@ -31,6 +31,49 @@ void test_strncmp() {
     assert(std::strncmp("abd", "abc", 3) > 0);
     assert(std::strncmp("ab", "abc", 2) == 0);
     assert(std::strncmp("ab", "abc", 3) < 0);
+
+    char single[1] = {'a'};
+    assert(std::strncmp(single, "b", 1) < 0);
+    assert(std::strncmp(single, single, 0) == 0);
+    assert(std::strncmp(single, single, 1) == 0);
+    single[0] = 'b';
+    assert(single[0] == 'b');
+
+    char single_null[1] = {'\0'};
+    assert(std::strncmp(single_null, single_null, 8) == 0);
+
+    const char abc[3] = {'a', 'b', 'c'};
+    const char abd[3] = {'a', 'b', 'd'};
+    assert(std::strncmp(abc, abd, 0) == 0);
+    assert(std::strncmp(abc, abd, 2) == 0);
+    assert(std::strncmp(abc, abd, 3) < 0);
+    assert(std::strncmp(abd, abc, 3) > 0);
+    assert(std::strncmp(abc, abc, 3) == 0);
+    const char* alias = abc;
+    assert(std::strncmp(abc, alias, 3) == 0);
+
+    char mutable_buf[3] = {'a', 'b', 'c'};
+    assert(std::strncmp(mutable_buf, mutable_buf, 0) == 0);
+    assert(std::strncmp(mutable_buf, mutable_buf, 3) == 0);
+    mutable_buf[0] = 'x';
+    assert(mutable_buf[0] == 'x');
+
+    const char* text = "abc";
+    assert(std::strncmp(text, text, 8) == 0);
+
+    char short1[2] = {'a', '\0'};
+    char short2[2] = {'a', '\0'};
+    assert(std::strncmp(short1, short2, 8) == 0);
+    assert(std::strncmp(short1, abc, 3) < 0);
+    assert(std::strncmp(abc, short1, 3) > 0);
+    assert(std::strncmp(short1, short1, 8) == 0);
+    short1[0] = 'z';
+    assert(short1[0] == 'z');
+
+    char high[1] = {static_cast<char>(0x80)};
+    char low[1] = {static_cast<char>(0x7f)};
+    assert(std::strncmp(high, low, 1) > 0);
+    assert(std::strncmp(low, high, 1) < 0);
 }
 
 void test_strncmp_embedded_null() {
@@ -49,9 +92,10 @@ void test_strcmp_array_buffer() {
 }
 
 void test_strncmp_array_buffer() {
-    char x[] = {'a', 'b', '\0', 'x', '\0'};
-    char y[] = {'a', 'b', '\0', 'y', '\0'};
+    char x[] = {'a', 'b', '\0', 'x'};
+    char y[] = {'a', 'b', '\0', 'y'};
     assert(std::strncmp(x, y, 4) == 0);
+    assert(std::strncmp(x, x, 8) == 0);
 }
 
 void test_strchr() {
@@ -265,6 +309,18 @@ void test_memmove_embedded_null() {
     assert(s[2] == '\0');
     assert(s[3] == 'b');
     assert(s[4] == 'c');
+}
+
+// Zero-length calls are fine as long as the pointers are valid (and thus
+// non-null), including past-the-end pointers. Contrast with null_ub.cpp.
+void test_mem_zero_length() {
+    unsigned char s[] = {'a', 'b', 'c', 'd'};
+    unsigned char t[] = {'w', 'x', 'y', 'z'};
+    assert(std::memchr(s + 1, 'a', 0) == nullptr);
+    assert(std::memcmp(s, t + 4, 0) == 0);
+    (void)std::memset(s + 4, 'x', (0));
+    (void)std::memcpy(t + 1, s + 2, 0);
+    (void)std::memmove(t, s + 3, 0);
 }
 
 void test_cstring_slice1() {

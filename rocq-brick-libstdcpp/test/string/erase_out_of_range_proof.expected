@@ -1,0 +1,48 @@
+1 goal
+  
+  thread_info : biIndex
+  _Σ : gFunctors
+  Σ : cpp_logic thread_info _Σ
+  σ : genv
+  _H_ : source ⊧ σ
+  _PostPred_ : ptr → mpred
+  s_addr, p : ptr
+  qn : cQp.t
+  PostCond : PostCondition
+  _x_0 :
+    valid<"std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&"> 
+    (Vptr p)
+  GUARDS : GWs.GUARDS
+  _x_1 : valid<"unsigned long"> (Vn (N.ones 64))
+  ============================
+  _ : denoteModule source
+  _ : type_ptr
+        "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>"
+        p
+  _ : type_ptr
+        "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&"
+        s_addr
+  _ : type_ptr "unsigned long"
+        (_global
+           "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>::npos")
+  _ : string_erase_spec
+  --------------------------------------□
+  _ : PostCond
+  _ : s_addr
+      |-> refR<"std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>"> 1$m p
+  _ : string_npos_global qn
+  --------------------------------------∗
+  [| (2 ≤ N.of_nat 1)%N |] ∗
+  (p
+   |-> basic_stringR "char" 1$m
+         (match N.to_nat 2 with
+          | 0%nat => ""
+          | S m' => BS.String "a" match m' with
+                                  | 0%nat | _ => ""
+                                  end
+          end ++
+          match N.to_nat (2 + N.ones 64 `min` (N.of_nat 1 - 2)) with
+          | 0%nat => "a"
+          | _ => ""
+          end) -∗
+   ::interp { 1 })

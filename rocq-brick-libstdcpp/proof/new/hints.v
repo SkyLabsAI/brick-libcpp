@@ -3,7 +3,7 @@ Require Import skylabs.auto.cpp.hints.alignment.
 Require Import skylabs.auto.cpp.proof.
 Require Export skylabs.brick.libstdcpp.new.spec.
 
-#[only(lazy_unfold(global))] derive alloc.tokenR.
+#[only(lazy_unfold(global))] derive alloc.tokenR_with_alignment.
 
 Section with_cpp.
   Context `{Σ : cpp_logic} {σ : genv}.
@@ -18,77 +18,82 @@ Section with_cpp.
        separately captured in [allocatedR].)
    *)
   #[program]
-  Definition token_prove_using_C (p : ptr) q storage_p overhead ty sz
+  Definition token_prove_using_C (p : ptr) (q : Qp) (alignment : option N)
+      (storage_p : ptr) (overhead : N) (ty : type) (sz : N)
     (_ : size_of _ ty = Some sz) :=
     \cancelx
     \consuming p |-> new_token.R q (new_token.mk ty storage_p overhead)
-    \proving p |-> alloc.tokenR ty q
-    \through storage_p .[ Tbyte ! -overhead ] |-> allocatedR q (overhead + sz)
+    \proving p |-> alloc.tokenR_with_alignment ty alignment q
+    \through storage_p .[ Tbyte ! -overhead ] |-> allocatedR q (is_array_type ty) alignment (overhead + sz)
     \end.
   Next Obligation.
-    rewrite alloc.tokenR.unlock. work.
+    rewrite alloc.tokenR_with_alignment.unlock. work.
   Qed.
 
   #[program]
-  Definition token_prove_C (p : ptr) q storage_p overhead ty :=
+  Definition token_prove_C (p : ptr) (q : Qp) (alignment : option N)
+      (storage_p : ptr) (overhead : N) (ty : type) :=
     \cancelx
     \consuming p |-> new_token.R q (new_token.mk ty storage_p overhead)
-    \proving p |-> alloc.tokenR ty q
+    \proving p |-> alloc.tokenR_with_alignment ty alignment q
     \deduce{sz} [| size_of _ ty = Some sz |]
-    \through storage_p .[ Tbyte ! -overhead ] |-> allocatedR q (overhead + sz)
+    \through storage_p .[ Tbyte ! -overhead ] |-> allocatedR q (is_array_type ty) alignment (overhead + sz)
     \end.
   Next Obligation.
     intros; iIntros "X".
     iDestruct (observe [| exists sz, size_of _ _ = _ |] with "X") as "%"; first apply _.
     destruct H; simpl in *.
-    rewrite alloc.tokenR.unlock. iDestruct "X" as "?"; work.
+    rewrite alloc.tokenR_with_alignment.unlock. iDestruct "X" as "?"; work.
   Qed.
 
   (* special cases for the above two hints when the overhead is 0 *)
   #[program]
-  Definition token_prove_using_0_C (p : ptr) q storage_p ty sz
+  Definition token_prove_using_0_C (p : ptr) (q : Qp) (alignment : option N)
+      (storage_p : ptr) (ty : type) (sz : N)
     (_ : size_of _ ty = Some sz) :=
     \cancelx
     \consuming p |-> new_token.R q (new_token.mk ty storage_p 0)
-    \proving p |-> alloc.tokenR ty q
-    \through storage_p |-> allocatedR q sz
+    \proving p |-> alloc.tokenR_with_alignment ty alignment q
+    \through storage_p |-> allocatedR q (is_array_type ty) alignment sz
     \end.
   Next Obligation.
-    rewrite alloc.tokenR.unlock. work.
+    rewrite alloc.tokenR_with_alignment.unlock. work.
     normalize_ptrs. iStopProof; f_equiv. f_equiv. lia.
   Qed.
 
   #[program]
-  Definition token_prove_0_C (p : ptr) q storage_p ty :=
+  Definition token_prove_0_C (p : ptr) (q : Qp) (alignment : option N)
+      (storage_p : ptr) (ty : type) :=
     \cancelx
     \consuming p |-> new_token.R q (new_token.mk ty storage_p 0)
-    \proving p |-> alloc.tokenR ty q
+    \proving p |-> alloc.tokenR_with_alignment ty alignment q
     \deduce{sz} [| size_of _ ty = Some sz |]
-    \through storage_p |-> allocatedR q sz
+    \through storage_p |-> allocatedR q (is_array_type ty) alignment sz
     \end.
   Next Obligation.
     intros; iIntros "X".
     iDestruct (observe [| exists sz, size_of _ _ = _ |] with "X") as "%"; first apply _.
     destruct H; simpl in *.
-    rewrite alloc.tokenR.unlock. iDestruct "X" as "?"; work.
+    rewrite alloc.tokenR_with_alignment.unlock. iDestruct "X" as "?"; work.
     normalize_ptrs. iStopProof; f_equiv; f_equiv; lia.
   Qed.
 
 
   (** ** Hints for proving [new_token.R] *)
   #[program]
-  Definition token_use_non_array_C (p : ptr) ty q (_ : TCEq (is_array_type ty) false) :=
+  Definition token_use_non_array_C (p : ptr) (ty : type)
+      (alignment : option N) (q : Qp) (_ : TCEq (is_array_type ty) false) :=
     \cancelx
-    \consuming p |-> alloc.tokenR (σ:=σ) ty q
+    \consuming p |-> alloc.tokenR_with_alignment (σ:=σ) ty alignment q
     \proving{(storage_p : ptr) overhead} p |-> new_token.R q (new_token.mk ty storage_p overhead)
     \deduce{(storage_p' : ptr) sz} [| size_of _ ty = Some sz |]
-    \deduce storage_p' |-> allocatedR q sz
+    \deduce storage_p' |-> allocatedR q false alignment sz
     \through [| storage_p = storage_p' |]
     \through [| overhead = 0 |]%N
     \end.
   Next Obligation.
-    intros.
-    rewrite alloc.tokenR.unlock.
+    intros * Harray.
+    rewrite alloc.tokenR_with_alignment.unlock (proj1 (TCEq_eq _ _) Harray).
     iIntros "X"; iDestruct "X" as (????) "[X ?]".
     iDestruct (observe [| overhead = 0%N |] with "X") as "%".
     subst. normalize_ptrs.
@@ -98,29 +103,27 @@ Section with_cpp.
   Qed.
 
   #[program]
-  Definition token_use_array_C (p : ptr) ty q :=
+  Definition token_use_array_C (p : ptr) (ty : type)
+      (alignment : option N) (q : Qp) :=
     \cancelx
-    \consuming p |-> alloc.tokenR (σ:=σ) ty q
+    \consuming p |-> alloc.tokenR_with_alignment (σ:=σ) ty alignment q
     \proving{(storage_p : ptr) overhead} p |-> new_token.R q (new_token.mk ty storage_p overhead)
     \deduce{(storage_p' : ptr) (overhead' : N) sz} [| size_of _ ty = Some sz |]
-    \deduce storage_p' .[ Tbyte ! -overhead' ] |-> allocatedR q (overhead' + sz)
+    \deduce storage_p' .[ Tbyte ! -overhead' ] |-> allocatedR q (is_array_type ty) alignment (overhead' + sz)
     \through [| storage_p = storage_p' |]
     \through [| overhead = overhead' |]%N
     \end.
   Next Obligation.
-    rewrite alloc.tokenR.unlock. work.
+    rewrite alloc.tokenR_with_alignment.unlock. work.
     iExists storage_p.
     work.
     iExists overhead. work.
   Qed.
 
-  #[global] Instance alloc_token_new_token_learnable ty q q' a b c :
-    Learnable (alloc.tokenR ty q) (new_token.R q' (new_token.mk a b c)) [ty = a].
+  #[global] Instance alloc_token_new_token_learnable ty alignment q q' a b c :
+    Learnable (alloc.tokenR_with_alignment ty alignment q) (new_token.R q' (new_token.mk a b c)) [ty = a].
   Proof. solve_learnable. Qed.
-  #[global] Instance allocatedR_learn : Cbn (Learn (any ==> learn_eq ==> learn_hints.fin) allocatedR).
-  Proof. solve_learnable. Qed.
-
-  #[global] Instance token_learn : Cbn (Learn (learn_eq ==> learn_eq ==> any ==> learn_hints.fin) alloc.tokenR).
+  #[global] Instance token_learn : Cbn (Learn (learn_eq ==> learn_eq ==> learn_eq ==> any ==> learn_hints.fin) alloc.tokenR_with_alignment).
   Proof. solve_learnable. Qed.
 
   (** <<delete nullptr>> hints

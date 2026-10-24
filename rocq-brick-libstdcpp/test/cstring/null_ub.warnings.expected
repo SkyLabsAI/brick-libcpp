@@ -1,0 +1,11 @@
+null_ub.cpp:13:40: warning: null passed to a callee that requires a non-null argument
+null_ub.cpp:15:23: warning: null passed to a callee that requires a non-null argument
+null_ub.cpp:17:44: warning: null passed to a callee that requires a non-null argument
+null_ub.cpp:18:49: warning: null passed to a callee that requires a non-null argument
+null_ub.cpp:19:40: warning: null passed to a callee that requires a non-null argument
+null_ub.cpp:20:45: warning: null passed to a callee that requires a non-null argument
+null_ub.cpp:21:49: warning: null passed to a callee that requires a non-null argument
+null_ub.cpp:22:47: warning: null passed to a callee that requires a non-null argument
+null_ub.cpp:23:51: warning: null passed to a callee that requires a non-null argument
+null_ub.cpp:24:46: warning: null passed to a callee that requires a non-null argument
+null_ub.cpp:25:51: warning: null passed to a callee that requires a non-null argument

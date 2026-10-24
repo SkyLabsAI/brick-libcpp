@@ -32,13 +32,19 @@ Fixpoint strncmp_nat (n : nat) (s1 s2 : bs) : Z :=
       | BS.EmptyString, BS.String c2 _ => - byte_ord c2
       | BS.String c1 _, BS.EmptyString => byte_ord c1
       | BS.String c1 rest1, BS.String c2 rest2 =>
-          if bool_decide (c1 = c2) then strncmp_nat n' rest1 rest2
+          if bool_decide (c1 = c2) then
+            if bool_decide (c1 = Byte.x00) then 0
+            else strncmp_nat n' rest1 rest2
           else byte_ord c1 - byte_ord c2
       end
   end.
 
 Definition strncmp (s1 s2 : bs) (n : N) : Z :=
   strncmp_nat (N.to_nat n) s1 s2.
+
+(* A shorter buffer is sufficient when comparison can stop at a NUL. *)
+Definition strncmp_readable (s : bs) (n : N) : bool :=
+  bool_decide ((n <= lengthN (BS.print s))%N \/ Byte.x00 ∈ BS.print s).
 
 Definition byte_of_int (c : Z) : Z :=
   (c mod 256)%Z.
@@ -153,6 +159,13 @@ Succeed Example strcmp_prefix_greater : strcmp "abc" "ab" = 99 := eq_refl.
 Succeed Example strncmp_zero : strncmp "abc" "abd" 0 = 0 := eq_refl.
 Succeed Example strncmp_equal_prefix : strncmp "abc" "abd" 2 = 0 := eq_refl.
 Succeed Example strncmp_diff_at_bound : strncmp "abc" "abd" 3 = -1 := eq_refl.
+
+Succeed Example strncmp_embedded_null :
+  strncmp (BS.String Byte.x00 "x") (BS.String Byte.x00 "y") 2 = 0 := eq_refl.
+Succeed Example strncmp_readable_bounded :
+  strncmp_readable "abc" 3 = true := eq_refl.
+Succeed Example strncmp_unreadable_short :
+  strncmp_readable "abc" 4 = false := eq_refl.
 
 Succeed Example strchr_found : strchr "banana" 98 = Some 0 := eq_refl.
 Succeed Example strchr_null : strchr "banana" 0 = Some 6 := eq_refl.
