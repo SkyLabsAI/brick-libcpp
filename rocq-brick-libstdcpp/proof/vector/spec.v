@@ -138,13 +138,6 @@ NES.Begin std.
       forall `{Σ : cpp_logic} {σ : genv} (ty alloc_ty : type)
         (q : cQp.t) (size : Z) (intl : InternalState), Rep.
 
-    sl.lock
-    Definition resizedR `{Σ : cpp_logic} (size : Z) (st st' : InternalState) : Rep :=
-      if bool_decide (size ≤ capacity st)
-      then [| st' = st |]
-      else emp.
-    #[global] Arguments resizedR {_ _ Σ} size st st' : assert.
-
     (** Question(Simon): Should we take a predicate as a parameter instead of using [objR]? That would allow varying the
         representation of the contents of the vector of the course of a single proof. That's also enabled by manipulating
         [spineR] and [array_sliceR] separately. *)
@@ -174,15 +167,13 @@ NES.Begin std.
         Reference:
           - https://en.cppreference.com/w/cpp/container/vector, section Iterator invalidation
      *)
-    #[global] Abbreviation R_alloc_resized ty alloc_ty q size st xs :=
-      (∃ st',
-         resizedR size st st' **
-         R_alloc_cap ty alloc_ty q size st' xs)%I
+    #[global] Abbreviation R_alloc_resized ty alloc_ty q size xs :=
+      (∃ st', R_alloc_cap ty alloc_ty q size st' xs)%I
         (size in scope Z_scope).
 
       (** See [R_alloc_resized] above *)
-    #[global] Abbreviation R_resized ty q size st xs :=
-      (R_alloc_resized ty (std.allocator.T ty) q size st xs).
+    #[global] Abbreviation R_resized ty q size xs :=
+      (R_alloc_resized ty (std.allocator.T ty) q size xs).
 
     #[global] Abbreviation null_state := ({| base_pointer := nullptr; capacity := 0 |}).
     (** [R_null q] allows us to specify an empty vector without using a [Rep] predicate for [ty].
@@ -444,10 +435,73 @@ NES.Begin std.
       #[local] Abbreviation R_cap q size st xs := (R_alloc_cap ty alloc_ty q size st xs).
 
       (** See [R_resized] and [R_alloc_resized] above *)
-      #[local] Abbreviation R_resized q size s xs := (R_alloc_resized ty alloc_ty q size s xs).
+      #[local] Abbreviation R_resized q size xs := (R_alloc_resized ty alloc_ty q size xs).
 
       #[local] Abbreviation spineR q size st := (spineR ty alloc_ty q size st).
       #[local] Abbreviation size_type := (allocator_traits.size_type alloc_ty).
+
+      (** * On iterator invalidation
+
+          The following table is taken from [1]
+
+          | Operations               | Invalidated                                                    |
+          |--------------------------|----------------------------------------------------------------|
+          | All read only operations | Never.                                                         |
+          | swap, std::swap          | end()                                                          |
+          | clear, operator=, assign | Always.                                                        |
+          | reserve, shrink_to_fit   | If the vector changed capacity, all of them. If not, none.     |
+          | erase                    | Erased elements and all elements after them (including end()). |
+          | push_back, emplace_back  | If the vector changed capacity, all of them.                   |
+          |                          | If not, only end().                                            |
+          | insert, emplace          | If the vector changed capacity, all of them.                   |
+          |                          | If not, only those at or after the insertion                   |
+          |                          | point (including end()).                                       |
+          | resize                   | If the vector changed capacity, all of them.                   |
+          |                          | If not, only end() and any elements erased.                    |
+          | pop_back                 | The element erased and end().                                  |
+
+          In addition, from [2], we know that with the move assignment << *this = std::move(other) >>
+          and similarly for the move constructor, every iterator initially valid for << other >>,
+          they become valid for << *this >> at the end of the operation and they refer to the same
+          elements that they initially referred to.
+
+
+          ** Iterator validity, formally
+
+          The state of <<std::vector::iterator>> is modelled as a pair <<ptr * Z>>, a base pointer
+          and a subscript. An iterator state <<(p, i)>> is deemed valid if we have a premise
+          <<type_ptr ty (p .[ ty ! i ])>>. It can be dereferenced if we own the object at that
+          particular address.
+
+          This limits our ability to specify iterator invalidation. We can either:
+            1) invalidate the complete set of iterators of a given vector; or
+            2) lose the ability to dereference individual iterators.
+
+          When the standard specifies that certain iterators become invalid but not others, we opt
+          instead to maintain the validity of all iterators but to lose the ability to dereference
+          the would-be invalid iterators.
+
+
+          ** Divergence from the standard
+
+          This file specifies the following:
+           * clear
+           * copy and move ctor
+           * copy and move operator =
+           * resize
+           * push_back
+           * pop_back
+
+
+          For all but <<pop_back>>, the provided specs are as required by the standard. For
+          <<pop_back>>, the standard specifies that both the <<end()>> iterator and the iterator
+          pointing to the removed element become invalid. Instead we merely remove the ownership of
+          the item from circulation.
+
+          References:
+           [1] https://en.cppreference.com/cpp/container/vector#:~:text=Iterator%20invalidation
+           [2] https://en.cppreference.com/cpp/container/vector/operator%3D
+       *)
 
       Definition default_ctor :=
         specify.template.ctor vector [] $
@@ -597,7 +651,7 @@ NES.Begin std.
             \prepost{q x} p |-> objR ty q x
             \pre{size st xs}
                       this |-> R_cap (cQp.m 1) size st xs
-            \post     this |-> R_resized (cQp.m 1) (size + 1) st (xs ++ [x]).
+            \post     this |-> R_resized (cQp.m 1) (size + 1) (xs ++ [x]).
         #[global] Hint Opaque push_back_copy : sl_opacity.
         #[global] Arguments push_back_copy : simpl never.
         Definition SpecFor_push_back_copy := RegisterSpec push_back_copy.
@@ -613,7 +667,7 @@ NES.Begin std.
               \post*    p |-> moved_objR ty (cQp.m 1) x
               \pre{size st xs}
                         this |-> R_cap (cQp.m 1) size st xs
-              \post     this |-> R_resized (cQp.m 1) (size+1) st (xs ++ [x]).
+              \post     this |-> R_resized (cQp.m 1) (size+1) (xs ++ [x]).
         #[global] Hint Opaque push_back_move : sl_opacity.
         #[global] Arguments push_back_move : simpl never.
         Definition SpecFor_push_back_move := RegisterSpec (@push_back_move).
@@ -625,7 +679,7 @@ NES.Begin std.
               \this this
               \with size st xs x
               \pre  this |-> R_cap (cQp.m 1) size st (xs ++ [x])
-              \post this |-> R_resized (cQp.m 1) (size - 1) st xs.
+              \post this |-> R_resized (cQp.m 1) (size - 1) xs.
         #[global] Hint Opaque pop_back : sl_opacity.
         #[global] Arguments pop_back : simpl never.
         Definition SpecFor_pop_back := RegisterSpec pop_back.
@@ -665,7 +719,7 @@ NES.Begin std.
             \this this
             \with size st xs
             \pre  this |-> R_cap (cQp.m 1) size st xs
-            \post this |-> R_cap (cQp.m 1) 0 st [].
+            \post this |-> R_null (cQp.m 1).
         #[global] Hint Opaque clear : sl_opacity.
         #[global] Arguments clear : simpl never.
         Definition SpecFor_clear := RegisterSpec clear.
@@ -688,7 +742,7 @@ NES.Begin std.
                    [| xs' = takeN (Z.to_N new_size) xs |]       (* would [sliceZ] be better here (because of Z vs N)? *)
                  else (* size < new_size *)
                    [| xs' = xs ++ replicateZ (new_size - size) (default_val ty) |] ) ∗
-                this |-> R_resized (cQp.m 1) new_size st xs'.
+                this |-> R_resized (cQp.m 1) new_size xs'.
         #[global] Hint Opaque resize_default : sl_opacity.
         #[global] Arguments resize_default : simpl never.
         Definition SpecFor_resize_default := RegisterSpec (@resize_default).
@@ -713,7 +767,7 @@ NES.Begin std.
                    [| xs' = takeN (Z.to_N new_size) xs |]       (* would [sliceZ] be better here (because of Z vs N)? *)
                  else (* size < new_size *)
                    [| xs' = xs ++ replicateZ (new_size - size) v0 |] ) ∗
-                this |-> R_resized (cQp.m 1) new_size st xs'.
+                this |-> R_resized (cQp.m 1) new_size xs'.
         #[global] Hint Opaque resize : sl_opacity.
         #[global] Arguments resize : simpl never.
         Definition SpecFor_resize := RegisterSpec (@resize).
@@ -893,14 +947,6 @@ NES.Begin std.
           [q = q' ].
       Proof. solve_learnable. Qed.
 
-      #[global] Instance resizedR_affine size s s' : Affine (resizedR size s s').
-      Proof. rewrite resizedR.unlock; apply _. Qed.
-
-      Lemma trivial_resized_elim (p basep : ptr) size s' :
-        p |-> resizedR size {| base_pointer := basep ; capacity := 0 |} s' |-- emp.
-      Proof. rewrite resizedR.unlock; by iIntros. Qed.
-      Definition trivial_resized_elim_F := [FWD] trivial_resized_elim.
-
       #[program]
       Definition vector_spine_intro_CB (p : ptr) q q' st size i j :=
         \cancelx
@@ -938,16 +984,14 @@ NES.Begin std.
       Qed.
 
       Definition congr_spineR q := normalize.NormCongr2 (vector.spineR ty alloc_ty q).
-      Definition congr_resizedR s s' := normalize.NormCongr1 (fun size => vector.resizedR size s s').
 
     End instances_hints.
-    #[global] Hint Resolve nullptr_cap_size_F learn_spineR trivial_resized_elim_F : sl_opacity.
+    #[global] Hint Resolve nullptr_cap_size_F learn_spineR : sl_opacity.
 
     #[global] Hint Resolve vector_spine_elim_CF : sl_opacity.
     #[global] Hint Resolve vector_spine_intro_CB : sl_opacity.
 
     #[global] Hint Resolve congr_spineR : tc_strong_opacity.
-    #[global] Hint Resolve congr_resizedR : tc_strong_opacity.
 
     (** These abbreviations hardcode the default allocator, so they are not used in this file. *)
     #[global] Abbreviation R_cap ty q size st xs :=
