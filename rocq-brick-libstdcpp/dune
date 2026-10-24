@@ -1,35 +1,24 @@
 (rule
- (target cpp2v_docker)
+ (target cpp_environment)
  (deps
   (universe)
-  (:sha1sum %{bin:sha1sum})
-  (:template cpp2v_docker.in))
+  (env_var CPP2V_DOCKER_ENABLED)
+  (env_var CPP2V_DOCKER_IMAGE)
+  (env_var CPP2V_DOCKER_USER))
  (action
-  (progn
-   (with-stdout-to
-    %{target}
-    (bash
-     "set -eu
-hash=$(%{sha1sum} %{bin:cpp2v} | cut -d ' ' -f 1)
-image_id=
-if command -v docker >/dev/null 2>&1; then
-  image_id=$(docker inspect --format='{{.Id}}' %{env:CPP2V_DOCKER_IMAGE=} 2>/dev/null || true)
-fi
-sed -e \"s/@CPP2V_SHA1@/$hash/g\" -e \"s/@CPP2V_DOCKER_IMAGE_ID@/$image_id/g\" %{template}"))
-   (run chmod +x %{target}))))
+  (with-stdout-to %{target}
+   (run %{bin:cpp2v-toolchain} configure
+    --image skylabsai/fm-releases:fm-release-nightly
+    --platform linux/amd64 --opam))))
 
 (env
  (sl_timing
   (binaries (../../BRiCk/rocq-tools/bin/rocq_perf.exe as rocq))
-  (env-vars
-   (CPP2V_DOCKER_IMAGE "skylabsai/fm-releases:fm-release-nightly"))
   (rocq
    (rocqdep_flags :standard -w +all)
    (flags :standard %{read-lines:flags/coqc} -w +sl-transparent-constants)))
  ; Same, but without rocq_perf
  (_
-  (env-vars
-   (CPP2V_DOCKER_IMAGE "skylabsai/fm-releases:fm-release-nightly"))
   (rocq
    (rocqdep_flags :standard -w +all)
    (flags :standard %{read-lines:flags/coqc} -w +sl-transparent-constants))))
