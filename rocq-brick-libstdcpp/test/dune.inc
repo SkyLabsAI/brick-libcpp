@@ -16,10 +16,9 @@
   (alias test_ast)
   (deps
    (:input test.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to test_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
 (subdir cctype
@@ -253,6 +252,28 @@
    (with-stderr-to test_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
+(subdir iostream
+ (rule
+  (targets two_ints_cpp.v.stderr two_ints_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input two_ints.cpp)
+   (glob_files_rec ../*.hpp))
+  (action
+   (with-stderr-to two_ints_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o two_ints_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps two_ints.cpp))
+)
+(subdir iostream_trace
+ (rule
+  (targets extract_cpp.v.stderr extract_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input extract.cpp)
+   (glob_files_rec ../*.hpp))
+  (action
+   (with-stderr-to extract_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o extract_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps extract.cpp))
+)
 (subdir limits
  (rule
   (targets test_cpp.v.stderr test_cpp.v)
@@ -384,6 +405,17 @@
   (action
    (with-stderr-to erase_ub_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o erase_ub_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps erase_ub.cpp))
+)
+(subdir vector
+ (rule
+  (targets iter_bounds_cpp.v.stderr iter_bounds_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input iter_bounds.cpp)
+   (glob_files_rec ../*.hpp))
+  (action
+   (with-stderr-to iter_bounds_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o iter_bounds_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps iter_bounds.cpp))
 )
 (subdir vector
  (rule

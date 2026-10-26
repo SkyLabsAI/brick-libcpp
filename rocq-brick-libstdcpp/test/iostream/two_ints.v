@@ -4,7 +4,7 @@
  * See the LICENSE-BedRock file in the repository root for details.
  *)
 Require Import skylabs.auto.cpp.prelude.proof.
-Require Import skylabs.lang.cpp.parser.plugin.cpp2v.
+Require Import skylabs.brick.libstdcpp.test.iostream.two_ints_cpp.
 Require Import skylabs.brick.libstdcpp.iostream.spec.
 Import istream.
 
@@ -12,23 +12,9 @@ Import istream.
 
     On the input "12-34 ", [second] returns -34 with libstdc++: the first
     extraction stops at '-' and leaves it in the stream, as the read-ahead of
-    [istream.R]. *)
-cpp.prog source flags "-std=c++20 -stdlib=libstdc++" prog cpp:{{
-  #include <istream>
-  int second(std::istream &in) {
-    int a = 0, b = 0;
-    in >> a;
-    in >> b;
-    return b;
-  }
-  int first(std::istream &in) {
-    int a = 5;
-    in >> a;
-    return a;
-  }
-}}.
+    [istream.R].
 
-(** On the inputs "x" and "99999999999 ", [first] returns 0 and 2147483647
+    On the inputs "x" and "99999999999 ", [first] returns 0 and 2147483647
     with libstdc++, and the extraction sets [failbit]. *)
 
 Definition chars (s : String.string) : list N :=

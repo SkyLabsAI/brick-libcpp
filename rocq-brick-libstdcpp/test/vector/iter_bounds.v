@@ -4,7 +4,7 @@
  * See the LICENSE-BedRock file in the repository root for details.
  *)
 Require Import skylabs.auto.cpp.prelude.proof.
-Require Import skylabs.lang.cpp.parser.plugin.cpp2v.
+Require Import skylabs.brick.libstdcpp.test.vector.iter_bounds_cpp.
 Require Import skylabs.brick.libstdcpp.allocator.spec.
 Require Import skylabs.brick.libstdcpp.vector.spec.
 
@@ -15,30 +15,6 @@ Require Import skylabs.brick.libstdcpp.vector.spec.
     past-the-end values are dereferenceable"). [deref_empty] and
     [inc_past_end] violate this; [_GLIBCXX_DEBUG] reports both, and UBSan
     reports both here because an empty vector's iterators are null. *)
-cpp.prog source flags "-std=c++20 -stdlib=libstdc++" prog cpp:{{
-  #include <vector>
-  int deref_first() {
-    std::vector<int> v;
-    v.push_back(7);
-    return *v.begin();
-  }
-  void inc_to_end() {
-    std::vector<int> v;
-    v.push_back(7);
-    auto it = v.begin();
-    ++it;
-  }
-  bool deref_empty() {
-    std::vector<int> v;
-    return &*v.begin() == nullptr;
-  }
-  void inc_past_end() {
-    std::vector<int> v;
-    auto e = v.end();
-    ++e;
-  }
-}}.
-
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
 
