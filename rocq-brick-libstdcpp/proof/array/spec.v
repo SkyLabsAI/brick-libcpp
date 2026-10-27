@@ -85,10 +85,12 @@ NES.Begin std.
          in-range path even though it is defined to throw <<std::out_of_range>>
          otherwise. This matches the <<std::vector>> specification.
 
-       LIMITATION: the non-member interface is omitted: <<operator==>>, the three-way
+       LIMITATION: most of the non-member interface is omitted: the three-way
          comparison <<operator<=> >>, <<std::get>>, <<std::to_array>>, the
          <<std::swap>> overload, and the tuple interface (<<tuple_size>>,
-         <<tuple_element>>).
+         <<tuple_element>>). <<operator==>> is specified ([operator_eq]); in C++20
+         <<a != b>> is rewritten to <<!(a == b)>>, so it needs no specification of
+         its own.
 
        NOTE: because the iterators are raw pointers, a loop condition such as
          <<it != a.end()>> is a builtin pointer comparison between two distinct
@@ -184,11 +186,22 @@ NES.Begin std.
       Import rep.RepFor.
       Import RepScheme.
 
-      #[global] Instance repfor `{Σ : cpp_logic} {σ : genv} ty n `(_ : BundledRep ty M) :
+      Definition repfor `{Σ : cpp_logic} {σ : genv} ty n {M} `{!BundledRep ty M} :
         rep.RepFor.C (T ty n)
-          [ArgType.CFrac; ArgType.Model _]
-          (λ q xs, R ty n q xs) := {}.
+          [ArgType.CFrac; ArgType.Model (list M)]
+          (λ q xs, R ty n q xs) := rep.RepFor.mk _ _ _.
     End with_RepFor.
+
+    (** NOTE: [repfor] is not an instance. Applied to a goal
+        [RepFor.C (T ty n) ?scheme ?R] it would have to elaborate [list ?M] before
+        [?M] is known, which lands [list] at its global template universe; that
+        universe is above [RepFor.RepScheme.ArgType.t]'s (via [RepFor.ptr_RepFor]),
+        so unification fails with "Unable to unify Type@{max(Set,list.u0)} with
+        Type@{ArgType.t.u1}", and [cpp.spec … default] cannot find a [Rep] for
+        <<std::array>>. Resolving the element's [BundledRep] first fixes [M]. *)
+    #[global] Hint Extern 0 (rep.RepFor.C (T ?ty ?n) _ _) =>
+      let b := constr:(_ : BundledRep ty _) in exact (repfor ty n (BundledRep0 := b))
+      : typeclass_instances.
 
     Section with_cpp.
       Context `{Σ : cpp_logic, σ : genv}.
@@ -434,6 +447,39 @@ NES.Begin std.
         Definition SpecFor_swap := RegisterSpec swap.
         #[global] Existing Instance SpecFor_swap.
       End with_element_rep.
+
+      (** ** Comparison
+
+          <<operator==>> compares element-wise with the element type's <<==>>
+          ([array.overview], [container.reqmts]). The result is stated as equality
+          of the element models, following [concepts.compare_eq], so this
+          specification assumes that the element <<==>> decides model equality.
+          That holds for the integral, character, <<bool>> and pointer element types
+          but not for floating point (<<NaN != NaN>>, <<-0.0 == 0.0>>), which is
+          excluded by the [\require].
+
+          NOTE: like the rest of this file, this is an assumed specification. It is
+          not verified against libstdc++'s body, <<std::equal(__one.begin(),
+          __one.end(), __two.begin())>>, which dispatches to <<__builtin_memcmp>>
+          for byte-sized elements; this library specifies neither. *)
+      Section comparison.
+        Context `{!BundledRep ty V, !EqDecision V}.
+
+        Definition operator_eq :=
+          specify.template.static_op "std" OOEqualEqual
+              [Atype ty; Avalue (Eint n "unsigned long")]
+              Tbool [Tref (Tconst arrayT); Tref (Tconst arrayT)] $
+            \arg{onep} "__one" (Vref onep)
+            \arg{twop} "__two" (Vref twop)
+            \require (if erase_qualifiers ty is Tfloat_ _ then False else True)
+            \prepost{q1 xs} onep |-> R q1 xs
+            \prepost{q2 ys} twop |-> R q2 ys
+            \post[Vbool (bool_decide (xs = ys))] emp.
+        #[global] Hint Opaque operator_eq : sl_opacity.
+        #[global] Arguments operator_eq : simpl never.
+        Definition SpecFor_operator_eq := RegisterSpec operator_eq.
+        #[global] Existing Instance SpecFor_operator_eq.
+      End comparison.
 
       (** ** Special member functions
 
