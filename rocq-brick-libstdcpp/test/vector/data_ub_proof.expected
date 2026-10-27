@@ -11,9 +11,9 @@
   st' : std.vector.InternalState
   GUARDS : GWs.GUARDS
   _x_ : valid<"int"> 1
-  _H_0 : 0 < 0 + 1
-  _H_1 : 0 ≤ 0 + 1
-  _H_2 : list.ListSizeZ [1] (0 + 1 - 0)
+  _H_0 : 0 ≤ 0 + 1
+  _H_1 : list.ListSizeZ [1] (0 + 1 - 0)
+  _H_2 : 0 < 0 + 1
   p : ptr
   ============================
   _ : denoteModule source
@@ -36,6 +36,8 @@
   _ : std.vector.back "int" "std::allocator<int>" true
   _ : std.vector.back "int" "std::allocator<int>" false
   _ : std.vector.clear "int" "std::allocator<int>"
+  _ : std.vector.erase_one "int" "std::allocator<int>"
+  _ : std.vector.erase_range "int" "std::allocator<int>"
   _ : std.vector.resize_default "int" "std::allocator<int>"
   _ : std.vector.resize "int" "std::allocator<int>"
   _ : std.vector.size "int" "std::allocator<int>"
@@ -49,7 +51,7 @@
   _ : std.allocator.ctor "int"
   _ : std.allocator.dtor "int"
   _ : type_ptr "std::vector<int, std::allocator<int>>" v_addr
-  _ : type_ptr "int" (std.vector.base_pointer st' .[ "int" ! 0 ])
+  _ : std.vector.base_pointer st' |-> typed_sliceR "int" 0 (0 + 1)
   _ : valid_ptr (std.vector.base_pointer st')
   _ : validP<"int*"> (Vptr (std.vector.base_pointer st'))
   --------------------------------------□
@@ -95,6 +97,8 @@
   _ : std.vector.back "int" "std::allocator<int>" true
   _ : std.vector.back "int" "std::allocator<int>" false
   _ : std.vector.clear "int" "std::allocator<int>"
+  _ : std.vector.erase_one "int" "std::allocator<int>"
+  _ : std.vector.erase_range "int" "std::allocator<int>"
   _ : std.vector.resize_default "int" "std::allocator<int>"
   _ : std.vector.resize "int" "std::allocator<int>"
   _ : std.vector.size "int" "std::allocator<int>"
