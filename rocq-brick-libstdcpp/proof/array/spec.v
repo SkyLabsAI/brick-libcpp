@@ -146,7 +146,7 @@ NES.Begin std.
     sl.lock
     Definition spineR `{Σ : cpp_logic} {σ : genv} (ty : type) (n : Z) (q : cQp.t) : Rep :=
       structR (N ty n) q ** [| 0 ≤ n |].
-    #[only(lazy_unfold,type_ptr,cfractional,ascfractional,cfracvalid)] derive spineR.
+    #[only(lazy_unfold,type_ptr,cfractional,ascfractional,cfracvalid,timeless)] derive spineR.
 
     (** [R_gen ty n q Rpayload xs] owns a whole <<std::array<ty, n> >>: its spine
         together with its [n] elements [xs], each described by [Rpayload].
@@ -452,11 +452,16 @@ NES.Begin std.
 
           <<operator==>> compares element-wise with the element type's <<==>>
           ([array.overview], [container.reqmts]). The result is stated as equality
-          of the element models, following [concepts.compare_eq], so this
-          specification assumes that the element <<==>> decides model equality.
-          That holds for the integral, character, <<bool>> and pointer element types
-          but not for floating point (<<NaN != NaN>>, <<-0.0 == 0.0>>), which is
-          excluded by the [\require].
+          of the element models, following [concepts.compare_eq], so it is sound
+          only for element types whose <<==>> is equality of their [BundledRep]
+          model: [eq_is_model_eq], the integral, character and <<bool>> types, whose
+          <<==>> is builtin and whose [prim_BundledRep] model is injective. The
+          [\require] excludes every other element type, in particular
+          - floating point: <<NaN != NaN>> and <<-0.0 == 0.0>>;
+          - pointers: <<==>> on pointers into different objects needs
+            [ptr_comparable], and is not model equality across a one-past-the-end
+            pointer and the start of an adjacent object;
+          - enumerations and classes, which can overload <<==>>.
 
           NOTE: like the rest of this file, this is an assumed specification. It is
           not verified against libstdc++'s body, <<std::equal(__one.begin(),
@@ -465,13 +470,19 @@ NES.Begin std.
       Section comparison.
         Context `{!BundledRep ty V, !EqDecision V}.
 
+        Definition eq_is_model_eq (t : type) : bool :=
+          match erase_qualifiers t with
+          | Tnum _ _ | Tchar_ _ | Tbool => true
+          | _ => false
+          end.
+
         Definition operator_eq :=
           specify.template.static_op "std" OOEqualEqual
               [Atype ty; Avalue (Eint n "unsigned long")]
               Tbool [Tref (Tconst arrayT); Tref (Tconst arrayT)] $
             \arg{onep} "__one" (Vref onep)
             \arg{twop} "__two" (Vref twop)
-            \require (if erase_qualifiers ty is Tfloat_ _ then False else True)
+            \require eq_is_model_eq ty = true
             \prepost{q1 xs} onep |-> R q1 xs
             \prepost{q2 ys} twop |-> R q2 ys
             \post[Vbool (bool_decide (xs = ys))] emp.

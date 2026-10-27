@@ -28,11 +28,6 @@ NES.Begin std.array.
   Section with_cpp.
     Context `{Σ : cpp_logic} {σ : genv}.
 
-    (** Needed, with the [cfractional] instances derived in [std.array], for
-        [std.array.R] to be a field of a dataclass ([CFracSplittable]). *)
-    #[global] Instance spineR_timeless ty n q : Timeless (spineR ty n q).
-    Proof. rewrite spineR.unlock. apply _. Qed.
-
     (** ** Const transport
 
         [wp_const] at <<std::array<ty, n> >> descends into the class layout of the
@@ -177,22 +172,18 @@ NES.Begin std.array.
       by rewrite (IH _ E).
     Qed.
 
-    (** The fold/unfold law, as an equivalence. *)
-    Lemma array_sliceR_Vint ty i j q (xs : list Z) :
-      array_sliceR ty i j (primR ty q) (Vint <$> xs) -|-
-      array_sliceR ty i j (fun x => primR ty q (Vint x)) xs.
-    Proof. apply array_sliceR_fmap. Qed.
-
-    (** The fold direction as a forward hint: a [val]-indexed slice of [Vint]s is
-        normalized to the model-indexed one as soon as it appears. A cancellation
-        hint would not do: the specifications quantify the contents
-        (<<\pre{xs} this |-> R 1$m xs>>), and the automation does not pick the
-        witness of such an existential through a cancellation hint. *)
-    Lemma array_sliceR_fold_Vint ty i j q (vs : list val) (xs : list Z) (p : ptr) :
+    (** The fold direction as a forward hint: a [val]-indexed slice of [Vint]s
+        stored in a <<std::array>> ([elems ty n]) is normalized to the
+        model-indexed one as soon as it appears. Slices elsewhere, such as builtin
+        arrays, are left alone. A cancellation hint would not do: the
+        specifications quantify the contents (<<\pre{xs} this |-> R 1$m xs>>), and
+        the automation does not pick the witness of such an existential through a
+        cancellation hint. *)
+    Lemma array_sliceR_fold_Vint ty n i j q (vs : list val) (xs : list Z) (p : ptr) :
       ints_of_vals vs =[Vm?]=> Some xs ->
-      p |-> array_sliceR ty i j (primR ty q) vs
-      |-- p |-> array_sliceR ty i j (fun x => primR ty q (Vint x)) xs.
-    Proof. move=> /RedEq_eq /ints_of_vals_Some ->. by rewrite array_sliceR_Vint. Qed.
+      p ,, elems ty n |-> array_sliceR ty i j (primR ty q) vs
+      |-- p ,, elems ty n |-> array_sliceR ty i j (fun x => primR ty q (Vint x)) xs.
+    Proof. move=> /RedEq_eq /ints_of_vals_Some ->. by rewrite array_sliceR_fmap. Qed.
     Definition array_sliceR_fold_Vint_F := [FWD] array_sliceR_fold_Vint.
   End with_cpp.
 

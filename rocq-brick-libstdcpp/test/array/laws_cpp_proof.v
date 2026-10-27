@@ -92,7 +92,13 @@ Section with_cpp.
 
   (** The fold law as a hint, under an existential. *)
   Lemma fold_Vint_ex (p : ptr) :
+    p ,, std.array.elems "unsigned char" 2 |-> array_sliceR "unsigned char" 0 2 (primR "unsigned char" 1$m) [Vint 0; Vint 1]
+    |-- Exists xs, p ,, std.array.elems "unsigned char" 2 |-> array_sliceR "unsigned char" 0 2 (fun x => primR "unsigned char" 1$m (Vint x)) xs.
+  Proof. go. Qed.
+
+  (** The fold hint does not fire on a slice outside a <<std::array>>. *)
+  Goal forall p : ptr,
     p |-> array_sliceR "unsigned char" 0 2 (primR "unsigned char" 1$m) [Vint 0; Vint 1]
     |-- Exists xs, p |-> array_sliceR "unsigned char" 0 2 (fun x => primR "unsigned char" 1$m (Vint x)) xs.
-  Proof. go. Qed.
+  Proof. intros. Fail solve [go]. Abort.
 End with_cpp.
