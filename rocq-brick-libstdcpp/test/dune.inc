@@ -397,6 +397,18 @@
 )
 (subdir vector
  (rule
+  (targets data_ub_cpp.v.stderr data_ub_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input data_ub.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to data_ub_cpp.v.stderr (run cpp2v -v %{input} -o data_ub_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps data_ub.cpp))
+)
+(subdir vector
+ (rule
   (targets erase_ub_cpp.v.stderr erase_ub_cpp.v)
   (alias test_ast)
   (deps
