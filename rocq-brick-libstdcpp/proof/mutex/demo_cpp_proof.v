@@ -39,7 +39,8 @@ Definition CR
   structR "C" q **
   _field "C::mut" |-> recursive_mutex.derivedR γ q **
   as_Rep (fun this : ptr =>
-    recursive_mutex.inv_rmutex γ (∃ a_b : tele_arg _, tele_app (P this) a_b)).
+    recursive_mutex.inv_rmutex γ (∃ a_b : tele_arg TT,
+      @tele_app TT (fun _ => mpred) (P this) a_b)).
 
 #[only(cfractional,ascfractional,type_ptr)] derive CR.
 #[only(lazy_unfold)] derive CR.
@@ -90,7 +91,7 @@ Section with_cpp.
   Proof. solve_learnable. Qed.
 
   Lemma tele_app_mk_beta (P : Z -> Z -> mpred) (x y : Z) :
-    tele_app (TT := TT) (λ a b : Z, P a b) (mk x y) = P x y.
+    @tele_app TT (fun _ => mpred) (λ a b : Z, P a b) (mk x y) = P x y.
   Proof. reflexivity. Qed.
 
   (** "Eta-expand" [∃ xy : TT, ... tele_app P xy ... ] to [∃ (x y : Z), ... tele_app P (mk x y) ...].
@@ -98,20 +99,21 @@ Section with_cpp.
   #[program] Definition learn_args_C (P : TT -t> mpred) :=
     \cancelx
     \bound_existential args
-    \proving tele_app P args
+    \proving @tele_app TT (fun _ => mpred) P args
     \exist a b
     \instantiate args := mk a b
-    \through tele_app P (mk a b)
+    \through @tele_app TT (fun _ => mpred) P (mk a b)
     \end.
   Next Obligation. work. Qed.
   #[local] Hint Resolve learn_args_C : br_hints.
 
   #[program] Definition P_unfold_split_args_F this args :=
     \cancelx
-    \consuming tele_app (P this) args
+    \consuming @tele_app TT (fun _ => mpred) (P this) args
     \intro a
     \intro b
-    \deduce tele_app (TT := TT) (fun a b => this |-> CR' a b) (mk a b)
+    \deduce @tele_app TT (fun _ => mpred)
+      (fun a b => this |-> CR' a b) (mk a b)
     \deduce [| args = mk a b |]
     \end.
   Next Obligation. iIntros (this [a [b []]]) "/= ?". iExists a, b. rewrite P.unlock. work. Qed.
