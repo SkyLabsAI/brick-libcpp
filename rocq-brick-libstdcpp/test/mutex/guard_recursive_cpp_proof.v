@@ -17,7 +17,8 @@ Section to_upstream.
   Proof. unshelve solve_inhabited. solve_inhabited. Qed.
 
   #[global] Instance timeless_tele_app {PROP : bi} {TT : tele} (args : TT) (P : TT -t> PROP):
-    `{(∀.. args, Timeless (tele_app P args)) -> Timeless (tele_app P args)}.
+    `{(∀.. args, Timeless (@tele_app TT (fun _ => PROP) P args)) ->
+      Timeless (@tele_app TT (fun _ => PROP) P args)}.
   Proof.
     elim: TT args P => [[] //|T TT IH] args P HT.
     destruct_tele; simpl.
@@ -88,7 +89,8 @@ Definition CR
   structR "C" q **
   _field "C::m" |-> recursive_mutex.derivedR γ q **
   as_Rep (fun this : ptr =>
-    recursive_mutex.inv_rmutex γ (∃ a : tele_arg TT, tele_app (P this) a)).
+    recursive_mutex.inv_rmutex γ (∃ a : tele_arg TT,
+      @tele_app TT (fun _ => mpred) (P this) a)).
 
 #[only(cfractional,ascfractional,cfracvalid,type_ptr)] derive CR.
 #[only(lazy_unfold(export))] derive CR.
@@ -99,14 +101,17 @@ Section with_cpp.
   Context `{!recursive_mutex.lockedG Σ}.
   Context `{!HasOwn (iPropI _) recursive_mutex.cmraR}.
 
-  #[local] Instance: `{WeaklyObjective1 (tele_app (P p))}.
+  #[local] Instance:
+    `{WeaklyObjective1 (@tele_app TT (fun _ => mpred) (P p))}.
   Proof. Admitted.
 
   #[global] Instance P_timeless p a : Timeless (P p a).
   Proof. rewrite P.unlock; apply _. Qed.
 
-  Succeed #[global] Instance CR'_timeless' p args : Timeless (tele_app (TT := TT) (λ a : Z, p |-> CR' a) args) := _.
-  Succeed #[global] Instance P_timeless' p args : Timeless (tele_app (P p) args) := _.
+  Succeed #[global] Instance CR'_timeless' p args :
+    Timeless (@tele_app TT (fun _ => mpred) (λ a : Z, p |-> CR' a) args) := _.
+  Succeed #[global] Instance P_timeless' p args :
+    Timeless (@tele_app TT (fun _ => mpred) (P p) args) := _.
 
   cpp.spec "test_one_answer()" from source with (
     \post[Vint 42] emp
@@ -150,7 +155,8 @@ Section with_cpp.
     \pre{γ} this |-> CR γ 1$m
     (* \pre recursive_mutex.used_threads (lock_gname γ) empty *)
     \pre recursive_mutex.used_threads γ.(lock_gname) {[thr]}
-    \pre recursive_mutex.inv_rmutex γ (∃ xs, tele_app (TT := TT) (P this) xs)
+    \pre recursive_mutex.inv_rmutex γ (∃ xs,
+      @tele_app TT (fun _ => mpred) (P this) xs)
     \pre recursive_mutex.acquireable (TT := TT) γ thr recursive_mutex.NotHeld (P this)
     \post emp).
 
