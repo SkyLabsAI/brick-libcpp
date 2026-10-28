@@ -4,7 +4,8 @@
  * See the LICENSE-BedRock file in the repository root for details.
  *)
 Require Import skylabs.auto.cpp.prelude.proof.
-Require Import skylabs.brick.libstdcpp.test.iostream_trace.extract_cpp.
+Require Import skylabs.lang.cpp.parser.plugin.cpp2v.
+From skylabs.brick.libstdcpp Extra Dependency "cpp_environment" as cpp_environment.
 Require Import skylabs.brick.libstdcpp.iostream_trace.spec.
 
 (** * [in >> b] may store nothing
@@ -15,6 +16,21 @@ Require Import skylabs.brick.libstdcpp.iostream_trace.spec.
     empty input, which is undefined behavior (no clang sanitizer reports it:
     libstdc++ is not instrumented for MSan). The spec takes an initialized
     argument, so [init] verifies and [uninit] does not. *)
+#[environment="cpp_environment"]
+cpp.prog source flags "-std=c++20 -stdlib=libstdc++" prog cpp:{{
+  #include <istream>
+  int init(std::istream &in) {
+    int b = 0;
+    in >> b;
+    return b;
+  }
+  int uninit(std::istream &in) {
+    int b;
+    in >> b;
+    return b;
+  }
+}}.
+
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
 
