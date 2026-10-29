@@ -21,7 +21,12 @@ an unconditional property of arbitrary payload predicates.
 The pieces may not always be fractional ownerships of an object (e.g. int). For example, when the shared_ptr protects an array, it is common to have every piece own an index of the array, so that different shared_ptr objects can be used to write to different indices concurrently, e.g. here: https://github.com/category-labs/monad/blob/90f8b796061aeaf78a2943c45eae5303f6ff7900/category/execution/ethereum/execute_block.cpp#L233
 
 - To gain confidence in the provability of these specs, we sketch a definition of [SharedPtrR]. The [inv] definition is the most tricky part of it: it stores all the [Rpiece] and [pieceRight] ownerships that need to be dished out later or to be used for deletion when the reference count goes to 0.
-Because BRiCk only supports SC atomics, the proof only works as if the stdlib implementation used SC atomics or had sufficient barriers (the actual defn of SharedPtrR will be different in that case due to limitations on invariants in weak memory reasoning).
+The proposed ownership-transfer argument uses sequentially consistent (SC)
+invariant reasoning. It does not justify the actual libstdc++ acquire/release
+operations or prove that adding barriers suffices. The C++ method specs remain
+assumed; the checked ghost-state and client lemmas are not a verification of
+libstdc++'s concurrent implementation. A weak-memory justification may require
+a different SharedPtrR and ownership-transfer protocol.
 
 - When calling the copy constructor, the caller's proof has to come up with their pieceid (< maxContention) and give up
 [pieceRight ctrlid pieceid], which they only get back when the newly constructed object is deleted.

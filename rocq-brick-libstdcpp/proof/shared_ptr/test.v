@@ -138,7 +138,9 @@ Set Default Goal Selector "!".
     go.
   Qed.
 
-  (* dummy spec: needs fix *)
+  (* Array client regression: retain the complete managed-array type and the
+     initialized elements. The shared-pointer library method specs are assumed;
+     [prf3] also states its allocation-size premise explicitly. *)
   cpp.spec "testsharedarr()" as testsharedarrspec with (
     \pre emp
     \post{p:ptr}[Vptr p] Exists payload sid,
@@ -202,7 +204,6 @@ Set Default Goal Selector "!".
     iExists tt.
     iExists (fun _ => emp).
     go.
-    (* TODO: proof needs rework after alloc.tokenR transition. *)
     repeat rewrite arrayR_cons.
     go.
     normalize_ptrs.
