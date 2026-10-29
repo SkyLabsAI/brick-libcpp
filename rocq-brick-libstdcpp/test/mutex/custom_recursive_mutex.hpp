@@ -1,10 +1,11 @@
+#pragma once
+
 #include <atomic>
 #include <mutex>
 #include <thread>
 #include <cassert>
 
-size_t id_hash = std::hash<std::thread::id>{}(std::thread::id{});
-#pragma once
+inline size_t id_hash = std::hash<std::thread::id>{}(std::thread::id{});
 class MyRecursiveMutex {
   // not protected by the lock, but atomic
   std::atomic<size_t> m_owner{id_hash};

@@ -38,6 +38,12 @@
 (include dune.inc)
 
 (rule
+ (alias runtest)
+ (action
+  (run python3 %{dep:mutex/recursive_mutex_odr.py} %{bin:clang++}
+   %{dep:mutex/custom_recursive_mutex.hpp})))
+
+(rule
  (action (with-stdout-to dune.inc.gen (run ./dune-gen.sh)))
  (deps (glob_files_rec *.{h,c,hpp,cpp,sh})))
 
