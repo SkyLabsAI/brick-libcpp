@@ -104,7 +104,11 @@ Module thread_id_specs.
   (* Value of thread::id(). Does not represent any thread. *)
   Parameter default_thread_id : thread_idT.
 
-  (* Assume some injective hash function. *)
+  (* TODO: justify hash injectivity for each supported standard-library/ABI
+     implementation, including the default (non-thread) ID. The C++ Hash
+     requirements allow collisions; injectivity does not follow from them.
+     MyRecursiveMutex relies on this assumption to distinguish owners. If it
+     cannot be discharged, use a collision-free thread identity instead. *)
   Parameter thread_id_hash : thread_idT -> Z.
   Axiom thread_id_hash_injective : 
     forall x y, thread_id_hash x = thread_id_hash y -> x = y.
