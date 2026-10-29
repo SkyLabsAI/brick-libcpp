@@ -325,6 +325,18 @@
 )
 (subdir mutex
  (rule
+  (targets double_incr_cpp.v.stderr double_incr_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input double_incr.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to double_incr_cpp.v.stderr (run cpp2v -v %{input} -o double_incr_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps double_incr.cpp))
+)
+(subdir mutex
+ (rule
   (targets guard_recursive_cpp.v.stderr guard_recursive_cpp.v)
   (alias test_ast)
   (deps
@@ -347,6 +359,18 @@
   	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
+(subdir mutex
+ (rule
+  (targets transfer_with_mutex_cpp.v.stderr transfer_with_mutex_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input transfer_with_mutex.cpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to transfer_with_mutex_cpp.v.stderr (run cpp2v -v %{input} -o transfer_with_mutex_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps transfer_with_mutex.cpp))
+)
 (subdir new
  (rule
   (targets demo_cpp.v.stderr demo_cpp.v)
@@ -358,6 +382,18 @@
   (action
   	 (with-stderr-to demo_cpp.v.stderr (run cpp2v -v %{input} -o demo_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps demo.cpp))
+)
+(subdir shared_mutex
+ (rule
+  (targets custom_shared_mutex_hpp.v.stderr custom_shared_mutex_hpp.v)
+  (alias test_ast)
+  (deps
+   (:input custom_shared_mutex.hpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to custom_shared_mutex_hpp.v.stderr (run cpp2v -v %{input} -o custom_shared_mutex_hpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps custom_shared_mutex.hpp))
 )
 (subdir shared_mutex
  (rule

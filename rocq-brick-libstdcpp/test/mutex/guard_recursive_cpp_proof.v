@@ -1,6 +1,7 @@
 (** Provisional *)
 Require Import skylabs.auto.cpp.prelude.proof.
 Require Import skylabs.brick.libstdcpp.mutex.spec.
+Require Import skylabs.brick.libstdcpp.lib.lock_ghost2.
 Require Import skylabs.brick.libstdcpp.test.mutex.guard_recursive_cpp.
 
 Import linearity.
@@ -68,7 +69,7 @@ Succeed #[global] Instance: Inhabited TT := _.
 (** Canonical "constructor" for our telescope. *)
 Polymorphic Definition mk (a : Z) : TT :=
   {| tele_arg_head := a; tele_arg_tail := () |}.
-Succeed Definition b := recursive_mutex.Held 0 (mk 0).
+Succeed Definition b := std_recursive_mutex.Held 0 (mk 0).
 
 sl.lock
 Definition CR' `{Σ : cpp_logic, σ : genv} (a : Z) : Rep :=
@@ -83,14 +84,12 @@ Definition P `{Σ : cpp_logic, σ : genv} (this : ptr) : TT -t> mpred :=
 sl.lock
 Definition CR
   `{Σ : cpp_logic, σ : genv} {HAS_THREADS : HasStdThreads Σ}
-  `{!recursive_mutex.lockedG Σ}
-  `{!HasOwn (iPropI _) recursive_mutex.cmraR}
-  (γ : recursive_mutex.rmutex_gname) (q : cQp.t) :=
+  `{MUTEX_SETS : !mutex_set_G Σ, !std_recursive_mutex.G Σ}
+  (γ : std_recursive_mutex.gname) (q : cQp.t) :=
   structR "C" q **
-  _field "C::m" |-> recursive_mutex.derivedR γ q **
   as_Rep (fun this : ptr =>
-    recursive_mutex.inv_rmutex γ (∃ a : tele_arg TT,
-      @tele_app TT (fun _ => mpred) (P this) a)).
+    this ,, _field "C::m" |-> std_recursive_mutex.R γ q
+      (∃ a : tele_arg TT, @tele_app TT (fun _ => mpred) (P this) a)).
 
 #[only(cfractional,ascfractional,cfracvalid,type_ptr)] derive CR.
 #[only(lazy_unfold(export))] derive CR.
@@ -98,11 +97,10 @@ Definition CR
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv} {HAS_THREADS : HasStdThreads Σ}.
 
-  Context `{!recursive_mutex.lockedG Σ}.
-  Context `{!HasOwn (iPropI _) recursive_mutex.cmraR}.
+  Context `{MUTEX_SETS : !mutex_set_G Σ}.
+  Context `{!std_recursive_mutex.G Σ}.
 
-  #[local] Instance:
-    `{WeaklyObjective1 (@tele_app TT (fun _ => mpred) (P p))}.
+  #[local] Instance: `{Objective1 (@tele_app TT (fun _ => mpred) (P p))}.
   Proof. Admitted.
 
   #[global] Instance P_timeless p a : Timeless (P p a).
@@ -114,21 +112,24 @@ Section with_cpp.
     Timeless (@tele_app TT (fun _ => mpred) (P p) args) := _.
 
   cpp.spec "test_one_answer()" from source with (
+    \persist{thr} current_thread thr
+    \prepost MutexSets.my_mutexes thr (coPset.CoPset ⊤)
     \post[Vint 42] emp
   ).
   cpp.spec "test_other_answer()" from source with (
+    \persist{thr} current_thread thr
+    \prepost MutexSets.my_mutexes thr (coPset.CoPset ⊤)
     \post[Vint 42] emp
   ).
 
-  Import recursive_mutex(lock_gname).
-
+  (** Initialize the member lock but do not acquire it. *)
   cpp.spec "C::C()" from source as C_ctor_spec with (
     \this this
-    \persist{thr} current_thread thr
+    \pre{N} emp
+    \require N <> nroot
     \post Exists γ,
-      this |-> CR γ 1$m **
-      recursive_mutex.used_threads (lock_gname γ) {[thr]} **
-      recursive_mutex.acquireable (TT := TT) γ thr recursive_mutex.NotHeld (P this)
+      [| std_recursive_mutex.rmutex_inv_namespace γ = N |] **
+      this |-> CR γ 1$m ** std_recursive_mutex.token γ 1$m
   ).
 
   (** XXX Does not appear to help *)
@@ -137,42 +138,30 @@ Section with_cpp.
   Lemma C_ctor_ok :
     verify[source] "C::C()".
   Proof.
-    verify_shift; go.
-    iExists TT, (P this), (mk 0); go.
+    verify_shift.
+    go.
+    iExists N, TT, (P this), (mk 0); go.
     rewrite (* Ugh *) -bi.later_intro.
     rewrite {1}P.unlock.
     go.
 
-    iMod (recursive_mutex.use_thread thr (lock_gname t) ∅ with "[$]") as "?"; first set_solver; iModIntro.
-    go.
-    rewrite recursive_mutex.acquireable.unlock (left_id_L _ (∪)).
-    go.
+    iModIntro. go.
   Qed.
 
   cpp.spec "C::~C()" from source as C_dtor_spec with (
     \this this
-    \persist{thr} current_thread thr
     \pre{γ} this |-> CR γ 1$m
-    (* \pre recursive_mutex.used_threads (lock_gname γ) empty *)
-    \pre recursive_mutex.used_threads γ.(lock_gname) {[thr]}
-    \pre recursive_mutex.inv_rmutex γ (∃ xs,
-      @tele_app TT (fun _ => mpred) (P this) xs)
-    \pre recursive_mutex.acquireable (TT := TT) γ thr recursive_mutex.NotHeld (P this)
+    \pre std_recursive_mutex.token γ 1$m
     \post emp).
 
   Lemma C_dtor_ok :
-    (* We only get [|> recursive_mutex.dtor_spec'], and that's not enough *)
-    recursive_mutex.dtor_spec' |-- verify[source] "C::~C()".
+    (* We only get [|> std_recursive_mutex.std_dtor_spec], and that's not enough *)
+    std_recursive_mutex.std_dtor_spec |-- verify[source] "C::~C()".
   Proof.
     verify_shift; go.
-    wapply (recursive_mutex.logout thr _ ∅); first by set_solver.
-    rewrite recursive_mutex.acquireable.unlock /= (left_id_L _ (∪)).
-    go with br_erefl.
-    iModIntro.
-    go.
+    iModIntro. go.
     progress destruct_tele; rewrite P.unlock /=.
     go.
-    iApply affine; [apply mpred_BiAffine|go].
   Qed.
 
   cpp.spec "C::one_answer()" from source inline.
@@ -180,25 +169,39 @@ Section with_cpp.
   Lemma test_one_answer_ok :
     verify[source] "test_one_answer()".
   Proof.
+    have Hnamespace : nroot .@@ "guard_recursive" <> nroot.
+    { rewrite namespaces.ndot_unseal. discriminate. }
     verify_spec; go.
+    iExists (nroot .@@ "guard_recursive"); go.
+    iDestruct (MutexSets.my_mutexes_alloc_mutex_name
+      thr ⊤
+      (↑std_recursive_mutex.rmutex_inv_namespace t) ltac:(set_solver)
+      with "[$]") as "[Hrest Hname]".
+    wname [std_recursive_mutex.token] "Htoken".
+    iAssert (std_recursive_mutex.acquireable (c_addr ,, _field "C::m")
+      (TT := TT) t 1$m thr std_recursive_mutex.NotHeld (P c_addr))%I
+      with "[Htoken Hname]" as "Hacquireable".
+    { rewrite std_recursive_mutex.acquireable.unlock /=
+        /std_recursive_mutex.not_locked. iFrame "#∗". }
+    iDestruct "Hacquireable" as "?". go.
     destruct args as [a []].
     rewrite P.unlock /=.
     go.
 
     iExists ?[K], (mk 42). go.
     iSplitL ""; [by go | go].
-    have [? [??]] : exists a, n = 1%nat /\ recursive_mutex.acquire a (recursive_mutex.release (recursive_mutex.Held n (mk 42))). {
+    have [? [??]] : exists a, n = 1%nat /\ std_recursive_mutex.acquire a (std_recursive_mutex.release (std_recursive_mutex.Held n (mk 42))). {
       lazymatch goal with
-      | _ : recursive_mutex.Held ?x _ = _ |- _ => rename x into n0
+      | _ : std_recursive_mutex.Held ?x _ = _ |- _ => rename x into n0
       end.
       (* This step breaks abstractions, but we have taken the lock yet hints don't
       give us access to the resouce. *)
       assert (n0 = 0 /\ n = 1)%nat as [-> ->]. {
-        rewrite-> recursive_mutex.release.unlock in *.
+        rewrite-> std_recursive_mutex.release.unlock in *.
         destruct n0, n; naive_solver.
       }
-      rewrite recursive_mutex.release.unlock /=.
-      exists recursive_mutex.NotHeld.
+      rewrite std_recursive_mutex.release.unlock /=.
+      exists std_recursive_mutex.NotHeld.
       split; first done.
       typeclasses eauto with br_hints.
     }
@@ -206,14 +209,24 @@ Section with_cpp.
     rewrite CR'.unlock.
     destruct args as [a1 []].
     go.
-    have [Ha1 Hrel]: (a1 = 42 /\ recursive_mutex.release (recursive_mutex.Held n (mk a1)) = recursive_mutex.NotHeld). {
-      rewrite-> recursive_mutex.release.unlock in *; naive_solver.
+    have [Ha1 Hrel]: (a1 = 42 /\ std_recursive_mutex.release (std_recursive_mutex.Held n (mk a1)) = std_recursive_mutex.NotHeld). {
+      rewrite-> std_recursive_mutex.release.unlock in *; naive_solver.
     }
     subst a1.
     iExists ?[K], (mk 42). rewrite Hrel /=.
     go.
     iSplitL ""; [by go | go].
     rewrite P.unlock CR'.unlock; go.
+    match goal with g : std_recursive_mutex.gname |- _ => rename g into γ end.
+    iDestruct select (std_recursive_mutex.acquireable _ _ _ _ _ _) as "Hacquireable".
+    iEval (rewrite std_recursive_mutex.acquireable.unlock /=
+      /std_recursive_mutex.not_locked) in "Hacquireable".
+    iDestruct "Hacquireable" as "[Htoken Hname]".
+    iDestruct (MutexSets.my_mutexes_join_mutex_name
+      thr ⊤
+      (↑std_recursive_mutex.rmutex_inv_namespace γ) ltac:(set_solver)
+      with "[Hrest Hname]") as "Hnames"; first iFrame.
+    iFrame "Htoken". go $usenamed=true.
   Qed.
 
   (* TODO: when we project out equalities about Held and NotHeld, project info
