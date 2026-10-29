@@ -4,6 +4,9 @@
 // See https://llvm.org/LICENSE.txt for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
+// Modified by SkyLabs AI: adapted the mutex type and includes for the
+// custom mutex conformance tests. See README.txt and UPSTREAM.json.
+//
 //===----------------------------------------------------------------------===//
 
 // UNSUPPORTED: c++03
