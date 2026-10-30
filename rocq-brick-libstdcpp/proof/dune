@@ -37,6 +37,17 @@
  ))
 (include dune.inc)
 
+; Expose the existing configuration once for configured inline quotations in
+; this theory and its clients. The .v target orders generation before rocq dep.
+(rule
+ (targets cpp_environment cpp_environment_dependency.v)
+ (deps (:config ../cpp_environment))
+ (action
+  (progn
+   (copy %{config} cpp_environment)
+   (write-file cpp_environment_dependency.v
+    "(* Builds the inline toolchain configuration before rocq dep. *)\n"))))
+
 (rule
  (action (with-stdout-to dune.inc.gen (run ./dune-gen.sh)))
  (deps (glob_files_rec *.{h,c,hpp,cpp,sh})))
