@@ -198,6 +198,12 @@ Set Default Goal Selector "!".
     go.
     normalize_ptrs.
     go.
+    iExists 2%N.
+    go.
+    iExists 2%N.
+    go.
+    normalize_ptrs.
+    go.
     iExists true.
     go.
     iExists nullptr.

@@ -406,6 +406,8 @@ Section specs.
       \this this
       \arg{index} "index" (Vint index)
       \prepost{q id pieceid p Rpiece} this |-> (upcast_offset (Tincomplete_array ety) 1) |-> SharedPtrR (Tincomplete_array ety ) q id pieceid Rpiece p
+      \pre{len : N} [| payload_type id = Tarray ety len |]
+      \pre [| (0 <= index < Z.of_N len)%Z |]
       \post[Vref (p.[ety ! index])] emp.
 
   Definition SpecFor_subscript := RegisterSpec subscript.
