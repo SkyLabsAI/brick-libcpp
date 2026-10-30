@@ -43,9 +43,30 @@ Section with_cpp.
   Proof using MOD.
     verify_spec.
     go.
-    iExists pieceid.
+    iExists q, false, id, source_pieceid, p, Rpiece, pieceid.
     go.
     iExists false, p, (id, pieceid), Rpiece.
+    go.
+  Qed.
+
+  cpp.spec "copy_then_destroy(const std::shared_ptr<int>&)"
+    from source as copy_then_destroy_empty_spec with (
+      \arg{other : ptr} "source" (Vref other)
+      \prepost{q} other |-> NullSharedPtrR "int" q
+      \post emp
+    ).
+
+  (** Uses ordinary spec discovery, not an extra null-only RegisterSpec. *)
+  Lemma copy_then_destroy_empty_ok : verify[source] copy_then_destroy_empty_spec.
+  Proof using MOD.
+    verify_spec.
+    go.
+    iExists q, true,
+      {| pieceRightLocs := []; pieceHandleLocs := [];
+         dataLoc := nullptr; payload_type := Tint; payload_delete := None |},
+      0%nat, nullptr, (fun _ => emp), 0%nat.
+    go.
+    iExists true, nullptr, tt, (fun _ => emp).
     go.
   Qed.
 

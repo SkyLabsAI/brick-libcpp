@@ -412,24 +412,62 @@ Section specs.
     specify.template.ctor spty [Tref (Tconst (Tnamed spty))] $
     \this this
     \arg{other:ptr} "other" (Vptr other)
+    \prepost{q (null : bool) id source_pieceid p Rpiece}
+      if null then other |-> NullSharedPtrR q
+      else other |-> SharedPtrR q id source_pieceid Rpiece p
+    \pre{pieceid}
+      if null then emp
+      else pieceRight id pieceid ** [| N.of_nat pieceid < Npos maxContention |]%N
+    \post
+      if null then this |-> NullSharedPtrR 1$m
+      else p |-> Rpiece pieceid ** this |-> SharedPtrR 1$m id pieceid Rpiece p.
+
+  Definition SpecFor_copy_ctor := RegisterSpec copy_ctor.
+  #[global] Existing Instance SpecFor_copy_ctor.
+
+  (** These are derived specializations, not independent registered library
+      assumptions. Empty copying neither acquires a piece nor changes a count. *)
+  Definition copy_ctor_nonnull :=
+    specify.template.ctor spty [Tref (Tconst (Tnamed spty))] $
+    \this this
+    \arg{other:ptr} "other" (Vptr other)
     \prepost{q id source_pieceid p Rpiece} other |-> SharedPtrR q id source_pieceid Rpiece p
     \pre{pieceid} pieceRight id pieceid (* this will be returned by destructor *)
     \pre [| N.of_nat pieceid < Npos maxContention|]%N
     \post
          p|->Rpiece pieceid ** this  |-> SharedPtrR 1$m id pieceid Rpiece p.
                           
-  Definition SpecFor_copy_ctor := RegisterSpec copy_ctor.
-  #[global] Existing Instance SpecFor_copy_ctor.
-
-  (** Copy-ctor from null: produces another null shared_ptr.
-      No token is required. TODO: unify this spec with the spec above, using dependent types, as done in the destructor spec *)
   Definition copy_ctor_null :=
     specify.template.ctor spty [Tref (Tconst (Tnamed spty))] $
     \this this
     \arg{other:ptr} "other" (Vptr other)
     \prepost{q} other |-> NullSharedPtrR q
     \post this  |-> NullSharedPtrR 1$m.
-               
+
+  #[local] Hint Opaque SharedPtrR NullSharedPtrR : sl_opacity.
+
+  Lemma copy_ctor_nonnull_from_copy : copy_ctor |-- copy_ctor_nonnull.
+  Proof.
+    unfold copy_ctor, copy_ctor_nonnull.
+    apply specify_mono_fupd. go.
+    rewrite <- fupd_intro.
+    iExists q, false, id, source_pieceid, p, Rpiece, pieceid.
+    go.
+    rewrite <- fupd_intro. go.
+  Qed.
+
+  Lemma copy_ctor_null_from_copy : copy_ctor |-- copy_ctor_null.
+  Proof.
+    unfold copy_ctor, copy_ctor_null.
+    apply specify_mono_fupd. go.
+    rewrite <- fupd_intro.
+    iExists q, true,
+      {| pieceRightLocs := []; pieceHandleLocs := [];
+         dataLoc := nullptr; payload_type := ty; payload_delete := None |},
+      0%nat, nullptr, (fun _ => emp), 0%nat.
+    go.
+    rewrite <- fupd_intro. go.
+  Qed.
 
   (** Reconstruct the most-derived object pointer from the base-subobject "this". *)
   Definition upcast_offset (mid: Z) : offset :=
@@ -500,7 +538,7 @@ Section specs.
   #[global] Existing Instance SpecFor_subscript.
 
   #[global] Hint Opaque
-    init_ctor move_ctor dtor_spec copy_ctor copy_ctor_null
+    init_ctor move_ctor dtor_spec copy_ctor copy_ctor_nonnull copy_ctor_null
     deref arrow init_ctor_arr subscript
     : sl_opacity.
 
