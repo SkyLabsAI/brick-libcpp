@@ -12,6 +12,36 @@ Require Import skylabs.cpp.spec.concepts.experimental.
 Require Import skylabs.brick.libstdcpp.shared_ptr.test_cpp.
 Require Import skylabs.brick.libstdcpp.shared_ptr.specs.
 
+Example selected_class_scalar_delete :
+  shared_ptr_delete_operator source "ClassDelete" =
+    Some "ClassDelete::operator delete(void*)"%cpp_name.
+Proof. vm_compute. reflexivity. Qed.
+
+Example selected_class_array_delete :
+  shared_ptr_delete_operator source "ClassDelete[2]" =
+    Some "ClassDelete::operator delete[](void*)"%cpp_name.
+Proof. vm_compute. reflexivity. Qed.
+
+
+Section deletion_selection.
+  Context `{Σ : cpp_logic} {σ : genv} {hf : fracG () _Σ}.
+  Set Default Goal Selector "!".
+  #[local] Hint Opaque pieceHandle sptrInv : sl_opacity.
+
+  Lemma raw_handle_retains_delete_selection ty q id i R p (handle : ptr) op alignment :
+    payload_delete id = Some (op, alignment) ->
+    handle |-> SharedPtrR ty q id i R p |--
+      [| exists tu : translation_unit,
+           tu ⊧ σ /\
+           shared_ptr_delete_operator tu (payload_type id) = Some op |].
+  Proof.
+    intros Hdelete.
+    unfold SharedPtrR, payload_releasable.
+    rewrite Hdelete.
+    go.
+  Qed.
+End deletion_selection.
+
 
 (* TODO: upstream the hints/lemmas, to where? *)
 Hint Resolve NoDup_seq : setsolver.
@@ -61,7 +91,7 @@ Section proofs.
   
 
   cpp.spec "testshared1()" as testshared1spec with (
-    \pre emp
+    \pre operator_delete_size
     \post{p:ptr}[Vptr p] Exists payload sid,
        [| payload_type sid = "int"%cpp_type |] **
        p |-> SharedPtrR "int" 1$m sid 0 (fun ctid => if bool_decide (ctid=0%nat) then anyR "int" 1 else emp) payload
@@ -109,18 +139,19 @@ Set Default Goal Selector "!".
     normalize_ptrs.
     eagerUnifyU.
     go.
+    iExists source.
+    iExists "operator delete(void*, unsigned long)"%cpp_name.
     rewrite <- _at_big_sepL.
     unfold allButFirstPieceId.
     rewrite allButFirstEmp. go.
-    assert (Hdestroy : emp |-- payload_destructible "int" Rpiece).
+    assert (Hdestroy : denoteModule source ** operator_delete_size |--
+      payload_deletable "int" "operator delete(void*, unsigned long)" None Rpiece).
     {
       unfold Rpiece.
-      unfold payload_destructible, allPieceIds.
+      unfold payload_deletable, allPieceIds.
       rewrite -> seqprefix with (prelen:=1%nat) by lia.
       simpl.
       setoid_rewrite (allButFirstEmp "int"). go.
-      rewrite destroy_val_wp_destroy_val.
-      go.
     }
     rewrite <- Hdestroy.
     go.
@@ -142,7 +173,7 @@ Set Default Goal Selector "!".
      initialized elements. The shared-pointer library method specs are assumed;
      [prf3] also states its allocation-size premise explicitly. *)
   cpp.spec "testsharedarr()" as testsharedarrspec with (
-    \pre emp
+    \pre operator_delete_array
     \post{p:ptr}[Vptr p] Exists payload sid,
        [| payload_type sid = "int[2]"%cpp_type |] **
        p |-> SharedPtrR "int[]" 1$m sid 0 (fun ctid => if bool_decide (ctid=0%nat) then anyR "int[2]" 1 else emp) payload
@@ -169,18 +200,19 @@ Set Default Goal Selector "!".
     go.
     eagerUnifyU.
     go.
+    iExists source.
+    iExists "operator delete[](void*)"%cpp_name.
     rewrite <- _at_big_sepL.
     unfold allButFirstPieceId.
     rewrite allButFirstEmp. go.
-    assert (Hdestroy : emp |-- payload_destructible "int[2]" Rpiece).
+    assert (Hdestroy : denoteModule source ** operator_delete_array |--
+      payload_deletable "int[2]" "operator delete[](void*)" None Rpiece).
     {
       unfold Rpiece.
-      unfold payload_destructible, allPieceIds.
+      unfold payload_deletable, allPieceIds.
       rewrite -> seqprefix with (prelen:=1%nat) by lia.
       simpl.
       setoid_rewrite (allButFirstEmp "int[2]").
-      go.
-      rewrite destroy_val_wp_destroy_val.
       go.
     }
     rewrite <- Hdestroy.

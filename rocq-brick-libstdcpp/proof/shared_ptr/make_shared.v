@@ -93,6 +93,7 @@ Section with_cpp.
       \post{retp : ptr} [Vptr retp]
         Exists (d : D) (id : CtrlBlockId) (p : ptr),
           [| payload_type id = managed |] **
+          [| payload_delete id = None |] **
           retp |-> SharedPtrR ty 1$m id 0 (pieces d) p **
           p |-> pieces d 0%nat **
           ([∗ list] i ∈ allButFirstPieceId, pieceRight id i) ** after d.

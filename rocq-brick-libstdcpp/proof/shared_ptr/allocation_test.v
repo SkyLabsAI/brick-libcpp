@@ -18,14 +18,13 @@ Section with_cpp.
     root |-> alloc.tokenR_with_alignment
       (Tnamed (shared_control_name SeparateAllocation ty)) control_alignment 1 **
     owned |-> alloc.tokenR_with_alignment ty payload_alignment 1
-    |-- SharedAllocationR SeparateAllocation ty
+    |-- SharedAllocationR SeparateAllocation ty payload_alignment
           (root ,, o_base CU (shared_control_name SeparateAllocation ty)
             SP_counted_base) owned.
   Proof.
     unfold SharedAllocationR.
     rewrite <- (bi.exist_intro root).
-    rewrite <- (bi.exist_intro control_alignment),
-      <- (bi.exist_intro payload_alignment).
+    rewrite <- (bi.exist_intro control_alignment).
     go.
   Qed.
 
@@ -35,7 +34,7 @@ Section with_cpp.
     root |-> alloc.tokenR_with_alignment
       (Tnamed (shared_control_name CombinedAllocation (Tnamed nm))) alignment 1 **
     provides_storage (shared_inplace_storage (Tnamed nm) root) owned (Tnamed nm)
-    |-- SharedAllocationR CombinedAllocation (Tnamed nm)
+    |-- SharedAllocationR CombinedAllocation (Tnamed nm) None
           (root ,, o_base CU
             (shared_control_name CombinedAllocation (Tnamed nm)) SP_counted_base)
           owned.
@@ -60,7 +59,7 @@ Section with_cpp.
     root |-> new_token.R 1
       (new_token.mk (Tnamed cn) (storage .[ Tuchar ! Z.of_N offset ]) 0) **
     provides_storage storage owned (Tarray ety len)
-    |-- SharedAllocationR CombinedAllocation (Tarray ety len)
+    |-- SharedAllocationR CombinedAllocation (Tarray ety len) None
           (root ,, o_base CU cn SP_counted_base) owned.
   Proof.
     intros Hpayload Hcontrol Hbounds.

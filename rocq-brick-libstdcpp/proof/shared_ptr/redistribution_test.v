@@ -41,8 +41,9 @@ Section tests.
   Example int_partition_timeless id p q n :
     Timeless (Exists out, sptrInv id (fun _ => intR q n) p out).
   Proof.
-    unfold sptrInv, pieceRight, pieceHandle, SharedAllocationR.
-    apply _.
+    unfold sptrInv, pieceRight, pieceHandle, payload_allocation.
+    destruct (payload_delete id) as [[op alignment]|];
+      unfold SharedAllocationR; apply _.
   Qed.
 
 End tests.
@@ -74,8 +75,9 @@ Section sc_test.
   Proof.
     intros Hlive Hout.
     eapply redistributePayloadOwnership with (live := live).
-    { unfold sptrInv, pieceRight, pieceHandle, SharedAllocationR, one_int_piece.
-      apply _. }
+    { unfold sptrInv, pieceRight, pieceHandle, payload_allocation, one_int_piece.
+      destruct (payload_delete id) as [[op alignment]|];
+        unfold SharedAllocationR; apply _. }
     { intros. apply _. }
     { exact Hlive. }
     { exact Hout. }

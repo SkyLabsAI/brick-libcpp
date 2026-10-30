@@ -11,12 +11,21 @@ We cover the following usage:
 block. For the supported libstdc++ ABI it is [INT_MAX], not the pointer-sized
 unsigned maximum; see the definition below.
 
-The init constructor requires [payload_destructible]: collecting every payload
-piece must suffice to run the managed object's destruction. This persistent
-capability becomes part of [SharedPtrR]. Unlike a plain entailment to [anyR],
-it allows ghost updates before destruction and accounts for nontrivial member
-destructors. It must be supplied by the constructor's caller, not assumed as
-an unconditional property of arbitrary payload predicates.
+Raw-pointer adoption requires [payload_deletable]: every payload piece,
+together with the retained allocation token, must suffice for the whole
+selected delete/delete[] operation. A trivial destructor is not enough:
+class-specific operator delete may access external resources. Such resources
+must be included in the pieces, rather than framed away. This applies even to
+objects allocated by ::new and is distinct from a caller-supplied custom deleter.
+[shared_ptr_delete_operator] checks the exported default-deleter body to find
+the actual selected operation; it does not guess global operator delete.
+
+The make_shared factory instead requires [payload_destructible]. Its interior
+payload must be destroyed but must NOT be passed to delete. [payload_delete]
+records the choice and allocation alignment in the control-block identity;
+[payload_releasable] retains the corresponding persistent capability through
+copies, assignment, and repartitioning. Neither capability is assumed as an
+unconditional property of arbitrary payload predicates.
 
 The pieces may not always be fractional ownerships of an object (e.g. int). For example, when the shared_ptr protects an array, it is common to have every piece own an index of the array, so that different shared_ptr objects can be used to write to different indices concurrently, e.g. here: https://github.com/category-labs/monad/blob/90f8b796061aeaf78a2943c45eae5303f6ff7900/category/execution/ethereum/execute_block.cpp#L233
 
@@ -53,6 +62,7 @@ A common pattern where this can be useful is when the thread that calls new need
 *)
 
 Require Import skylabs.auto.cpp.proof.
+Require Import skylabs.auto.cpp.hints.new_delete.
 Set Default Goal Selector "!".
 Require Import skylabs.brick.libstdcpp.allocator.spec.
 Require Import skylabs.brick.libstdcpp.cassert.spec.
@@ -83,6 +93,9 @@ Record CtrlBlockId : Set :=
     dataLoc: ptr;
     payload_type: type; (* Complete managed-object type, including array length.
                           Not necessarily the type of an independent allocation. *)
+    payload_delete: option (name * option N);
+    (* Some (operator, alignment): raw adoption, with the whole delete
+       operation prepaid. None: in-place payload, destruction only. *)
   }.
 
 #[local] Open Scope N_scope.
@@ -120,6 +133,36 @@ Definition allButFirstPieceId := (seq 1 (Pos.to_nat maxContention -1 )).
 Definition countLN {A : Type} (f : A -> bool) (l : list A) : N :=
   lengthN (filter f l).
 
+(** Read the delete-expression selected by Clang in the default libstdc++
+    disposal path. In particular, absence of a virtual destructor does NOT
+    imply global operator delete. Reject missing/unrecognized bodies. *)
+Definition shared_ptr_delete_operator (tu : translation_unit) (ty : type)
+    : option name :=
+  let '(nm, arr, ety, operand) :=
+    match erase_qualifiers ty with
+    | Tarray _ _ =>
+        let ety := SP_element ty in
+        ((Nscoped "std::__sp_array_delete"
+          (Nop function_qualifiers.Nc OOCall [Tptr ety])).<<Atype ety>>,
+         true, ety, Ecast Cl2r (Evar "__p" (Tptr ety)))
+    | _ =>
+        let cn := shared_control_name SeparateAllocation ty in
+        (Nscoped cn (Nfunction function_qualifiers.N "_M_dispose" []),
+         false, ty, Ecast Cl2r
+           (Emember true (Ethis (Tptr (Tnamed cn)))
+             (Nid "_M_ptr") false (Tptr ty)))
+    end in
+  match tu.(symbols) !! nm with
+  | Some (Omethod m) =>
+      match m.(m_body) with
+      | Some (UserDefined (Sseq [Sexpr (Edelete arr' op operand' ety')])) =>
+          if bool_decide (arr = arr' /\ ety = ety' /\ operand = operand')
+          then Some op else None
+      | _ => None
+      end
+  | _ => None
+  end.
+
 Section specs.
   Context `{Σ : cpp_logic, MOD:inc_shared_ptr_cpp.source ⊧ σ}.
   #[local] Existing Instance br.ghost.excl_inG.
@@ -135,6 +178,49 @@ Section specs.
       p |-> ([∗ list] pieceid ∈ allPieceIds, Rpiece pieceid) -*
       destroy_val (genv_tu σ) ty p emp).
 
+  (** The allocation token and every payload piece jointly fund the actual
+      delete operation, including class-specific deallocation and its effects.
+      Callers can put any required external resources in the pieces. *)
+  Definition payload_deletable (ty : type) (op : name) (alignment : option N)
+      (Rpiece : nat -> Rep) : mpred :=
+    □ (Forall p : ptr,
+      (p |-> ([∗ list] pieceid ∈ allPieceIds, Rpiece pieceid) **
+       p |-> alloc.tokenR_with_alignment ty alignment 1%Qp) -*
+      wp_delete_dispatch op ty p emp).
+
+  Definition payload_releasable (id : CtrlBlockId) (Rpiece : nat -> Rep) : mpred :=
+    match payload_delete id with
+    | Some (op, alignment) =>
+        (* Keep selection evidence in each handle: the allocation invariant
+           alone does not distinguish different deallocation functions. *)
+        [| exists tu : translation_unit,
+             tu ⊧ σ /\
+             shared_ptr_delete_operator tu (payload_type id) = Some op |] **
+        payload_deletable (payload_type id) op alignment Rpiece
+    | None => payload_destructible (payload_type id) Rpiece
+    end.
+
+  Definition payload_allocation (id : CtrlBlockId) (p : ptr) : mpred :=
+    match payload_delete id with
+    | Some (_, alignment) =>
+        SharedAllocationR SeparateAllocation (payload_type id) alignment (dataLoc id) p
+    | None =>
+        SharedAllocationR CombinedAllocation (payload_type id) None (dataLoc id) p
+    end.
+
+  #[global] Instance payload_releasable_persistent id R :
+    Persistent (payload_releasable id R).
+  Proof.
+    unfold payload_releasable.
+    destruct (payload_delete id) as [[op alignment]|]; apply _.
+  Qed.
+
+  #[global] Instance payload_releasable_affine id R :
+    Affine (payload_releasable id R).
+  Proof.
+    unfold payload_releasable.
+    destruct (payload_delete id) as [[op alignment]|]; apply _.
+  Qed.
 
   Section tty. Context (ty:type).
 
@@ -178,9 +264,7 @@ Section specs.
               else (dataLoc id) .,
                      (SP_counted_base .:: Nid "_M_use_count")
                      |-> intR 1$m (Z.of_N ctrVal)
-                    ** (Exists kind : shared_allocation_kind,
-                          SharedAllocationR kind (payload_type id)
-                            (dataLoc id) ownedPtr)
+                    ** payload_allocation id ownedPtr
                     ** ([∗ list] pieceid ∈ allPieceIds,
                       if pieceOut pieceid then emp else ownedPtr |-> Rpiece pieceid)).
 
@@ -209,10 +293,10 @@ Section specs.
   Definition SharedPtrR (q : cQp.t) (id: CtrlBlockId) (pieceid : nat)
       (Rpiece : nat -> Rep) (ownedPtr:ptr) : Rep :=
     SharedPtrHandleR ty q ownedPtr (dataLoc id)
-    (* This is managed-type compatibility, not permission to delete ownedPtr.
-       The allocation case inside sptrInv determines what can be deallocated. *)
+    (* Managed-type compatibility alone is not permission to delete ownedPtr.
+       The stable cleanup descriptor governs both the capability and allocation. *)
     ** [| delete_compat ty (payload_type id) |]
-    ** pureR (payload_destructible (payload_type id) Rpiece)
+    ** pureR (payload_releasable id Rpiece)
     ** [| ownedPtr<>nullptr |] (* use NullSharedPtr otherwise *)
     ** [| lengthN (pieceRightLocs id) = Npos maxContention |]
     ** [| lengthN (pieceHandleLocs id) = Npos maxContention |]
@@ -237,7 +321,8 @@ Section specs.
 
   #[local] Definition SharedPtrHandleR_const_C :=
     [CANCEL] SharedPtrHandleR_const.
-  #[local] Hint Opaque pieceHandle payload_destructible sptrInv : sl_opacity.
+  #[local] Hint Opaque pieceHandle payload_releasable payload_allocation
+    payload_destructible payload_deletable sptrInv : sl_opacity.
 
   Lemma SharedPtrR_const id pieceid Rpiece ownedPtr :
     const.CONST (shared_ptr_const_tu ty) (Tnamed (SP_name ty))
@@ -274,11 +359,14 @@ Section specs.
     (* ^ morally, the caller gives up all the pieces and gets back the 0th piece. The remaining pieces get stored in the invariant.
        Should this object be destructed immediately, the destructor will need all the pieces to call delete. 
        We frame away the 0th piece in this spec. A derived spec can be proven where that framing away is not done *)
-    \pre p |-> alloc.tokenR ty 1%Qp
+    \pre{tu op alignment} [| tu ⊧ σ |]
+    \pre [| shared_ptr_delete_operator tu ty = Some op |]
+    \pre p |-> alloc.tokenR_with_alignment ty alignment 1%Qp
     (* ^ gets stored in the invariant. only gets taken out when the count becomes 0, to call delete. at that time the ownership of all other pieces are also taken out from the invariant *)
-    \pre payload_destructible ty Rpiece
+    \pre payload_deletable ty op alignment Rpiece
     \post Exists (ctrlBlockId: CtrlBlockId),
        [| payload_type ctrlBlockId = ty |] **
+       [| payload_delete ctrlBlockId = Some (op, alignment) |] **
        this |-> SharedPtrR 1$m ctrlBlockId 0 Rpiece p
          ** ([∗ list] pieceid ∈ allButFirstPieceId, pieceRight ctrlBlockId pieceid)
          (*  ^ the right to create [maxContention-1] more shared_ptr objects on this payload and claim the correponsing Rpiece ownerships at copy construction *)
@@ -383,11 +471,14 @@ Section specs.
        Should this object be destructed immediately, the destructor will need all the pieces to call delete. 
        We frame away the 0th piece in this spec. A derived spec can be proven where that framing away is not done *)
     \let{len} ty := Tarray ety len
-    \pre p |-> alloc.tokenR ty 1%Qp
+    \pre{tu op alignment} [| tu ⊧ σ |]
+    \pre [| shared_ptr_delete_operator tu ty = Some op |]
+    \pre p |-> alloc.tokenR_with_alignment ty alignment 1%Qp
     (* ^ gets stored in the invariant. only gets taken out when the count becomes 0, to call delete. at that time the ownership of all other pieces are also taken out from the invariant *)
-    \pre payload_destructible ty Rpiece
+    \pre payload_deletable ty op alignment Rpiece
     \post Exists (ctrlBlockId: CtrlBlockId),
        [| payload_type ctrlBlockId = ty |] **
+       [| payload_delete ctrlBlockId = Some (op, alignment) |] **
        this |-> SharedPtrR (Tincomplete_array ety) 1$m ctrlBlockId 0 Rpiece p
          ** ([∗ list] pieceid ∈ allButFirstPieceId, pieceRight ctrlBlockId pieceid)
          (*  ^ the right to create [maxContention-1] more shared_ptr objects on this payload and claim the correponsing Rpiece ownerships at copy construction *)
@@ -414,7 +505,8 @@ Section specs.
     : sl_opacity.
 
 End specs.
-#[global] Hint Opaque SharedPtrR NullSharedPtrR payload_destructible : sl_opacity.
+#[global] Hint Opaque SharedPtrR NullSharedPtrR payload_destructible
+  payload_deletable payload_releasable payload_allocation : sl_opacity.
 #[global] Hint Resolve SharedPtrR_const_C NullSharedPtrR_const_C : sl_opacity.
 #[global]
   Hint Resolve observeSharedTypeF : sl_opacity.

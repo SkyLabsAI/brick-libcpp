@@ -80,13 +80,15 @@ Section redistribution.
 
   #[local] Hint Opaque protocol_tokens invariant_tokens payload_pieces
     handle_cells pieceHandle pieceRight sptrInv payload_destructible
+    payload_releasable payload_allocation
     SharedPtrHandleR : sl_opacity.
 
-  #[local] Lemma alloc_protocol control managed (out : nat -> bool) :
+  #[local] Lemma alloc_protocol control managed cleanup (out : nat -> bool) :
     (emp : mpred) |-- (|==> Exists id : CtrlBlockId,
       [| dataLoc id = control /\ payload_type id = managed /\
          lengthN (pieceRightLocs id) = N.pos maxContention /\
-         lengthN (pieceHandleLocs id) = N.pos maxContention |] **
+         lengthN (pieceHandleLocs id) = N.pos maxContention /\
+         payload_delete id = cleanup |] **
       protocol_tokens id out ** invariant_tokens id out)%I.
   Proof.
     rewrite <- bi.emp_sep at 1.
@@ -96,10 +98,10 @@ Section redistribution.
     rewrite bupd_sep. apply bupd_mono. go.
     match goal with rights : list gname, handles : list gname |- _ =>
       iExists {| pieceRightLocs := rights; pieceHandleLocs := handles;
-        dataLoc := control; payload_type := managed |}
+        dataLoc := control; payload_type := managed; payload_delete := cleanup |}
     end.
     unfold protocol_tokens, invariant_tokens, pieceRight, pieceHandle.
-    cbn [pieceRightLocs pieceHandleLocs dataLoc payload_type].
+    cbn [pieceRightLocs pieceHandleLocs dataLoc payload_type payload_delete].
     rewrite <- big_sepL_sep.
     setoid_rewrite (indexed_ownership _ (fun name => own (A := exclR unitO) name (Excl ())) emp).
     setoid_rewrite (indexed_ownership _ (fun name => own (A := fracR) name 1%Qp) False%I).
@@ -162,12 +164,13 @@ Section redistribution.
     [| delete_compat ty (payload_type id) /\ p <> nullptr /\
        lengthN (pieceRightLocs id) = N.pos maxContention /\
        lengthN (pieceHandleLocs id) = N.pos maxContention |] **
-    payload_destructible (payload_type id) R **
+    payload_releasable id R **
     inv nroot (Exists out, sptrInv id R p out).
 
   #[local] Instance protocol_knowledge_persistent ty id R p :
     Persistent (protocol_knowledge ty id R p) := _.
   #[local] Hint Opaque allPiecesAndObjs protocol_knowledge : sl_opacity.
+  #[local] Opaque payload_releasable payload_allocation.
 
   #[local] Lemma census_knowledge ty R id p handles out live :
     live ∈ allPieceIds -> out live = true ->
@@ -219,8 +222,9 @@ Section redistribution.
   Qed.
   Definition counter_allocation id p count : mpred :=
     dataLoc id ., (SP_counted_base .:: Nid "_M_use_count") |-> intR 1$m (Z.of_N count) **
-    (Exists kind, SharedAllocationR kind (payload_type id) (dataLoc id) p).
+    payload_allocation id p.
   #[local] Hint Opaque counter_allocation : sl_opacity.
+  #[local] Transparent payload_releasable payload_allocation.
 
   #[local] Lemma countLN_agree (left right : nat -> bool) :
     (forall i, i ∈ allPieceIds -> left i = right i) ->
@@ -256,7 +260,6 @@ Section redistribution.
     end.
     rewrite Hcount bool_decide_false; last lia.
     rewrite Hpieces. unfold counter_allocation. go.
-    iExists t. go.
   Qed.
 
   #[local] Lemma retired_protocol id R p :
@@ -282,7 +285,7 @@ Section redistribution.
       (if negb (out i) then p |-> R i else emp) -|-
       (if out i then emp else p |-> R i)).
     { intros i. destruct (out i); reflexivity. }
-    setoid_rewrite Hpiece. go. iExists t. go.
+    setoid_rewrite Hpiece. go.
   Qed.
 
   (** Repartitioning requires every live handle and every unused acquisition
@@ -312,9 +315,12 @@ Section redistribution.
     intros Hi Hout Hwhole.
     assert (Hlive : (0 < countLN out allPieceIds)%N).
     { eapply countLN_positive_of_member; eauto. }
-    assert (Hdestruct : payload_destructible (payload_type id) Rold |--
-      payload_destructible (payload_type id) Rnew).
-    { unfold payload_destructible. setoid_rewrite <- Hwhole. reflexivity. }
+    assert (Hdestruct : payload_releasable id Rold |--
+      payload_releasable id Rnew).
+    { unfold payload_releasable.
+      destruct (payload_delete id) as [[op alignment]|];
+        unfold payload_deletable, payload_destructible;
+        setoid_rewrite <- Hwhole; reflexivity. }
     assert (Hrepartition : payload_pieces Rold p out **
       payload_pieces Rold p (fun i => negb (out i)) |--
       payload_pieces Rnew p out ** payload_pieces Rnew p (fun i => negb (out i))).
@@ -333,14 +339,16 @@ Section redistribution.
       (|={⊤ ∖ ↑nroot,⊤}=> emp)%I). go.
     iExists t. go.
     wapply Hrepartition. go.
-    wapply (alloc_protocol (dataLoc id) (payload_type id) out). go.
+    wapply (alloc_protocol (dataLoc id) (payload_type id) (payload_delete id) out). go.
     rename t into freshid.
     assert (Hcells : handle_cells ty id p handles out -|-
       handle_cells ty freshid p handles out).
     { unfold handle_cells. rewrite a2. reflexivity. }
     assert (Hcounter : counter_allocation id p (countLN out allPieceIds) -|-
       counter_allocation freshid p (countLN out allPieceIds)).
-    { unfold counter_allocation. rewrite a2 a3. reflexivity. }
+    { unfold counter_allocation, payload_allocation. rewrite a2 a3 b0. reflexivity. }
+    assert (Hcleanup : payload_releasable freshid Rnew -|- payload_releasable id Rnew).
+    { unfold payload_releasable. rewrite a3 b0. reflexivity. }
     rewrite Hcells Hcounter.
     wapply (active_protocol freshid Rnew p out Hlive). go.
     wapply (inv_alloc nroot ⊤ (Exists actual, sptrInv freshid Rnew p actual)).
@@ -349,7 +357,7 @@ Section redistribution.
     rewrite bi.sep_exist_r. iExists t. go.
     iExists freshid. go.
     wapply (census_close ty Rnew freshid p handles out). go.
-    unfold protocol_knowledge. rewrite a3.
+    unfold protocol_knowledge. rewrite a3 Hcleanup.
     wapply Hdestruct. go.
   Qed.
 End redistribution.

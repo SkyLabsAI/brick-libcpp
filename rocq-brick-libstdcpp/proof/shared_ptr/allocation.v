@@ -64,13 +64,14 @@ Section with_cpp.
               .:: Nid "_M_storage").
 
   Definition SharedAllocationR (kind : shared_allocation_kind)
-      (payload_ty : type) (control owned : ptr) : mpred :=
+      (payload_ty : type) (payload_alignment : option N)
+      (control owned : ptr) : mpred :=
     let cn := shared_control_name kind payload_ty in
     Exists root : ptr,
       [| control = root ,, o_base CU cn SP_counted_base |] **
       match kind with
       | SeparateAllocation =>
-          Exists control_alignment payload_alignment,
+          Exists control_alignment,
             root |-> alloc.tokenR_with_alignment (Tnamed cn) control_alignment 1%Qp **
             owned |-> alloc.tokenR_with_alignment payload_ty payload_alignment 1%Qp
       | CombinedAllocation =>
