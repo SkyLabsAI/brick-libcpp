@@ -1,5 +1,5 @@
 (** Specs of shared_ptr.
-We do not cover interaction with weak_ptr.
+We do not cover interaction with weak_ptr or enable_shared_from_this.
 Custom deleters, custom allocators, aliasing constructors, and
 make_shared_for_overwrite are not supported by these specs.
 The representation supports separate allocations and make_shared's combined
@@ -254,6 +254,9 @@ Section specs.
     specify {| info_name := (Nscoped ("std::shared_ptr".<<Atype ty>>) (Nctor [Tptr ty])).<<Atype ty, Atype "void">>
             ; info_type := tCtor ("std::shared_ptr".<<Atype ty>>) [Tptr ty] |} (fun (this:ptr) =>
     \arg{p:ptr} "ownedPtr" (Vptr p)
+    (* Adoption may initialize enable_shared_from_this's internal weak handle.
+       This interface frames the payload unchanged, so excludes that case. *)
+    \pre [| shared_ptr_no_esftb ty = true |]
     \pre match ty with
          | Tarray _ _ => False
          | Tincomplete_array _ => False
