@@ -34,38 +34,6 @@ Import linearity.
 Section with_cpp.
   Context `{Sigma : cpp_logic, MOD : inc_shared_ptr_cpp.source ⊧ σ}.
 
-  Definition make_shared_no_esft (ty : type) : Prop :=
-    match erase_qualifiers ty with
-    | Tnamed cls => forall path base,
-        class_derives cls path -> base ∈ cls :: path ->
-        forall pack,
-          base <> Ninst "std::enable_shared_from_this" pack /\
-          base <> Ninst "std::__enable_shared_from_this" pack
-    | _ => True
-    end.
-
-  Lemma make_shared_no_esft_no_bases cls layout :
-    glob_def σ cls = Some (Gstruct layout) -> layout.(s_bases) = [] ->
-    (forall pack,
-      cls <> Ninst "std::enable_shared_from_this" pack /\
-      cls <> Ninst "std::__enable_shared_from_this" pack) ->
-    make_shared_no_esft (Tnamed cls).
-  Proof.
-    intros Hlayout Hbases Hname path base Hpath Hin pack.
-    inversion Hpath; subst.
-    { apply elem_of_cons in Hin. destruct Hin as [-> | Hin].
-      { apply Hname. }
-      { inversion Hin. } }
-    { match goal with
-      | H : _ !! cls = Some (Gstruct ?st) |- _ =>
-          change (glob_def σ cls = Some (Gstruct st)) in H;
-          rewrite Hlayout in H; injection H as Heq; subst st
-      end.
-      match goal with
-      | H : _ ∈ layout.(s_bases) |- _ => rewrite Hbases in H; inversion H
-      end. }
-  Qed.
-
   (** A construction obligation, not an assumed payload-constructor spec.
       The input is raw, sufficiently large and aligned storage, not a live T.
       Placement new may give the object a different logical pointer; keep
@@ -114,7 +82,7 @@ Section with_cpp.
       \pre [| pack = map Atype args |]
       \pre [| parameter_types = map (trv_ref QM) args |]
       \pre [| length values = length args |]
-      \pre [| make_shared_no_esft ty |]
+      \pre [| shared_ptr_no_esftb ty = true |]
       \pre [| match erase_qualifiers ty with
                | Tarray _ _ | Tincomplete_array _ => False
                | _ => True

@@ -59,6 +59,7 @@ Require Import skylabs.cpp.spec.concepts.experimental.
 Require Import skylabs.brick.libstdcpp.shared_ptr.inc_shared_ptr_cpp.
 Require Export skylabs.brick.libstdcpp.shared_ptr.layout.
 Require Export skylabs.brick.libstdcpp.shared_ptr.allocation.
+Require Export skylabs.brick.libstdcpp.shared_ptr.no_esft.
 Require Import iris.algebra.excl.
 Require Import iris.algebra.frac.
 

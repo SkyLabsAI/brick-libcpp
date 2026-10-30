@@ -44,9 +44,9 @@ Section with_cpp.
   #[local] Instance learn_shared : LearnEq6 SharedPtrR :=
     ltac:(solve_learnable).
 
-  Lemma payload_no_esft : make_shared_no_esft "Payload".
+  Lemma payload_no_esft : shared_ptr_no_esftb "Payload" = true.
   Proof using MOD.
-    eapply make_shared_no_esft_no_bases.
+    eapply shared_ptr_no_esft_no_bases.
     { eapply (@glob_def_genv_compat_struct σ "Payload"%cpp_name source MOD).
       vm_compute. reflexivity. }
     { reflexivity. }
