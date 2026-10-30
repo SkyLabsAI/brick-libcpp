@@ -164,6 +164,18 @@
    (with-stderr-to inc_new_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o inc_new_cpp.v --no-elaborate --templates=inc_new_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_new.cpp))
 )
+(subdir pthread
+ (rule
+  (targets inc_hpp.v.stderr inc_hpp.v inc_hpp_templates.v)
+  (alias test_ast)
+  (deps
+   (:input inc.hpp)
+   (env_var CPP2V_DOCKER_ENABLED)
+   (glob_files_rec ../*.hpp))
+  (action
+  	 (with-stderr-to inc_hpp.v.stderr (run cpp2v -v %{input} -o inc_hpp.v --no-elaborate --templates=inc_hpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps inc.hpp))
+)
 (subdir semaphore
  (rule
   (targets inc_hpp.v.stderr inc_hpp.v inc_hpp_templates.v)

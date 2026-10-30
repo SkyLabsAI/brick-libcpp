@@ -9,25 +9,34 @@ Require Import skylabs.auto.cpp.prelude.proof.
 Require Import skylabs.auto.core.hints.cancelx_notation.
 Require Import skylabs.iris.extra.proofmode.proofmode.
 
-Parameter thread_idT : Type.
-#[global] Declare Instance thread_idT_inh : Inhabited thread_idT.
-#[global] Declare Instance thread_idT_eq_dec : EqDecision thread_idT.
-#[global] Declare Instance thread_idT_countable : Countable thread_idT.
+Import wrap.
+
+Variant ProcIdT := .
+Definition proc_idT := WrapN ProcIdT.
+Variant ThreadIdT := .
+Definition thread_idT := WrapN ThreadIdT.
+
+Canonical Structure proc_idTO := leibnizO proc_idT.
+Canonical Structure proc_idT_bi_index : biIndex := BiIndex proc_idT _ eq _.
 
 Canonical Structure thread_idTO := leibnizO thread_idT.
-
 Canonical Structure thread_idT_bi_index : biIndex := BiIndex thread_idT _ eq _.
 
 Parameter HasStdThreads : forall `{Σ : cpp_logic}, Type.
 #[global] Arguments HasStdThreads {_ _} Σ.
 Existing Class HasStdThreads.
 
-(** The projection of the thread from the thread information.
+(** The projection of respectively the process id and thread id from the
+    thread information.
 
   NOTE: This is effectively a field of `HasStdThreads`, but since that
   is registered as an Axiom, we use another Parameter for this.
   *)
+Parameter procTI : forall `{HasStdThreads}, thread_info -ml> proc_idT_bi_index.
 Parameter threadTI : forall `{HasStdThreads}, thread_info -ml> thread_idT_bi_index.
+
+Definition Vthread (tid : thread_idT) := Vn (unwrapN tid).
+#[global] Instance Vthread_type_compat : TypeCompat "unsigned long" Vthread := {}.
 
 (** [current_thread thr] means that the current thread is [thr].
 
