@@ -40,7 +40,14 @@ The proof will atomically increment the counter to take out the Rpiece from the 
 
 - There is another Rep predicate: [NullSharedPtrR]: for the case when the shared ptr represents a dummy null ptr, e.g. after a move constructor transfers away the ownerships to a new object.
 
-- These specs in this file allow you to change the ownership split protocol (between the various shared_ptr objects protecting the same payload object ptr) later on (see lemma [redistributePayloadOwnership]), as long as the caller can cough up all pieces and objects associated with the payload (see [allPiecesAndObjs]).
+- The proved [redistributePayloadOwnership] in shared_ptr/redistribution.v can
+change the payload partition when the caller owns every live handle and its
+piece, plus every unused acquisition right. It requires equivalence of the
+whole payload ownership, at least one live handle, and explicit Timeless and
+WeaklyObjective conditions for the invariant migration. It returns a new ghost
+control-block identity while retaining all physical addresses and the actual
+reference count. The old, unconstrained admitted redistribution rule has been
+replaced, not retained as an alternative interface.
 A common pattern where this can be useful is when the thread that calls new needs to initialize the object after wrapping it in a shared_ptr but before sharing it with other concurrent threads. So until that event, it will have the exclusive ownership of the entire object (Rpiece n = emp for n>0, Rpiece 0= objR 1) and later, we redistribute with (Rpiece n => objR (1/N)).
 
 *)
@@ -364,18 +371,6 @@ Section specs.
     : Observe (type_ptr (Tnamed ("std::shared_ptr".<<Atype ty>>)) p) (p|->SharedPtrR q id pieceid Rpiece op):= _.
   
   Definition observeSharedTypeF q id pieceid t Rpiece op:= @observe_fwd _ _ _ (sharedR_typeptr_observe q id pieceid t Rpiece op).
-
-  Definition allPiecesAndObjs Rpiece id (ownedPtr: ptr) (pieceOut: nat->bool) : Rep :=
-   ([∗ list] pieceid ∈ allPieceIds,
-     if pieceOut pieceid
-     then pureR (ownedPtr |-> Rpiece pieceid)
-          ** pureR (Exists (base:ptr), base |->SharedPtrR 1$m id pieceid Rpiece ownedPtr)
-     else pureR (pieceRight id pieceid)).
-
-  Lemma redistributePayloadOwnership {Rpieceold Rpiecenew: nat -> Rep} (pieceOut : nat -> bool) id ownedPtr:
-    allPiecesAndObjs Rpieceold id ownedPtr pieceOut
-      |-- |={⊤}=> allPiecesAndObjs Rpiecenew id ownedPtr pieceOut.
-  Proof. Admitted.
 
   End tty.
 
