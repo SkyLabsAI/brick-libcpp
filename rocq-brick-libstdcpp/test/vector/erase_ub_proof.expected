@@ -58,7 +58,7 @@
             |-> array_sliceR "int" 0 (1 - 1) (λ v : Z, intR 1$m v)
                   (takeZ 1 [1] ++ dropZ (1 + 1) [1]))) -∗
     ::interp
-      { FreeTemps.delete
+      { FreeTemps.delete None
           "__gnu_cxx::__normal_iterator<const int*, std::vector<int, std::allocator<int>>>"
           p >*>
         1 }
