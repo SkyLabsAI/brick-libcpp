@@ -417,16 +417,12 @@ Section with_cpp.
   Lemma test_strpbrk_ok : verify[source] "test_strpbrk()".
   Proof.
     verify_spec; go.
-    all: Arith.arith_simpl; normalize_ptrs; go.
-    all: by exfalso.
   Qed.
 
   cpp.spec "test_strstr()" from source default.
   Lemma test_strstr_ok : verify[source] "test_strstr()".
   Proof.
     verify_spec; go.
-    all: Arith.arith_simpl; normalize_ptrs; go.
-    all: by exfalso.
   Qed.
 
   cpp.spec "test_cstring_slice1()" from source default.
