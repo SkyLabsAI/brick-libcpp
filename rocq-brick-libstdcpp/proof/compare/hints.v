@@ -186,3 +186,42 @@ End with_cpp.
 
 #[export] Hint Resolve wp_init_binop_spaceship_stdlib_hint_B | 150 : db_skylabs_wp.
 
+(** <<return x;>> for a local [x] of a comparison category type, for example
+    in a defaulted <<operator<=>>>: moving copies the value and the
+    destructor only consumes it, so both executions of [wp_return_nrvo] end
+    in the same state. *)
+Section nrvo.
+  Context `{Σ : cpp_logic, σ : genv}.
+
+  #[local] Hint Opaque _local : sl_opacity.
+
+  #[local] Ltac nrvo_move_tac :=
+    split; [intros; go|];
+    intros v addr Q; iIntros "(#D & #M & R)";
+    iDestruct (observe [| inc_compare_cpp.source ⊧ σ |] with "M") as "%";
+    rewrite -(interp_elim_delete _ None); iStopProof; go.
+
+  #[global] Instance strong_ordering_nrvo_move :
+    NrvoMove inc_compare_cpp.source "std::strong_ordering"
+      "std::strong_ordering::strong_ordering(std::strong_ordering&&)"
+      "std::strong_ordering"
+      std.compare.strong_ordering_move_ctor std.compare.strong_ordering_dtor
+      (std.compare.strong_orderingR 1$m) (std.compare.strong_orderingR 1$m).
+  Proof. nrvo_move_tac. Qed.
+
+  #[global] Instance weak_ordering_nrvo_move :
+    NrvoMove inc_compare_cpp.source "std::weak_ordering"
+      "std::weak_ordering::weak_ordering(std::weak_ordering&&)"
+      "std::weak_ordering"
+      std.compare.weak_ordering_move_ctor std.compare.weak_ordering_dtor
+      (std.compare.weak_orderingR 1$m) (std.compare.weak_orderingR 1$m).
+  Proof. nrvo_move_tac. Qed.
+
+  #[global] Instance partial_ordering_nrvo_move :
+    NrvoMove inc_compare_cpp.source "std::partial_ordering"
+      "std::partial_ordering::partial_ordering(std::partial_ordering&&)"
+      "std::partial_ordering"
+      std.compare.partial_ordering_move_ctor std.compare.partial_ordering_dtor
+      (std.compare.partial_orderingR 1$m) (std.compare.partial_orderingR 1$m).
+  Proof. nrvo_move_tac. Qed.
+End nrvo.
