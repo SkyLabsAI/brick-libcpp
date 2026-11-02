@@ -7,10 +7,32 @@ Require Import skylabs.brick.libstdcpp.shared_ptr.allocation.
 
 Set Default Goal Selector "!".
 Set Warnings "+sl-transparent-constants".
-Import linearity.
+Import linearity observe2_fwd.
 
 Section with_cpp.
   Context `{Sigma : cpp_logic} {CU : genv}.
+
+  (** The weak counter is physical ownership, not just a pure count fact.
+      The opaque remainder is returned, never manufactured or discarded. *)
+  Example control_block_rest_fields kind ty control owned :
+    ControlBlockRestR kind ty control owned -|-
+      control ., (SP_counted_base .:: Nid "_M_weak_count") |-> intR 1$m 1 **
+      ControlBlockLayoutR CU kind ty control owned.
+  Proof. reflexivity. Qed.
+
+  #[local] Instance int_cell_exclusive (p : ptr) :
+    Observe2 False (p |-> intR 1$m 1) (p |-> intR 1$m 1).
+  Proof. apply _. Qed.
+  #[local] Definition int_cell_exclusive_F :=
+    ltac:(mk_obs2_fwd int_cell_exclusive).
+
+  Example control_block_rest_not_duplicable kind ty control owned :
+    ControlBlockRestR kind ty control owned **
+    ControlBlockRestR kind ty control owned |-- False.
+  Proof.
+    unfold ControlBlockRestR.
+    go using int_cell_exclusive_F.
+  Qed.
 
   (** The ordinary new/new[] route retains both allocation tokens. *)
   Example separate_allocations (ty : type) (root owned : ptr)

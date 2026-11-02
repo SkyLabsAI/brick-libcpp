@@ -1,6 +1,7 @@
 (** Allocation ownership for the default libstdc++ shared-pointer constructors.
-    This is only the allocation part of the control-block invariant: it does
-    not own the payload fields or the reference counters.
+    [SharedAllocationR] owns allocation tokens only. [ControlBlockRestR]
+    separately owns the implicit weak count and the remaining control-block
+    layout; neither owns payload fields or the strong-reference counter.
 
     Custom deleters, custom allocators, aliasing constructors, and
     make_shared_for_overwrite are not supported. The internal __sp_array_delete
@@ -52,6 +53,51 @@ Definition shared_control_name (kind : shared_allocation_kind)
 
 Section with_cpp.
   Context `{Sigma : cpp_logic} {CU : genv}.
+
+  (** Abstract physical ownership for the supported default-deleter control
+      block, not a ghost capability or an invariant assertion. The dynamic
+      class is [shared_control_name kind payload_ty]; [control] points to its
+      _Sp_counted_base subobject and [owned] is its managed object.
+
+      Own the dynamic-class/base identities, dispatch information, remaining
+      initialized fields and padding. For separate allocation this includes
+      the stored managed pointer; for in-place objects, the allocator/storage
+      bookkeeping; for combined arrays, the element count, allocator and
+      tail-layout bookkeeping consistent with [payload_ty] and [owned].
+
+      Exclude BOTH reference-counter cells, payload ownership, allocation
+      tokens and [provides_storage]: those are separate conjuncts. This token
+      contains no outstanding-handle ghost names, so repartitioning the
+      payload can preserve it unchanged. No creation, copying or disposal law
+      is assumed here. The still-assumed library constructors must establish
+      it from the control block they construct, and final release consumes it.
+
+      TOFIXLATER: define this layout ownership for each supported libstdc++
+      control-block class when proving the library bodies. This abstraction
+      does not justify virtual dispatch, combined counter loads or weak-memory
+      synchronization by itself. See shared-pointer PR #10:
+      https://github.com/SkyLabsAI/brick-libcpp/pull/10 *)
+  Parameter ControlBlockLayoutR :
+    genv -> shared_allocation_kind -> type -> ptr -> ptr -> mpred.
+
+  (** Part of the abstract field-ownership interface, not a proved layout law.
+      Timelessness permits the existing ghost-only redistribution proof; it
+      does not permit dropping ownership or removing later from arbitrary P. *)
+  #[global] Declare Instance ControlBlockLayoutR_timeless kind ty control owned :
+    Timeless (ControlBlockLayoutR CU kind ty control owned).
+
+  (** With no external weak_ptr or enable_shared_from_this, every live strong
+      ownership group retains exactly one implicit weak reference. The final
+      release takes this ownership out of the invariant before changing the
+      weak count or disposing of the control block. *)
+  Definition ControlBlockRestR (kind : shared_allocation_kind)
+      (payload_ty : type) (control owned : ptr) : mpred :=
+    control ., (SP_counted_base .:: Nid "_M_weak_count") |-> intR 1$m 1 **
+    ControlBlockLayoutR CU kind payload_ty control owned.
+
+  #[global] Instance ControlBlockRestR_timeless kind ty control owned :
+    Timeless (ControlBlockRestR kind ty control owned).
+  Proof. unfold ControlBlockRestR. apply _. Qed.
 
   (** The storage used by _Sp_counted_ptr_inplace::_M_ptr(). Do not equate
       the placement-constructed object pointer to this storage pointer:
@@ -105,4 +151,5 @@ Section with_cpp.
       end.
 End with_cpp.
 
-#[global] Hint Opaque SharedAllocationR : sl_opacity.
+#[global] Hint Opaque SharedAllocationR ControlBlockRestR
+  ControlBlockLayoutR : sl_opacity.

@@ -208,6 +208,18 @@ Section specs.
         SharedAllocationR CombinedAllocation (payload_type id) None (dataLoc id) p
     end.
 
+  Definition control_block_rest (id : CtrlBlockId) (p : ptr) : mpred :=
+    ControlBlockRestR
+      (match payload_delete id with
+       | Some _ => SeparateAllocation
+       | None => CombinedAllocation
+       end)
+      (payload_type id) (dataLoc id) p.
+
+  #[global] Instance control_block_rest_timeless id p :
+    Timeless (control_block_rest id p).
+  Proof. unfold control_block_rest. apply _. Qed.
+
   #[global] Instance payload_releasable_persistent id R :
     Persistent (payload_releasable id R).
   Proof.
@@ -264,6 +276,7 @@ Section specs.
               else (dataLoc id) .,
                      (SP_counted_base .:: Nid "_M_use_count")
                      |-> intR 1$m (Z.of_N ctrVal)
+                    ** control_block_rest id ownedPtr
                     ** payload_allocation id ownedPtr
                     ** ([∗ list] pieceid ∈ allPieceIds,
                       if pieceOut pieceid then emp else ownedPtr |-> Rpiece pieceid)).
@@ -276,15 +289,17 @@ Section specs.
       that state by [pieceHandle_live] in [handle_liveness.v]. This also
       permits closing the invariant before running a reentrant destructor.
 
-      This remains a partial control-block model for the assumed library
-      specs, not a verified libstdc++ implementation. It now retains the
-      appropriate allocation ownership in [SharedAllocationR].
-      A complete body proof must additionally own the remaining control-block
-      fields and dynamic-class witnesses, account for its implicit weak
-      reference, and justify the actual acquire/release operations. For an
-      array factory it must also connect _M_n/_S_tail to the retained allocation
-      size and recover the padding for deallocation. No external weak_ptr
-      operations are covered by this interface. *)
+      [control_block_rest] owns the weak counter at 1 and the abstract
+      remaining control-block layout, separately from allocation and payload
+      ownership. It is stored ONCE here, not duplicated in each handle.
+      Both raw-adoption and factory specs return this strengthened invariant;
+      their eventual body proofs must establish its physical ownership.
+
+      The layout token and its Timeless law remain assumed. A complete body
+      proof must define that token and justify dispatch, the combined load of
+      both counters, and actual acquire/release synchronization. For array
+      factories it must also connect _M_n/_S_tail to allocation size and
+      recover padding for deallocation. No external weak_ptr is supported. *)
   
   (** The control-block model above remains abstract. [SharedPtrHandleR]
       describes the complete handle, not the object its [_M_pi] points to. *)
@@ -321,7 +336,7 @@ Section specs.
 
   #[local] Definition SharedPtrHandleR_const_C :=
     [CANCEL] SharedPtrHandleR_const.
-  #[local] Hint Opaque pieceHandle payload_releasable payload_allocation
+  #[local] Hint Opaque pieceHandle payload_releasable payload_allocation control_block_rest
     payload_destructible payload_deletable sptrInv : sl_opacity.
 
   Lemma SharedPtrR_const id pieceid Rpiece ownedPtr :
@@ -544,7 +559,7 @@ Section specs.
 
 End specs.
 #[global] Hint Opaque SharedPtrR NullSharedPtrR payload_destructible
-  payload_deletable payload_releasable payload_allocation : sl_opacity.
+  payload_deletable payload_releasable payload_allocation control_block_rest : sl_opacity.
 #[global] Hint Resolve SharedPtrR_const_C NullSharedPtrR_const_C : sl_opacity.
 #[global]
   Hint Resolve observeSharedTypeF : sl_opacity.

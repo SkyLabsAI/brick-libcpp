@@ -222,6 +222,7 @@ Section redistribution.
   Qed.
   Definition counter_allocation id p count : mpred :=
     dataLoc id ., (SP_counted_base .:: Nid "_M_use_count") |-> intR 1$m (Z.of_N count) **
+    control_block_rest id p **
     payload_allocation id p.
   #[local] Hint Opaque counter_allocation : sl_opacity.
   #[local] Transparent payload_releasable payload_allocation.
@@ -346,7 +347,8 @@ Section redistribution.
     { unfold handle_cells. rewrite a2. reflexivity. }
     assert (Hcounter : counter_allocation id p (countLN out allPieceIds) -|-
       counter_allocation freshid p (countLN out allPieceIds)).
-    { unfold counter_allocation, payload_allocation. rewrite a2 a3 b0. reflexivity. }
+    { unfold counter_allocation, control_block_rest, payload_allocation.
+      rewrite a2 a3 b0. reflexivity. }
     assert (Hcleanup : payload_releasable freshid Rnew -|- payload_releasable id Rnew).
     { unfold payload_releasable. rewrite a3 b0. reflexivity. }
     rewrite Hcells Hcounter.
