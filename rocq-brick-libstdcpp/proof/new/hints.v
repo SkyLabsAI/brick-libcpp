@@ -2,7 +2,9 @@ Require Import skylabs.auto.persistent.
 Require Import skylabs.auto.cpp.hints.alignment.
 Require Import skylabs.auto.cpp.hints.sizeof.
 Require Import skylabs.auto.cpp.proof.
+Require Import skylabs.auto.cpp.hints.new_delete.
 Require Export skylabs.brick.libstdcpp.new.spec.
+Require Import skylabs.brick.libstdcpp.new.inc_new_cpp.
 
 #[only(lazy_unfold(global))] derive alloc.tokenR_with_alignment.
 
@@ -206,6 +208,57 @@ Section with_cpp.
   Qed.
 
 End with_cpp.
+
+(** The deallocation functions do nothing on <<nullptr>>, so that auto proves
+    <<delete nullptr>> from a single goal ([wp_delete_null_trivial_C]). *)
+Section trivial_on_null.
+  Context `{Σ : cpp_logic} {σ : genv} `{!allocation_alignment_support σ}.
+
+  #[global] Instance operator_delete_trivial_on_null :
+    DeleteTrivialOnNull source
+      ("operator delete(void* )"%cpp_name, delete_operator.mk None false false) operator_delete.
+  Proof. intros ??? _. go. Qed.
+
+  #[global] Instance operator_delete_align_trivial_on_null :
+    DeleteTrivialOnNull source
+      ("operator delete(void*, enum std::align_val_t)"%cpp_name, delete_operator.mk None false true)
+      operator_delete_align.
+  Proof. intros ??? [al ?]. go. Qed.
+
+  #[global] Instance operator_delete_size_trivial_on_null :
+    DeleteTrivialOnNull source
+      ("operator delete(void*, unsigned long)"%cpp_name, delete_operator.mk None true false) operator_delete_size.
+  Proof. intros ??? _. go. Qed.
+
+  #[global] Instance operator_delete_size_align_trivial_on_null :
+    DeleteTrivialOnNull source
+      ("operator delete(void*, unsigned long, enum std::align_val_t)"%cpp_name, delete_operator.mk None true true)
+      operator_delete_size_align.
+  Proof. intros ??? [al ?]. go. Qed.
+
+  #[global] Instance operator_delete_array_trivial_on_null :
+    DeleteTrivialOnNull source
+      ("operator delete[](void* )"%cpp_name, delete_operator.mk None false false) operator_delete_array.
+  Proof. intros ??? _. go. Qed.
+
+  #[global] Instance operator_delete_array_align_trivial_on_null :
+    DeleteTrivialOnNull source
+      ("operator delete[](void*, enum std::align_val_t)"%cpp_name, delete_operator.mk None false true)
+      operator_delete_array_align.
+  Proof. intros ??? [al ?]. go. Qed.
+
+  #[global] Instance operator_delete_array_size_trivial_on_null :
+    DeleteTrivialOnNull source
+      ("operator delete[](void*, unsigned long)"%cpp_name, delete_operator.mk None true false)
+      operator_delete_array_size.
+  Proof. intros ??? _. go. Qed.
+
+  #[global] Instance operator_delete_array_size_align_trivial_on_null :
+    DeleteTrivialOnNull source
+      ("operator delete[](void*, unsigned long, enum std::align_val_t)"%cpp_name, delete_operator.mk None true true)
+      operator_delete_array_size_align.
+  Proof. intros ??? [al ?]. go. Qed.
+End trivial_on_null.
 
 #[global] Hint Resolve token_prove_C token_prove_0_C | 100 : sl_opacity.
 #[global] Hint Resolve token_prove_using_C token_prove_using_0_C | 99 : sl_opacity.
