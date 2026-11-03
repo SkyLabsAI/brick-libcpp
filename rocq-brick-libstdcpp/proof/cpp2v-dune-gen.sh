@@ -3,7 +3,7 @@
 
 usage() {
 	cat >&2 <<-EOF
-		usage: $(basename "$0") [ --toolchain CONFIG ] [ -t ] <filename>.<ext> <cpp2v-options> -- [ <clang-options> ]
+		usage: $(basename "$0") [ --toolchain CONFIG ] [ -t ] [ -g GLOB ] <filename>.<ext> <cpp2v-options> -- [ <clang-options> ]
 
 		This will output (to stdout) dune rules for building <filename>.<ext>,
 		passing <options> to cpp2v. Redirect output to dune.inc and
@@ -11,9 +11,11 @@ usage() {
 
 		The output is filesystem-independent and <filename>.<ext> need not exist.
 		Placing the output in <base>/dune.inc will transform
-		<base>/<filename>.<ext> into <base>/<filename>_<ext>.v and
-		<base>/<filename>_<ext>_names.v and (with \`-t\`)
+		<base>/<filename>.<ext> into <base>/<filename>_<ext>.v and (with \`-t\`)
 		<base>/<filename>_<ext>_templates.v.
+
+		Each rule depends on the files matching GLOB (default: *.hpp) under
+		PREFIX (\`-p\`, default ../), relative to <filename>.<ext>'s directory.
 	EOF
 	exit 1
 }
@@ -37,21 +39,16 @@ outRule() {
 	local clang_options=""
 	local universe=""
 	# if [ "$system" = 1 ]; then
-	# 	universe=" (universe)"
+		# universe=" (universe)"
 	# fi
 	local cpp2v="cpp2v"
+	# Keep native output stable for existing generated files in other packages.
 	local action_indent=$'\t '
 	if [ -n "$toolchain" ]; then
 		action_indent=" "
 		cpp2v="%{bin:cpp2v-run} --config %{dep:${toolchain}} --host-tool %{bin:cpp2v} --container-tool cpp2v --"
 	fi
-	cpp2v="${cpp2v} -v %{input} -o ${module} --no-elaborate"
-
-	if [ "$gen_names" = 1 ]; then
-		local names="${name}_${ext}_names.v"
-		targ="${targ} ${names}"
-		cpp2v="${cpp2v} -names ${names}"
-	fi
+	cpp2v="${cpp2v} -v %{input} -o ${module}"
 
 	if [ "$templates" = 1 ]; then
 		local templates="${name}_${ext}_templates.v"
@@ -65,9 +62,7 @@ outRule() {
 		(rule
 		 (targets ${module}.stderr ${targ})
 		 (alias test_ast)
-		 (deps
-		  (:input ${name}.${ext})
-		  (glob_files_rec ${prefix}*.hpp)${universe})
+		 (deps (:input ${name}.${ext}) (glob_files_rec ${prefix}${deps_glob})${universe})
 		 (action
 		 ${action_indent}(with-stderr-to ${module}.stderr ${action})))
 		(alias (name srcs) (deps ${name}.${ext}))
@@ -100,10 +95,10 @@ traverse() {
 	fi
 }
 
-gen_names=0
 templates=0
 system=0
 prefix="../"
+deps_glob="*.hpp"
 toolchain=""
 while :
 do
@@ -112,10 +107,6 @@ do
 		[ $# -ge 2 ] && [ -n "$2" ] || usage
 		toolchain="$2"
 		shift 2
-		;;
-	-n)
-		gen_names=1
-		shift
 		;;
 	-t)
 		templates=1
@@ -129,6 +120,11 @@ do
 		shift
 		prefix="$1"
 		shift
+		;;
+	-g)
+		[ $# -ge 2 ] && [ -n "$2" ] || usage
+		deps_glob="$2"
+		shift 2
 		;;
 	--)
 		shift
