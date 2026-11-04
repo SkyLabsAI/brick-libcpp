@@ -187,26 +187,6 @@ Section with_cpp.
     iFrame "M". by rewrite /alloc.default_new_alignment (_align_of_ok _ _ _ Hal).
   Qed.
 
-  (** The alignment of a type declared in the translation unit is supported
-      (<https://eel.is/c++draft/basic.align#4>); this covers the alignment
-      argument that <<new T>> passes for an over-aligned <<T>>. *)
-  #[program]
-  Definition supported_alignment_tu_C `{!allocation_alignment_support σ} tu al
-      (_ : existsb (fun nm => bool_decide (_align_of tu (Tnamed nm) = Some al))
-             (map fst (map_to_list tu.(types))) =[Vm]=> true) :=
-    \cancelx
-    \preserving denoteModule tu
-    \proving [| supported_alignment al |]
-    \end.
-  Next Obligation.
-    intros * Hex%RedEq_eq. iIntros "#M".
-    iDestruct (observe [| _ ⊧ _ |] with "M") as %Hmod.
-    have Hsup : supported_alignment al.
-    { apply existsb_exists in Hex as (nm & _ & Hal%bool_decide_eq_true_1).
-      apply (supported_alignment_of_type (Tnamed nm)). by eapply _align_of_ok. }
-    work.
-  Qed.
-
 End with_cpp.
 
 (** The deallocation functions do nothing on <<nullptr>>, so that auto proves
@@ -265,6 +245,14 @@ End trivial_on_null.
 #[global] Hint Resolve token_use_non_array_C | 99 : sl_opacity.
 #[global] Hint Resolve token_use_non_array_tu_C | 98 : sl_opacity.
 #[global] Hint Resolve token_use_array_C | 100 : sl_opacity.
-#[global] Hint Resolve supported_alignment_tu_C : sl_opacity.
+(** The alignment of a type is supported (<https://eel.is/c++draft/basic.align#4>).
+    For <<new T>> with an over-aligned <<T>>, auto's new-expression hints leave
+    [align_of T = Some al] in the context of the call to the allocation function,
+    so this costs a lookup among the hypotheses, not a search of the
+    translation unit's types. *)
+#[global] Hint Extern 1 (supported_alignment ?al) =>
+  match goal with
+  | H : align_of ?ty = Some al |- _ => exact (supported_alignment_of_type ty al H)
+  end : pure.
 #[global] Hint Resolve token_default_alignment_C | 50 : sl_opacity.
 #[global] Hint Resolve token_default_alignment_F : sl_opacity.
