@@ -65,7 +65,7 @@ Section with_cpp.
     (* Anonymous: automation does not use named premises. *)
     iRevert "M S". iIntros "#? #?".
     iApply (wp_operand_new_glob source ρ _ _ _ true [] oinit aty _ Q).
-    iExists sz, al. iSplit; first done. iSplit; first done.
+    iExists sz, al. iSplit; first done. iSplit; first done. iIntros (_).
     rewrite /wp_unmaterialized_args /=.
     (* The implicit size and alignment arguments do not interfere. *)
     iApply (nd_seqs_noninterfering2 _ _
