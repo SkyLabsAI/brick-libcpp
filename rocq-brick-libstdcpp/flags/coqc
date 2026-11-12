@@ -20,3 +20,7 @@
 +future-coercion-class-field
 -w
 +mismatched-hint-db
+-w
+-rewrite-rw
+-w
+-clear-no-such-hyp
