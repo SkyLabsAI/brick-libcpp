@@ -9,11 +9,11 @@ Require Import skylabs.brick.libstdcpp.utility.inc_utility_cpp.
 #[global] Instance inline_move_spec tmpl_arg arg_type :
   ShouldInlineFunction
     (Ninst
-      ("std::__1" .:: (Nfunction function_qualifiers.N "move" [tmpl_arg]))
+      ("std" .:: (Nfunction function_qualifiers.N "move" [tmpl_arg]))
       [Atype arg_type]) := {}.
 
 #[global] Instance inline_forward_spec tmpl_arg arg_type :
   ShouldInlineFunction
     (Ninst
-      ("std::__1" .:: (Nfunction function_qualifiers.N "forward" [tmpl_arg]))
+      ("std" .:: (Nfunction function_qualifiers.N "forward" [tmpl_arg]))
       [Atype arg_type]) := {}.
