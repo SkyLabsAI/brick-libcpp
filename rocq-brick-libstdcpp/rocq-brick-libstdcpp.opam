@@ -15,6 +15,7 @@ bug-reports: "https://github.com/SkyLabsAI/brick-libcpp/issues"
 depends: [
   "dune" {>= "3.22"}
   "rocq-skylabs-cpp2v" {= "dev"}
+  "rocq-skylabs-brick-cpp-prog"
   "elpi-cpp"
   "rocq-skylabs-auto-core"
   "rocq-skylabs-auto-cpp"

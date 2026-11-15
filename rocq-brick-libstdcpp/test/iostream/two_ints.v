@@ -5,6 +5,7 @@
  *)
 Require Import skylabs.auto.cpp.prelude.proof.
 Require Import skylabs.lang.cpp.parser.plugin.cpp2v.
+From skylabs.brick.libstdcpp Extra Dependency "cpp_environment" as cpp_environment.
 Require Import skylabs.brick.libstdcpp.iostream.spec.
 Import istream.
 
@@ -13,6 +14,7 @@ Import istream.
     On the input "12-34 ", [second] returns -34 with libstdc++: the first
     extraction stops at '-' and leaves it in the stream, as the read-ahead of
     [istream.R]. *)
+#[environment="cpp_environment"]
 cpp.prog source flags "-std=c++20 -stdlib=libstdc++" prog cpp:{{
   #include <istream>
   int second(std::istream &in) {

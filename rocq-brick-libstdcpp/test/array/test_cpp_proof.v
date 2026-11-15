@@ -217,25 +217,8 @@ Section with_cpp.
     verify_spec; go.
   Qed.
 
-  (** <<std::array>>'s iterators are raw pointers, so a condition such as
-      <<it != a.end()>> is a builtin pointer comparison between the first and
-      last element addresses, [p .[ "int" ! 0 ]] and [p .[ "int" ! 3 ]].
-      [wp_eval_ptr_neq] splits that into two obligations, and only one of them can
-      be discharged today:
-
-      - [ptr_comparable] between the two pointers. [ptr_comparable_valid_CX]
-        (SkyLabsAI/auto#452) proves it. It is passed explicitly because, unlike
-        [ptr_comparable_cstringR], it is not registered in a hint database.
-      - the value of the comparison, which [wp_eval_ptr_neq] states as
-        [bool_decide (p1 <> p2)]. Deciding it means going from pointer equality
-        back to index equality, which holds only where the pointers have addresses
-        -- and [valid_ptr] does not give that. [auto]'s [refine1_offset] records
-        exactly this gap: it is a [Refine1 false true], i.e. complete but not
-        sound, and is registered only for <<unsigned char>>.
-
-      So closing SkyLabsAI/auto#451 needs more than the merged hint, and the loop
-      below still iterates by index. The <<Fail Qed>> pins the one remaining
-      obligation and starts failing once it is closed. *)
+  (** Raw-pointer iterators into a positive-sized array compare by their
+      indices. The exported hints prove that [begin()] and [end()] differ. *)
 
   cpp.spec "BeginIsNotEnd(const std::array<int, 3ul>&)" as begin_is_not_end_spec with
     (\arg{ap} "a" (Vref ap)
@@ -243,7 +226,7 @@ Section with_cpp.
      \post[Vbool true] emp).
 
   Lemma begin_is_not_end_ok : verify[ source ] begin_is_not_end_spec.
-  Proof using MOD. verify_spec; go using ptr_comparable_valid_CX. Fail Qed. Abort.
+  Proof using MOD. verify_spec; go. Qed.
 
   (** ** Iterating over an array
 

@@ -61,3 +61,16 @@ void FindInConstLocal() {
     const std::string s;
     FindA(s);
 }
+
+bool SizeAfterAssign(std::string& s) {
+    s = 'a';
+    return !s.empty() && s.size() == 1 && s.length() == 1;
+}
+
+bool SizeIsLength(const std::string& s) {
+    return s.size() == s.length();
+}
+
+bool EmptyIffZero(const std::string& s) {
+    return s.empty() == (s.size() == 0);
+}

@@ -273,6 +273,11 @@ Section with_cpp.
     p |-> array_sliceR "char" (m - lengthZ tail) m (λ v : N, charR q v) tail.
   Proof.
     work.
+    have Hcut : lengthZ (cstring.to_zstring s) = m - lengthZ tail.
+    { revert select (list.ListSizeZ (cstring.to_zstring s ++ tail) _).
+      rewrite list.ListSizeZ_iff lengthN_app.
+      lia. }
+    work.
     rewrite array_sliceR.unlock /cstring.R /zstring.R.
     work.
     normalize_ptrs.
@@ -295,8 +300,8 @@ Section with_cpp.
     intros p q k bytes s tail Hs%RedEq_eq.
     pose proof (unpack_cstring_sound _ _ _ Hs) as [-> Hwf].
     work.
-    rewrite (array_sliceR_cstring _ []); [ | by rewrite app_nil_r | done].
-    work.
+    rewrite (array_sliceR_cstring s tail); [ | reflexivity | exact Hwf].
+    by work.
   Qed.
   #[local] Hint Resolve array_sliceR_open_cstring_C : sl_opacity.
 
@@ -417,16 +422,12 @@ Section with_cpp.
   Lemma test_strpbrk_ok : verify[source] "test_strpbrk()".
   Proof.
     verify_spec; go.
-    all: Arith.arith_simpl; normalize_ptrs; go.
-    all: by exfalso.
   Qed.
 
   cpp.spec "test_strstr()" from source default.
   Lemma test_strstr_ok : verify[source] "test_strstr()".
   Proof.
     verify_spec; go.
-    all: Arith.arith_simpl; normalize_ptrs; go.
-    all: by exfalso.
   Qed.
 
   cpp.spec "test_cstring_slice1()" from source default.

@@ -21,6 +21,7 @@
  (synopsis "SkyLabs AI BRiCk: C++ standard library (libstdc++)")
  (depends
   (rocq-skylabs-cpp2v (= dev))
+  rocq-skylabs-brick-cpp-prog
   elpi-cpp
   rocq-skylabs-auto-core
   rocq-skylabs-auto-cpp))

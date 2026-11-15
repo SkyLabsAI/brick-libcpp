@@ -349,7 +349,8 @@ cinv (
     current_thread th **
     match t with
     | NotHeld => locked g.(lock_gname) th 0
-    | Held n args => own g.(level_gname) (◯E (S n, th)) ** tele_app P args
+    | Held n args => own g.(level_gname) (◯E (S n, th)) **
+        @tele_app TT (fun _ => mpred) P args
     end.
 
   Section with_cpp.
@@ -413,7 +414,7 @@ cinv (
         (_ : acquire (TT := TT) t t') :=
       \cancelx
       \consuming acquireable g th t' P
-      \deduce{args} tele_app P args
+      \deduce{args} @tele_app TT (fun _ => mpred) P args
       \deduce{n} [| t' = Held n args /\ t = release t' |]
       \deduce own g.(level_gname) (◯E (S n, th))
       \end.
@@ -432,8 +433,8 @@ cinv (
       \proving acquireable γ th' args' P'
       \instantiate th' := th
       \instantiate args' := Held n args
-      \deduce tele_app P args
-      \through tele_app P' args
+      \deduce @tele_app TT (fun _ => mpred) P args
+      \through @tele_app TT (fun _ => mpred) P' args
       \end.
     Next Obligation. rewrite acquireable.unlock; work. Qed.
 
@@ -444,7 +445,7 @@ cinv (
       \consuming own g.(level_gname) (◯E (S n, th))
       \bound n' args
       \proving acquireable (TT := TT) g th (Held n' args) P
-      \through tele_app P args
+      \through @tele_app TT (fun _ => mpred) P args
       \through [| n' = n |]
       \end.
     Next Obligation. rewrite acquireable.unlock; work. Qed.
@@ -462,21 +463,26 @@ cinv (
     Proof. solve_learnable. Qed.
 
     #[global] Instance learn_inv_rmutex_TT : `{Learnable
-      (inv_rmutex γ (∃ xs : tele_arg TT1, tele_app P1 xs))
-      (inv_rmutex γ (∃ xs : tele_arg TT2, tele_app P2 xs))
+      (inv_rmutex γ (∃ xs : tele_arg TT1,
+        @tele_app TT1 (fun _ => mpred) P1 xs))
+      (inv_rmutex γ (∃ xs : tele_arg TT2,
+        @tele_app TT2 (fun _ => mpred) P2 xs))
       [TT2 = TT1] }.
     Proof. solve_learnable. Qed.
 
     #[global] Instance learn_inv_rmutex_P TT : `{Learnable
-      (inv_rmutex γ1 (∃ xs : tele_arg TT, tele_app P1 xs))
-      (inv_rmutex γ2 (∃ xs : tele_arg TT, tele_app P2 xs))
+      (inv_rmutex γ1 (∃ xs : tele_arg TT,
+        @tele_app TT (fun _ => mpred) P1 xs))
+      (inv_rmutex γ2 (∃ xs : tele_arg TT,
+        @tele_app TT (fun _ => mpred) P2 xs))
       [P2 = P1] }.
     Proof. solve_learnable. Qed.
 
     #[global] Instance learn_args
       {TT: tele} (t : acquire_state TT) (P : TT -t> mpred) :
       `{Learnable
-      (tele_app P args ** own (level_gname γ) (◯E (S n, th)))
+      (@tele_app TT (fun _ => mpred) P args **
+        own (level_gname γ) (◯E (S n, th)))
       (acquireable γ th t P)
       [t = Held n args] }.
     Proof. solve_learnable. Qed.
@@ -485,7 +491,7 @@ cinv (
       (x : acquire_state TT) : acquire_state TT :=
       match x with
       | NotHeld => NotHeld
-      | Held n xs => Held n (tele_app f xs)
+      | Held n xs => Held n (@tele_app TT (fun _ => TT) f xs)
       end.
 
     Lemma update_eq {TT : tele} f t1 t2 : acquire t1 t2 ->
@@ -498,24 +504,26 @@ cinv (
     cpp.spec "std::recursive_mutex::recursive_mutex()" as ctor_spec' with
       (\this this
       \persist{th} current_thread th
-      \pre{TT P xs} |> tele_app (TT := TT) P xs
-      \require ∀ xs, WeaklyObjective (tele_app P xs)
+      \pre{TT P xs} |> @tele_app TT (fun _ => mpred) P xs
+      \require ∀ xs, WeaklyObjective (@tele_app TT (fun _ => mpred) P xs)
       \post
         Exists g,
           this |-> derivedR g 1$m **
           used_threads g.(lock_gname) empty **
-          inv_rmutex g (∃ xs, tele_app P xs)).
+          inv_rmutex g (∃ xs, @tele_app TT (fun _ => mpred) P xs)).
 
     cpp.spec "std::recursive_mutex::~recursive_mutex()" as dtor_spec' with
       (\this this
       \pre{g} this |-> derivedR g 1
       \pre used_threads g.(lock_gname) empty
-      \pre{TT P} inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
-      \post |> (Exists xs, tele_app (TT := TT) P xs)).
+      \pre{TT P} inv_rmutex g (∃ xs,
+        @tele_app TT (fun _ => mpred) P xs)
+      \post |> (Exists xs, @tele_app TT (fun _ => mpred) P xs)).
 
     cpp.spec "std::recursive_mutex::lock()" as lock_spec' with
       (\this this
-      \persist{g TT P} inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
+      \persist{g TT P} inv_rmutex g (∃ xs,
+        @tele_app TT (fun _ => mpred) P xs)
       \prepost{q} this |-> derivedR g q
       \pre{th n} acquireable g th n P
       \post (Exists n', [| acquire n n' |] ** ▷ acquireable g th n' P)).
@@ -523,13 +531,14 @@ cinv (
 
     cpp.spec "std::recursive_mutex::unlock()" as unlock_spec' with
       (\this this
-      \persist{g TT P} inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
+      \persist{g TT P} inv_rmutex g (∃ xs,
+        @tele_app TT (fun _ => mpred) P xs)
       \prepost{q} this |-> derivedR g q
       \pre{th n args} acquireable g th (Held n args) P
       \post acquireable g th (release $ Held n args) P).
 
     Definition do_lock g K : mpred := ∃ TT P th n,
-      inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
+      inv_rmutex g (∃ xs, @tele_app TT (fun _ => mpred) P xs)
       ** acquireable g th n P
       ** (
         (* TODO readd *)
@@ -539,7 +548,7 @@ cinv (
     #[global] Arguments do_lock /.
 
     Definition do_unlock g K : mpred := ∃ TT P th n args,
-      inv_rmutex g (∃ xs, tele_app (TT := TT) P xs)
+      inv_rmutex g (∃ xs, @tele_app TT (fun _ => mpred) P xs)
       ** acquireable g th (Held n args) P
       ** (
         (* TODO readd *)

@@ -5,6 +5,7 @@
  *)
 Require Import skylabs.auto.cpp.prelude.proof.
 Require Import skylabs.lang.cpp.parser.plugin.cpp2v.
+From skylabs.brick.libstdcpp Extra Dependency "cpp_environment" as cpp_environment.
 Require Import skylabs.brick.libstdcpp.allocator.spec.
 Require Import skylabs.brick.libstdcpp.vector.spec.
 
@@ -15,6 +16,7 @@ Require Import skylabs.brick.libstdcpp.vector.spec.
     past-the-end values are dereferenceable"). [deref_empty] and
     [inc_past_end] violate this; [_GLIBCXX_DEBUG] reports both, and UBSan
     reports both here because an empty vector's iterators are null. *)
+#[environment="cpp_environment"]
 cpp.prog source flags "-std=c++20 -stdlib=libstdc++" prog cpp:{{
   #include <vector>
   int deref_first() {
