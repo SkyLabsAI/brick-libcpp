@@ -248,7 +248,7 @@ Section with_cpp.
          _global "std::is_array_v<Payload>" |-> boolR qflag$c false ** after d).
   Proof using MOD.
     wapply (construct_payload_ok q qflag argp n pieces after).
-    go using (spec_bwd payload_ctor_ok), (spec_bwd payload_dtor_ok),
-      (spec_bwd placement_new_ok).
+    go using ([LINK] payload_ctor_ok), ([LINK] payload_dtor_ok),
+      ([LINK] placement_new_ok).
   Qed.
 End with_cpp.
