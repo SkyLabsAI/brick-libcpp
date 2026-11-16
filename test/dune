@@ -1,0 +1,16 @@
+; Copyright © 2022-2026 SkyLabs AI, Inc.
+
+; clang must flag every call in cstring/null_ub.cpp as passing null to a
+; nonnull parameter (see that file).
+(subdir cstring
+ (rule
+  (deps null_ub.cpp)
+  (action
+   (with-stdout-to null_ub.warnings
+    (pipe-outputs
+     (run clang++ -std=c++20 -stdlib=libstdc++ -fsyntax-only
+      -fno-diagnostics-show-option null_ub.cpp)
+     (run sed -n "s|^.*\\(null_ub\\.cpp:[0-9:]*: warning: .*\\)$|\\1|p")))))
+ (rule
+  (alias runtest)
+  (action (diff null_ub.warnings.expected null_ub.warnings))))

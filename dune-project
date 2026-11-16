@@ -1,1 +1,30 @@
-(lang dune 3.21)
+(lang dune 3.22)
+(using rocq 0.12)
+(name rocq-brick-libstdcpp)
+
+(generate_opam_files)
+
+(maintainers
+ "Paolo Giarrusso <paolo@skylabs-ai.com>"
+ "Gregory Malecha <gregory@skylabs-ai.com>")
+
+(authors
+ "Gregory Malecha <gregory@skylabs-ai.com>"
+ "Paolo Giarrusso <paolo@skylabs-ai.com>")
+
+(license BSD-3)
+
+(source (github SkyLabsAI/brick-libcpp))
+
+(package
+ (name rocq-brick-libstdcpp)
+ (synopsis "SkyLabs AI BRiCk: C++ standard library (libstdc++)")
+ (depends
+  (pm (= dev))
+  (rocq-skylabs-cpp2v (= dev))
+  rocq-skylabs-brick-cpp-prog
+  elpi-cpp
+  rocq-skylabs-auto-core
+  rocq-skylabs-auto-cpp))
+
+(subst disabled)

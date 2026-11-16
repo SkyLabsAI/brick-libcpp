@@ -1,0 +1,18 @@
+[project]
+dir = "proof"
+
+[rocq]
+package-name = "rocq-brick-libstdcpp"
+dirpath = "skylabs.brick.libstdcpp"
+theories = []
+
+[compdb]
+path = "compile_commands.json"
+tus = []
+external-headers = "direct"
+ignored = []
+remap = []
+
+[cpp2v]
+flags = ["--no-elaborate"]
+self-contained = []

@@ -1,0 +1,64 @@
+; Generated file, do not edit.
+(include_subdirs qualified)
+(rocq.theory
+ (name skylabs.brick.libstdcpp.proofs)
+ (package rocq-brick-libstdcpp)
+ (generate_project_file)
+ (flags
+  (:standard
+   -w -notation-incompatible-prefix
+   -w -notation-overridden
+   -w -custom-entry-overridden
+   -w -redundant-canonical-projection
+   -w -ambiguous-paths
+   -w +automatic-prop-lowering
+   -w +deprecated-hint-without-locality
+   -w +deprecated-instance-without-locality
+   -w +unknown-option
+   -w +future-coercion-class-field))
+ (theories
+  Stdlib
+  stdpp
+  iris
+  elpi
+  elpi_elpi
+  elpi.apps.locker
+  elpi.apps.NES
+  Lens
+  Lens.Elpi
+  Ltac2
+  Equations
+  Equations.Prop
+  Equations.Type
+  tactic_classes
+  Flocq
+  skylabs.upoly
+  skylabs.elpi.extra
+  skylabs.elpi.cpp
+  skylabs.ltac2.extra
+  skylabs.ltac2.logger
+  skylabs.prelude
+  skylabs.iris.extra
+  skylabs.lang.cpp
+  skylabs.lang.cpp.parser.plugin
+  skylabs.auto.core
+  skylabs
+  elpi.apps.NES.elpi
+  elpi.apps.derive
+  elpi.apps.derive.elpi
+  elpi.apps.locker.elpi
+  skylabs.plib
+  skylabs.simp
+  skylabs_ai.tools.brick_status
+  skylabs_ai.tools.brick_scope
+  skylabs_ai.tools.get_env
+  skylabs.lang.cpp.parser.plugin
+  skylabs_ai.ltac2_derive
+  skylabs_ai.ltac2_json
+  skylabs_ai.ltac2_reify
+  skylabs.brick.libstdcpp.code))
+
+(rule
+ (target pm_internal.v)
+ (action
+  (write-file %{target} "")))

@@ -1,0 +1,519 @@
+[
+  {
+    "directory": ".",
+    "file": "proof/exception/inc_exception.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "proof/exception/inc_exception.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "proof/mutex/demo.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "proof/mutex/demo.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "proof/mutex/inc.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "proof/mutex/inc.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "proof/semaphore/test.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "proof/semaphore/test.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "proof/thread/thread.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "proof/thread/thread.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/array/test.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/array/test.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/atomic/test.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/atomic/test.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/cctype/test.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/cctype/test.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/cerrno/test.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/cerrno/test.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/compare/test.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/compare/test.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/cstdlib/test.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/cstdlib/test.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/cstring/null_ub.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/cstring/null_ub.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/cstring/strncmp_ub.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/cstring/strncmp_ub.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/cstring/test.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/cstring/test.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/g4g/N12_area.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/g4g/N12_area.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/g4g/N1_hello_world.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/g4g/N1_hello_world.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/g4g/N4_sum.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/g4g/N4_sum.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/g4g/N4_sum_a.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/g4g/N4_sum_a.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/g4g/N5_swap.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/g4g/N5_swap.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/g4g/N5_swap_a.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/g4g/N5_swap_a.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/g4g/N6_print_sizeof.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/g4g/N6_print_sizeof.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/g4g_trace/N12_area.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/g4g_trace/N12_area.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/g4g_trace/N1_hello_world.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/g4g_trace/N1_hello_world.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/g4g_trace/N4_sum.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/g4g_trace/N4_sum.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/g4g_trace/N4_sum_a.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/g4g_trace/N4_sum_a.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/g4g_trace/N5_swap.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/g4g_trace/N5_swap.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/g4g_trace/N5_swap_a.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/g4g_trace/N5_swap_a.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/g4g_trace/N6_print_sizeof.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/g4g_trace/N6_print_sizeof.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/initializer_list/test.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/initializer_list/test.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/limits/test.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/limits/test.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/memory/test.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/memory/test.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/mutex/custom_mutex.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/mutex/custom_mutex.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/mutex/custom_recursive_mutex.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/mutex/custom_recursive_mutex.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/mutex/double_incr.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/mutex/double_incr.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/mutex/guard_recursive.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/mutex/guard_recursive.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/mutex/test.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/mutex/test.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/mutex/transfer_with_mutex.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/mutex/transfer_with_mutex.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/new/demo.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/new/demo.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/pthread/test.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/pthread/test.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/shared_mutex/custom_shared_mutex.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/shared_mutex/custom_shared_mutex.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/shared_mutex/test.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/shared_mutex/test.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/string/erase_out_of_range.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/string/erase_out_of_range.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/string/test.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/string/test.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/utility/test.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/utility/test.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/vector/data_ub.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/vector/data_ub.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/vector/erase_ub.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/vector/erase_ub.cpp"
+    ]
+  },
+  {
+    "directory": ".",
+    "file": "test/vector/test.cpp",
+    "arguments": [
+      "clang++",
+      "-std=c++20",
+      "-stdlib=libstdc++",
+      "-c",
+      "test/vector/test.cpp"
+    ]
+  }
+]
