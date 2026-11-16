@@ -335,10 +335,9 @@
   (alias test_ast)
   (deps
    (:input test.cpp)
-   (env_var CPP2V_DOCKER_ENABLED)
    (glob_files_rec ../*.hpp))
   (action
-  	 (with-stderr-to test_cpp.v.stderr (run cpp2v -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+   (with-stderr-to test_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
 (subdir shared_mutex
