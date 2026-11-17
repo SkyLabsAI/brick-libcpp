@@ -241,6 +241,17 @@
    (with-stderr-to N6_print_sizeof_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o N6_print_sizeof_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps N6_print_sizeof.cpp))
 )
+(subdir immintrin
+ (rule
+  (targets test_cpp.v.stderr test_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input test.cpp)
+   (glob_files_rec ../*.hpp))
+  (action
+   (with-stderr-to test_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps test.cpp))
+)
 (subdir initializer_list
  (rule
   (targets test_cpp.v.stderr test_cpp.v)
