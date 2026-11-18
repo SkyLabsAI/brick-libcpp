@@ -87,6 +87,17 @@
    (with-stderr-to inc_cstring_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o inc_cstring_cpp.v --no-elaborate --templates=inc_cstring_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_cstring.cpp))
 )
+(subdir exception
+ (rule
+  (targets inc_exception_cpp.v.stderr inc_exception_cpp.v inc_exception_cpp_templates.v)
+  (alias test_ast)
+  (deps
+   (:input inc_exception.cpp)
+   (glob_files_rec ../*.hpp))
+  (action
+   (with-stderr-to inc_exception_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o inc_exception_cpp.v --no-elaborate --templates=inc_exception_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps inc_exception.cpp))
+)
 (subdir initializer_list
  (rule
   (targets inc_initializer_list_cpp.v.stderr inc_initializer_list_cpp.v inc_initializer_list_cpp_templates.v)
@@ -229,6 +240,17 @@
   (action
    (with-stderr-to thread_hpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o thread_hpp.v --no-elaborate --templates=thread_hpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps thread.hpp))
+)
+(subdir utility
+ (rule
+  (targets inc_utility_cpp.v.stderr inc_utility_cpp.v inc_utility_cpp_templates.v)
+  (alias test_ast)
+  (deps
+   (:input inc_utility.cpp)
+   (glob_files_rec ../*.hpp))
+  (action
+   (with-stderr-to inc_utility_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o inc_utility_cpp.v --no-elaborate --templates=inc_utility_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps inc_utility.cpp))
 )
 (subdir vector
  (rule
