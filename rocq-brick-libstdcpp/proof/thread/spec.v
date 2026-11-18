@@ -44,7 +44,7 @@ Section with_cpp.
   #[global] Declare Instance wp_fptr_objective (f : ptr) (Q : mpred)
       `{!WeaklyObjective Q} :
     ObjectiveWith threadTI
-      (wp_fptr (σ.(genv_tu).(types)) entry_type f [] (fun _ => Q)).
+      (wp_fptr entry_type f [] (fun _ => Q)).
 
   (* TODO should have a generic thread spawn spec that one can pass any resrouce
      to, and does not mention my_mutex. *)
@@ -62,7 +62,7 @@ Section with_cpp.
        (∀ child,
           (MutexSets.my_mutexes child (coPset.CoPset ⊤) -*
           (* FIXME is the usage of this wp_fptr correct? *)
-          wp_fptr (σ.(genv_tu).(types)) entry_type f []
+          wp_fptr entry_type f []
               (* f returns void so Q does not depend on return value *)
               (fun _ => Q)))
      \post Exists child,

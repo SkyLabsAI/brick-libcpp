@@ -91,14 +91,14 @@ Section with_cpp.
     double_incr_spec_body ** worker_start g γ |--
     ∀ child,
       MutexSets.my_mutexes child (coPset.CoPset ⊤) -*
-      wp_fptr (σ.(genv_tu).(types)) thread.spec.entry_type
+      wp_fptr thread.spec.entry_type
         (_global "double_incr()") []
         (fun _ => double_incr_protocol.done γ (_global "x")).
   Proof using Type worker_spec_objective even_weakly_objective
     shared_mutex_objective shared_token_objective.
     iIntros "[#Hcode Hstart]" (child) "Hset".
     rewrite (objective_with_intro_exactly_at threadTI
-      (wp_fptr (σ.(genv_tu).(types)) thread.spec.entry_type
+      (wp_fptr thread.spec.entry_type
         (_global "double_incr()") []
         (fun _ => double_incr_protocol.done γ (_global "x"))) child).
     iDestruct (monPred_atleast_exactly_at threadTI child) as "HT".
