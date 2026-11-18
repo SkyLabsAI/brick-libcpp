@@ -54,6 +54,17 @@
    (with-stderr-to inc_cctype_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o inc_cctype_cpp.v --no-elaborate --templates=inc_cctype_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_cctype.cpp))
 )
+(subdir cerrno
+ (rule
+  (targets inc_cerrno_cpp.v.stderr inc_cerrno_cpp.v inc_cerrno_cpp_templates.v)
+  (alias test_ast)
+  (deps
+   (:input inc_cerrno.cpp)
+   (glob_files_rec ../*.hpp))
+  (action
+   (with-stderr-to inc_cerrno_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o inc_cerrno_cpp.v --no-elaborate --templates=inc_cerrno_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps inc_cerrno.cpp))
+)
 (subdir compare
  (rule
   (targets inc_compare_cpp.v.stderr inc_compare_cpp.v inc_compare_cpp_templates.v)
