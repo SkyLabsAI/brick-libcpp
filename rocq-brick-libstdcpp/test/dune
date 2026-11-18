@@ -37,6 +37,19 @@
  ))
 (include dune.inc)
 
+; An executable counterexample to the current generic scoped_lock contract.
+(rule
+ (alias runtest)
+ (action
+  (run python3 %{dep:mutex/scoped_lock_counterexample.py} %{bin:clang++}
+   %{dep:mutex/scoped_lock_counterexample.cpp})))
+
+(rule
+ (alias runtest)
+ (action
+  (run python3 %{dep:mutex/recursive_mutex_odr.py} %{bin:clang++}
+   %{dep:mutex/custom_recursive_mutex.hpp})))
+
 (rule
  (action (with-stdout-to dune.inc.gen (run ./dune-gen.sh)))
  (deps (glob_files_rec *.{h,c,hpp,cpp,sh})))

@@ -1,7 +1,7 @@
+Require Import iris.algebra.coPset.
+
 Require Import skylabs.bi.tls_modalities.
 Require Import skylabs.bi.tls_modalities_rep.
-Require Import skylabs.bi.weakly_objective.
-Require Import skylabs.auto.cpp.weakly_local_with.
 
 Require Import skylabs.auto.cpp.spec.
 Require Import skylabs.auto.cpp.proof.
@@ -9,327 +9,326 @@ Require Export skylabs.brick.libstdcpp.runtime.pred.
 
 Require Import skylabs.brick.libstdcpp.shared_mutex.inc_hpp.
 Require Import skylabs.brick.libstdcpp.mutex.requirements.
-Require Import skylabs.brick.libstdcpp.lib.lock_ghost.
+Require Import skylabs.brick.libstdcpp.lib.lock_ghost2.
+Export lock_ghost2.mutex_set_G (mutex_set_G).
 
 Import linearity.
-Import lock_ghost.
 
-(* TODO UPSTREAM. *)
-#[global] Instance SplitRecord_prod A B : SplitRecord (@prod A B) := {}.
+(** Predicates for shared mutexes, independent of their implementation. *)
+Module Type SHARED_MUTEX_PREDS.
+  Parameter cpp_ty : type.
+  Parameter gname : Set.
+  Parameter G : forall `{Σ : cpp_logic}, Type.
+  Existing Class G.
+  #[global] Arguments G {_ _} Σ : assert.
 
-Module shared_mutex.
-Section with_cpp.
+  Parameter smutex_inv_namespace : gname -> namespace.
 
-  (* maps th:thread_idT to the fraction of permission borrowed. *)
-  Canonical Structure phys_stateUR := authR (gmapR thread_idT Qp).
+  Parameter token : forall `{Σ : cpp_logic, !G Σ},
+    gname -> cQp.t -> mpred.
+  Definition not_locked `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ} {σ : genv}
+      (this : ptr) (g : gname) (th : thread_idT) (qt : cQp.t) : mpred :=
+    token g qt ** MutexSets.my_mutexes th
+      (CoPset $ ↑smutex_inv_namespace g).
 
+  Parameter locked : forall `{Σ : cpp_logic, !G Σ} {σ : genv},
+    ptr -> gname -> thread_idT -> cQp.t -> mpred.
+  (** [reader_locked this g th q qP] says it contains [token g q] and has
+      borrowed [P qP] (but [reader_locked] does not include [P] itself). *)
+  Parameter reader_locked : forall `{Σ : cpp_logic, !G Σ} {σ : genv},
+    ptr -> gname -> thread_idT -> cQp.t -> Qp -> mpred.
 
-  Class lockedG `{Σ : cpp_logic} := {
-    #[local] has_lock_ghost :: lock_ghost.lockG Σ;
+  (**  A shared mutex guarding a fractional predicate [P]. *)
+  Parameter R : forall `{Σ : cpp_logic, MUTEX_SETS : !mutex_set_G Σ, !G Σ}
+    {HAS_THREADS : HasStdThreads Σ} {σ : genv},
+    gname -> cQp.t -> (Qp -> mpred) -> Rep.
+  #[global] Hint Opaque token not_locked locked reader_locked R :
+    sl_opacity typeclass_instances.
 
-    #[local] has_phys_state :: HasOwn (iPropI _Σ) phys_stateUR;
-    #[local] has_phys_state_upd :: HasOwnUpd (iPropI _Σ) phys_stateUR;
-    #[local] has_phys_state_valid :: HasOwnValid (iPropI _Σ) phys_stateUR;
-  }.
+  Section with_cpp.
+    Context `{Σ : cpp_logic}.
+    Context `{MUTEX_SETS : !mutex_set_G Σ}.
+    Context `{!G Σ}.
 
-  #[global] Arguments lockedG {_ _} Σ : assert.
+    #[global] Declare Instance token_fractional g : CFractional (token g).
+    #[global] Declare Instance token_timeless g qt : Timeless (token g qt).
 
-  Record gname : Set := MkGname
-  { phys_state_gname : iprop.gname;
-    login_gname : iprop.gname;
-    inv_gname : iprop.gname;
-  }.
+    Context {σ : genv}.
 
-  Definition reader_locked `{Σ : cpp_logic, !lockedG Σ}
-    (γ : gname) (th : thread_idT) (q : Qp) : mpred :=
-    own γ.(phys_state_gname) (◯ {[ th := q ]}).
+    #[global] Instance not_locked_timeless this g th qt :
+      Timeless (not_locked this g th qt).
+    Proof. rewrite /not_locked. apply _. Qed.
+    #[global] Instance not_locked_exclusive this g th :
+      Exclusive1 (not_locked this g th).
+    Proof.
+      intros qt1 qt2. rewrite /not_locked.
+      iIntros "[_ H1] [_ H2]".
+      have Hoverlap : ~ ((↑smutex_inv_namespace g : coPset) ## ↑smutex_inv_namespace g).
+      { have Hnonempty := nclose_non_empty (smutex_inv_namespace g). set_solver. }
+      iDestruct (MutexSets.my_mutexes_exclusive th
+        (↑smutex_inv_namespace g) (↑smutex_inv_namespace g) Hoverlap
+        with "[$H1 $H2]") as %[].
+    Qed.
+    #[global] Declare Instance locked_timeless this g th qt :
+      Timeless (locked this g th qt).
+    #[global] Declare Instance locked_exclusive this g :
+      Exclusive2 (locked this g).
+    #[global] Declare Instance locked_objective this g th qt :
+      Objective (locked this g th qt).
+    #[global] Declare Instance reader_locked_timeless this g th qt qP :
+      Timeless (reader_locked this g th qt qP).
+    #[global] Declare Instance reader_locked_objective this g th qt qP :
+      Objective (reader_locked this g th qt qP).
 
-  (** Adapted from https://gitlab.mpi-sws.org/iris/iris/-/blob/master/iris_heap_lang/lib/rw_spin_lock.v?ref_type=heads
+    Axiom reader_writer_exclusive : forall this g th1 th2 qt1 qt2 qP,
+      th1 <> th2 ->
+      reader_locked this g th1 qt1 qP -∗ locked this g th2 qt2 -∗ False.
 
-    Allows to prove writer_writer_exclusive and writer_reader_exclusive.
-    Unlike them, we can't just use ∅ for the reader map, because when the
-    writer unlocks, the cinv stores its `user γ th`, but `th` is existentially
-    quanified in cinv and it needs some way to recover that `th` matches with
-    itself. Note that we still lose writer_reader_exclusiveness for the same,
-    thread, but that should be fine with the current cinv.
-  *)
-  Definition locked `{Σ : cpp_logic, !lockedG Σ}
-    (γ : gname) (th : thread_idT) : mpred :=
-    own γ.(phys_state_gname) (●{# 3/4} {[ th := 1%Qp ]}).
+    Context {HAS_THREADS : HasStdThreads Σ}.
 
-  Local Lemma writer_writer_exclusive `{Σ : cpp_logic, !lockedG Σ}
-      γ th1 th2 :
-    locked γ th1 -∗ locked γ th2 -∗ False.
-  Proof.
-    iIntros "H1 H2".
-    iDestruct (own_valid_2 with "H1 H2") as "%Hvalid".
-    exfalso.
-    rewrite
-      auth_auth_dfrac_op_valid
-      dfrac_op_own
-      dfrac_valid_own in Hvalid.
-    by destruct Hvalid as [? _].
-  Qed.
+    #[only(cfractional,cfracvalid,ascfractional)] derive R.
+    #[global] Declare Instance R_type_ptr g q P :
+      Observe (type_ptrR cpp_ty) (R g q P).
+  End with_cpp.
+End SHARED_MUTEX_PREDS.
 
-  Local Lemma reader_writer_exclusive `{Σ : cpp_logic, !lockedG Σ}
-      γ th1 th2 q:
-    th1 <> th2 ->
-    reader_locked γ th1 q -∗ locked γ th2 -∗ False.
-  Proof.
-    iIntros (Hneq) "H1 H2".
-    iDestruct (own_valid_2 with "H2 H1") as "%Hvalid".
-    exfalso.
-    apply auth_both_dfrac_valid in Hvalid as (_ & Hvalid & _).
-    generalize (Hvalid 0)=> H.
-    apply singleton_includedN_l in H as (? & ? & ?).
-    rewrite lookup_singleton in H.
-    destruct decide in H; try done.
-    inv H.
-  Qed.
+(** Reusable contracts and their [BasicLockable]/[Lockable] presentation. *)
+Module shared_mutex_spec (Preds : SHARED_MUTEX_PREDS).
+  Import Preds.
+  Section with_cpp.
+    Context `{Σ : cpp_logic}.
+    Context `{MUTEX_SETS : !mutex_set_G Σ}.
+    Context `{!G Σ}.
+    Context {HAS_THREADS : HasStdThreads Σ} {σ : genv}.
 
-  Abbreviation used_threads γ s :=
-    (lock_ghost.used_threads γ.(login_gname) s).
+    (* ctor and dtor are the same as mutex.v, except that [P] is fractional. *)
+    Definition ctor_spec : ptr -> WpSpec mpred val val :=
+      (\this this
+       \pre{N P} ▷P 1%Qp
+       \require Fractional P
+       \require ∀ q, Objective (P q)
+       \post Exists g,
+         [| smutex_inv_namespace g = N |] **
+         this |-> R g 1$m P ** token g 1$m).
 
-  Abbreviation users γ ths :=
-    (lock_ghost.users γ.(login_gname) ths).
+    Definition dtor_spec : ptr -> WpSpec mpred val val :=
+      (\this this
+       \pre{g P} this |-> R g 1$m P ** token g 1$m
+       \post P 1%Qp).
 
-  Abbreviation user γ th := (users γ {[ th ]}).
+    Definition lock_spec_alt : ptr -> WpSpec mpred val val :=
+      (\this this
+       \prepost{q P g} this |-> R g q P
+       \persist{thr} current_thread thr
+       \pre{qt} not_locked this g thr qt
+       \post P 1%Qp ** locked this g thr qt).
 
-  Context `{Σ : cpp_logic}.
-  Context `{!lockedG Σ}.
-  Context `{!HasStdThreads Σ}.
+    Definition unlock_spec_alt : ptr -> WpSpec mpred val val :=
+      (\this this
+       \prepost{q P g} this |-> R g q P
+       \persist{thr} current_thread thr
+       \pre{qt} locked this g thr qt
+       \pre ▷P 1%Qp
+       \post not_locked this g thr qt).
 
-  #[global] Instance
-      locked_WeaklyObjective γ thr :
-      WeaklyObjective (PROP := iPropI _) (locked γ thr).
-  Proof. (* locked.unlock. *) apply _. Qed.
+    Definition try_lock_spec_alt : ptr -> WpSpec mpred val val :=
+      (\this this
+       \prepost{q P g} this |-> R g q P
+       \persist{thr} current_thread thr
+       \pre{qt} not_locked this g thr qt
+       \post{b}[Vbool b]
+         if b then P 1%Qp ** locked this g thr qt
+         else not_locked this g thr qt).
 
-  #[global] Hint Opaque locked : sl_opacity typeclass_instances.
+    Definition lock_shared_spec : ptr -> WpSpec mpred val val :=
+      (\this this
+       \prepost{q P g} this |-> R g q P
+       \persist{thr} current_thread thr
+       \pre{qt} not_locked this g thr qt
+       \post ∃ qP, P qP ** reader_locked this g thr qt qP).
 
-  #[global] Instance
-      reader_locked_WeaklyObjective γ thr n :
-      WeaklyObjective (PROP := iPropI _) (reader_locked γ thr n).
-  Proof. (* locked.unlock. *) apply _. Qed.
+    Definition try_lock_shared_spec : ptr -> WpSpec mpred val val :=
+      (\this this
+       \prepost{q P g} this |-> R g q P
+       \persist{thr} current_thread thr
+       \pre{qt} not_locked this g thr qt
+       \post{b}[Vbool b]
+         if b then ∃ qP, P qP ** reader_locked this g thr qt qP
+         else not_locked this g thr qt).
 
-  #[global] Hint Opaque reader_locked : sl_opacity typeclass_instances.
+    Definition unlock_shared_spec : ptr -> WpSpec mpred val val :=
+      (\this this
+       \prepost{q P g} this |-> R g q P
+       \persist{thr} current_thread thr
+       \pre{qt qP} reader_locked this g thr qt qP
+       \pre ▷P qP
+       \post not_locked this g thr qt).
 
-  (** A resource enforcing that the thread calling unlock must be the same thread
-      that owns the lock
+    Definition do_lock (this : ptr) (lk : gname * (Qp -> mpred))
+        (K : mpred) : mpred :=
+      ∃ thr qt, current_thread thr ** not_locked this lk.1 thr qt **
+        (locked this lk.1 thr qt ** lk.2 1%Qp -* K).
+    #[global] Arguments do_lock /.
 
-    <<
-    \persist{th} >={ L_TI } th
-    \pre{j} mutex_locked g j
-    test_unlock(std::mutex & m) {
-      m.unlock();
-    }
-    >>
+    Definition do_unlock (this : ptr) (lk : gname * (Qp -> mpred))
+        (K : mpred) : mpred :=
+      ∃ thr qt, current_thread thr ** locked this lk.1 thr qt ** ▷lk.2 1%Qp **
+        (not_locked this lk.1 thr qt -* K).
+    #[global] Arguments do_unlock /.
 
-    this succeeds:
+    #[global] Instance shared_mutex_basic_lockable :
+        BasicLockable (T := gname * (Qp -> mpred)) cpp_ty
+          (fun q gP => R gP.1 q gP.2) :=
+      { do_lock := do_lock
+      ; do_unlock := do_unlock }.
 
-    <<
-    \persist{th} >={ L_TI } th
-    \pre mutex_locked g th
-    same test_unlock
-    >>
-   *)
+    Definition do_try_lock (this : ptr) (lk : gname * (Qp -> mpred))
+        (K : bool -> mpred) : mpred :=
+      ∃ thr qt, current_thread thr ** not_locked this lk.1 thr qt **
+        ∀ b : bool,
+          (if b then lk.2 1%Qp ** locked this lk.1 thr qt
+           else not_locked this lk.1 thr qt) -* K b.
+    #[global] Arguments do_try_lock /.
 
-  Context `{MOD : source ⊧ σ}.
+    #[global] Instance shared_mutex_lockable :
+        Lockable (T := gname * (Qp -> mpred)) cpp_ty
+          (fun q gP => R gP.1 q gP.2) :=
+      { do_try_lock := do_try_lock }.
 
-  Definition smutex_N : namespace :=
-    nroot .@@ "std" .@@ "shared_mutex" .@ "raw_inv".
+    Definition lock_spec : ptr -> WpSpec mpred val val :=
+      lock_basic_lockable cpp_ty (fun q gP => R gP.1 q gP.2).
 
-  Section with_Qcanon.
-    Import Qcanon.
+    Definition unlock_spec : ptr -> WpSpec mpred val val :=
+      unlock_basic_lockable cpp_ty (fun q gP => R gP.1 q gP.2).
 
-    Definition oqp_to_qc (oqp : option Qp) : Qc :=
-      match oqp with
-      | Some qP => Qp_to_Qc qP
-      | None => 0%Qc
-      end.
+    Definition try_lock_spec : ptr -> WpSpec mpred val val :=
+      try_lock_lockable cpp_ty (fun q gP => R gP.1 q gP.2).
 
-    Definition smutex_inv γ (P : Qp -> mpred) : mpred :=
-      ∃ (oqP : option Qp) ths borrow_map,
-        match oqP with
-        | Some qP => P qP
-        | None => emp
-        end **
-        (* the set of borrowers *)
-        users γ ths **
-        (* writer mode: cinv keeps ●{# 1/4} of the borrow map and the frac so
-            writer can't call shared_unlock(). writer has ●{# 3/4}.
-          reader mode: cinv keeps the full borrow map, readers has the fracs. *)
-        ((
-          own γ.(phys_state_gname) (●{# 1/4} borrow_map) ∗
-          own γ.(phys_state_gname) (◯ borrow_map) ∧
-          ∃ th, [| borrow_map = {[ th := 1%Qp ]} |]
-        ) ∨
-        own γ.(phys_state_gname) (● borrow_map)) **
-        (* the permission borrowed and the permission left in the inv sums to 1 *)
-        [| map_fold (λ _ qi q, (Qp_to_Qc qi) + q) (oqp_to_qc oqP) borrow_map = 1%Qc |] **
-        (* all borrowers have to turn in their `user` handle *)
-        [| ∀ th, th ∈ ths ↔ th ∈ dom borrow_map |].
-  End with_Qcanon.
+    Lemma lock_spec_equiv_lock_spec_alt this xs K :
+      lock_spec this xs K ⊣⊢ lock_spec_alt this xs K.
+    Proof.
+      unfold lock_spec, lock_basic_lockable, lock_spec_alt, do_lock.
+      cbn. iSplit.
+      - ework with br_erefl.
+      - iIntros "H". iDestruct "H" as (q P g thr qt)
+          "(%Hxs & HR & #HT & HNL & HK)".
+        iExists q, (g, P), (P 1%Qp ** locked this g thr qt)%I.
+        iFrame "HR HK". iSplit; first done.
+        iExists thr, qt. iFrame "HT HNL".
+        iIntros "[HL HP]". iFrame.
+    Qed.
 
-  (** Convention:
-    qi: fraction of the invariant
-    qP: fraction of P
-    TODO: still relevant?
-  *)
+    Lemma unlock_spec_equiv_unlock_spec_alt this xs K :
+      unlock_spec this xs K ⊣⊢ unlock_spec_alt this xs K.
+    Proof.
+      unfold unlock_spec, unlock_basic_lockable, unlock_spec_alt, do_unlock.
+      cbn. iSplit.
+      - ework with br_erefl.
+      - iIntros "H". iDestruct "H" as (q P g thr qt)
+          "(%Hxs & HR & #HT & HL & HP & HK)".
+        iExists q, (g, P), (not_locked this g thr qt).
+        iFrame "HR HK". iSplit; first done.
+        iExists thr, qt. iFrame "HT HL HP".
+        iIntros "$".
+    Qed.
 
-  Local Lemma writer_reader_excl g th1 th2 qP :
-    th1 ≠ th2 ->
-    reader_locked g th1 qP ** locked g th2 |-- False.
-  Proof.
-    iIntros (?) "[H1 H2]".
-    iDestruct (reader_writer_exclusive with "H1 H2") as %[]; done.
-  Qed.
+    Lemma try_lock_spec_equiv_try_lock_spec_alt
+        (Htry_lock : requirements.do_try_lock cpp_ty = do_try_lock) this xs K :
+      try_lock_spec this xs K ⊣⊢ try_lock_spec_alt this xs K.
+    Proof.
+      unfold try_lock_spec, try_lock_lockable. rewrite Htry_lock.
+      unfold try_lock_spec_alt, do_try_lock.
+      cbn. iSplit.
+      - ework with br_erefl.
+      - iIntros "H". iDestruct "H" as (q P g thr qt)
+          "(%Hxs & HR & #HT & HNL & HK)".
+        iExists q, (g, P), (fun b : bool =>
+          if b then (P 1%Qp ** locked this g thr qt)%I
+          else not_locked this g thr qt).
+        iFrame "HR HK". iSplit; first done.
+        iExists thr, qt. iFrame "HT HNL".
+        iIntros (b) "$".
+    Qed.
 
-  Local Lemma writer_writer_excl g th1 th2 :
-    locked g th1 ** locked g th2 |-- False.
-  Proof.
-    iIntros "[H1 H2]".
-    iDestruct (writer_writer_exclusive with "H1 H2") as %[]; done.
-  Qed.
+    Section proof_automation.
+      #[global] Instance R_learn :
+        Cbn (Learn (learn_eq ==> any ==> learn_eq ==> learn_hints.fin) R).
+      Proof. solve_learnable. Qed.
+      #[global] Instance not_locked_learn this g th :
+        LearnEq1 (not_locked this g th).
+      Proof. solve_learnable. Qed.
+      #[global] Instance locked_learn this g th :
+        LearnEq1 (locked this g th).
+      Proof. solve_learnable. Qed.
+      #[global] Instance reader_locked_learn this g th :
+        LearnEq2 (reader_locked this g th).
+      Proof. solve_learnable. Qed.
+    End proof_automation.
+  End with_cpp.
+End shared_mutex_spec.
 
-  (** Fractional ownership of a <<std::shared_mutex>> guarding the predicate <<P>>. *)
-  Definition R γ (q : cQp.t) (P : Qp -> mpred) : Rep :=
-    structR "std::shared_mutex" q **
-    (* should also have ownership of the underlying fields *)
-    pureR (cinv smutex_N γ.(inv_gname) (smutex_inv γ P) **
-           cinv_own γ.(inv_gname) q).
-  #[global] Hint Opaque R : sl_opacity typeclass_instances.
-  #[only(cfractional,cfracvalid,ascfractional,type_ptr="std::shared_mutex")] derive R.
-  #[global] Declare Instance R_learnable : forall {σ : genv},
-      Cbn (Learn (learn_eq ==> any ==> learn_eq ==> learn_hints.fin) R).
+(** Bind the reusable specifications to their standard C++ names. *)
+Module StdSharedMutex
+    (Preds : SHARED_MUTEX_PREDS with Definition cpp_ty := "std::shared_mutex"%cpp_type).
+  Include Preds.
+  #[global] Hint Opaque cpp_ty : sl_opacity.
+  Module Spec := shared_mutex_spec Preds.
 
-  (* TODO prove that we can allocate used_threads ** the invariant in R *)
-  cpp.spec "std::shared_mutex::shared_mutex()" as ctor_spec with (
-    \this this
-    \pre{P} ▷P 1%Qp
-    \post Exists g, this |-> R g 1$m P ** used_threads g ∅).
+  Section with_cpp.
+    Context `{Σ : cpp_logic}.
+    Context `{MUTEX_SETS : !mutex_set_G Σ}.
+    Context `{!G Σ}.
+    Context {HAS_THREADS : HasStdThreads Σ}.
+    Context `{MOD : source ⊧ σ}.
 
-  cpp.spec "std::shared_mutex::~shared_mutex()" as dtor_spec with (
-    \this this
-    (** the "user" set being ∅ enforces that there is no reader or write *)
-    \pre{g P} this |-> R g 1$m P ** used_threads g ∅
-    \post P 1%Qp).
+    cpp.spec "std::shared_mutex::shared_mutex()" as ctor_spec with
+      (\exact Reduce Spec.ctor_spec).
+    cpp.spec "std::shared_mutex::~shared_mutex()" as dtor_spec with
+      (\exact Reduce Spec.dtor_spec).
+    cpp.spec "std::shared_mutex::lock()" as lock_spec_alt with
+      (\exact Reduce Spec.lock_spec_alt).
+    cpp.spec "std::shared_mutex::try_lock()" as try_lock_spec_alt with
+      (\exact Reduce Spec.try_lock_spec_alt).
+    cpp.spec "std::shared_mutex::unlock()" as unlock_spec_alt with
+      (\exact Reduce Spec.unlock_spec_alt).
+    cpp.spec "std::shared_mutex::lock_shared()" as lock_shared_spec_alt with
+      (\exact Reduce Spec.lock_shared_spec).
+    cpp.spec "std::shared_mutex::try_lock_shared()" as try_lock_shared_spec_alt with
+      (\exact Reduce Spec.try_lock_shared_spec).
+    cpp.spec "std::shared_mutex::unlock_shared()" as unlock_shared_spec_alt with
+      (\exact Reduce Spec.unlock_shared_spec).
+    cpp.spec "std::shared_mutex::lock()" as lock_spec with
+      (\exact Reduce Spec.lock_spec).
+    cpp.spec "std::shared_mutex::unlock()" as unlock_spec with
+      (\exact Reduce Spec.unlock_spec).
+    cpp.spec "std::shared_mutex::try_lock()" as try_lock_spec with
+      (\exact Reduce Spec.try_lock_spec).
 
-  (* "Inline" version of these specs. *)
-  cpp.spec "std::shared_mutex::lock()" as lock_spec_alt with (
-    \this this
-    \prepost{qi P g} this |-> R g qi P
-    \persist{thr} current_thread thr
-    \pre user g thr
-    \post P 1%Qp ** locked g thr).
+    #[global] Instance R_std_type_ptr g q P :
+      Observe (type_ptrR "std::shared_mutex") (R g q P).
+    Proof. apply R_type_ptr. Qed.
 
-  cpp.spec "std::shared_mutex::try_lock()" as try_lock_spec_alt with (
-    \this this
-    \prepost{qi P g} this |-> R g qi P
-    \persist{thr} current_thread thr
-    \pre user g thr
-    \post{b}[Vbool b] if b then P 1%Qp ** locked g thr else user g thr).
+    Lemma lock_spec_equiv_lock_spec_alt : lock_spec -|- lock_spec_alt.
+    Proof.
+      iSplit; iApply specify_mono; intros this xs K;
+        rewrite Spec.lock_spec_equiv_lock_spec_alt; done.
+    Qed.
 
-  cpp.spec "std::shared_mutex::unlock()" as unlock_spec_alt with (
-    \this this
-    \prepost{qi P g} this |-> R g qi P
-    \persist{thr} current_thread thr
-    \pre locked g thr
-    \pre ▷ P 1%Qp
-    \post user g thr).
+    Lemma unlock_spec_equiv_unlock_spec_alt : unlock_spec -|- unlock_spec_alt.
+    Proof.
+      iSplit; iApply specify_mono; intros this xs K;
+        rewrite Spec.unlock_spec_equiv_unlock_spec_alt; done.
+    Qed.
 
-  cpp.spec "std::shared_mutex::lock_shared()" as lock_shared_spec_alt with (
-    \this this
-    \prepost{qi P g} this |-> R g qi P
-    \persist{thr} current_thread thr
-    \pre user g thr
-    \post ∃ qP, P qP ** reader_locked g thr qP).
+    Lemma try_lock_spec_equiv_try_lock_spec_alt : try_lock_spec -|- try_lock_spec_alt.
+    Proof.
+      iSplit; iApply specify_mono; intros this xs K;
+        rewrite Spec.try_lock_spec_equiv_try_lock_spec_alt; done.
+    Qed.
+  End with_cpp.
+End StdSharedMutex.
 
-  cpp.spec "std::shared_mutex::try_lock_shared()" as try_lock_shared_spec_alt with (
-    \this this
-    \prepost{qi P g} this |-> R g qi P
-    \persist{thr} current_thread thr
-    \pre user g thr
-    \post{b}[Vbool b] if b then ∃ qP, P qP ** reader_locked g thr qP else user g thr).
-
-  cpp.spec "std::shared_mutex::unlock_shared()" as unlock_shared_spec_alt with (
-    \this this
-    \prepost{qi P g} this |-> R g qi P
-    \persist{thr} current_thread thr
-    \pre{qP} reader_locked g thr qP
-    \pre ▷P qP
-    \post user g thr).
-
-  (** Safety Properties (we model violation of these properties as stuckness):
-    1. a thread calling lock() or shared_lock() twice should fail.
-      This is prevented by having a unique `user`, and turn in user in the inv.
-    2. `lock(); ~shared_mutex()` should fail.
-      Assume we have `used_threads g s`.
-      dtor requires s=∅, but `lock()` puts the unique `user γ th` in inv, so we
-      can't deallocate that piece, therefore th ∈ s.
-    3. `lock(); unlock_shared()` should fail.
-      This is prevented because locked can't be transformed into reader_locked,
-      and writer is not given one.
-  *)
-
-  Definition do_lock (lk : gname * (Qp -> mpred)) (K: mpred) : mpred :=
-    let g := lk.1 in
-    let P := lk.2 in
-    ∃ thr, current_thread thr ∗ user g thr ∗
-               (* TODO readd *)
-               (* ▷ *)
-               (locked g thr ** P 1%Qp -* K).
-  #[global] Arguments do_lock /.
-
-  Definition do_unlock (lk : gname * (Qp -> mpred)) (Q : mpred) : mpred :=
-    let g := lk.1 in
-    let P := lk.2 in
-    ∃ thr, current_thread thr ** locked g thr ** ▷P 1%Qp **
-    (* TODO readd *)
-    (* ▷ *)
-    (user g thr -* Q).
-  #[global] Arguments do_unlock /.
-
-  (* Obtain same specs from (Basic)Lockable. *)
-  (** <<std::shared_mutex>> implements [BasicLockable] *)
-  Definition T : Type := gname * (Qp -> mpred).
-
-  #[global] Instance shared_mutex_basic_lockable : BasicLockable (T:=T) "std::shared_mutex" (λ q γP, R γP.1 q γP.2) :=
-  { do_lock := fun this => do_lock
-  ; do_unlock := fun this => do_unlock }.
-
-  cpp.spec "std::shared_mutex::lock()" as lock_spec with
-  (\exact Reduce (lock_basic_lockable "std::shared_mutex" (λ q γP, R γP.1 q γP.2))).
-
-  cpp.spec "std::shared_mutex::unlock()" as unlock_spec with
-  (\exact Reduce (unlock_basic_lockable "std::shared_mutex" (λ q γP, R γP.1 q γP.2))).
-
-  Definition do_try_lock (lk : gname * (Qp -> mpred)) (Q : bool -> mpred) : mpred :=
-    let g := lk.1 in
-    let P := lk.2 in
-    ∃ thr, current_thread thr ∗ user g thr ∗
-    ∀ b : bool,
-    (if b then P 1%Qp ** locked g thr else user g thr) -∗ Q b.
-  #[global] Arguments do_try_lock /.
-
-  #[global,program] Instance shared_mutex_lockable : Lockable (T:=T) "std::shared_mutex" (λ q γP, R γP.1 q γP.2) :=
-  { do_try_lock := fun this => do_try_lock }.
-
-  cpp.spec "std::shared_mutex::try_lock()" as try_lock_spec with
-  (\exact Reduce (try_lock_lockable "std::shared_mutex" (λ q γP, R γP.1 q γP.2))).
-
-  Lemma lock_spec_entails_lock_spec_alt : lock_spec -|- lock_spec_alt.
-  Proof.
-    iSplit; iApply specify_mono; ework with br_erefl.
-  Qed.
-
-  Lemma unlock_spec_entails_unlock_spec_alt : unlock_spec -|- unlock_spec_alt.
-  Proof.
-    iSplit; iApply specify_mono; ework with br_erefl.
-  Qed.
-
-  Lemma try_lock_spec_entails_try_lock_spec_alt : try_lock_spec -|- try_lock_spec_alt.
-  Proof.
-    iSplit; iApply specify_mono; ework with br_erefl.
-  Qed.
-End with_cpp.
-End shared_mutex.
+(** Concrete implementations supply their own [SHARED_MUTEX_PREDS]. *)
+Declare Module SharedMutexPreds : SHARED_MUTEX_PREDS
+  with Definition cpp_ty := "std::shared_mutex"%cpp_type.
+Module shared_mutex := StdSharedMutex SharedMutexPreds.

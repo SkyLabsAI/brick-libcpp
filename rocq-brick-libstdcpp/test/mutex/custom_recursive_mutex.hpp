@@ -1,12 +1,14 @@
+#pragma once
+
 #include <atomic>
 #include <mutex>
 #include <thread>
 #include <cassert>
 
-#pragma once
+inline size_t id_hash = std::hash<std::thread::id>{}(std::thread::id{});
 class MyRecursiveMutex {
   // not protected by the lock, but atomic
-  std::atomic<std::thread::id> m_owner{};
+  std::atomic<size_t> m_owner{id_hash};
 
   // protected by the lock
   unsigned long long m_count{0};
@@ -15,10 +17,13 @@ class MyRecursiveMutex {
   std::mutex m_lock{};
 
 public:
+  // Explicitly define the constructor so that compiler emits constructor code
+  MyRecursiveMutex() {}
+
   // TODO: add the token/given_token accounting, maybe with q*tickets
 
   void lock() {
-    std::thread::id this_id{std::this_thread::get_id()};
+    size_t this_id = std::hash<std::thread::id>{}(std::this_thread::get_id());
     // Open cinv
     if (m_owner != this_id) {
       // here, m_owner is:
@@ -53,13 +58,29 @@ public:
     }
     m_count++;
   }
+
+  bool try_lock() noexcept {
+    size_t this_id = std::hash<std::thread::id>{}(std::this_thread::get_id());
+    if (m_owner != this_id) {
+      if (!m_lock.try_lock())
+        return false;
+      m_owner = this_id;
+    }
+
+    // At the recursion limit, leave ownership and the count unchanged.
+    if (m_count + 1 == 0)
+      return false;
+    m_count++;
+    return true;
+  }
+
   // TODO: connect token and given token to the exclusive token somehow, so that
 
   void unlock() {
     m_count--;
     if (m_count == 0) {
+      m_owner = id_hash;
       m_lock.unlock();
-      m_owner = std::thread::id{};
     }
   }
 };
