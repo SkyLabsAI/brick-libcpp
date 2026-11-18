@@ -40,6 +40,31 @@ Module pthread.
       (pthread.R q id)
       (primR "unsigned long" q' arg) := {}.
 
+  (** A local Linux/glibc thread context, for proofs that use zero as a
+      pthread_t sentinel. glibc's pthread_self returns a nonzero live
+      descriptor address. This persistent resource restricts the current
+      thread context; it makes no assertion about every index in the generic
+      HasStdThreads model, which deliberately also permits the wrapped ID zero.
+      Nonzero stale words need not denote live threads. *)
+  Definition linux_thread_context `{Σ : cpp_logic, !HasStdThreads Σ} : mpred :=
+    ∃ th, current_thread th ** [| unwrapN th <> 0%N |].
+  #[global] Hint Opaque linux_thread_context : sl_opacity typeclass_instances.
+  #[global] Instance linux_thread_context_persistent
+      `{Σ : cpp_logic, !HasStdThreads Σ} : Persistent linux_thread_context.
+  Proof. rewrite /linux_thread_context. apply _. Qed.
+
+  Lemma linux_thread_context_intro `{Σ : cpp_logic, !HasStdThreads Σ} th :
+    current_thread th ** [| unwrapN th <> 0%N |] |-- linux_thread_context.
+  Proof. rewrite /linux_thread_context. iIntros "[Hth Hnonzero]". iExists th. iFrame. Qed.
+
+  Lemma linux_thread_context_nonzero `{Σ : cpp_logic, !HasStdThreads Σ} th :
+    current_thread th ** linux_thread_context |-- [| unwrapN th <> 0%N |].
+  Proof.
+    rewrite /linux_thread_context. iIntros "[Hth Hcontext]".
+    iDestruct "Hcontext" as (id) "[Hid %Hnonzero]".
+    iDestruct (observe_2 [| id = th |] with "Hid Hth") as %->. done.
+  Qed.
+
   Section with_cpp.
     Import rep.RepFor.
     Import RepScheme.
