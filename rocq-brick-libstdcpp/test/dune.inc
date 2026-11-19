@@ -408,6 +408,17 @@
 )
 (subdir pthread
  (rule
+  (targets custom_mutex_hpp.v.stderr custom_mutex_hpp.v)
+  (alias test_ast)
+  (deps
+   (:input custom_mutex.hpp)
+   (glob_files_rec ../*.hpp))
+  (action
+   (with-stderr-to custom_mutex_hpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o custom_mutex_hpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps custom_mutex.hpp))
+)
+(subdir pthread
+ (rule
   (targets join_other_thread_cpp.v.stderr join_other_thread_cpp.v)
   (alias test_ast)
   (deps
