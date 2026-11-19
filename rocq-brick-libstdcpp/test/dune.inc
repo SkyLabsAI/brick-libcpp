@@ -56,6 +56,17 @@
 )
 (subdir cstdlib
  (rule
+  (targets abort_cpp.v.stderr abort_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input abort.cpp)
+   (glob_files_rec ../*.hpp))
+  (action
+   (with-stderr-to abort_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o abort_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps abort.cpp))
+)
+(subdir cstdlib
+ (rule
   (targets test_cpp.v.stderr test_cpp.v)
   (alias test_ast)
   (deps

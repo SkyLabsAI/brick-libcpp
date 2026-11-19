@@ -5,3 +5,4 @@
  *)
 Require Import skylabs.auto.cpp.specs.
 Require Export skylabs.brick.libstdcpp.cstdlib.atoi.
+Require Export skylabs.brick.libstdcpp.cstdlib.abort.
