@@ -8,6 +8,8 @@ Require Import skylabs.auto.cpp.spec.
 
 Require Import skylabs.cpp.spec.concepts.
 
+Set Default Goal Selector "!".
+
 NES.Begin std.allocator_traits.
 
   Class IsAllocator `{Σ : cpp_logic,σ : genv} (ty : type) :=
@@ -26,8 +28,25 @@ NES.Begin std.allocator.
   #[global] Abbreviation N ty := (Ninst "std::allocator" [Atype ty]).
   #[global] Abbreviation T ty := (Tnamed (Ninst "std::allocator" [Atype ty])).
   sl.lock Definition R `{Σ : cpp_logic,σ : genv} (ty : type) (q : cQp.t) (_ : ()) : Rep :=
-    structR (N ty) q.
-  #[only(ascfractional,cfractional,cfracvalid,type_ptr)] derive R.
+    structR (N ty) q **
+    (* libstdc++'s primary allocator inherits __new_allocator. Its void and
+       top-level cv-qualified specializations are empty, without that base.
+       A pointer to const T is not itself top-level const. *)
+    if bool_decide (drop_qualifiers ty = Tvoid \/ take_qualifiers ty <> QM)
+    then emp else
+      _base (N ty) ("std::__new_allocator".<< Atype ty >>)%cpp_name |->
+        structR ("std::__new_allocator".<< Atype ty >>)%cpp_name q.
+  #[global] Instance R_cfrac `{Σ : cpp_logic, σ : genv} ty :
+    CFractional1 (R ty).
+  Proof.
+    rewrite R.unlock.
+    destruct (bool_decide
+      (drop_qualifiers ty = Tvoid \/ take_qualifiers ty <> QM)); apply _.
+  Qed.
+  #[global] Instance R_ascfrac `{Σ : cpp_logic, σ : genv} ty :
+    AsCFractional1 (R ty).
+  Proof. solve_as_cfrac. Qed.
+  #[only(cfracvalid,type_ptr)] derive R.
 
   #[global] Instance R_agree `{Σ : cpp_logic,σ : genv} ty q1 q2 a1 a2 : Observe2 [| a1 = a2 |] (R ty q1 a1) (R ty q2 a2).
   Proof. by destruct a1,a2; apply observe_2_intro_only_provable; iIntros "? ? !%". Qed.
