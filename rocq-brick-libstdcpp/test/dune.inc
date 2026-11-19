@@ -54,6 +54,17 @@
    (with-stderr-to test_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o test_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps test.cpp))
 )
+(subdir cstdio
+ (rule
+  (targets fputs_cpp.v.stderr fputs_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input fputs.cpp)
+   (glob_files_rec ../*.hpp))
+  (action
+   (with-stderr-to fputs_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o fputs_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps fputs.cpp))
+)
 (subdir cstdlib
  (rule
   (targets test_cpp.v.stderr test_cpp.v)
