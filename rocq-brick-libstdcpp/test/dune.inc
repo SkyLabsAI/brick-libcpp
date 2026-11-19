@@ -67,6 +67,17 @@
 )
 (subdir cstdlib
  (rule
+  (targets free_cpp.v.stderr free_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input free.cpp)
+   (glob_files_rec ../*.hpp))
+  (action
+   (with-stderr-to free_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o free_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps free.cpp))
+)
+(subdir cstdlib
+ (rule
   (targets malloc_cpp.v.stderr malloc_cpp.v)
   (alias test_ast)
   (deps

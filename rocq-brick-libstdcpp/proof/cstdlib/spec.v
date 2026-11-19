@@ -7,3 +7,4 @@ Require Import skylabs.auto.cpp.specs.
 Require Export skylabs.brick.libstdcpp.cstdlib.atoi.
 Require Export skylabs.brick.libstdcpp.cstdlib.abort.
 Require Export skylabs.brick.libstdcpp.cstdlib.malloc.
+Require Export skylabs.brick.libstdcpp.cstdlib.free.
