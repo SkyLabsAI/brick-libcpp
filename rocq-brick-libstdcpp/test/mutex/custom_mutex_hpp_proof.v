@@ -20,7 +20,7 @@ Require Import skylabs.brick.libstdcpp.test.mutex.custom_mutex_hpp.
 (** The concrete mutex supplies both the ghost state and the physical
     predicates used by [mutex_spec]. The mutex-set pool is shared, and the
     memory-order global remains a separate precondition of the C++ methods. *)
-Module CustomMutexPreds <: MUTEX_PREDS.
+Module CustomMutexPreds <: CPP_MUTEX_PREDS.
   Import MutexSets.
 
   Record state_gname : Set := MkStateGname {

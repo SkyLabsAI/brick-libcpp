@@ -121,3 +121,18 @@ Section derived_local_withR.
   Proof. by apply array_sliceR_pd_local_obj_lookup, _. Qed.
 
 End derived_local_withR.
+
+Section weakly_objective.
+  Context `{Σ : !cpp_logic ti Σ0, !HasStdThreads Σ}.
+
+  (** Process-local assertions are weakly objective. [WeaklyObjective] relates indices
+      ordered by [⊑], which share their process since [procTI] is monotone and process
+      ids are ordered by equality. Not an instance: it would make every
+      [WeaklyObjective] search look for [LocalWith procTI]. *)
+  Lemma LocalWith_procTI_weakly_objective (P : mpred) :
+    LocalWith procTI P → WeaklyObjective P.
+  Proof.
+    intros HP i j Hji. apply: (local_with procTI P).
+    symmetry. exact: (mlens_get_mono procTI _ _ Hji).
+  Qed.
+End weakly_objective.
