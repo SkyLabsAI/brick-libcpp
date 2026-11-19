@@ -23,9 +23,8 @@ Section with_cpp.
 
   Context `{!HasOwn (iPropI _Σ) (excl_authR mutex_stateO), !HasStdThreads Σ}.
 
-  (* BRiCk does not model program startup yet
-     (https://github.com/SkyLabsAI/brick-libcpp/issues/263), so nothing proves
-     that PTHREAD_MUTEX_INITIALIZER leaves [static_mutex] ready before [main].
+  (* BRiCk does not model program startup yet, so nothing proves that
+     PTHREAD_MUTEX_INITIALIZER leaves [static_mutex] ready before [main].
      The precondition states it instead: the caller owns the global's ready
      mutex, the same resource a successful [pthread_mutex_init] produces. *)
   cpp.spec "static_mutex_lock_unlock"
