@@ -31,16 +31,14 @@ Section with_cpp.
 
   (** Byte access to a block: view [blockR] as [anyR] bytes, and back. *)
   Section bytes.
-    Lemma blockR_anyR_bytes (p : ptr) (n : N) q :
-      p |-> blockR n q |--
-      p |-> array_sliceR Tuchar 0 n (fun _ : unit => anyR Tuchar q) (replicateZ n ()).
+    (* TODO upstream. The hints need the equivalence under [p |->]: stated on
+       [Rep]s, as in [blockR_equiv_array_sliceR], they do not fire. *)
+    Lemma _at_blockR_equiv_array_sliceR (p : ptr) q n :
+      p |-> blockR n q -|-
+      p |-> array_sliceR Tuchar 0 n (fun _ => anyR Tuchar q) (replicateZ n ()).
     Proof. by rewrite blockR_equiv_array_sliceR. Qed.
-    Lemma anyR_bytes_blockR (p : ptr) (n : N) q :
-      p |-> array_sliceR Tuchar 0 n (fun _ : unit => anyR Tuchar q) (replicateZ n ()) |--
-      p |-> blockR n q.
-    Proof. by rewrite blockR_equiv_array_sliceR. Qed.
-    Definition blockR_anyR_bytes_F := [FWD] blockR_anyR_bytes.
-    Definition anyR_bytes_blockR_B := [BWD] anyR_bytes_blockR.
+    Definition blockR_anyR_bytes_F := [FWD->] _at_blockR_equiv_array_sliceR.
+    Definition anyR_bytes_blockR_B := [BWD->] _at_blockR_equiv_array_sliceR.
     #[local] Hint Resolve blockR_anyR_bytes_F anyR_bytes_blockR_B : sl_opacity.
 
     cpp.spec "test_malloc_write_read()" with

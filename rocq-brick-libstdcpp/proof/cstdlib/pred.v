@@ -20,10 +20,6 @@ Require Import skylabs.auto.cpp.elpi.derive.bi.
     the C++ semantics does not compute. *)
 Definition MALLOC_ALIGNMENT : N := 16.
 
-(** The value <<malloc>> stores in [errno] when it fails (POSIX).
-    Linux/glibc-specific: <<ENOMEM>> is 12. *)
-Definition ENOMEM : Z := 12.
-
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
 
