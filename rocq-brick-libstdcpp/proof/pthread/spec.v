@@ -84,7 +84,7 @@ Section with_cpp.
                    idp |-> pthread.R 1$m tid
                else
                  Pre argp arg ∗
-                 idp |-> oprimR "unsigned long" 1$m id0 ).
+                 idp |-> anyR "unsigned long" 1$m ).
 
   cpp.spec "pthread_join"
      as join_spec
