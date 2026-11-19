@@ -8,3 +8,4 @@ Require Export skylabs.brick.libstdcpp.cstdlib.atoi.
 Require Export skylabs.brick.libstdcpp.cstdlib.abort.
 Require Export skylabs.brick.libstdcpp.cstdlib.malloc.
 Require Export skylabs.brick.libstdcpp.cstdlib.free.
+Require Export skylabs.brick.libstdcpp.cstdlib.calloc.

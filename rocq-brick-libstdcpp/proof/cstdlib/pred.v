@@ -12,24 +12,24 @@ Require Import skylabs.auto.cpp.elpi.derive.bi.
 (** <cstdlib> does not introduce any types. This file holds the resources
     of the C allocation functions. *)
 
-(** The alignment of every block returned by <<malloc>>: C11 7.22.3p1
-    requires it to suit any type with a fundamental alignment, i.e.
-    <<alignof(max_align_t)>>.
+(** The alignment of every block returned by <<malloc>> and <<calloc>>:
+    C11 7.22.3p1 requires it to suit any type with a fundamental alignment,
+    i.e. <<alignof(max_align_t)>>.
 
     glibc-specific (x86-64): this is <<MALLOC_ALIGNMENT>>, 16. We state it as a
     constant because <<max_align_t>> contains a <<long double>>, whose alignment
     the C++ semantics does not compute. *)
 Definition MALLOC_ALIGNMENT : N := 16.
 
-(** The value <<malloc>> stores in [errno] when it fails (POSIX).
-    Linux/glibc-specific: <<ENOMEM>> is 12. *)
+(** The value <<malloc>> and <<calloc>> store in [errno] when they fail
+    (POSIX). Linux/glibc-specific: <<ENOMEM>> is 12. *)
 Definition ENOMEM : Z := 12.
 
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
 
-  (** The allocation meta-data of a block returned by <<malloc>>, **owned by
-      the allocator**: [mallocatedR q sz] at the returned pointer records that
+  (** The allocation meta-data of a block returned by <<malloc>> or
+      <<calloc>>, **owned by the allocator**: [mallocatedR q sz] at the returned pointer records that
       the block holds [sz] bytes.
 
       In a normal implementation, this is a few bytes before the returned
