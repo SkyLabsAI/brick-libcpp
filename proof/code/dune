@@ -1,0 +1,1821 @@
+; Generated file, do not edit.
+(include_subdirs qualified)
+(rocq.theory
+ (name skylabs.brick.libstdcpp.code)
+ (package rocq-brick-libstdcpp)
+ (generate_project_file)
+ (theories
+  Stdlib
+  Ltac2
+  stdpp
+  elpi
+  elpi_elpi
+  Lens
+  skylabs
+  tactic_classes
+  Flocq
+  skylabs.lang.cpp.parser.plugin))
+
+(subdir system
+ (rule
+  (target algorithm.input.cpp)
+  (action
+   (with-stdout-to %{target}
+    (system "'%{bin:printf}' '#include <algorithm>\n'"))))
+
+ (rule
+  (target algorithm.v)
+  (deps
+   (:input algorithm.input.cpp))
+  (alias code)
+  (action
+   (chdir "../../.."
+    (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))
+
+ (rule
+  (target algorithm.cpp.json)
+  (deps
+   (:input algorithm.input.cpp))
+  (alias cpp-data)
+  (action
+   (chdir "../../.."
+    (with-stdout-to %{target}
+     (system "'%{bin:cpp-source-data}' '--main-file-include' 'algorithm' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))))
+
+(subdir system
+ (rule
+  (target array.input.cpp)
+  (action
+   (with-stdout-to %{target}
+    (system "'%{bin:printf}' '#include <array>\n'"))))
+
+ (rule
+  (target array.v)
+  (deps
+   (:input array.input.cpp))
+  (alias code)
+  (action
+   (chdir "../../.."
+    (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))
+
+ (rule
+  (target array.cpp.json)
+  (deps
+   (:input array.input.cpp))
+  (alias cpp-data)
+  (action
+   (chdir "../../.."
+    (with-stdout-to %{target}
+     (system "'%{bin:cpp-source-data}' '--main-file-include' 'array' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))))
+
+(subdir system
+ (rule
+  (target atomic.input.cpp)
+  (action
+   (with-stdout-to %{target}
+    (system "'%{bin:printf}' '#include <atomic>\n'"))))
+
+ (rule
+  (target atomic.v)
+  (deps
+   (:input atomic.input.cpp))
+  (alias code)
+  (action
+   (chdir "../../.."
+    (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))
+
+ (rule
+  (target atomic.cpp.json)
+  (deps
+   (:input atomic.input.cpp))
+  (alias cpp-data)
+  (action
+   (chdir "../../.."
+    (with-stdout-to %{target}
+     (system "'%{bin:cpp-source-data}' '--main-file-include' 'atomic' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))))
+
+(subdir system
+ (rule
+  (target cassert.input.cpp)
+  (action
+   (with-stdout-to %{target}
+    (system "'%{bin:printf}' '#include <cassert>\n'"))))
+
+ (rule
+  (target cassert.v)
+  (deps
+   (:input cassert.input.cpp))
+  (alias code)
+  (action
+   (chdir "../../.."
+    (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))
+
+ (rule
+  (target cassert.cpp.json)
+  (deps
+   (:input cassert.input.cpp))
+  (alias cpp-data)
+  (action
+   (chdir "../../.."
+    (with-stdout-to %{target}
+     (system "'%{bin:cpp-source-data}' '--main-file-include' 'cassert' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))))
+
+(subdir system
+ (rule
+  (target cctype.input.cpp)
+  (action
+   (with-stdout-to %{target}
+    (system "'%{bin:printf}' '#include <cctype>\n'"))))
+
+ (rule
+  (target cctype.v)
+  (deps
+   (:input cctype.input.cpp))
+  (alias code)
+  (action
+   (chdir "../../.."
+    (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))
+
+ (rule
+  (target cctype.cpp.json)
+  (deps
+   (:input cctype.input.cpp))
+  (alias cpp-data)
+  (action
+   (chdir "../../.."
+    (with-stdout-to %{target}
+     (system "'%{bin:cpp-source-data}' '--main-file-include' 'cctype' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))))
+
+(subdir system
+ (rule
+  (target cerrno.input.cpp)
+  (action
+   (with-stdout-to %{target}
+    (system "'%{bin:printf}' '#include <cerrno>\n'"))))
+
+ (rule
+  (target cerrno.v)
+  (deps
+   (:input cerrno.input.cpp))
+  (alias code)
+  (action
+   (chdir "../../.."
+    (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))
+
+ (rule
+  (target cerrno.cpp.json)
+  (deps
+   (:input cerrno.input.cpp))
+  (alias cpp-data)
+  (action
+   (chdir "../../.."
+    (with-stdout-to %{target}
+     (system "'%{bin:cpp-source-data}' '--main-file-include' 'cerrno' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))))
+
+(subdir system
+ (rule
+  (target climits.input.cpp)
+  (action
+   (with-stdout-to %{target}
+    (system "'%{bin:printf}' '#include <climits>\n'"))))
+
+ (rule
+  (target climits.v)
+  (deps
+   (:input climits.input.cpp))
+  (alias code)
+  (action
+   (chdir "../../.."
+    (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))
+
+ (rule
+  (target climits.cpp.json)
+  (deps
+   (:input climits.input.cpp))
+  (alias cpp-data)
+  (action
+   (chdir "../../.."
+    (with-stdout-to %{target}
+     (system "'%{bin:cpp-source-data}' '--main-file-include' 'climits' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))))
+
+(subdir system
+ (rule
+  (target compare.input.cpp)
+  (action
+   (with-stdout-to %{target}
+    (system "'%{bin:printf}' '#include <compare>\n'"))))
+
+ (rule
+  (target compare.v)
+  (deps
+   (:input compare.input.cpp))
+  (alias code)
+  (action
+   (chdir "../../.."
+    (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))
+
+ (rule
+  (target compare.cpp.json)
+  (deps
+   (:input compare.input.cpp))
+  (alias cpp-data)
+  (action
+   (chdir "../../.."
+    (with-stdout-to %{target}
+     (system "'%{bin:cpp-source-data}' '--main-file-include' 'compare' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))))
+
+(subdir system
+ (rule
+  (target cstddef.input.cpp)
+  (action
+   (with-stdout-to %{target}
+    (system "'%{bin:printf}' '#include <cstddef>\n'"))))
+
+ (rule
+  (target cstddef.v)
+  (deps
+   (:input cstddef.input.cpp))
+  (alias code)
+  (action
+   (chdir "../../.."
+    (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))
+
+ (rule
+  (target cstddef.cpp.json)
+  (deps
+   (:input cstddef.input.cpp))
+  (alias cpp-data)
+  (action
+   (chdir "../../.."
+    (with-stdout-to %{target}
+     (system "'%{bin:cpp-source-data}' '--main-file-include' 'cstddef' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))))
+
+(subdir system
+ (rule
+  (target cstdint.input.cpp)
+  (action
+   (with-stdout-to %{target}
+    (system "'%{bin:printf}' '#include <cstdint>\n'"))))
+
+ (rule
+  (target cstdint.v)
+  (deps
+   (:input cstdint.input.cpp))
+  (alias code)
+  (action
+   (chdir "../../.."
+    (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))
+
+ (rule
+  (target cstdint.cpp.json)
+  (deps
+   (:input cstdint.input.cpp))
+  (alias cpp-data)
+  (action
+   (chdir "../../.."
+    (with-stdout-to %{target}
+     (system "'%{bin:cpp-source-data}' '--main-file-include' 'cstdint' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))))
+
+(subdir system
+ (rule
+  (target cstdio.input.cpp)
+  (action
+   (with-stdout-to %{target}
+    (system "'%{bin:printf}' '#include <cstdio>\n'"))))
+
+ (rule
+  (target cstdio.v)
+  (deps
+   (:input cstdio.input.cpp))
+  (alias code)
+  (action
+   (chdir "../../.."
+    (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))
+
+ (rule
+  (target cstdio.cpp.json)
+  (deps
+   (:input cstdio.input.cpp))
+  (alias cpp-data)
+  (action
+   (chdir "../../.."
+    (with-stdout-to %{target}
+     (system "'%{bin:cpp-source-data}' '--main-file-include' 'cstdio' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))))
+
+(subdir system
+ (rule
+  (target cstdlib.input.cpp)
+  (action
+   (with-stdout-to %{target}
+    (system "'%{bin:printf}' '#include <cstdlib>\n'"))))
+
+ (rule
+  (target cstdlib.v)
+  (deps
+   (:input cstdlib.input.cpp))
+  (alias code)
+  (action
+   (chdir "../../.."
+    (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))
+
+ (rule
+  (target cstdlib.cpp.json)
+  (deps
+   (:input cstdlib.input.cpp))
+  (alias cpp-data)
+  (action
+   (chdir "../../.."
+    (with-stdout-to %{target}
+     (system "'%{bin:cpp-source-data}' '--main-file-include' 'cstdlib' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))))
+
+(subdir system
+ (rule
+  (target cstring.input.cpp)
+  (action
+   (with-stdout-to %{target}
+    (system "'%{bin:printf}' '#include <cstring>\n'"))))
+
+ (rule
+  (target cstring.v)
+  (deps
+   (:input cstring.input.cpp))
+  (alias code)
+  (action
+   (chdir "../../.."
+    (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))
+
+ (rule
+  (target cstring.cpp.json)
+  (deps
+   (:input cstring.input.cpp))
+  (alias cpp-data)
+  (action
+   (chdir "../../.."
+    (with-stdout-to %{target}
+     (system "'%{bin:cpp-source-data}' '--main-file-include' 'cstring' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))))
+
+(subdir system
+ (rule
+  (target exception.input.cpp)
+  (action
+   (with-stdout-to %{target}
+    (system "'%{bin:printf}' '#include <exception>\n'"))))
+
+ (rule
+  (target exception.v)
+  (deps
+   (:input exception.input.cpp))
+  (alias code)
+  (action
+   (chdir "../../.."
+    (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))
+
+ (rule
+  (target exception.cpp.json)
+  (deps
+   (:input exception.input.cpp))
+  (alias cpp-data)
+  (action
+   (chdir "../../.."
+    (with-stdout-to %{target}
+     (system "'%{bin:cpp-source-data}' '--main-file-include' 'exception' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))))
+
+(subdir system
+ (rule
+  (target initializer_list.input.cpp)
+  (action
+   (with-stdout-to %{target}
+    (system "'%{bin:printf}' '#include <initializer_list>\n'"))))
+
+ (rule
+  (target initializer_list.v)
+  (deps
+   (:input initializer_list.input.cpp))
+  (alias code)
+  (action
+   (chdir "../../.."
+    (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))
+
+ (rule
+  (target initializer_list.cpp.json)
+  (deps
+   (:input initializer_list.input.cpp))
+  (alias cpp-data)
+  (action
+   (chdir "../../.."
+    (with-stdout-to %{target}
+     (system "'%{bin:cpp-source-data}' '--main-file-include' 'initializer_list' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))))
+
+(subdir system
+ (rule
+  (target iostream.input.cpp)
+  (action
+   (with-stdout-to %{target}
+    (system "'%{bin:printf}' '#include <iostream>\n'"))))
+
+ (rule
+  (target iostream.v)
+  (deps
+   (:input iostream.input.cpp))
+  (alias code)
+  (action
+   (chdir "../../.."
+    (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))
+
+ (rule
+  (target iostream.cpp.json)
+  (deps
+   (:input iostream.input.cpp))
+  (alias cpp-data)
+  (action
+   (chdir "../../.."
+    (with-stdout-to %{target}
+     (system "'%{bin:cpp-source-data}' '--main-file-include' 'iostream' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))))
+
+(subdir system
+ (rule
+  (target limits.input.cpp)
+  (action
+   (with-stdout-to %{target}
+    (system "'%{bin:printf}' '#include <limits>\n'"))))
+
+ (rule
+  (target limits.v)
+  (deps
+   (:input limits.input.cpp))
+  (alias code)
+  (action
+   (chdir "../../.."
+    (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))
+
+ (rule
+  (target limits.cpp.json)
+  (deps
+   (:input limits.input.cpp))
+  (alias cpp-data)
+  (action
+   (chdir "../../.."
+    (with-stdout-to %{target}
+     (system "'%{bin:cpp-source-data}' '--main-file-include' 'limits' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))))
+
+(subdir system
+ (rule
+  (target memory.input.cpp)
+  (action
+   (with-stdout-to %{target}
+    (system "'%{bin:printf}' '#include <memory>\n'"))))
+
+ (rule
+  (target memory.v)
+  (deps
+   (:input memory.input.cpp))
+  (alias code)
+  (action
+   (chdir "../../.."
+    (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))
+
+ (rule
+  (target memory.cpp.json)
+  (deps
+   (:input memory.input.cpp))
+  (alias cpp-data)
+  (action
+   (chdir "../../.."
+    (with-stdout-to %{target}
+     (system "'%{bin:cpp-source-data}' '--main-file-include' 'memory' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))))
+
+(subdir system
+ (rule
+  (target mutex.input.cpp)
+  (action
+   (with-stdout-to %{target}
+    (system "'%{bin:printf}' '#include <mutex>\n'"))))
+
+ (rule
+  (target mutex.v)
+  (deps
+   (:input mutex.input.cpp))
+  (alias code)
+  (action
+   (chdir "../../.."
+    (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))
+
+ (rule
+  (target mutex.cpp.json)
+  (deps
+   (:input mutex.input.cpp))
+  (alias cpp-data)
+  (action
+   (chdir "../../.."
+    (with-stdout-to %{target}
+     (system "'%{bin:cpp-source-data}' '--main-file-include' 'mutex' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))))
+
+(subdir system
+ (rule
+  (target new.input.cpp)
+  (action
+   (with-stdout-to %{target}
+    (system "'%{bin:printf}' '#include <new>\n'"))))
+
+ (rule
+  (target new.v)
+  (deps
+   (:input new.input.cpp))
+  (alias code)
+  (action
+   (chdir "../../.."
+    (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))
+
+ (rule
+  (target new.cpp.json)
+  (deps
+   (:input new.input.cpp))
+  (alias cpp-data)
+  (action
+   (chdir "../../.."
+    (with-stdout-to %{target}
+     (system "'%{bin:cpp-source-data}' '--main-file-include' 'new' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))))
+
+(subdir system
+ (rule
+  (target semaphore.input.cpp)
+  (action
+   (with-stdout-to %{target}
+    (system "'%{bin:printf}' '#include <semaphore>\n'"))))
+
+ (rule
+  (target semaphore.v)
+  (deps
+   (:input semaphore.input.cpp))
+  (alias code)
+  (action
+   (chdir "../../.."
+    (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))
+
+ (rule
+  (target semaphore.cpp.json)
+  (deps
+   (:input semaphore.input.cpp))
+  (alias cpp-data)
+  (action
+   (chdir "../../.."
+    (with-stdout-to %{target}
+     (system "'%{bin:cpp-source-data}' '--main-file-include' 'semaphore' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))))
+
+(subdir system
+ (rule
+  (target shared_mutex.input.cpp)
+  (action
+   (with-stdout-to %{target}
+    (system "'%{bin:printf}' '#include <shared_mutex>\n'"))))
+
+ (rule
+  (target shared_mutex.v)
+  (deps
+   (:input shared_mutex.input.cpp))
+  (alias code)
+  (action
+   (chdir "../../.."
+    (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))
+
+ (rule
+  (target shared_mutex.cpp.json)
+  (deps
+   (:input shared_mutex.input.cpp))
+  (alias cpp-data)
+  (action
+   (chdir "../../.."
+    (with-stdout-to %{target}
+     (system "'%{bin:cpp-source-data}' '--main-file-include' 'shared_mutex' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))))
+
+(subdir system
+ (rule
+  (target string.input.cpp)
+  (action
+   (with-stdout-to %{target}
+    (system "'%{bin:printf}' '#include <string>\n'"))))
+
+ (rule
+  (target string.v)
+  (deps
+   (:input string.input.cpp))
+  (alias code)
+  (action
+   (chdir "../../.."
+    (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))
+
+ (rule
+  (target string.cpp.json)
+  (deps
+   (:input string.input.cpp))
+  (alias cpp-data)
+  (action
+   (chdir "../../.."
+    (with-stdout-to %{target}
+     (system "'%{bin:cpp-source-data}' '--main-file-include' 'string' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))))
+
+(subdir system
+ (rule
+  (target thread.input.cpp)
+  (action
+   (with-stdout-to %{target}
+    (system "'%{bin:printf}' '#include <thread>\n'"))))
+
+ (rule
+  (target thread.v)
+  (deps
+   (:input thread.input.cpp))
+  (alias code)
+  (action
+   (chdir "../../.."
+    (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))
+
+ (rule
+  (target thread.cpp.json)
+  (deps
+   (:input thread.input.cpp))
+  (alias cpp-data)
+  (action
+   (chdir "../../.."
+    (with-stdout-to %{target}
+     (system "'%{bin:cpp-source-data}' '--main-file-include' 'thread' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))))
+
+(subdir system
+ (rule
+  (target utility.input.cpp)
+  (action
+   (with-stdout-to %{target}
+    (system "'%{bin:printf}' '#include <utility>\n'"))))
+
+ (rule
+  (target utility.v)
+  (deps
+   (:input utility.input.cpp))
+  (alias code)
+  (action
+   (chdir "../../.."
+    (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))
+
+ (rule
+  (target utility.cpp.json)
+  (deps
+   (:input utility.input.cpp))
+  (alias cpp-data)
+  (action
+   (chdir "../../.."
+    (with-stdout-to %{target}
+     (system "'%{bin:cpp-source-data}' '--main-file-include' 'utility' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))))
+
+(subdir system
+ (rule
+  (target vector.input.cpp)
+  (action
+   (with-stdout-to %{target}
+    (system "'%{bin:printf}' '#include <vector>\n'"))))
+
+ (rule
+  (target vector.v)
+  (deps
+   (:input vector.input.cpp))
+  (alias code)
+  (action
+   (chdir "../../.."
+    (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))
+
+ (rule
+  (target vector.cpp.json)
+  (deps
+   (:input vector.input.cpp))
+  (alias cpp-data)
+  (action
+   (chdir "../../.."
+    (with-stdout-to %{target}
+     (system "'%{bin:cpp-source-data}' '--main-file-include' 'vector' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))))
+
+(subdir system
+ (rule
+  (target pthread_h.input.cpp)
+  (action
+   (with-stdout-to %{target}
+    (system "'%{bin:printf}' '#include <pthread.h>\n'"))))
+
+ (rule
+  (target pthread_h.v)
+  (deps
+   (:input pthread_h.input.cpp))
+  (alias code)
+  (action
+   (chdir "../../.."
+    (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))
+
+ (rule
+  (target pthread_h.cpp.json)
+  (deps
+   (:input pthread_h.input.cpp))
+  (alias cpp-data)
+  (action
+   (chdir "../../.."
+    (with-stdout-to %{target}
+     (system "'%{bin:cpp-source-data}' '--main-file-include' 'pthread.h' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-x' 'c++-header' '-std=c++20'"))))))
+
+(subdir proof
+ (subdir exception
+  (rule
+   (target inc_exception_cpp.v)
+   (deps
+    (:input ../../../../proof/exception/inc_exception.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target inc_exception_cpp.cpp.json)
+   (deps
+    (:input ../../../../proof/exception/inc_exception.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir proof
+ (subdir mutex
+  (rule
+   (target demo_cpp.v)
+   (deps
+    (:input ../../../../proof/mutex/demo.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target demo_cpp.cpp.json)
+   (deps
+    (:input ../../../../proof/mutex/demo.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir proof
+ (subdir mutex
+  (rule
+   (target inc_cpp.v)
+   (deps
+    (:input ../../../../proof/mutex/inc.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target inc_cpp.cpp.json)
+   (deps
+    (:input ../../../../proof/mutex/inc.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir proof
+ (subdir semaphore
+  (rule
+   (target inc_hpp.v)
+   (deps
+    (:input ../../../../proof/semaphore/inc.hpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-std=c++20'"))))
+
+  (rule
+   (target inc_hpp.cpp.json)
+   (deps
+    (:input ../../../../proof/semaphore/inc.hpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-std=c++20'")))))))
+
+(subdir proof
+ (subdir semaphore
+  (rule
+   (target test_cpp.v)
+   (deps
+    (:input ../../../../proof/semaphore/test.cpp)
+    ../../../../proof/semaphore/inc.hpp)
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target test_cpp.cpp.json)
+   (deps
+    (:input ../../../../proof/semaphore/test.cpp)
+    ../../../../proof/semaphore/inc.hpp)
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir proof
+ (subdir thread
+  (rule
+   (target thread_cpp.v)
+   (deps
+    (:input ../../../../proof/thread/thread.cpp)
+    ../../../../proof/thread/thread.hpp)
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target thread_cpp.cpp.json)
+   (deps
+    (:input ../../../../proof/thread/thread.cpp)
+    ../../../../proof/thread/thread.hpp)
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir proof
+ (subdir thread
+  (rule
+   (target thread_hpp.v)
+   (deps
+    (:input ../../../../proof/thread/thread.hpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-std=c++20'"))))
+
+  (rule
+   (target thread_hpp.cpp.json)
+   (deps
+    (:input ../../../../proof/thread/thread.hpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-std=c++20'")))))))
+
+(subdir test
+ (subdir array
+  (rule
+   (target test_cpp.v)
+   (deps
+    (:input ../../../../test/array/test.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target test_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/array/test.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir atomic
+  (rule
+   (target test_cpp.v)
+   (deps
+    (:input ../../../../test/atomic/test.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target test_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/atomic/test.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir cctype
+  (rule
+   (target test_cpp.v)
+   (deps
+    (:input ../../../../test/cctype/test.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target test_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/cctype/test.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir cerrno
+  (rule
+   (target test_cpp.v)
+   (deps
+    (:input ../../../../test/cerrno/test.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target test_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/cerrno/test.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir compare
+  (rule
+   (target test_cpp.v)
+   (deps
+    (:input ../../../../test/compare/test.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target test_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/compare/test.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir cstdlib
+  (rule
+   (target test_cpp.v)
+   (deps
+    (:input ../../../../test/cstdlib/test.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target test_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/cstdlib/test.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir cstring
+  (rule
+   (target null_ub_cpp.v)
+   (deps
+    (:input ../../../../test/cstring/null_ub.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target null_ub_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/cstring/null_ub.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir cstring
+  (rule
+   (target strncmp_ub_cpp.v)
+   (deps
+    (:input ../../../../test/cstring/strncmp_ub.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target strncmp_ub_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/cstring/strncmp_ub.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir cstring
+  (rule
+   (target test_cpp.v)
+   (deps
+    (:input ../../../../test/cstring/test.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target test_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/cstring/test.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir g4g
+  (rule
+   (target N12_area_cpp.v)
+   (deps
+    (:input ../../../../test/g4g/N12_area.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target N12_area_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/g4g/N12_area.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir g4g
+  (rule
+   (target N1_hello_world_cpp.v)
+   (deps
+    (:input ../../../../test/g4g/N1_hello_world.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target N1_hello_world_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/g4g/N1_hello_world.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir g4g
+  (rule
+   (target N4_sum_cpp.v)
+   (deps
+    (:input ../../../../test/g4g/N4_sum.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target N4_sum_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/g4g/N4_sum.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir g4g
+  (rule
+   (target N4_sum_a_cpp.v)
+   (deps
+    (:input ../../../../test/g4g/N4_sum_a.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target N4_sum_a_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/g4g/N4_sum_a.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir g4g
+  (rule
+   (target N5_swap_cpp.v)
+   (deps
+    (:input ../../../../test/g4g/N5_swap.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target N5_swap_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/g4g/N5_swap.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir g4g
+  (rule
+   (target N5_swap_a_cpp.v)
+   (deps
+    (:input ../../../../test/g4g/N5_swap_a.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target N5_swap_a_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/g4g/N5_swap_a.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir g4g
+  (rule
+   (target N6_print_sizeof_cpp.v)
+   (deps
+    (:input ../../../../test/g4g/N6_print_sizeof.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target N6_print_sizeof_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/g4g/N6_print_sizeof.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir g4g_trace
+  (rule
+   (target N12_area_cpp.v)
+   (deps
+    (:input ../../../../test/g4g_trace/N12_area.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target N12_area_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/g4g_trace/N12_area.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir g4g_trace
+  (rule
+   (target N1_hello_world_cpp.v)
+   (deps
+    (:input ../../../../test/g4g_trace/N1_hello_world.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target N1_hello_world_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/g4g_trace/N1_hello_world.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir g4g_trace
+  (rule
+   (target N4_sum_cpp.v)
+   (deps
+    (:input ../../../../test/g4g_trace/N4_sum.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target N4_sum_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/g4g_trace/N4_sum.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir g4g_trace
+  (rule
+   (target N4_sum_a_cpp.v)
+   (deps
+    (:input ../../../../test/g4g_trace/N4_sum_a.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target N4_sum_a_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/g4g_trace/N4_sum_a.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir g4g_trace
+  (rule
+   (target N5_swap_cpp.v)
+   (deps
+    (:input ../../../../test/g4g_trace/N5_swap.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target N5_swap_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/g4g_trace/N5_swap.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir g4g_trace
+  (rule
+   (target N5_swap_a_cpp.v)
+   (deps
+    (:input ../../../../test/g4g_trace/N5_swap_a.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target N5_swap_a_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/g4g_trace/N5_swap_a.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir g4g_trace
+  (rule
+   (target N6_print_sizeof_cpp.v)
+   (deps
+    (:input ../../../../test/g4g_trace/N6_print_sizeof.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target N6_print_sizeof_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/g4g_trace/N6_print_sizeof.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir initializer_list
+  (rule
+   (target test_cpp.v)
+   (deps
+    (:input ../../../../test/initializer_list/test.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target test_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/initializer_list/test.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir limits
+  (rule
+   (target test_cpp.v)
+   (deps
+    (:input ../../../../test/limits/test.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target test_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/limits/test.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir memory
+  (rule
+   (target test_cpp.v)
+   (deps
+    (:input ../../../../test/memory/test.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target test_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/memory/test.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir mutex
+  (rule
+   (target custom_mutex_cpp.v)
+   (deps
+    (:input ../../../../test/mutex/custom_mutex.cpp)
+    ../../../../test/mutex/custom_mutex.hpp)
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target custom_mutex_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/mutex/custom_mutex.cpp)
+    ../../../../test/mutex/custom_mutex.hpp)
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir mutex
+  (rule
+   (target custom_mutex_hpp.v)
+   (deps
+    (:input ../../../../test/mutex/custom_mutex.hpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-std=c++20'"))))
+
+  (rule
+   (target custom_mutex_hpp.cpp.json)
+   (deps
+    (:input ../../../../test/mutex/custom_mutex.hpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-std=c++20'")))))))
+
+(subdir test
+ (subdir mutex
+  (rule
+   (target custom_recursive_mutex_cpp.v)
+   (deps
+    (:input ../../../../test/mutex/custom_recursive_mutex.cpp)
+    ../../../../test/mutex/custom_recursive_mutex.hpp)
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target custom_recursive_mutex_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/mutex/custom_recursive_mutex.cpp)
+    ../../../../test/mutex/custom_recursive_mutex.hpp)
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir mutex
+  (rule
+   (target custom_recursive_mutex_hpp.v)
+   (deps
+    (:input ../../../../test/mutex/custom_recursive_mutex.hpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-std=c++20'"))))
+
+  (rule
+   (target custom_recursive_mutex_hpp.cpp.json)
+   (deps
+    (:input ../../../../test/mutex/custom_recursive_mutex.hpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-std=c++20'")))))))
+
+(subdir test
+ (subdir mutex
+  (rule
+   (target double_incr_cpp.v)
+   (deps
+    (:input ../../../../test/mutex/double_incr.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target double_incr_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/mutex/double_incr.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir mutex
+  (rule
+   (target guard_recursive_cpp.v)
+   (deps
+    (:input ../../../../test/mutex/guard_recursive.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target guard_recursive_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/mutex/guard_recursive.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir mutex
+  (rule
+   (target test_cpp.v)
+   (deps
+    (:input ../../../../test/mutex/test.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target test_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/mutex/test.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir mutex
+  (rule
+   (target transfer_with_mutex_cpp.v)
+   (deps
+    (:input ../../../../test/mutex/transfer_with_mutex.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target transfer_with_mutex_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/mutex/transfer_with_mutex.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir new
+  (rule
+   (target demo_cpp.v)
+   (deps
+    (:input ../../../../test/new/demo.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target demo_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/new/demo.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir pthread
+  (rule
+   (target test_cpp.v)
+   (deps
+    (:input ../../../../test/pthread/test.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target test_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/pthread/test.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir shared_mutex
+  (rule
+   (target custom_shared_mutex_cpp.v)
+   (deps
+    (:input ../../../../test/shared_mutex/custom_shared_mutex.cpp)
+    ../../../../test/shared_mutex/custom_shared_mutex.hpp)
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target custom_shared_mutex_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/shared_mutex/custom_shared_mutex.cpp)
+    ../../../../test/shared_mutex/custom_shared_mutex.hpp)
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir shared_mutex
+  (rule
+   (target custom_shared_mutex_hpp.v)
+   (deps
+    (:input ../../../../test/shared_mutex/custom_shared_mutex.hpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-std=c++20'"))))
+
+  (rule
+   (target custom_shared_mutex_hpp.cpp.json)
+   (deps
+    (:input ../../../../test/shared_mutex/custom_shared_mutex.hpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-stdlib=libstdc++' '-std=c++20'")))))))
+
+(subdir test
+ (subdir shared_mutex
+  (rule
+   (target test_cpp.v)
+   (deps
+    (:input ../../../../test/shared_mutex/test.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target test_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/shared_mutex/test.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir string
+  (rule
+   (target erase_out_of_range_cpp.v)
+   (deps
+    (:input ../../../../test/string/erase_out_of_range.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target erase_out_of_range_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/string/erase_out_of_range.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir string
+  (rule
+   (target test_cpp.v)
+   (deps
+    (:input ../../../../test/string/test.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target test_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/string/test.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir utility
+  (rule
+   (target test_cpp.v)
+   (deps
+    (:input ../../../../test/utility/test.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target test_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/utility/test.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir vector
+  (rule
+   (target data_ub_cpp.v)
+   (deps
+    (:input ../../../../test/vector/data_ub.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target data_ub_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/vector/data_ub.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir vector
+  (rule
+   (target erase_ub_cpp.v)
+   (deps
+    (:input ../../../../test/vector/erase_ub.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target erase_ub_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/vector/erase_ub.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))
+
+(subdir test
+ (subdir vector
+  (rule
+   (target test_cpp.v)
+   (deps
+    (:input ../../../../test/vector/test.cpp))
+   (alias code)
+   (action
+    (chdir "../../../.."
+     (system "'%{bin:cpp2v}' '-v' '%{input}' '-o' '%{target}' '--no-elaborate' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'"))))
+
+  (rule
+   (target test_cpp.cpp.json)
+   (deps
+    (:input ../../../../test/vector/test.cpp))
+   (alias cpp-data)
+   (action
+    (chdir "../../../.."
+     (with-stdout-to %{target}
+      (system "'%{bin:cpp-source-data}' '%{input}' '--' '--driver-mode=g++' '-std=c++20' '-stdlib=libstdc++'")))))))

@@ -1,0 +1,8 @@
+(* Export all specifications.
+Keep them listed in alphabetical order. *)
+Require Export skylabs.brick.libstdcpp.proofs.mutex.spec.defer_lock_t.
+Require Export skylabs.brick.libstdcpp.proofs.mutex.spec.lock_guard.
+Require Export skylabs.brick.libstdcpp.proofs.mutex.spec.mutex.
+Require Export skylabs.brick.libstdcpp.proofs.mutex.spec.recursive_mutex.
+Require Export skylabs.brick.libstdcpp.proofs.mutex.spec.scoped_lock.
+Require Export skylabs.brick.libstdcpp.proofs.mutex.spec.unique_lock.
