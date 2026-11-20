@@ -408,6 +408,17 @@
 )
 (subdir pthread
  (rule
+  (targets join_reuse_cycle_cpp.v.stderr join_reuse_cycle_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input join_reuse_cycle.cpp)
+   (glob_files_rec ../*.hpp))
+  (action
+   (with-stderr-to join_reuse_cycle_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o join_reuse_cycle_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps join_reuse_cycle.cpp))
+)
+(subdir pthread
+ (rule
   (targets test_cpp.v.stderr test_cpp.v)
   (alias test_ast)
   (deps
