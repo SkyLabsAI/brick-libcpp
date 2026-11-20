@@ -39,6 +39,7 @@ Module ostream.
 
   (** TODO: Add support for <iomanip> *)
   Parameter R : forall `{Σ : cpp_logic} {σ : genv}, Ostream -> gname -> cQp.t -> Rep.
+  #[only(type_ptr="std::basic_ostream<char, std::char_traits<char>>")] derive R.
   #[only(cfracsplittable)] derive R.
 
   Section with_cpp.
