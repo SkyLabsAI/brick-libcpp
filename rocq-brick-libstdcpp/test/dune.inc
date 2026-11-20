@@ -408,6 +408,28 @@
 )
 (subdir pthread
  (rule
+  (targets mutex_cpp.v.stderr mutex_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input mutex.cpp)
+   (glob_files_rec ../*.hpp))
+  (action
+   (with-stderr-to mutex_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o mutex_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps mutex.cpp))
+)
+(subdir pthread
+ (rule
+  (targets owner_cpp.v.stderr owner_cpp.v)
+  (alias test_ast)
+  (deps
+   (:input owner.cpp)
+   (glob_files_rec ../*.hpp))
+  (action
+   (with-stderr-to owner_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o owner_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps owner.cpp))
+)
+(subdir pthread
+ (rule
   (targets test_cpp.v.stderr test_cpp.v)
   (alias test_ast)
   (deps
