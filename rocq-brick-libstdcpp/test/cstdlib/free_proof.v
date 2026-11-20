@@ -45,17 +45,7 @@ Section with_cpp.
 
   (** Byte access to a block: view [blockR] as [anyR] bytes, and back. *)
   Section bytes.
-    Lemma blockR_anyR_bytes (p : ptr) (n : N) q :
-      p |-> blockR n q |--
-      p |-> array_sliceR Tuchar 0 n (fun _ : unit => anyR Tuchar q) (replicateZ n ()).
-    Proof. by rewrite blockR_equiv_array_sliceR. Qed.
-    Lemma anyR_bytes_blockR (p : ptr) (n : N) q :
-      p |-> array_sliceR Tuchar 0 n (fun _ : unit => anyR Tuchar q) (replicateZ n ()) |--
-      p |-> blockR n q.
-    Proof. by rewrite blockR_equiv_array_sliceR. Qed.
-    Definition blockR_anyR_bytes_F := [FWD] blockR_anyR_bytes.
-    Definition anyR_bytes_blockR_B := [BWD] anyR_bytes_blockR.
-    #[local] Hint Resolve blockR_anyR_bytes_F anyR_bytes_blockR_B : sl_opacity.
+    #[local] Hint Resolve _at_blockR_array_sliceR_F _at_blockR_array_sliceR_B : sl_opacity.
 
     (* The written bytes are given back with [array_sliceR_ucharR_blockR]. *)
     cpp.spec "test_free_written()" with

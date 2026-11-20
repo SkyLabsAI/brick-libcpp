@@ -24,3 +24,10 @@ Require Export skylabs.brick.libstdcpp.runtime.pred.
 Parameter errno_loc : thread_idT -> ptr.
 
 #[global] Abbreviation errnoR th q v := (_at (errno_loc th) (intR q v)) (only parsing).
+
+(** * Error numbers
+
+    The values of the <<E...>> macros are implementation-defined (C11 7.5p2). *)
+
+(** Out of memory (POSIX). Linux/glibc-specific: <<ENOMEM>> is 12. *)
+Definition ENOMEM : Z := 12.
