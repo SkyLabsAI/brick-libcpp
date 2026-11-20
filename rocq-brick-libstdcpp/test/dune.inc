@@ -407,6 +407,162 @@
  (alias (name srcs) (deps demo.cpp))
 )
 (subdir pthread
+ (subdir create
+  (rule
+   (targets create_argument_result_cpp.v.stderr create_argument_result_cpp.v)
+   (alias test_ast)
+   (deps
+    (:input create_argument_result.cpp)
+    (glob_files_rec ../*.hpp))
+   (action
+    (with-stderr-to create_argument_result_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o create_argument_result_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  (alias (name srcs) (deps create_argument_result.cpp))
+ )
+)
+(subdir pthread
+ (subdir create
+  (rule
+   (targets create_null_result_cpp.v.stderr create_null_result_cpp.v)
+   (alias test_ast)
+   (deps
+    (:input create_null_result.cpp)
+    (glob_files_rec ../*.hpp))
+   (action
+    (with-stderr-to create_null_result_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o create_null_result_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  (alias (name srcs) (deps create_null_result.cpp))
+ )
+)
+(subdir pthread
+ (subdir equal
+  (rule
+   (targets compare_cpp.v.stderr compare_cpp.v)
+   (alias test_ast)
+   (deps
+    (:input compare.cpp)
+    (glob_files_rec ../*.hpp))
+   (action
+    (with-stderr-to compare_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o compare_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  (alias (name srcs) (deps compare.cpp))
+ )
+)
+(subdir pthread
+ (subdir join
+  (rule
+   (targets join_cpp.v.stderr join_cpp.v)
+   (alias test_ast)
+   (deps
+    (:input join.cpp)
+    (glob_files_rec ../*.hpp))
+   (action
+    (with-stderr-to join_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o join_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  (alias (name srcs) (deps join.cpp))
+ )
+)
+(subdir pthread
+ (subdir lifecycle
+  (rule
+   (targets call_shapes_cpp.v.stderr call_shapes_cpp.v)
+   (alias test_ast)
+   (deps
+    (:input call_shapes.cpp)
+    (glob_files_rec ../*.hpp))
+   (action
+    (with-stderr-to call_shapes_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o call_shapes_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  (alias (name srcs) (deps call_shapes.cpp))
+ )
+)
+(subdir pthread
+ (subdir mutex
+  (rule
+   (targets static_initializer_cpp.v.stderr static_initializer_cpp.v)
+   (alias test_ast)
+   (deps
+    (:input static_initializer.cpp)
+    (glob_files_rec ../*.hpp))
+   (action
+    (with-stderr-to static_initializer_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o static_initializer_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  (alias (name srcs) (deps static_initializer.cpp))
+ )
+)
+(subdir pthread
+ (subdir mutex_destroy
+  (rule
+   (targets destroy_cpp.v.stderr destroy_cpp.v)
+   (alias test_ast)
+   (deps
+    (:input destroy.cpp)
+    (glob_files_rec ../*.hpp))
+   (action
+    (with-stderr-to destroy_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o destroy_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  (alias (name srcs) (deps destroy.cpp))
+ )
+)
+(subdir pthread
+ (subdir mutex_init
+  (rule
+   (targets init_cpp.v.stderr init_cpp.v)
+   (alias test_ast)
+   (deps
+    (:input init.cpp)
+    (glob_files_rec ../*.hpp))
+   (action
+    (with-stderr-to init_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o init_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  (alias (name srcs) (deps init.cpp))
+ )
+)
+(subdir pthread
+ (subdir mutex_lock
+  (rule
+   (targets lock_cpp.v.stderr lock_cpp.v)
+   (alias test_ast)
+   (deps
+    (:input lock.cpp)
+    (glob_files_rec ../*.hpp))
+   (action
+    (with-stderr-to lock_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o lock_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  (alias (name srcs) (deps lock.cpp))
+ )
+)
+(subdir pthread
+ (subdir mutex_trylock
+  (rule
+   (targets trylock_cpp.v.stderr trylock_cpp.v)
+   (alias test_ast)
+   (deps
+    (:input trylock.cpp)
+    (glob_files_rec ../*.hpp))
+   (action
+    (with-stderr-to trylock_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o trylock_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  (alias (name srcs) (deps trylock.cpp))
+ )
+)
+(subdir pthread
+ (subdir mutex_unlock
+  (rule
+   (targets unlock_cpp.v.stderr unlock_cpp.v)
+   (alias test_ast)
+   (deps
+    (:input unlock.cpp)
+    (glob_files_rec ../*.hpp))
+   (action
+    (with-stderr-to unlock_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o unlock_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  (alias (name srcs) (deps unlock.cpp))
+ )
+)
+(subdir pthread
+ (subdir self
+  (rule
+   (targets identity_cpp.v.stderr identity_cpp.v)
+   (alias test_ast)
+   (deps
+    (:input identity.cpp)
+    (glob_files_rec ../*.hpp))
+   (action
+    (with-stderr-to identity_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o identity_cpp.v --no-elaborate  -- -std=c++20 -stdlib=libstdc++ ))))
+  (alias (name srcs) (deps identity.cpp))
+ )
+)
+(subdir pthread
  (rule
   (targets test_cpp.v.stderr test_cpp.v)
   (alias test_ast)
