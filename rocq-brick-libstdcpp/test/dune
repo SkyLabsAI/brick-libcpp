@@ -41,13 +41,17 @@
 (rule
  (alias runtest)
  (action
-  (run python3 %{dep:mutex/scoped_lock_counterexample.py} %{bin:clang++}
+  (run %{bin:cpp2v-run}
+   --config %{dep:../cpp_environment}
+   -- python3 %{dep:mutex/scoped_lock_counterexample.py} clang++
    %{dep:mutex/scoped_lock_counterexample.cpp})))
 
 (rule
  (alias runtest)
  (action
-  (run python3 %{dep:mutex/recursive_mutex_odr.py} %{bin:clang++}
+  (run %{bin:cpp2v-run}
+   --config %{dep:../cpp_environment}
+   -- python3 %{dep:mutex/recursive_mutex_odr.py} clang++
    %{dep:mutex/custom_recursive_mutex.hpp})))
 
 (rule
