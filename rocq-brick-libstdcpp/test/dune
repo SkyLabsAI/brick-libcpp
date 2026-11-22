@@ -5,36 +5,36 @@
  (name skylabs.brick.libstdcpp.test) ; logical path of this library
  (generate_project_file)
  (theories
-  Stdlib
-  stdpp
-  skylabs.upoly
-  elpi
-  elpi_elpi
-  elpi.apps.locker
-  elpi.apps.NES
-  Lens
-  Lens.Elpi
-  Ltac2
-  skylabs.ltac2.extra
-  skylabs.prelude
-  iris
-  skylabs.iris.extra
-  Equations
-  Equations.Prop
-  Equations.Type
-  skylabs.lang.cpp
-  skylabs.lang.cpp.parser.plugin
-  skylabs.ltac2.logger
-  skylabs.auto.core
-  skylabs.elpi.extra
-  skylabs.elpi.cpp
-  skylabs
-  tactic_classes
-  skylabs.brick.libstdcpp
+  rocq-stdlib
+  rocq-stdpp
+  rocq-upoly
+  rocq-elpi
+  rocq-elpi.files
+  rocq-elpi.apps.locker
+  rocq-elpi.apps.NES
+  rocq-lens
+  rocq-lens-elpi
+  rocq-core.ltac2
+  ltac2-extra
+  rocq-skylabs-prelude
+  rocq-iris
+  rocq-skylabs-iris
+  rocq-equations.core
+  rocq-equations.prop
+  rocq-equations.type
+  rocq-skylabs-brick
+  rocq-skylabs-brick-cpp-prog
+  ltac2-logger
+  rocq-skylabs-auto-core
+  elpi-extra
+  elpi-cpp
+  rocq-skylabs-auto-cpp
+  rocq-tactic-classes
+  rocq-brick-libstdcpp
   ; transitive dependencies
-  Flocq elpi.apps.NES.elpi elpi.apps.derive elpi.apps.derive.elpi
-  elpi.apps.locker.elpi skylabs.plib skylabs.simp
- ))
+  rocq-flocq rocq-elpi.apps.NES.files rocq-elpi.apps.derive
+  rocq-elpi.apps.derive.files rocq-elpi.apps.locker.files
+  rocq-skylabs-plib rocq-skylabs-simp))
 (include dune.inc)
 
 ; Check the glibc ABI assumptions of the pthread mutex proof clients.

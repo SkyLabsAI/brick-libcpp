@@ -13,7 +13,7 @@ license: "BSD-3"
 homepage: "https://github.com/SkyLabsAI/brick-libcpp"
 bug-reports: "https://github.com/SkyLabsAI/brick-libcpp/issues"
 depends: [
-  "dune" {>= "3.22"}
+  "dune" {>= "3.26"}
   "rocq-skylabs-cpp2v" {= "dev"}
   "rocq-skylabs-brick-cpp-prog"
   "elpi-cpp"

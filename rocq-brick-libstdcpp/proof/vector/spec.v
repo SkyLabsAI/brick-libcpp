@@ -349,20 +349,31 @@ NES.Begin std.
 
         (** The converting constructor from <<iterator>> to <<const_iterator>>,
             a constructor template of <<__normal_iterator>> in libstdc++. *)
-        Definition iter_to_const ty alloc_ty :=
+        Definition iter_to_const_with_args ty alloc_ty args :=
           let argty := Tref (Tconst (T_base false ty alloc_ty)) in
-          _global (Ninst (Nscoped (N_base true ty alloc_ty) (Nctor [argty]))
-                     [Atype (Tptr ty); Atype Tvoid])
+          _global (Ninst (Nscoped (N_base true ty alloc_ty) (Nctor [argty])) args)
           |-> unmaterialized_specR (tCtor (N_base true ty alloc_ty) [argty]) (
             \this this
             \arg{otherp} "" (Vptr otherp)
             \with basep i
             \prepost{q} otherp |-> R_base false ty alloc_ty q basep i
             \post this |-> R_base true ty alloc_ty 1$m basep i).
+        #[global] Hint Opaque iter_to_const_with_args : sl_opacity.
+        #[global] Arguments iter_to_const_with_args : simpl never.
+
+        Definition iter_to_const ty alloc_ty :=
+          iter_to_const_with_args ty alloc_ty [Atype (Tptr ty)].
         #[global] Hint Opaque iter_to_const : sl_opacity.
         #[global] Arguments iter_to_const : simpl never.
         Definition iter_to_const_SpecFor := RegisterSpec iter_to_const.
         #[global] Existing Instance iter_to_const_SpecFor.
+
+        Definition iter_to_const_sfinae ty alloc_ty :=
+          iter_to_const_with_args ty alloc_ty [Atype (Tptr ty); Atype Tvoid].
+        #[global] Hint Opaque iter_to_const_sfinae : sl_opacity.
+        #[global] Arguments iter_to_const_sfinae : simpl never.
+        Definition iter_to_const_sfinae_SpecFor := RegisterSpec iter_to_const_sfinae.
+        #[global] Existing Instance iter_to_const_sfinae_SpecFor.
 
         Definition iter_op_eq const ty alloc_ty :=
           specify.template.static_op NS OOEqualEqual
