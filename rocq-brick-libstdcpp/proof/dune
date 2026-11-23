@@ -9,33 +9,13 @@
  (theories
   rocq-stdlib
   rocq-stdpp
-  rocq-upoly
-  rocq-elpi
-  rocq-elpi.files
-  rocq-elpi.apps.locker
-  rocq-elpi.apps.NES
-  rocq-lens
-  rocq-lens-elpi
-  rocq-core.ltac2
-  ltac2-extra
   rocq-skylabs-prelude
   rocq-iris
   rocq-skylabs-iris
-  rocq-equations.core
-  rocq-equations.prop
-  rocq-equations.type
   rocq-skylabs-brick
   rocq-skylabs-brick-cpp-prog
-  ltac2-logger
   rocq-skylabs-auto-core
-  elpi-extra
-  elpi-cpp
-  rocq-tactic-classes
-  rocq-skylabs-auto-cpp
-  ; transitive dependencies
-  rocq-flocq rocq-elpi.apps.NES.files rocq-elpi.apps.derive
-  rocq-elpi.apps.derive.files rocq-elpi.apps.locker.files
-  rocq-skylabs-plib rocq-skylabs-simp))
+  rocq-skylabs-auto-cpp))
 (include dune.inc)
 
 ; Expose the existing configuration once for configured inline quotations in
