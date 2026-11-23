@@ -39,14 +39,18 @@
 
 ; Expose the existing configuration once for configured inline quotations in
 ; this theory and its clients. The .v target orders generation before rocq dep.
+; Rebase the parent's relative workspace for this directory.
 (rule
- (targets cpp_environment cpp_environment_dependency.v)
+ (target cpp_environment)
  (deps (:config ../cpp_environment))
+ (action (run %{bin:cpp2v-toolchain} copy %{config} %{target})))
+
+(rule
+ (target cpp_environment_dependency.v)
+ (deps cpp_environment)
  (action
-  (progn
-   (copy %{config} cpp_environment)
-   (write-file cpp_environment_dependency.v
-    "(* Builds the inline toolchain configuration before rocq dep. *)\n"))))
+  (write-file %{target}
+   "(* Builds the inline toolchain configuration before rocq dep. *)\n")))
 
 (rule
  (action (with-stdout-to dune.inc.gen (run ./dune-gen.sh)))
