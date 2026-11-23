@@ -72,7 +72,6 @@ Section with_cpp.
 
     type.has_type_prop_prep.
     rewrite Z.sgn_pos in Hz; last lia.
-    arith_simpl.
     destruct (decide (0 <= z)).
     {
       suff: 0 <= z `quot` d < 2147483648 by lia.

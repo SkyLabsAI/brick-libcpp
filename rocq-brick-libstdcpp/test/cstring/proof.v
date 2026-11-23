@@ -395,7 +395,7 @@ Section with_cpp.
   Lemma test_strchr_ok : verify[source] "test_strchr()".
   Proof.
     verify_spec; go.
-    all: simpl in *; Arith.arith_simpl; normalize_ptrs; go.
+    all: simpl in *; normalize_ptrs; go.
     all: by exfalso.
   Qed.
 
@@ -403,7 +403,7 @@ Section with_cpp.
   Lemma test_strrchr_ok : verify[source] "test_strrchr()".
   Proof.
     verify_spec; go.
-    all: simpl in *; Arith.arith_simpl; normalize_ptrs; go.
+    all: simpl in *; normalize_ptrs; go.
     all: by exfalso.
   Qed.
 
