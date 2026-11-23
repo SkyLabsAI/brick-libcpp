@@ -346,9 +346,6 @@ Section with_cpp.
     intros -> Hwf; work.
     rewrite lengthN_app.
     work.
-    rewrite array_sliceR.unlock /cstring.R /zstring.R.
-    work.
-    by normalize_ptrs.
   Qed.
 
   #[local, program] Definition array_sliceR_close_cstring_C
