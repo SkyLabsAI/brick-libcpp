@@ -1,20 +1,24 @@
-// Two threads join each other although each holds a [pthread.handle] whose
-// spawner is its own current thread. See join_reuse_cycle.md.
+// Regression test for SkyLabsAI/brick-libcpp#262: two threads join each other
+// although each holds a [pthread.handle] for the thread it joins. See
+// join_reuse_cycle.md.
 //
 // test() starts S. S records its own std::thread::id and starts X. test()
 // joins S, which frees S's thread id, and then publishes S's handle for X
 // through [st]. X takes it and starts Y, which can reuse S's id. If it does,
-// Y passes the handle's spawner check and joins X while X joins Y.
+// Y joins X while X joins Y.
 //
 // A join that fails sets [failed], and test() returns only after reading it.
-// The specs say pthread_join always returns 0, so the proof shows that test()
-// never returns. A pthread_join that detects the cycle, which POSIX allows,
-// makes test() return.
+// When pthread_join could not fail, test() verified against a postcondition
+// of False, yet it returns under a pthread_join that reports the cycle with
+// EDEADLK, which POSIX allows. Now that pthread_join may fail, the failure
+// paths are reachable and test() verifies against a postcondition it can
+// meet.
 //
 // The code avoids built-in assignments and comparisons: auto's rules for those
 // rest on an unsound evaluation-order axiom.
 #include <pthread.h>
 #include <cstdio>
+#include <cstdlib>
 #include <thread>
 
 struct Shared {
@@ -62,27 +66,25 @@ void* x_fn(void* arg) {
 void* s_fn(void* arg) {
   Shared* sh = static_cast<Shared*>(arg);
   sh->id0 = std::this_thread::get_id();
-  if (pthread_create(&sh->x, nullptr, x_fn, sh)) {
-    // X does not exist, so there is nothing to publish.
-    while (!load_failed(sh)) {
-    }
-  }
+  if (pthread_create(&sh->x, nullptr, x_fn, sh))
+    abort(); // X does not exist, so there is no handle to return.
   return nullptr;
 }
 
-void test() {
-  Shared sh;
+// [sh] outlives test(): the threads may still use it after test() returns.
+void test(Shared* sh) {
   pthread_t s;
-  if (!pthread_create(&s, nullptr, s_fn, &sh)) {
-    pthread_join(s, nullptr);
-    publish(&sh);
+  if (!pthread_create(&s, nullptr, s_fn, sh)) {
+    if (!pthread_join(s, nullptr))
+      publish(sh);
   }
-  while (!load_failed(&sh)) {
+  while (!load_failed(sh)) {
   }
 }
 
 int main() {
-  test();
+  static Shared sh;
+  test(&sh);
   std::puts("REACHED_END_OF_TEST");
   return 0;
 }

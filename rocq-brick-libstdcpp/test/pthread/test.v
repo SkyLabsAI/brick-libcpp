@@ -9,6 +9,7 @@ Require Import skylabs.brick.libstdcpp.pthread.pred.
 Require Import skylabs.brick.libstdcpp.pthread.spec.
 Require Import skylabs.brick.libstdcpp.pthread.hints.
 Require Import skylabs.brick.libstdcpp.cassert.spec.
+Require Import skylabs.brick.libstdcpp.cstdlib.spec.
 
 Require Import skylabs.brick.libstdcpp.test.pthread.test_cpp.
 
@@ -89,9 +90,9 @@ Section with_cpp.
       (* fork thread 1 *)
     wp_if; go; [].
       (* fork thread 2 *)
-    wp_if.
-    { go. }
-    go.
+    wp_if; go.
+      (* each failed join aborts *)
+    all: repeat (wp_if; go).
   Qed.
 
 End with_cpp.

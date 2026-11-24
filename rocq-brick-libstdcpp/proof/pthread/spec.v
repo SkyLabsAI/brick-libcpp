@@ -22,8 +22,12 @@ Module pthread.
       - canceling threads;
       - joining a thread by threads other than their creator.
 
-      This prevents possible deadlocks when joining threads or race conditions when two threads both
-      try to cancel the same thread.
+      Not supporting cancellation prevents race conditions when two threads both try to cancel the
+      same thread.
+
+      Joining can still deadlock, for instance when a thread joins itself, so <<pthread_join>> may
+      report <<EDEADLK>>. Thread ids cannot rule this out: they are reused once a thread is joined
+      (SkyLabsAI/brick-libcpp#262).
    *)
 
   Definition starter_kind : okind :=
@@ -73,14 +77,12 @@ Section with_cpp.
             \pre              starterp |-> starter_specR argT Pre Post
             \arg{argp}       "arg"   (Vptr argp)
             \pre{arg : argT}  Pre argp arg
-            \with this_thread
-            \prepost          current_thread this_thread
             \require LocalWith procTI (Pre argp arg)
             \require forall tid, LocalWith procTI (Post argp arg tid)
             \post{err}[Vint err]
                if bool_decide (err = 0) then
                  ∃ γt tid,
-                   pthread.handle γt this_thread tid (Post argp arg tid) ∗
+                   pthread.handle γt tid (Post argp arg tid) ∗
                    idp |-> pthread.R 1$m tid
                else
                  Pre argp arg ∗
@@ -91,14 +93,15 @@ Section with_cpp.
      from source
      with ( \arg{tid}      "tid"   (Vthread tid)
             \arg           "ret"   (Vptr nullptr)
-            \prepost{this_thread} current_thread this_thread
-            \pre{γ P}      pthread.handle γ this_thread tid P
-            \post[Vint 0] (* the precondition rules out the errors that [pthread_join] can report:
-                              - deadlocks
-                              - thread is not joinable (our specs don't allow us to create such threads yet)
-                              - thread id does not designate an existing thread
-                              - thread is being joined by other thread *)
-                 P ).
+            \pre{γ P}      pthread.handle γ tid P
+            \post{err}[Vint err]
+              (* The handle rules out the other errors that <<pthread_join>> can report:
+                 - thread is not joinable (our specs don't allow us to create such threads yet)
+                 - thread id does not designate an existing thread
+                 - thread is being joined by another thread
+                 A nonzero result is therefore <<EDEADLK>>. The joined thread may still be running
+                 and still owns [P], so the handle is lost. *)
+              if bool_decide (err = 0) then P else emp ).
 
 End with_cpp.
 End pthread.

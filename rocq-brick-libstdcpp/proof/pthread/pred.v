@@ -18,15 +18,15 @@ Module pthread.
 
   Record gname := { _ghost : iprop.gname }.
 
-  (** [handle γ spawner tid P Pc] is a token returned when thread creation succeeds. [P] and [Pc]
-      are respectively the postcondition of the thread and its cancelation postcondition. [handle]
-      can be given to <<pthread_join>> to retrieve ownership of left by a thread's termination. It
-      can also be given to <<pthread_cancel>> to retrieve resources from the aborted thread.
+  (** [handle γ tid P] is a token returned when thread creation succeeds. [P] is the
+      postcondition of the thread. [handle] can be given to <<pthread_join>> to retrieve the
+      ownership left by the thread's termination.
 
-      [handle] also specifies the thread id of the spawning thread so that the precondition of [pthread_join]
-      can rule out two threads trying to mutually join with each other.  *)
+      [handle] does not record which thread may join: thread ids are reused once a thread is
+      joined, so no thread-id check can rule out join cycles. <<pthread_join>> instead allows the
+      <<EDEADLK>> error, which consumes the handle (SkyLabsAI/brick-libcpp#262). *)
   Parameter handle : forall `{Σ : cpp_logic,!HasStdThreads Σ}
-                       (γ : gname) (spawner tid : thread_idT)
+                       (γ : gname) (tid : thread_idT)
                        (Post : mpred), mpred.
 
   mlock
@@ -50,11 +50,11 @@ Module pthread.
         Cbn (Learn (learn_eq ==> any ==> learn_eq ==> learn_hints.fin) R) := ltac:(solve_learnable).
 
     #[global] Instance handle_learnable_1 :
-      Cbn (Learn (learn_eq ==> learn_eq ==> req_eq ==> learn_eq ==> learn_hints.fin)
+      Cbn (Learn (learn_eq ==> req_eq ==> learn_eq ==> learn_hints.fin)
              pthread.handle) := ltac:(solve_learnable).
 
     #[global] Instance handle_learnable_2 :
-      Cbn (Learn (req_eq ==> learn_eq ==> learn_eq ==> learn_eq ==> learn_hints.fin)
+      Cbn (Learn (req_eq ==> learn_eq ==> learn_eq ==> learn_hints.fin)
              pthread.handle) := ltac:(solve_learnable).
 
     #[global] Instance repfor `{!HasStdThreads Σ} {σ : genv} :

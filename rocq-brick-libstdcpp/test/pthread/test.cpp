@@ -1,6 +1,7 @@
 
 #include <pthread.h>
 #include <cassert>
+#include <cstdlib>
 
 void* thread_fn(void* data) {
     int* counter = static_cast<int*>(data);
@@ -38,15 +39,16 @@ void multithreaded_ok () {
     if (pthread_create(&child1, nullptr, thread_fn, &counter1) != 0)
         return;
     if (pthread_create(&child2, nullptr, cancelable_thread, &counter2) != 0) {
-        // Here, it is important that the precondition of `pthread_join` excludes dead-lock because
-        // otherwise, we could not retrieve the ownership of the local variable `counter1` when a
-        // deadlock is detected. The absence of deadlock is assured by requiring the thread that
-        // spawned a thread to also be the one to join it.
-        pthread_join(child1, nullptr);
+        // A failed join (EDEADLK) leaves `child1` running with `counter1`, so returning would
+        // free a local that the thread still uses: abort instead.
+        if (pthread_join(child1, nullptr) != 0)
+            abort();
         return;
     }
-    pthread_join(child2, nullptr);
-    pthread_join(child1, nullptr);
+    if (pthread_join(child2, nullptr) != 0)
+        abort();
+    if (pthread_join(child1, nullptr) != 0)
+        abort();
     assert (counter1 == 1);
     assert (counter2 == 3);
 }

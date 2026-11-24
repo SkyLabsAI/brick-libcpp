@@ -4,24 +4,24 @@
  * See the LICENSE-BedRock file in the repository root for details.
  *)
 
-(** * Conditional finding: handing a [pthread.handle] to another thread breaks [pthread_join]
+(** * Regression test for SkyLabsAI/brick-libcpp#262: join cycles through reused thread ids
 
-    [pthread_join] requires [pthread.handle γ this_thread tid P] and promises to return 0. The
-    [spawner] argument is meant to rule out two threads joining each other. But
-    [thread_idT] is the raw [pthread_t] value, which C libraries reuse once a thread is joined.
-    So if a handle could move to another thread, a thread could hold a handle whose spawner is
-    its own (reused) id, without being the thread that created the target.
+    [pthread_join] used to require [pthread.handle γ this_thread tid P], where [this_thread] was
+    the thread that created [tid], and promised to return 0. The spawner check was meant to rule
+    out two threads joining each other. But [thread_idT] is the raw [pthread_t] value, which C
+    libraries reuse once a thread is joined. As soon as a handle could move to another thread
+    ([handle_local] below), [join_reuse_cycle.cpp] verified against [\post False], although it
+    returns under a [pthread_join] that reports the resulting mutual join with [EDEADLK], which
+    POSIX allows.
 
-    On [main] no handle can move: [pthread_create] requires [LocalWith procTI] of the new
-    thread's [Pre] and [Post], and [pthread.handle] has no such instance (nor a
-    [WeaklyObjective] one for invariants). [handle_local] below is the missing step. With it,
-    [join_reuse_cycle.cpp] verifies against [\post False]: [test()] never returns because the
-    specs say no [pthread_join] fails. A POSIX implementation may report [EDEADLK] for the
-    resulting mutual join, and then [test()] returns. See [join_reuse_cycle.md]. *)
+    [pthread.handle] no longer records a spawner, and [pthread_join] may now fail, losing the
+    handle. With the same [handle_local], every failure path of the program is reachable, and
+    [test()] verifies against a postcondition it can meet. See [join_reuse_cycle.md]. *)
 
 Require Import skylabs.brick.libstdcpp.pthread.pred.
 Require Import skylabs.brick.libstdcpp.pthread.spec.
 Require Import skylabs.brick.libstdcpp.thread.spec.
+Require Import skylabs.brick.libstdcpp.cstdlib.spec.
 Require Import skylabs.base_logic.lib.local_invariants.
 Require Import skylabs.brick.libstdcpp.test.pthread.join_reuse_cycle_cpp.
 Require Import skylabs.auto.cpp.prelude.proof.
@@ -55,28 +55,28 @@ Section with_cpp.
   (** [go], splitting every nondeterministic evaluation order it reaches. *)
   Ltac gond := go; repeat (nd_case; try rewrite /wp.WPE.Mret /=; try go).
 
-  (** The suspect principle: a [pthread.handle] can be handed to another thread of the same
-      process, through [pthread_create]'s [Pre] and [Post]. *)
-  Hypothesis handle_local : ∀ γ spawner tid (P : mpred),
-    LocalWith procTI P → LocalWith procTI (pthread.handle γ spawner tid P).
+  (** A [pthread.handle] can be handed to another thread of the same process, through
+      [pthread_create]'s [Pre] and [Post]. This is what made the spawner check unsound. *)
+  Hypothesis handle_local : ∀ γ tid (P : mpred),
+    LocalWith procTI P → LocalWith procTI (pthread.handle γ tid P).
 
   Definition N : namespace := nroot .@ "join_reuse_cycle".
 
   (** What [test()] publishes: S's handle for X, X's id, and S's id. *)
   Definition Hx (sh : ptr) : mpred :=
     ∃ th γ tx,
-      pthread.handle γ th tx emp **
+      pthread.handle γ tx emp **
       sh ,, _field "Shared::x" |-> pthread.R 1$m tx **
       sh ,, _field "Shared::id0" |-> thread_idR 1$m th.
 
   #[local] Hint Opaque Hx : sl_opacity.
 
-  (** [Shared::st] holds the published handle while it is nonzero. No one sets
-      [Shared::failed]: [set_failed] is only called after a failed join. *)
+  (** [Shared::st] holds the published handle while it is nonzero. [Shared::failed] is set
+      after a failed join. *)
   Definition I (sh : ptr) : mpred :=
     (∃ v : Z, sh ,, _field "Shared::st" |-> intR 1$m v **
        (if bool_decide (v = 0) then emp else Hx sh)) **
-    sh ,, _field "Shared::failed" |-> intR 1$m 0.
+    (∃ f : Z, sh ,, _field "Shared::failed" |-> intR 1$m f).
 
   Abbreviation REFS sh fld :=
     (reference_to "Shared" sh ** reference_to "int" (sh ,, _field fld))%I (only parsing).
@@ -98,12 +98,12 @@ Section with_cpp.
     (\arg{sh} "sh" (Vptr sh)
      \persist inv N (I sh)
      \persist REFS sh "Shared::failed"
-     \post[Vint 0] emp).
+     \post{v}[Vint v] emp).
 
-  (** Only called after a failed [pthread_join], which [join_spec] rules out. *)
   cpp.spec "set_failed(Shared*)" as set_failed_spec with
     (\arg{sh} "sh" (Vptr sh)
-     \pre [| False |]
+     \persist inv N (I sh)
+     \persist REFS sh "Shared::failed"
      \post emp).
 
   Lemma take_st_ok : verify[join_reuse_cycle_cpp.source] take_st_spec.
@@ -111,7 +111,7 @@ Section with_cpp.
     verify_spec; gond.
     all: iApply wp_atom_exchange_n_cst; iSplit; [done|]; iSplit; [go|];
       rewrite /wrap_shift; iExists (⊤ ∖ ↑N);
-      iInv N as "[(%v & >Hst & Hrest) >Hf]" "Hclose";
+      iInv N as "[(%v & >Hst & Hrest) Hf]" "Hclose";
       iModIntro; iNext; iExists (Vint v); iFrame "Hst";
       iIntros "Hst"; iMod ("Hclose" with "[Hst Hf]") as "_";
       [iNext; iFrame "Hf"; iExists 0; iFrame "Hst"; by rewrite bool_decide_true
@@ -124,7 +124,7 @@ Section with_cpp.
     all: iDestruct select (Hx _) as "Hx";
       iApply wp_atom_store_cst; iSplit; [done|]; iSplit; [go|];
       rewrite /wrap_shift; iExists (⊤ ∖ ↑N);
-      iInv N as "[(%v & >Hst & _) >Hf]" "Hclose";
+      iInv N as "[(%v & >Hst & _) Hf]" "Hclose";
       iModIntro; iNext; iSplitL "Hst"; [rewrite -primR_anyR; iFrame "Hst"|];
       iIntros "Hst"; iMod ("Hclose" with "[Hst Hx Hf]") as "_";
       [iNext; iFrame "Hf"; iExists 1; iFrame "Hst"; by rewrite bool_decide_false
@@ -136,14 +136,22 @@ Section with_cpp.
     verify_spec; gond.
     all: iApply wp_atom_load_cst; iSplit; [done|];
       rewrite /wrap_shift; iExists (⊤ ∖ ↑N);
-      iInv N as "[Hst >Hf]" "Hclose";
-      iModIntro; iNext; iExists (Vint 0), (1$m)%cQp; iFrame "Hf";
+      iInv N as "[Hst (%f & >Hf)]" "Hclose";
+      iModIntro; iNext; iExists (Vint f), (1$m)%cQp; iFrame "Hf";
       iIntros "Hf"; iMod ("Hclose" with "[Hst Hf]") as "_";
       [iNext; iFrame | iModIntro; go].
   Qed.
 
   Lemma set_failed_ok : verify[join_reuse_cycle_cpp.source] set_failed_spec.
-  Proof. verify_spec; go. Qed.
+  Proof.
+    verify_spec; gond.
+    all: iApply wp_atom_store_cst; iSplit; [done|]; iSplit; [go|];
+      rewrite /wrap_shift; iExists (⊤ ∖ ↑N);
+      iInv N as "[Hst (%f & >Hf)]" "Hclose";
+      iModIntro; iNext; iSplitL "Hf"; [rewrite -primR_anyR; iFrame "Hf"|];
+      iIntros "Hf"; iMod ("Hclose" with "[Hst Hf]") as "_";
+      [iNext; iFrame | iModIntro; go].
+  Qed.
 
   (** ** Thread-local facts *)
 
@@ -207,10 +215,13 @@ Section with_cpp.
   (** ** Thread functions *)
 
   #[local] Abbreviation PreY :=
-    (fun (p : ptr) (_ : tele_arg [tele]) => Hx p ** refL "Shared" p) (only parsing).
+    (fun (p : ptr) (_ : tele_arg [tele]) =>
+       inv N (I p) ** Hx p ** refL "Shared" p **
+       refL "int" (p ,, _field "Shared::failed")) (only parsing).
   #[local] Abbreviation PreX :=
     (fun (p : ptr) (_ : tele_arg [tele]) =>
-       inv N (I p) ** refL "Shared" p ** refL "int" (p ,, _field "Shared::st")) (only parsing).
+       inv N (I p) ** refL "Shared" p ** refL "int" (p ,, _field "Shared::st") **
+       refL "int" (p ,, _field "Shared::failed")) (only parsing).
   #[local] Abbreviation PreS :=
     (fun (p : ptr) (_ : tele_arg [tele]) =>
        inv N (I p) ** refL "Shared" p ** refL "int" (p ,, _field "Shared::st") **
@@ -226,7 +237,15 @@ Section with_cpp.
   cpp.spec "x_fn(void*)" as x_spec with (pthread.starter_spec [tele] PreX PostE).
   cpp.spec "s_fn(void*)" as s_spec with (pthread.starter_spec [tele] PreS PostS).
 
-  cpp.spec "test()" as test_spec with (\post False).
+  (** [test()] can return: the threads keep using [sh] through the invariant. *)
+  cpp.spec "test(Shared*)" as test_spec with
+    (\arg{sh} "sh" (Vptr sh)
+     \pre sh |-> structR "Shared" 1$m **
+          sh ,, _field "Shared::st" |-> intR 1$m 0 **
+          sh ,, _field "Shared::failed" |-> intR 1$m 0 **
+          sh ,, _field "Shared::id0" |-> thread_idR 1$m default_thread_id **
+          sh ,, _field "Shared::x" |-> uninitR "unsigned long" 1$m
+     \post emp).
 
   Lemma y_starter : y_spec |-- _global "y_fn(void*)" |-> pthread.starter_specR [tele] PreY PostE.
   Proof. rewrite pthread.starter_specR.unlock. iIntros "H". iExact "H". Qed.
@@ -235,13 +254,15 @@ Section with_cpp.
   Lemma s_starter : s_spec |-- _global "s_fn(void*)" |-> pthread.starter_specR [tele] PreS PostS.
   Proof. rewrite pthread.starter_specR.unlock. iIntros "H". iExact "H". Qed.
 
-  (** Y: if its id is S's (reused) id, it joins X with the handle S created. *)
+  (** Y: if its id is S's (reused) id, it joins X with the handle S created. The join may
+      fail, and then Y sets [Shared::failed]. *)
   Lemma y_ok : verify[join_reuse_cycle_cpp.source] y_spec.
   Proof using MOD.
     verify_spec. gond. all: use_refL.
     all: iDestruct select (Hx _) as (th γ tx) "(? & ? & ?)".
     all: gond.
-    all: case_bool_decide; [subst|]; gond.
+    all: case_bool_decide; gond.
+    all: case_bool_decide; gond.
   Qed.
 
   (** X: takes S's handle for X, hands it to Y through Y's [Pre], and joins Y. *)
@@ -255,6 +276,7 @@ Section with_cpp.
     all: case_bool_decide; gond.
     all: iExists _, PreY, PostE, arg; rewrite /refL; gond.
     all: case_bool_decide; gond.
+    all: case_bool_decide; gond.
   Qed.
 
   (** S: records its id and creates X, then returns its handle for X through its [Post]. *)
@@ -265,60 +287,45 @@ Section with_cpp.
     all: gond.
     all: iExists _, PreX, PostE, arg; rewrite /refL; gond.
     all: case_bool_decide; gond.
-    all: try (wp_while (fun _ => \post False); gond).
     all: rewrite /Hx; iExists _, _, _; iFrame.
   Qed.
 
-  cpp.spec "Shared::Shared()" as shared_ctor_spec with
-    (\this this
-     \post this |-> structR "Shared" 1$m **
-           this ,, _field "Shared::st" |-> intR 1$m 0 **
-           this ,, _field "Shared::failed" |-> intR 1$m 0 **
-           this ,, _field "Shared::id0" |-> thread_idR 1$m default_thread_id **
-           this ,, _field "Shared::x" |-> uninitR "unsigned long" 1$m).
+  Ltac alloc_inv sh :=
+    iDestruct select (sh ,, _field "Shared::st" |-> _)%I as "Hst";
+    iDestruct select (sh ,, _field "Shared::failed" |-> _)%I as "Hf";
+    iDestruct (observe (reference_to "int" _) with "Hst") as "#Rst";
+    iDestruct (observe (reference_to "int" _) with "Hf") as "#Rf";
+    iAssert (reference_to "Shared" sh) as "#Rsh"; [go|];
+    iDestruct (reference_to_refL "int" (sh ,, _field "Shared::st") eq_refl with "Rst") as "#?";
+    iDestruct (reference_to_refL "int" (sh ,, _field "Shared::failed") eq_refl with "Rf") as "#?";
+    iDestruct (reference_to_refL "Shared" sh eq_refl with "Rsh") as "#?";
+    iMod (local_invariants.inv_alloc procTI N ⊤ (I sh) with "[Hst Hf]") as "#?";
+    [iNext; iSplitL "Hst"; [iExists 0; iFrame "Hst" | iExists 0; iFrame "Hf"] |].
 
-  Lemma shared_ctor_ok : verify[join_reuse_cycle_cpp.source] shared_ctor_spec.
-  Proof using MOD. verify_spec. gond. Qed.
-
-  (** [test()] never returns, so [Shared::~Shared()] is never reached and needs no spec. *)
-  Lemma test_ok : verify?[join_reuse_cycle_cpp.source] test_spec.
+  Lemma test_ok : verify[join_reuse_cycle_cpp.source] test_spec.
   Proof using handle_local MOD.
-    verify_spec.
-    repeat (lazymatch goal with
-            | |- context [intR _ 0] => fail
-            | _ => progress go1
-            end).
-    iDestruct select (sh_addr ,, _field "Shared::st" |-> _)%I as "Hst".
-    iDestruct select (sh_addr ,, _field "Shared::failed" |-> _)%I as "Hf".
-    iDestruct (observe (reference_to "int" _) with "Hst") as "#Rst".
-    iDestruct (observe (reference_to "int" _) with "Hf") as "#Rf".
-    iAssert (reference_to "Shared" sh_addr) as "#Rsh"; [go|].
-    iDestruct (reference_to_refL "int" (sh_addr ,, _field "Shared::st") eq_refl with "Rst") as "#?".
-    iDestruct (reference_to_refL "int" (sh_addr ,, _field "Shared::failed") eq_refl with "Rf") as "#?".
-    iDestruct (reference_to_refL "Shared" sh_addr eq_refl with "Rsh") as "#?".
-    iMod (local_invariants.inv_alloc procTI N ⊤ (I sh_addr) with "[Hst Hf]") as "#?".
-    { iNext. iFrame "Hf". iExists 0. iFrame "Hst". }
+    verify_spec. alloc_inv sh.
     iDestruct select s_spec as "#Ss". iDestruct (s_starter with "Ss") as "#?".
     gond.
     all: iExists _, PreS, PostS; iExists skylabs.auto.telescopes.taO; gond.
+    all: repeat (case_bool_decide; gond).
+    all: wp_while (fun _ => \post emp); gond.
     all: case_bool_decide; gond.
-    all: wp_while (fun _ => \post False); gond.
   Qed.
 
   (** The whole program, from the C++ library specs it uses. *)
-  Theorem test_never_returns :
+  Theorem test_from_specs :
     denoteModule join_reuse_cycle_cpp.source **
-    pthread.create_spec ** pthread.join_spec **
-    get_id_spec ** thread_id_ctor_spec ** thread_id_copy_ctor_spec ** thread_id_dtor_spec **
+    pthread.create_spec ** pthread.join_spec ** abort_spec **
+    get_id_spec ** thread_id_copy_ctor_spec ** thread_id_dtor_spec **
     thread_id_eq_spec ** thread_id_move_assign_spec
     |-- test_spec.
   Proof using handle_local MOD.
-    iIntros "(#M & #C & #J & #G & #DC & #CC & #D & #E & #MA)".
+    iIntros "(#M & #C & #J & #A & #G & #CC & #D & #E & #MA)".
     iAssert take_st_spec as "#T". { iApply (take_st_ok with "M"). }
     iAssert publish_spec as "#P". { iApply (publish_ok with "M"). }
     iAssert load_failed_spec as "#L". { iApply (load_failed_ok with "M"). }
     iAssert set_failed_spec as "#F". { iApply (set_failed_ok with "M"). }
-    iAssert shared_ctor_spec as "#Ct". { iApply (shared_ctor_ok with "M"); iFrame "#". }
     iAssert y_spec as "#Y". { iApply (y_ok with "M"); iFrame "#". }
     iAssert x_spec as "#X". { iApply (x_ok with "M"); iFrame "#". }
     iAssert s_spec as "#S". { iApply (s_ok with "M"); iFrame "#". }
@@ -326,4 +333,3 @@ Section with_cpp.
   Qed.
 
 End with_cpp.
-
