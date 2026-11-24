@@ -54,8 +54,8 @@ locals, the caller cannot return; `multithreaded_ok` in `test.cpp` calls `abort(
 
 ## The regression test
 
-`join_reuse_cycle_proof.v` keeps `handle_local` (without the spawner) and verifies
-the same threads. Every failed join is now a reachable path that sets
+`join_reuse_cycle_proof.v` uses the `pthread.handle_local_with` instance, the same
+principle as `handle_local` without the spawner, and verifies the same threads. Every failed join is now a reachable path that sets
 `Shared::failed`, so `test()` verifies against `\post emp` (`test_from_specs`).
 The program changed in three places, so that it can meet that postcondition:
 
@@ -69,7 +69,9 @@ handle's new arity, fails in `y_ok`. The open goals are the branch where
 `pthread_join` returned nonzero and calls `set_failed`, whose spec required
 `False`.
 
-`handle_local` stays a section hypothesis: this change does not add the instance.
+`handle_local` was a section hypothesis at first. SkyLabsAI/brick-libcpp#259 added
+it to the library as the `pthread.handle_local_with` instance, which the proof now
+uses.
 
 The proof does not use auto's `UNSOUND_eval_nd`, `UNSOUND_eval_l_nd` or
 `UNSOUND_nd_seq`. It removes those hints, along with the hints whose proofs use

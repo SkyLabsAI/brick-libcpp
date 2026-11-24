@@ -10,12 +10,13 @@
     the thread that created [tid], and promised to return 0. The spawner check was meant to rule
     out two threads joining each other. But [thread_idT] is the raw [pthread_t] value, which C
     libraries reuse once a thread is joined. As soon as a handle could move to another thread
-    ([handle_local] below), [join_reuse_cycle.cpp] verified against [\post False], although it
-    returns under a [pthread_join] that reports the resulting mutual join with [EDEADLK], which
-    POSIX allows.
+    (by a [handle_local] hypothesis), [join_reuse_cycle.cpp] verified against [\post False],
+    although it returns under a [pthread_join] that reports the resulting mutual join with
+    [EDEADLK], which POSIX allows.
 
     [pthread.handle] no longer records a spawner, and [pthread_join] may now fail, losing the
-    handle. With the same [handle_local], every failure path of the program is reachable, and
+    handle. Handles move between threads through the [pthread.handle_local_with] instance,
+    which replaced that hypothesis. Every failure path of the program is reachable, and
     [test()] verifies against a postcondition it can meet. See [join_reuse_cycle.md]. *)
 
 Require Import skylabs.brick.libstdcpp.pthread.pred.
@@ -54,11 +55,6 @@ Section with_cpp.
     end.
   (** [go], splitting every nondeterministic evaluation order it reaches. *)
   Ltac gond := go; repeat (nd_case; try rewrite /wp.WPE.Mret /=; try go).
-
-  (** A [pthread.handle] can be handed to another thread of the same process, through
-      [pthread_create]'s [Pre] and [Post]. This is what made the spawner check unsound. *)
-  Hypothesis handle_local : ∀ γ tid (P : mpred),
-    LocalWith procTI P → LocalWith procTI (pthread.handle γ tid P).
 
   Definition N : namespace := nroot .@ "join_reuse_cycle".
 
@@ -192,14 +188,14 @@ Section with_cpp.
   Proof. rewrite pthread.R.unlock. apply _. Qed.
 
   #[local] Instance Hx_local_with sh : LocalWith procTI (Hx sh).
-  Proof using handle_local. rewrite /Hx. pose proof handle_local. apply _. Qed.
+  Proof. rewrite /Hx. apply _. Qed.
 
   #[local] Instance if_local_with (b : bool) (P Q : mpred) :
     LocalWith procTI P -> LocalWith procTI Q -> LocalWith procTI (if b then P else Q).
   Proof. by destruct b. Qed.
 
   #[local] Instance I_local_with sh : LocalWith procTI (I sh).
-  Proof using handle_local. rewrite /I. apply _. Qed.
+  Proof. rewrite /I. apply _. Qed.
 
   #[local] Instance refL_local_with ty p : LocalWith procTI (refL ty p).
   Proof. rewrite /refL. apply _. Qed.
@@ -267,7 +263,7 @@ Section with_cpp.
 
   (** X: takes S's handle for X, hands it to Y through Y's [Pre], and joins Y. *)
   Lemma x_ok : verify[join_reuse_cycle_cpp.source] x_spec.
-  Proof using handle_local MOD.
+  Proof using MOD.
     verify_spec. gond. all: use_refL.
     all: iDestruct select y_spec as "#Ys"; iDestruct (y_starter with "Ys") as "#?".
     all: gond.
@@ -281,7 +277,7 @@ Section with_cpp.
 
   (** S: records its id and creates X, then returns its handle for X through its [Post]. *)
   Lemma s_ok : verify[join_reuse_cycle_cpp.source] s_spec.
-  Proof using handle_local MOD.
+  Proof using MOD.
     verify_spec. gond. all: use_refL.
     all: iDestruct select x_spec as "#Xs"; iDestruct (x_starter with "Xs") as "#?".
     all: gond.
@@ -303,7 +299,7 @@ Section with_cpp.
     [iNext; iSplitL "Hst"; [iExists 0; iFrame "Hst" | iExists 0; iFrame "Hf"] |].
 
   Lemma test_ok : verify[join_reuse_cycle_cpp.source] test_spec.
-  Proof using handle_local MOD.
+  Proof using MOD.
     verify_spec. alloc_inv sh.
     iDestruct select s_spec as "#Ss". iDestruct (s_starter with "Ss") as "#?".
     gond.
@@ -320,7 +316,7 @@ Section with_cpp.
     get_id_spec ** thread_id_copy_ctor_spec ** thread_id_dtor_spec **
     thread_id_eq_spec ** thread_id_move_assign_spec
     |-- test_spec.
-  Proof using handle_local MOD.
+  Proof using MOD.
     iIntros "(#M & #C & #J & #A & #G & #CC & #D & #E & #MA)".
     iAssert take_st_spec as "#T". { iApply (take_st_ok with "M"). }
     iAssert publish_spec as "#P". { iApply (publish_ok with "M"). }

@@ -19,11 +19,13 @@ Module pthread.
       This module specifies thread creation and joining. Unsupported are the following features of
       pthread:
       - detaching threads;
-      - canceling threads;
-      - joining a thread by threads other than their creator.
+      - canceling threads.
 
       Not supporting cancellation prevents race conditions when two threads both try to cancel the
       same thread.
+
+      Any thread of the process may join a thread: [pthread.handle_local_with] lets the handle
+      move between threads, along with its payload.
 
       Joining can still deadlock, for instance when a thread joins itself, so <<pthread_join>> may
       report <<EDEADLK>>. Thread ids cannot rule this out: they are reused once a thread is joined
