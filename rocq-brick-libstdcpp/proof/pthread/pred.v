@@ -113,15 +113,10 @@ Module pthread.
       Cbn (Learn (req_eq ==> learn_eq ==> learn_eq ==> learn_hints.fin)
              pthread.handle) := ltac:(solve_learnable).
 
-    (** Handles can be kept in invariants and mutexes. [WeaklyObjective] relates indices
-        ordered by [⊑], which share their process since [procTI] is monotone and process ids
-        are ordered by equality. *)
+    (** Handles can be kept in invariants and mutexes. *)
     #[global] Instance handle_weakly_objective γ tid (P : mpred) :
       LocalWith procTI P → WeaklyObjective (handle γ tid P).
-    Proof.
-      intros HP i j Hji. apply: (local_with procTI (handle γ tid P)).
-      symmetry. exact: (mlens_get_mono procTI _ _ Hji).
-    Qed.
+    Proof. intros. apply LocalWith_procTI_weakly_objective, _. Qed.
 
     #[global] Instance repfor `{!HasStdThreads Σ} {σ : genv} :
       rep.RepFor.C "pthread_t" [ArgType.CFrac; ArgType.Model _]
