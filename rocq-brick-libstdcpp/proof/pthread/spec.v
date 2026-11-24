@@ -5,10 +5,12 @@
  *)
 Require Import skylabs.brick.libstdcpp.pthread.pred.
 Require Import skylabs.brick.libstdcpp.pthread.inc_hpp.
+Require Export skylabs.brick.libstdcpp.pthread.mutex.
 
 Require Export skylabs.bi.tls_modalities.
 
 Require Import skylabs.auto.cpp.prelude.spec.
+Import wrap.
 
 Module pthread.
   Export pthread.
@@ -56,6 +58,29 @@ Section with_cpp.
 
   Context `{Σ : cpp_logic, σ : genv}.
   Context `{!HasStdThreads Σ}.
+
+  (** Linux/glibc returns its current descriptor address, represented by the
+      existing runtime's unsigned-long thread ID. No ownership of a mutex is
+      implied by an ID, or by equality of two ID words. *)
+  Section linux_thread_model.
+    cpp.spec "pthread_self" as self_nonzero_spec from source with (
+      \persist{th} current_thread th
+      \persist linux_thread_context
+      \post[Vthread th] [| unwrapN th <> 0%N |]).
+  End linux_thread_model.
+
+  cpp.spec "pthread_self" as self_spec from source with (
+    \persist{th} current_thread th
+    \post[Vthread th] emp).
+
+  (** glibc implements pthread_equal as unsigned-long equality. In particular
+      this raw-word contract covers a client's zero sentinel and stale words;
+      it makes no assertion that either word denotes a currently live thread.
+      For valid thread IDs, injectivity of unwrapN gives identity equality. *)
+  cpp.spec "pthread_equal" as equal_spec from source with (
+    \arg{a : N} "thread1" (Vn a)
+    \arg{b : N} "thread2" (Vn b)
+    \post[Vint (if bool_decide (a = b) then 1 else 0)] emp).
 
   cpp.spec "pthread_t::pthread_t()"
     from source
