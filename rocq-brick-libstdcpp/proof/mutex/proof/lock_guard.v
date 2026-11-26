@@ -93,7 +93,7 @@ Proof. vm_compute. reflexivity. Qed.
 Definition lock_guard_struct (mutex : name) (sz al : N) : Struct :=
   Build_Struct []
     [mkMember (Nid "_M_device") (Tref (Tnamed mutex)) false None (Build_LayoutInfo 0)]
-    [] [] (lock_guard_name mutex .:: Ndtor) false None Unspecified sz al.
+    [] [] (lock_guard_name mutex .:: Ndtor) false None Unspecified sz al [].
 
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
