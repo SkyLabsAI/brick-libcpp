@@ -28,6 +28,7 @@ Section with_cpp.
 
   Definition sum (xs : list Z) : Z := foldr Z.add 0 xs.
   #[global] Arguments sum !_ / : simpl nomatch.
+  #[local] Hint Unfold sum : tbd.
 
   (** ** Capacity
 

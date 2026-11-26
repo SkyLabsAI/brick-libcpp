@@ -155,6 +155,7 @@ Section with_cpp.
     #[global] Arguments sum !_ / : simpl nomatch.
 
   End defs.
+  #[local] Hint Unfold sum : tbd.
 
   Section specs.
     Context `{MOD : test_cpp.source ⊧ σ}.
