@@ -4,6 +4,7 @@
  * See the LICENSE-BedRock file in the repository root for details.
  *)
 Require Import skylabs.auto.cpp.spec.
+Require Import tactic_classes.search.
 Require Export skylabs.cpp.slice.
 
 Require Import skylabs.cpp.spec.concepts.
@@ -160,6 +161,11 @@ NES.Begin std.
     Section with_RepFor.
       Import rep.RepFor.
       Import RepScheme.
+
+      #[global] Instance bundled_rep `{Σ : cpp_logic} {σ : genv} ty aty
+          `{!TCNot (TCEq ty Tbool)} `(_ : BundledRep ty M) :
+        BundledRep (T ty aty) (list M) :=
+        {| objR := fun q xs => R_alloc ty aty q xs |}.
 
       #[global] Instance repfor `{Σ : cpp_logic} {σ : genv} ty aty `(_ : BundledRep ty M) :
         rep.RepFor.C (T ty aty)
