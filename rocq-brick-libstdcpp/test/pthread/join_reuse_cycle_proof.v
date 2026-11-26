@@ -36,26 +36,6 @@ Section with_cpp.
   Context {HAS_THREADS : HasStdThreads Σ}.
   Context `{MOD : !join_reuse_cycle_cpp.source ⊧ σ}.
 
-  (** Keep auto's [UNSOUND_*] evaluation-order axioms out of the derivation: drop the hints
-      that are, or whose proofs use, them. Evaluation orders are split with [nd_case]. *)
-  Remove Hints eval.UNSOUND_eval_nd_B eval.UNSOUND_eval_l_nd_B eval.UNSOUND_nd_seq_B
-    skylabs.auto.cpp.vc_rw.VcRwDefs.wp_operand_binop_wp_B
-    skylabs.auto.cpp.hints.wp_path.wp_path_and.wp_lval_assign_B
-    skylabs.auto.cpp.hints.wp_path.WpPrimRSep.wp_lval_assign_B
-    : db_skylabs_wp.
-  #[local] Transparent eval.
-
-  Ltac nd_case :=
-    match goal with
-    | H : _ = ?pre ++ _ :: _ |- _ =>
-        destruct pre as [|?[|?[|?[|? ?]]]]; simplify_eq/=;
-        try (match goal with
-             | H0 : [] = ?l ++ _ :: _ |- _ => destruct l; simplify_eq
-             end)
-    end.
-  (** [go], splitting every nondeterministic evaluation order it reaches. *)
-  Ltac gond := go; repeat (nd_case; try rewrite /wp.WPE.Mret /=; try go).
-
   Definition N : namespace := nroot .@ "join_reuse_cycle".
 
   (** What [test()] publishes: S's handle for X, X's id, and S's id. *)
@@ -104,7 +84,7 @@ Section with_cpp.
 
   Lemma take_st_ok : verify[join_reuse_cycle_cpp.source] take_st_spec.
   Proof.
-    verify_spec; gond.
+    verify_spec; go.
     all: iApply wp_atom_exchange_n_cst; iSplit; [done|]; iSplit; [go|];
       rewrite /wrap_shift; iExists (⊤ ∖ ↑N);
       iInv N as "[(%v & >Hst & Hrest) Hf]" "Hclose";
@@ -116,7 +96,7 @@ Section with_cpp.
 
   Lemma publish_ok : verify[join_reuse_cycle_cpp.source] publish_spec.
   Proof.
-    verify_spec; gond.
+    verify_spec; go.
     all: iDestruct select (Hx _) as "Hx";
       iApply wp_atom_store_cst; iSplit; [done|]; iSplit; [go|];
       rewrite /wrap_shift; iExists (⊤ ∖ ↑N);
@@ -129,7 +109,7 @@ Section with_cpp.
 
   Lemma load_failed_ok : verify[join_reuse_cycle_cpp.source] load_failed_spec.
   Proof.
-    verify_spec; gond.
+    verify_spec; go.
     all: iApply wp_atom_load_cst; iSplit; [done|];
       rewrite /wrap_shift; iExists (⊤ ∖ ↑N);
       iInv N as "[Hst (%f & >Hf)]" "Hclose";
@@ -140,7 +120,7 @@ Section with_cpp.
 
   Lemma set_failed_ok : verify[join_reuse_cycle_cpp.source] set_failed_spec.
   Proof.
-    verify_spec; gond.
+    verify_spec; go.
     all: iApply wp_atom_store_cst; iSplit; [done|]; iSplit; [go|];
       rewrite /wrap_shift; iExists (⊤ ∖ ↑N);
       iInv N as "[Hst (%f & >Hf)]" "Hclose";
@@ -254,36 +234,36 @@ Section with_cpp.
       fail, and then Y sets [Shared::failed]. *)
   Lemma y_ok : verify[join_reuse_cycle_cpp.source] y_spec.
   Proof using MOD.
-    verify_spec. gond. all: use_refL.
-    all: iDestruct select (Hx _) as (th γ tx) "(? & ? & ?)".
-    all: gond.
-    all: case_bool_decide; gond.
-    all: case_bool_decide; gond.
+    verify_spec. go. use_refL.
+    iDestruct select (Hx _) as (th γ tx) "(? & ? & ?)".
+    go.
+    case_bool_decide; go; [].
+    case_bool_decide; go.
   Qed.
 
   (** X: takes S's handle for X, hands it to Y through Y's [Pre], and joins Y. *)
   Lemma x_ok : verify[join_reuse_cycle_cpp.source] x_spec.
   Proof using MOD.
-    verify_spec. gond. all: use_refL.
-    all: iDestruct select y_spec as "#Ys"; iDestruct (y_starter with "Ys") as "#?".
-    all: gond.
-    all: wp_while (fun _ => \post Hx argp).
-    all: gond.
-    all: case_bool_decide; gond.
-    all: iExists _, PreY, PostE, arg; rewrite /refL; gond.
-    all: case_bool_decide; gond.
-    all: case_bool_decide; gond.
+    verify_spec. go. use_refL.
+    iDestruct select y_spec as "#Ys"; iDestruct (y_starter with "Ys") as "#?".
+    go.
+    wp_while (fun _ => \post Hx argp).
+    go.
+    case_bool_decide; go; [].
+    iExists _, PreY, PostE, arg; rewrite /refL; go.
+    case_bool_decide; go; [].
+    case_bool_decide; go.
   Qed.
 
   (** S: records its id and creates X, then returns its handle for X through its [Post]. *)
   Lemma s_ok : verify[join_reuse_cycle_cpp.source] s_spec.
   Proof using MOD.
-    verify_spec. gond. all: use_refL.
-    all: iDestruct select x_spec as "#Xs"; iDestruct (x_starter with "Xs") as "#?".
-    all: gond.
-    all: iExists _, PreX, PostE, arg; rewrite /refL; gond.
-    all: case_bool_decide; gond.
-    all: rewrite /Hx; iExists _, _, _; iFrame.
+    verify_spec. go. use_refL.
+    iDestruct select x_spec as "#Xs"; iDestruct (x_starter with "Xs") as "#?".
+    go.
+    iExists _, PreX, PostE, arg; rewrite /refL; go.
+    case_bool_decide; go; [].
+    rewrite /Hx; iExists _, _, _; iFrame.
   Qed.
 
   Ltac alloc_inv sh :=
@@ -302,11 +282,11 @@ Section with_cpp.
   Proof using MOD.
     verify_spec. alloc_inv sh.
     iDestruct select s_spec as "#Ss". iDestruct (s_starter with "Ss") as "#?".
-    gond.
-    all: iExists _, PreS, PostS; iExists skylabs.auto.telescopes.taO; gond.
-    all: repeat (case_bool_decide; gond).
-    all: wp_while (fun _ => \post emp); gond.
-    all: case_bool_decide; gond.
+    go.
+    iExists _, PreS, PostS; iExists skylabs.auto.telescopes.taO; go.
+    repeat (case_bool_decide; go).
+    all: wp_while (fun _ => \post emp); go; [].
+    all: case_bool_decide; go.
   Qed.
 
   (** The whole program, from the C++ library specs it uses. *)

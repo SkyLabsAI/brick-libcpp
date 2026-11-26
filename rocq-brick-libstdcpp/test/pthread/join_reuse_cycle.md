@@ -73,12 +73,14 @@ handle's new arity, fails in `y_ok`. The open goals are the branch where
 it to the library as the `pthread.handle_local_with` instance, which the proof now
 uses.
 
-The proof does not use auto's `UNSOUND_eval_nd`, `UNSOUND_eval_l_nd` or
-`UNSOUND_nd_seq`. It removes those hints, along with the hints whose proofs use
-them (`wp_operand_binop_wp`, used for `==` and `!=`, and both `wp_lval_assign`
-hints). It splits every nondeterministic evaluation order explicitly (`gond`). This
-is why the C++ uses `!`, int-to-bool tests and default member initializers rather
-than built-in comparisons and assignments.
+The original proof used to not depend on auto's `UNSOUND_eval_nd`,
+`UNSOUND_eval_l_nd` or `UNSOUND_nd_seq`. It removed those hints, along with the
+hints whose proofs use them (`wp_operand_binop_wp`, used for `==` and `!=`, and
+both `wp_lval_assign` hints). It split every nondeterministic evaluation order
+explicitly (`gond`). This is why the C++ code uses `!`, int-to-bool tests and
+default member initializers rather than built-in comparisons and assignments.
+These oddities in the C++ code remain but the proof no longer avoids the unsound
+axioms.
 
 ## Run-time evidence
 
