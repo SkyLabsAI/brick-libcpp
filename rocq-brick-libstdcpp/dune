@@ -1,16 +1,26 @@
-; Unsandboxed: the recorded workspace is relative to this file's final location.
+; The build directory is directly below the source workspace, so the relation
+; between the target and this workspace path is unchanged by sandboxing.
+
 (rule
  (target cpp_environment)
  (deps
   (universe)
-  (sandbox none)
   (env_var CPP2V_DOCKER_ENABLED)
   (env_var CPP2V_DOCKER_IMAGE)
   (env_var CPP2V_DOCKER_USER))
  (action
-  (run %{bin:cpp2v-toolchain} configure --output %{target}
-   --default-image skylabsai/fm-releases:fm-release-nightly
-   --platform linux/amd64 --opam)))
+  (run
+   %{bin:cpp2v-toolchain}
+   configure
+   --workspace
+   %{workspace_root}/../..
+   --output
+   %{target}
+   --default-image
+   skylabsai/fm-releases:fm-release-nightly
+   --platform
+   linux/amd64
+   --opam)))
 
 (env
  (sl_timing
