@@ -56,7 +56,7 @@ NES.Begin std.compare.
 
   sl.lock
   Definition unspecR `{Σ : cpp_logic, σ : genv} (q : cQp.t) : Rep :=
-    structR "std::__cmp_cat::__unspec" q ** emp.
+    structR "std::__cmp_cat::__literal_zero" q ** emp.
   #[only(cfractional,cfracvalid,ascfractional,timeless,type_ptr,lazy_unfold(global))] derive unspecR.
 
   #[global] Abbreviation strong_ordering_globals q := (
