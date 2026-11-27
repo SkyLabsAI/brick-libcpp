@@ -203,12 +203,18 @@ NES.Begin std.
       Context (ty alloc_ty : type).
       #[local] Abbreviation spineR := (spineR ty alloc_ty).
 
+      #[global] Declare Instance spineR_timeless : Timeless3 spineR.
       #[global] Declare Instance spineR_cfrac : CFractional2 spineR.
       #[global] Declare Instance spineR_ascfrac : AsCFractional2 spineR.
+      #[global] Declare Instance spineR_cfracvalid : CFracValid2 spineR.
       #[global] Declare Instance spineR_typed q st size :
         Observe (type_ptrR (T ty alloc_ty)) (spineR q size st).
-      #[global] Declare Instance spineR_agree q size q' st size' st' :
-          Observe2 [| st = st' ∧ size = size' |]
+      #[global] Declare Instance spineR_agree_size q size q' st size' st' :
+          Observe2 [| size = size' |]
+            (spineR q  size  st)
+            (spineR q' size' st').
+      #[global] Declare Instance spineR_agree_state q size q' st size' st' :
+          Observe2 [| st = st' |]
             (spineR q  size  st)
             (spineR q' size' st').
       #[global] Declare Instance spineR_valid_size q size st :

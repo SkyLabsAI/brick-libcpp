@@ -27,7 +27,7 @@ NES.Begin std.allocator.
   #[global] Abbreviation T ty := (Tnamed (Ninst "std::allocator" [Atype ty])).
   sl.lock Definition R `{Σ : cpp_logic,σ : genv} (ty : type) (q : cQp.t) (_ : ()) : Rep :=
     structR (N ty) q.
-  #[only(ascfractional,cfractional,cfracvalid,type_ptr)] derive R.
+  #[only(ascfractional,cfractional,cfracvalid,type_ptr,timeless)] derive R.
 
   #[global] Instance R_agree `{Σ : cpp_logic,σ : genv} ty q1 q2 a1 a2 : Observe2 [| a1 = a2 |] (R ty q1 a1) (R ty q2 a2).
   Proof. by destruct a1,a2; apply observe_2_intro_only_provable; iIntros "? ? !%". Qed.
