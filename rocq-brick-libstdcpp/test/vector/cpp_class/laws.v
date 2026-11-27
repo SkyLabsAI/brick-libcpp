@@ -14,5 +14,5 @@ Section S.
   Goal CFracValid2 S.
   Proof. first [ apply _; idtac "spineR CFracValid2: found" | idtac "spineR CFracValid2: NOT found" ]. Abort.
   Goal forall xs : list Z, CFractional (fun q => std.vector.R_alloc "unsigned long" "std::allocator<unsigned long>" q xs).
-  Proof. intros. Time Timeout 1 apply _. Qed.
+  Proof. intros. Timeout 1 apply _. Qed.
 End S.
