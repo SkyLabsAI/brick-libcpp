@@ -132,7 +132,6 @@ Module Aggregate.
       Proof using MOD.
         verify_spec. wapply op_eq_ok.
         go using prim.primR_aggressiveC.
-        by [].
       Qed.
       Definition op_neq_B := [LINK] op_neq_ok.
 
