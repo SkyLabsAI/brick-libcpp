@@ -23,6 +23,11 @@ Section with_cpp.
   Lemma erase_end_ok : verify[source] erase_end_spec.
   Proof.
     verify_spec.
-    go. Show. Fail Qed.
+    go.
+    lazymatch goal with
+    | |- context [1 < 1] => idtac "erase_end is rejected by 1 < 1"
+    | _ => fail "unexpected erase_end goal"
+    end.
+    Fail Qed.
   Abort.
 End with_cpp.

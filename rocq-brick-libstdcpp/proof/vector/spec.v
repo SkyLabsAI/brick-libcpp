@@ -375,9 +375,8 @@ NES.Begin std.
         Definition iter_to_const_sfinae_SpecFor := RegisterSpec iter_to_const_sfinae.
         #[global] Existing Instance iter_to_const_sfinae_SpecFor.
 
-        Definition iter_op_eq const ty alloc_ty :=
-          specify.template.static_op NS OOEqualEqual
-              [Atype (Tptr (Tconst_if const ty)); Atype (vector.T ty alloc_ty)]
+        Definition iter_op_eq_with_args const ty alloc_ty args :=
+          specify.template.static_op NS OOEqualEqual args
               Tbool  [Tref (Tconst (T_base const ty alloc_ty)); Tref (Tconst (T_base const ty alloc_ty))] $
             \arg{firstp}  "first"  (Vptr firstp)
             \arg{secondp} "second" (Vptr secondp)
@@ -385,10 +384,23 @@ NES.Begin std.
             \prepost{q0} firstp  |-> R_base const ty alloc_ty q0 basep i
             \prepost{q1} secondp |-> R_base const ty alloc_ty q1 basep j
             \post[Vbool (bool_decide (i = j))] emp.
+        #[global] Hint Opaque iter_op_eq_with_args : sl_opacity.
+        #[global] Arguments iter_op_eq_with_args : simpl never.
+
+        Definition iter_op_eq const ty alloc_ty :=
+          iter_op_eq_with_args const ty alloc_ty
+            [Atype (Tptr (Tconst_if const ty)); Atype (vector.T ty alloc_ty)].
         #[global] Hint Opaque iter_op_eq : sl_opacity.
         #[global] Arguments iter_op_eq : simpl never.
         Definition iter_op_eq_SpecFor := RegisterSpec iter_op_eq.
         #[global] Existing Instance iter_op_eq_SpecFor.
+
+        Definition iter_op_eq_same const ty alloc_ty :=
+          iter_op_eq_with_args const ty alloc_ty [].
+        #[global] Hint Opaque iter_op_eq_same : sl_opacity.
+        #[global] Arguments iter_op_eq_same : simpl never.
+        Definition iter_op_eq_same_SpecFor := RegisterSpec iter_op_eq_same.
+        #[global] Existing Instance iter_op_eq_same_SpecFor.
 
         Definition iter_op_ne const ty alloc_ty :=
           specify.template.static_op NS OOExclaimEqual
@@ -415,6 +427,7 @@ NES.Begin std.
           iter_op_pre_inc const ty alloc_ty **
           iter_op_plus const ty alloc_ty **
           iter_op_eq const ty alloc_ty **
+          iter_op_eq_same const ty alloc_ty **
           iter_op_ne const ty alloc_ty.
         #[global] Hint Opaque specs : typeclass_instances sl_opacity.
         #[only(knowledge)] derive specs.

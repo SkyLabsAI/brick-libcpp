@@ -324,6 +324,7 @@ Section with_cpp.
           std.vector.iterator.specs false "int" alloc_int **
           std.vector.iterator.specs true "int" alloc_int **
           std.vector.iterator.iter_to_const "int" alloc_int **
+          std.vector.iterator.iter_to_const_sfinae "int" alloc_int **
           std.find_spec (std.vector.iterator.T "int") "int" source **
           std.allocator.specs "int" **
           std.cassert.specs)
