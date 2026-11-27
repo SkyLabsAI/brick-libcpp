@@ -1,0 +1,93 @@
+{
+  "project": "LLVM libc++",
+  "release": "llvmorg-22.1.8",
+  "commit": "ca7933e47d3a3451d81e72ac174dcb5aa28b59d1",
+  "adaptations": [
+    "Include the repository custom mutex header using a relative path.",
+    "Replace the tested std:: mutex type with the matching MyMutex, MyRecursiveMutex, or MySharedMutex type.",
+    "Remove unused includes from test sources and directly include <iterator> for std::begin/std::end.",
+    "Preserve every upstream assertion and the support headers."
+  ],
+  "files": {
+    "mutex/assign.compile.pass.cpp": {
+      "upstream_url": "https://github.com/llvm/llvm-project/blob/ca7933e47d3a3451d81e72ac174dcb5aa28b59d1/libcxx/test/std/thread/thread.mutex/thread.mutex.requirements/thread.mutex.requirements.mutex/thread.mutex.class/assign.compile.pass.cpp",
+      "upstream_sha256": "3a5a73a85cfab31871f38a92862838871bd66954fdce4bbeb46f0596fa7cac26"
+    },
+    "mutex/ctor.copy.compile.pass.cpp": {
+      "upstream_url": "https://github.com/llvm/llvm-project/blob/ca7933e47d3a3451d81e72ac174dcb5aa28b59d1/libcxx/test/std/thread/thread.mutex/thread.mutex.requirements/thread.mutex.requirements.mutex/thread.mutex.class/ctor.copy.compile.pass.cpp",
+      "upstream_sha256": "01abb04d22631f7a62fc0bdbc0a832f342d79ee5c5370b51dfa25a6888a4593a"
+    },
+    "mutex/ctor.default.pass.cpp": {
+      "upstream_url": "https://github.com/llvm/llvm-project/blob/ca7933e47d3a3451d81e72ac174dcb5aa28b59d1/libcxx/test/std/thread/thread.mutex/thread.mutex.requirements/thread.mutex.requirements.mutex/thread.mutex.class/ctor.default.pass.cpp",
+      "upstream_sha256": "e47b2dff8b9071238160bdbbd56f6a2437d1c358c5bedf615080465e367950aa"
+    },
+    "mutex/lock.pass.cpp": {
+      "upstream_url": "https://github.com/llvm/llvm-project/blob/ca7933e47d3a3451d81e72ac174dcb5aa28b59d1/libcxx/test/std/thread/thread.mutex/thread.mutex.requirements/thread.mutex.requirements.mutex/thread.mutex.class/lock.pass.cpp",
+      "upstream_sha256": "120e7204cdae0919ff0635bf3acb8839d7a1e7ce63170c5921cf687b841ba7d4"
+    },
+    "mutex/try_lock.pass.cpp": {
+      "upstream_url": "https://github.com/llvm/llvm-project/blob/ca7933e47d3a3451d81e72ac174dcb5aa28b59d1/libcxx/test/std/thread/thread.mutex/thread.mutex.requirements/thread.mutex.requirements.mutex/thread.mutex.class/try_lock.pass.cpp",
+      "upstream_sha256": "81044a279dc66a75aa5e8b39f37576dfff3356a439f7eb842f14e9392f9a29cf"
+    },
+    "recursive_mutex/assign.compile.pass.cpp": {
+      "upstream_url": "https://github.com/llvm/llvm-project/blob/ca7933e47d3a3451d81e72ac174dcb5aa28b59d1/libcxx/test/std/thread/thread.mutex/thread.mutex.requirements/thread.mutex.requirements.mutex/thread.mutex.recursive/assign.compile.pass.cpp",
+      "upstream_sha256": "f38a4c75e7ee06f637e8f81be81c56c4cd231664c2e7c63782d2b1150311d9e0"
+    },
+    "recursive_mutex/ctor.copy.compile.pass.cpp": {
+      "upstream_url": "https://github.com/llvm/llvm-project/blob/ca7933e47d3a3451d81e72ac174dcb5aa28b59d1/libcxx/test/std/thread/thread.mutex/thread.mutex.requirements/thread.mutex.requirements.mutex/thread.mutex.recursive/ctor.copy.compile.pass.cpp",
+      "upstream_sha256": "7e28097fb89e9fe17ce5ff61e128d56827c73b8b6aeba8c2b95fd10ad8b28294"
+    },
+    "recursive_mutex/ctor.default.pass.cpp": {
+      "upstream_url": "https://github.com/llvm/llvm-project/blob/ca7933e47d3a3451d81e72ac174dcb5aa28b59d1/libcxx/test/std/thread/thread.mutex/thread.mutex.requirements/thread.mutex.requirements.mutex/thread.mutex.recursive/ctor.default.pass.cpp",
+      "upstream_sha256": "94230436de215238431d80c16474b019f9b6965350f0ad5429205f4cdb3364f4"
+    },
+    "recursive_mutex/lock.pass.cpp": {
+      "upstream_url": "https://github.com/llvm/llvm-project/blob/ca7933e47d3a3451d81e72ac174dcb5aa28b59d1/libcxx/test/std/thread/thread.mutex/thread.mutex.requirements/thread.mutex.requirements.mutex/thread.mutex.recursive/lock.pass.cpp",
+      "upstream_sha256": "10a631c90893d2ac5a25425b43f7ea70e57c5149ccebc037f02284b10010f747"
+    },
+    "recursive_mutex/try_lock.pass.cpp": {
+      "upstream_url": "https://github.com/llvm/llvm-project/blob/ca7933e47d3a3451d81e72ac174dcb5aa28b59d1/libcxx/test/std/thread/thread.mutex/thread.mutex.requirements/thread.mutex.requirements.mutex/thread.mutex.recursive/try_lock.pass.cpp",
+      "upstream_sha256": "7555b07e2bfc47bffd02fa9bd7d6551da809d340aced09a16bdb0f58959a39b8"
+    },
+    "shared_mutex/assign.compile.pass.cpp": {
+      "upstream_url": "https://github.com/llvm/llvm-project/blob/ca7933e47d3a3451d81e72ac174dcb5aa28b59d1/libcxx/test/std/thread/thread.mutex/thread.mutex.requirements/thread.shared_mutex.requirements/thread.shared_mutex.class/assign.compile.pass.cpp",
+      "upstream_sha256": "31c8d543f322febf4609eb0f338799c8359fcc1a7c417822359ba2e9bed7eb84"
+    },
+    "shared_mutex/ctor.copy.compile.pass.cpp": {
+      "upstream_url": "https://github.com/llvm/llvm-project/blob/ca7933e47d3a3451d81e72ac174dcb5aa28b59d1/libcxx/test/std/thread/thread.mutex/thread.mutex.requirements/thread.shared_mutex.requirements/thread.shared_mutex.class/ctor.copy.compile.pass.cpp",
+      "upstream_sha256": "a6cf086e60c06f093eb82221a8783a4f5547f49810969b16cecef68b42879546"
+    },
+    "shared_mutex/ctor.default.pass.cpp": {
+      "upstream_url": "https://github.com/llvm/llvm-project/blob/ca7933e47d3a3451d81e72ac174dcb5aa28b59d1/libcxx/test/std/thread/thread.mutex/thread.mutex.requirements/thread.shared_mutex.requirements/thread.shared_mutex.class/ctor.default.pass.cpp",
+      "upstream_sha256": "91e57db57a78002d09ddbdbc95e97266033d6f2cb673a37598a0242d03c63d95"
+    },
+    "shared_mutex/lock.pass.cpp": {
+      "upstream_url": "https://github.com/llvm/llvm-project/blob/ca7933e47d3a3451d81e72ac174dcb5aa28b59d1/libcxx/test/std/thread/thread.mutex/thread.mutex.requirements/thread.shared_mutex.requirements/thread.shared_mutex.class/lock.pass.cpp",
+      "upstream_sha256": "cc3c4c25c7cf118f23bf6adca6a4acf68fd18c1c065531a87f6b86256fccd985"
+    },
+    "shared_mutex/lock_shared.pass.cpp": {
+      "upstream_url": "https://github.com/llvm/llvm-project/blob/ca7933e47d3a3451d81e72ac174dcb5aa28b59d1/libcxx/test/std/thread/thread.mutex/thread.mutex.requirements/thread.shared_mutex.requirements/thread.shared_mutex.class/lock_shared.pass.cpp",
+      "upstream_sha256": "7dd1b8e27d15d5a78615fae70c3add1843dd389f1368c0a64c268d46acf05cb5"
+    },
+    "shared_mutex/try_lock.pass.cpp": {
+      "upstream_url": "https://github.com/llvm/llvm-project/blob/ca7933e47d3a3451d81e72ac174dcb5aa28b59d1/libcxx/test/std/thread/thread.mutex/thread.mutex.requirements/thread.shared_mutex.requirements/thread.shared_mutex.class/try_lock.pass.cpp",
+      "upstream_sha256": "94f90b7d366e10132a09ddf6593239718ca5afd858da9dd3ecd1eeec4439270d"
+    },
+    "shared_mutex/try_lock_shared.pass.cpp": {
+      "upstream_url": "https://github.com/llvm/llvm-project/blob/ca7933e47d3a3451d81e72ac174dcb5aa28b59d1/libcxx/test/std/thread/thread.mutex/thread.mutex.requirements/thread.shared_mutex.requirements/thread.shared_mutex.class/try_lock_shared.pass.cpp",
+      "upstream_sha256": "0d287f284210a11dba4d5702c8301ebd92aa057320c390c46a8f051611816a9e"
+    },
+    "support/test_macros.h": {
+      "upstream_url": "https://github.com/llvm/llvm-project/blob/ca7933e47d3a3451d81e72ac174dcb5aa28b59d1/libcxx/test/support/test_macros.h",
+      "upstream_sha256": "ed5fe25dd7d279a5411905dfcddf21aa207d8c39a2c6672de872b270676ba012"
+    },
+    "support/make_test_thread.h": {
+      "upstream_url": "https://github.com/llvm/llvm-project/blob/ca7933e47d3a3451d81e72ac174dcb5aa28b59d1/libcxx/test/support/make_test_thread.h",
+      "upstream_sha256": "5616253d10fa1408faf49a04b5607ba4fd648381522315b5f671690741d3c0f7"
+    },
+    "LICENSE.TXT": {
+      "upstream_url": "https://github.com/llvm/llvm-project/blob/ca7933e47d3a3451d81e72ac174dcb5aa28b59d1/libcxx/LICENSE.TXT",
+      "upstream_sha256": "539dd7aed86e8a4f12cbdd0e6c50c189c7d74847e4fecc64ce2c6ee3a01da38b"
+    }
+  }
+}
