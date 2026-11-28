@@ -43,11 +43,16 @@
   (targets mutex_native.exe)
   (deps mutex.cpp owner.cpp)
   (action
-   (run %{bin:clang++} -std=c++20 -pthread -DPTHREAD_MUTEX_NATIVE_TEST
+   (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment}
+     --host-tool %{bin:clang++}
+     --container-tool clang++ --
+      -std=c++20 -pthread -DPTHREAD_MUTEX_NATIVE_TEST
     -Wall -Wextra -Werror %{dep:mutex.cpp} %{dep:owner.cpp} -o mutex_native.exe)))
  (rule
   (alias runtest)
-  (action (run ./mutex_native.exe))))
+  (action (run  %{bin:cpp2v-run} --config %{dep:../../cpp_environment}
+     --host-tool %{dep:mutex_native.exe}
+     --container-tool ./mutex_native.exe))))
 
 ; An executable counterexample to the current generic scoped_lock contract.
 (rule

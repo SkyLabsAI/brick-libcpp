@@ -4,6 +4,7 @@
  * See the LICENSE-BedRock file in the repository root for details.
  *)
 Require Import skylabs.auto.cpp.spec.
+Require Import tactic_classes.search.
 Require Export skylabs.cpp.slice.
 
 Require Import skylabs.cpp.spec.concepts.
@@ -161,6 +162,11 @@ NES.Begin std.
       Import rep.RepFor.
       Import RepScheme.
 
+      #[global] Instance bundled_rep `{Σ : cpp_logic} {σ : genv} ty aty
+          `{!TCNot (TCEq ty Tbool)} `(_ : BundledRep ty M) :
+        BundledRep (T ty aty) (list M) :=
+        {| objR := fun q xs => R_alloc ty aty q xs |}.
+
       #[global] Instance repfor `{Σ : cpp_logic} {σ : genv} ty aty `(_ : BundledRep ty M) :
         rep.RepFor.C (T ty aty)
           [ArgType.CFrac; ArgType.Model _]
@@ -197,12 +203,18 @@ NES.Begin std.
       Context (ty alloc_ty : type).
       #[local] Abbreviation spineR := (spineR ty alloc_ty).
 
+      #[global] Declare Instance spineR_timeless : Timeless3 spineR.
       #[global] Declare Instance spineR_cfrac : CFractional2 spineR.
       #[global] Declare Instance spineR_ascfrac : AsCFractional2 spineR.
+      #[global] Declare Instance spineR_cfracvalid : CFracValid2 spineR.
       #[global] Declare Instance spineR_typed q st size :
         Observe (type_ptrR (T ty alloc_ty)) (spineR q size st).
-      #[global] Declare Instance spineR_agree q size q' st size' st' :
-          Observe2 [| st = st' ∧ size = size' |]
+      #[global] Declare Instance spineR_agree_size q size q' st size' st' :
+          Observe2 [| size = size' |]
+            (spineR q  size  st)
+            (spineR q' size' st').
+      #[global] Declare Instance spineR_agree_state q size q' st size' st' :
+          Observe2 [| st = st' |]
             (spineR q  size  st)
             (spineR q' size' st').
       #[global] Declare Instance spineR_valid_size q size st :

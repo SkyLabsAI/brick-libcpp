@@ -4,6 +4,7 @@ Tentative Specifications for <string>
 Require Import skylabs.auto.cpp.prelude.spec.
 Require Import skylabs.auto.cpp.elpi.derive.
 Require Import skylabs.auto.cpp.hints.const.
+Require Import skylabs.cpp.spec.concepts.
 Require Export skylabs.cpp.string.
 
 Require Import skylabs.brick.libstdcpp.string.inc_string_cpp.
@@ -20,6 +21,12 @@ To support wider character types, we need to generalize this to something like `
 
 Parameter basic_stringR :
   forall `{Σ : cpp_logic} {σ : genv} (value_type : type), cQp.t -> string_type -> Rep.
+
+#[global] Instance basic_string_DefaultValue :
+  DefaultValue
+    "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>"%cpp_type
+    BS.t :=
+  {| default_val := BS.EmptyString |}.
 
 Section with_cpp.
   Context `{Σ : cpp_logic, σ : genv}.
