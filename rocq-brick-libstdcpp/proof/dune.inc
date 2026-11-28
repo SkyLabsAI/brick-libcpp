@@ -62,6 +62,17 @@
    (with-stderr-to inc_compare_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o inc_compare_cpp.v --templates=inc_compare_cpp_templates.v  --no-elaborate -- -std=c++20 -stdlib=libstdc++ ))))
  (alias (name srcs) (deps inc_compare.cpp))
 )
+(subdir cstdio
+ (rule
+  (targets inc_cstdio_cpp.v.stderr inc_cstdio_cpp.v inc_cstdio_cpp_templates.v)
+  (alias test_ast)
+  (deps
+   (:input inc_cstdio.cpp)
+   (glob_files_rec ../*.hpp))
+  (action
+   (with-stderr-to inc_cstdio_cpp.v.stderr (run %{bin:cpp2v-run} --config %{dep:../../cpp_environment} --host-tool %{bin:cpp2v} --container-tool cpp2v -- -v %{input} -o inc_cstdio_cpp.v --no-elaborate --templates=inc_cstdio_cpp_templates.v  -- -std=c++20 -stdlib=libstdc++ ))))
+ (alias (name srcs) (deps inc_cstdio.cpp))
+)
 (subdir cstdlib
  (rule
   (targets inc_cstdlib_cpp.v.stderr inc_cstdlib_cpp.v inc_cstdlib_cpp_templates.v)
