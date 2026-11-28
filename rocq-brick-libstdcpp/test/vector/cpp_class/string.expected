@@ -1,0 +1,7 @@
+WithString.default_ctor_spec
+     : mpred
+where
+?thread_info : [ |- biIndex]
+?_Σ : [ |- gFunctors]
+?Σ : [ |- cpp_logic ?thread_info ?_Σ]
+?σ : [ |- genv]
