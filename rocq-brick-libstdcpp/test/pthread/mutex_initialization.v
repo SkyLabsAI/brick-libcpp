@@ -18,13 +18,7 @@ Section with_cpp.
 
   #[local] Instance protected_cell_weakly_objective (p : ptr) x :
       WeaklyObjective (p |-> intR 1$m x).
-  Proof using Type HasStdThreads0.
-    intros i j Hle. apply (local_with procTI); first apply _.
-    have Heq := mlens_get_mono (@procTI _ _ Σ HasStdThreads0) _ _ Hle.
-    change ((j .^ (@procTI _ _ Σ HasStdThreads0)) =
-            (i .^ (@procTI _ _ Σ HasStdThreads0))) in Heq.
-    symmetry. exact Heq.
-  Qed.
+  Proof using Type HasStdThreads0. apply LocalWith_procTI_weakly_objective, _. Qed.
 
   cpp.spec "read_static_then_destroy(int*)" as static_client_spec with (
     \arg{p} "value" (Vptr p)
